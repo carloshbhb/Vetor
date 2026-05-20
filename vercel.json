@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/autonomous-agent",
+      "schedule": "0 4 * * *"
+    }
+  ]
+}
