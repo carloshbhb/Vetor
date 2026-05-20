@@ -17,6 +17,7 @@ interface TrendIdea {
 
 export default function TrendsPage() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'reviews' | 'viral'>('reviews');
   const [category, setCategory] = useState('');
   const [searching, setSearching] = useState(false);
   const [trends, setTrends] = useState<TrendIdea[] | null>(null);
@@ -35,7 +36,7 @@ export default function TrendsPage() {
       const res = await fetch('/api/trends', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: category.trim() }),
+        body: JSON.stringify({ category: category.trim(), type: activeTab }),
       });
 
       const data = await res.json();
@@ -75,6 +76,30 @@ export default function TrendsPage() {
         </p>
       </div>
 
+      {/* Tabs Selector */}
+      <div className="flex gap-2 mb-6 border-b border-border pb-px">
+        <button
+          onClick={() => { setActiveTab('reviews'); setTrends(null); }}
+          className={`px-5 py-2.5 font-syne font-bold text-xs uppercase tracking-wider border-b-2 transition-all ${
+            activeTab === 'reviews'
+              ? 'border-blue text-blue font-bold'
+              : 'border-transparent text-text-muted hover:text-text'
+          }`}
+        >
+          📝 Reviews de Produtos
+        </button>
+        <button
+          onClick={() => { setActiveTab('viral'); setTrends(null); }}
+          className={`px-5 py-2.5 font-syne font-bold text-xs uppercase tracking-wider border-b-2 transition-all ${
+            activeTab === 'viral'
+              ? 'border-blue text-blue font-bold'
+              : 'border-transparent text-text-muted hover:text-text'
+          }`}
+        >
+          🔥 Tráfego Viral (Guias & Comparativos)
+        </button>
+      </div>
+
       {/* Search Input Box */}
       <div className="bg-white border border-border rounded-xl shadow-sm p-6 mb-8">
         <form onSubmit={handleSearch} className="flex gap-3">
@@ -82,7 +107,11 @@ export default function TrendsPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
             <input
               type="text"
-              placeholder="Digite o nicho ou categoria (Ex: Wearables, Smartwatches, Fones Bluetooth, Robôs Aspiradores)..."
+              placeholder={
+                activeTab === 'viral'
+                  ? "Digite a categoria para gerar pautas comparativas/listas (Ex: Smartwatches, Fones de Ouvido, Casa Inteligente)..."
+                  : "Digite o nicho ou categoria para reviews (Ex: Wearables, Smartwatches, Fones Bluetooth, Robôs Aspiradores)..."
+              }
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               disabled={searching}
@@ -211,7 +240,7 @@ export default function TrendsPage() {
                   {/* Gap Analysis */}
                   <div className="bg-bg border border-border rounded-xl p-4 mb-6">
                     <p className="text-[11px] font-syne font-bold uppercase tracking-widest text-text-muted mb-1.5 flex items-center gap-1">
-                      💡 Análise de Brecha Concorrente
+                      💡 {activeTab === 'viral' ? 'Análise Concorrencial da Pauta' : 'Análise de Brecha Concorrente'}
                     </p>
                     <p className="text-xs text-text-2 leading-relaxed">
                       {idea.gapAnalysis}
@@ -224,7 +253,7 @@ export default function TrendsPage() {
                   onClick={() => handleCreateDraft(idea)}
                   className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-light hover:bg-blue border border-blue-mid text-blue hover:text-white font-syne font-bold text-xs uppercase tracking-wider transition-colors duration-200 mt-2"
                 >
-                  Criar Rascunho do Review
+                  {activeTab === 'viral' ? 'Criar Artigo Comparativo' : 'Criar Rascunho do Review'}
                   <ArrowRight size={14} />
                 </button>
               </div>

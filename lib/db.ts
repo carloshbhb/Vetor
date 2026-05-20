@@ -37,8 +37,8 @@ export function getAllReviews(): ReviewData[] {
 
 /** Return lightweight summaries for listing pages. */
 export function getReviewSummaries(): ReviewSummary[] {
-  return getAllReviews().map(({ id, slug, status, product, category, meta, hero, adsEnabled, createdAt, updatedAt }) => ({
-    id, slug, status, product, category, meta, hero, adsEnabled, createdAt, updatedAt,
+  return getAllReviews().map(({ id, slug, status, product, category, meta, hero, adsEnabled, createdAt, updatedAt, googleRank, lastRankCheck }) => ({
+    id, slug, status, product, category, meta, hero, adsEnabled, createdAt, updatedAt, googleRank, lastRankCheck,
   }));
 }
 

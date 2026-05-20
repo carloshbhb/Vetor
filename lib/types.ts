@@ -112,6 +112,10 @@ export interface ReviewData {
   // Timestamps
   createdAt: string;
   updatedAt: string;
+
+  // SERP rankings
+  googleRank?: number;
+  lastRankCheck?: string;
 }
 
 // Partial version used on listing pages (no heavy content)
@@ -119,4 +123,5 @@ export type ReviewSummary = Pick<
   ReviewData,
   | 'id' | 'slug' | 'status' | 'product' | 'category'
   | 'meta' | 'hero' | 'adsEnabled' | 'createdAt' | 'updatedAt'
+  | 'googleRank' | 'lastRankCheck'
 >;

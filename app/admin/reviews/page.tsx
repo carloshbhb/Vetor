@@ -35,7 +35,7 @@ export default function ReviewsListPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-bg2 border-b border-border">
-                {['Produto', 'Categoria', 'Nota', 'Anúncios', 'Status', 'Atualizado', 'Ações'].map(h => (
+                {['Produto', 'Categoria', 'Posição Google (SERP)', 'Nota', 'Anúncios', 'Status', 'Atualizado', 'Ações'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-[11px] font-syne font-bold uppercase tracking-widest text-text-muted">{h}</th>
                 ))}
               </tr>
@@ -48,6 +48,31 @@ export default function ReviewsListPage() {
                     <p className="text-xs text-text-muted mt-0.5 max-w-[240px] truncate">{r.meta.title}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-text-muted">{r.category}</td>
+                  <td className="px-4 py-3">
+                    {r.status === 'published' ? (
+                      r.googleRank && r.googleRank > 0 ? (
+                        r.googleRank <= 3 ? (
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                            🏆 Rank #{r.googleRank}
+                          </span>
+                        ) : r.googleRank <= 10 ? (
+                          <span className="inline-flex items-center gap-1 bg-teal-50 border border-teal-200 text-teal-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                            📈 Rank #{r.googleRank}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                            🔍 Rank #{r.googleRank}
+                          </span>
+                        )
+                      ) : (
+                        <span className="bg-slate-50 border border-slate-200 text-slate-400 text-xs font-medium px-2.5 py-1 rounded-full">
+                          Não listado
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-text-muted text-xs italic">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="bg-blue-light border border-blue-mid rounded-lg text-xs font-syne font-bold px-2.5 py-1 text-blue">{r.hero.overallScore}</span>
                   </td>

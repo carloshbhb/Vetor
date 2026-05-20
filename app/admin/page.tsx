@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PlusCircle, FileText, Star, Eye } from 'lucide-react';
 import { getAllReviews } from '@/lib/db';
+import SerpRefreshButton from '@/components/admin/SerpRefreshButton';
 
 export default function AdminDashboard() {
   const reviews = getAllReviews();
@@ -53,9 +54,12 @@ export default function AdminDashboard() {
           <p className="font-syne font-bold text-xs uppercase tracking-widest text-text">
             Reviews Recentes
           </p>
-          <Link href="/admin/reviews" className="text-blue text-xs font-medium hover:underline">
-            Ver todos →
-          </Link>
+          <div className="flex items-center gap-4">
+            <SerpRefreshButton />
+            <Link href="/admin/reviews" className="text-blue text-xs font-medium hover:underline">
+              Ver todos →
+            </Link>
+          </div>
         </div>
 
         {reviews.length === 0 ? (
@@ -68,7 +72,7 @@ export default function AdminDashboard() {
           <table className="w-full">
             <thead>
               <tr className="bg-bg2">
-                {['Produto','Categoria','Nota','Status','Data','Ações'].map(h => (
+                {['Produto','Categoria','Posição Google (SERP)','Nota','Status','Data','Ações'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-[11px] font-syne font-bold uppercase tracking-widest text-text-muted border-b border-border">
                     {h}
                   </th>
@@ -86,6 +90,31 @@ export default function AdminDashboard() {
                     <span className="bg-bg2 border border-border rounded-full text-xs font-medium px-2.5 py-0.5 text-text-muted">
                       {r.category}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {r.status === 'published' ? (
+                      r.googleRank && r.googleRank > 0 ? (
+                        r.googleRank <= 3 ? (
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                            🏆 Rank #{r.googleRank}
+                          </span>
+                        ) : r.googleRank <= 10 ? (
+                          <span className="inline-flex items-center gap-1 bg-teal-50 border border-teal-200 text-teal-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                            📈 Rank #{r.googleRank}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                            🔍 Rank #{r.googleRank}
+                          </span>
+                        )
+                      ) : (
+                        <span className="bg-slate-50 border border-slate-200 text-slate-400 text-xs font-medium px-2.5 py-1 rounded-full">
+                          Não listado
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-text-muted text-xs italic">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span className="bg-blue-light border border-blue-mid rounded-lg text-xs font-syne font-bold px-2.5 py-1 text-blue">
