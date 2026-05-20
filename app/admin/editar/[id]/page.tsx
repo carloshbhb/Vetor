@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getReviewById } from '@/lib/db';
 import ReviewForm from '@/components/admin/ReviewForm';
 import { notFound } from 'next/navigation';

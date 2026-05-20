@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { PlusCircle, FileText, Star, Eye } from 'lucide-react';
 import { getAllReviews } from '@/lib/db';

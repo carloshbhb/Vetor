@@ -4,12 +4,54 @@ import { v4 as uuidv4 } from 'uuid';
 import type { ReviewData, ReviewSummary } from './types';
 
 // ─── Storage paths ───────────────────────────────────────────────────────────
-const DATA_DIR     = path.join(process.cwd(), 'data');
-const REVIEWS_FILE = path.join(DATA_DIR, 'reviews.json');
+const BUNDLED_FILE = path.join(process.cwd(), 'data', 'reviews.json');
+
+// Bulletproof check to see if we can write to the bundled file system
+function checkIsReadOnly(): boolean {
+  if (process.env.VERCEL === '1' || process.env.NETLIFY === '1' || !!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return true;
+  }
+  try {
+    const dir = path.dirname(BUNDLED_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const testFile = path.join(dir, '.write-test-' + Math.random().toString(36).slice(2));
+    fs.writeFileSync(testFile, 'test');
+    fs.unlinkSync(testFile);
+    return false;
+  } catch (err) {
+    console.warn('[Database] Bulletproof check: File system is read-only. Fallback to /tmp/reviews.json.', err);
+    return true;
+  }
+}
+
+const IS_READ_ONLY = checkIsReadOnly();
+const REVIEWS_FILE = IS_READ_ONLY 
+  ? path.join('/tmp', 'reviews.json')
+  : BUNDLED_FILE;
 
 function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(REVIEWS_FILE)) fs.writeFileSync(REVIEWS_FILE, '[]', 'utf-8');
+  if (IS_READ_ONLY) {
+    if (!fs.existsSync(REVIEWS_FILE)) {
+      // Seed /tmp/reviews.json with the pre-compiled reviews.json inside the app bundle
+      try {
+        if (fs.existsSync(BUNDLED_FILE)) {
+          fs.copyFileSync(BUNDLED_FILE, REVIEWS_FILE);
+          console.log('[Database] Seeded /tmp/reviews.json from bundled reviews database.');
+        } else {
+          fs.writeFileSync(REVIEWS_FILE, '[]', 'utf-8');
+          console.log('[Database] Created empty database at /tmp/reviews.json.');
+        }
+      } catch (err) {
+        console.error('Failed to seed /tmp/reviews.json database:', err);
+      }
+    }
+  } else {
+    const DATA_DIR = path.dirname(REVIEWS_FILE);
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(REVIEWS_FILE)) fs.writeFileSync(REVIEWS_FILE, '[]', 'utf-8');
+  }
 }
 
 function readAll(): ReviewData[] {

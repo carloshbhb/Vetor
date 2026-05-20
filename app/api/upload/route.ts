@@ -43,10 +43,15 @@ export async function POST(req: Request) {
 
     // Write file
     const buffer = Buffer.from(await file.arrayBuffer());
-    fs.writeFileSync(filepath, buffer);
+    let url = `/uploads/${filename}`;
+    try {
+      fs.writeFileSync(filepath, buffer);
+    } catch (err: any) {
+      console.warn('[Upload] Failed to save file to public directory (read-only filesystem). Falling back to Base64 Data URL.', err.message);
+      const base64 = buffer.toString('base64');
+      url = `data:${file.type};base64,${base64}`;
+    }
 
-    // Return public URL
-    const url = `/uploads/${filename}`;
     return NextResponse.json({ url }, { status: 201 });
   } catch (err: any) {
     console.error('Upload error:', err);

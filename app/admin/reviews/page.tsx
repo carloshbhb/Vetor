@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { getAllReviews, deleteReview } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
