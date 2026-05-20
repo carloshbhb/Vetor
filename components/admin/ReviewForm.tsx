@@ -150,6 +150,27 @@ export default function ReviewForm({ initial, reviewId }: { initial?: ReviewData
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
   const fileRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const productParam = params.get('product');
+      const keywordsParam = params.get('keywords');
+      const categoryParam = params.get('category');
+      
+      if (productParam || keywordsParam || categoryParam) {
+        setForm(f => ({
+          ...f,
+          product: productParam || f.product,
+          meta: {
+            ...f.meta,
+            keywords: keywordsParam || f.meta.keywords,
+          },
+          category: categoryParam || f.category,
+        }));
+      }
+    }
+  }, []);
+
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm(f => ({ ...f, [k]: v }));
 

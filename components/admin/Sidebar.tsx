@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: '/admin',               label: 'Dashboard',      icon: LayoutDashboard },
   { href: '/admin/novo-review',   label: 'Novo Review',    icon: PlusCircle },
   { href: '/admin/reviews',       label: 'Todos os Reviews', icon: FileText },
+  { href: '/admin/tendencias',    label: 'IA Tendências',   icon: Zap },
 ];
 
 export default function Sidebar() {
