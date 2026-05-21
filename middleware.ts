@@ -25,5 +25,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
+  // Note: /api/cron/* is intentionally excluded — it uses CRON_SECRET for auth
   matcher: ['/admin/:path*', '/api/generate', '/api/upload', '/api/reviews/:path*'],
 };
