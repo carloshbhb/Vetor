@@ -125,3 +125,88 @@ export async function commitNewReviewToGitHub(
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * Commits an updated review to the GitHub repository.
+ * Fetches the authoritative file from GitHub, replaces/updates the review by id, and commits.
+ */
+export async function commitUpdateReviewToGitHub(
+  id: string,
+  updatedReview: Record<string, any>,
+): Promise<{ success: boolean; error?: string }> {
+  const token = process.env.GITHUB_TOKEN;
+
+  if (!token) {
+    console.warn('[GitHub] GITHUB_TOKEN not configured. Review update will NOT persist across Vercel deployments.');
+    return { success: false, error: 'GITHUB_TOKEN not set' };
+  }
+
+  try {
+    // 1. Fetch the current authoritative file from GitHub
+    const { data: reviews, sha } = await fetchFileFromGitHub(token);
+
+    // 2. Find and update the review
+    const idx = reviews.findIndex((r: any) => r.id === id);
+    if (idx === -1) {
+      // If not found in the GitHub repo, append it as fallback
+      reviews.push(updatedReview);
+    } else {
+      reviews[idx] = updatedReview;
+    }
+
+    // 3. Commit the changes
+    await commitFileToGitHub(
+      token,
+      reviews,
+      sha,
+      `🤖 Auto-update: ${updatedReview.product}`,
+    );
+
+    console.log(`[GitHub] ✅ Updated review "${updatedReview.product}" (ID: ${id}) on ${GITHUB_REPO}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error('[GitHub] Update commit error:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Commits the deletion of a review from the GitHub repository.
+ * Fetches the authoritative file from GitHub, filters out the review by id, and commits.
+ */
+export async function commitDeleteReviewFromGitHub(
+  id: string,
+): Promise<{ success: boolean; error?: string }> {
+  const token = process.env.GITHUB_TOKEN;
+
+  if (!token) {
+    console.warn('[GitHub] GITHUB_TOKEN not configured. Review deletion will NOT persist across Vercel deployments.');
+    return { success: false, error: 'GITHUB_TOKEN not set' };
+  }
+
+  try {
+    // 1. Fetch the current authoritative file from GitHub
+    const { data: reviews, sha } = await fetchFileFromGitHub(token);
+
+    // 2. Filter out the deleted review
+    const filtered = reviews.filter((r: any) => r.id !== id);
+    if (filtered.length === reviews.length) {
+      console.log(`[GitHub] Review "${id}" not found on GitHub to delete.`);
+      return { success: false, error: 'Review not found in repository' };
+    }
+
+    // 3. Commit the changes
+    await commitFileToGitHub(
+      token,
+      filtered,
+      sha,
+      `🤖 Auto-delete review: ${id}`,
+    );
+
+    console.log(`[GitHub] ✅ Deleted review (ID: ${id}) from ${GITHUB_REPO}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error('[GitHub] Delete commit error:', err.message);
+    return { success: false, error: err.message };
+  }
+}

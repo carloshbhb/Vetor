@@ -31,6 +31,38 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get('authorization');
+
+  let authorized = false;
+  const expectedUser = process.env.ADMIN_USER || 'admin';
+  const expectedPwd = process.env.ADMIN_PASSWORD || 'vetor123';
+
+  // Allow in development if no cron secret is configured and no auth is sent
+  if (!cronSecret && !authHeader && process.env.NODE_ENV === 'development') {
+    authorized = true;
+  }
+
+  if (authHeader) {
+    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+      authorized = true;
+    } else if (authHeader.startsWith('Basic ')) {
+      try {
+        const authValue = authHeader.split(' ')[1];
+        const [user, pwd] = atob(authValue).split(':');
+        if (user === expectedUser && pwd === expectedPwd) {
+          authorized = true;
+        }
+      } catch (e) {
+        console.warn('[Autonomous Agent] Failed to parse Basic Auth header:', e);
+      }
+    }
+  }
+
+  if (!authorized) {
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+  }
+
   return handleAutonomousCycle();
 }
 

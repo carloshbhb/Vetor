@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { PlusCircle, FileText, Star, Eye } from 'lucide-react';
 import { getAllReviews } from '@/lib/db';
 import SerpRefreshButton from '@/components/admin/SerpRefreshButton';
+import AutonomousAgentButton from '@/components/admin/AutonomousAgentButton';
 
 export default function AdminDashboard() {
   const reviews = getAllReviews();
@@ -28,13 +29,16 @@ export default function AdminDashboard() {
           <h1 className="font-bebas text-5xl tracking-wide text-text mb-1">Dashboard</h1>
           <p className="text-text-muted text-sm">Gerencie os reviews do Vetor Blog.</p>
         </div>
-        <Link
-          href="/admin/novo-review"
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-cta-gradient text-white font-syne font-bold text-sm uppercase tracking-wide shadow-blue hover:shadow-blue-lg hover:-translate-y-0.5 transition-all"
-        >
-          <PlusCircle size={18} />
-          Novo Review
-        </Link>
+        <div className="flex items-center gap-3">
+          <AutonomousAgentButton />
+          <Link
+            href="/admin/novo-review"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-cta-gradient text-white font-syne font-bold text-sm uppercase tracking-wide shadow-blue hover:shadow-blue-lg hover:-translate-y-0.5 transition-all"
+          >
+            <PlusCircle size={18} />
+            Novo Review
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}

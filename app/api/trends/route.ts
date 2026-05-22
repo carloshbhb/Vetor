@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     // 1. Try using Google Search Grounding (requires billing enabled on Google AI Studio)
     try {
       const model = genAI.getGenerativeModel({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.0-flash',
         tools: [
           {
             googleSearchRetrieval: {}
@@ -72,7 +72,7 @@ Você deve responder APENAS e estritamente com um array JSON válido contendo os
       
       // 2. Fallback: Request standard Gemini model without the search grounding tool
       const modelFallback = genAI.getGenerativeModel({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.0-flash',
       });
 
       const promptFallback = isViral
