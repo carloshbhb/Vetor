@@ -1787,7 +1787,7 @@
     "marketplace": "Mercado Livre",
     "priceOld": "R$ 449,00",
     "priceNew": "R$ 379,00",
-    "affiliateUrl": "https://meli.la/2yimvUu",
+    "affiliateUrl": "",
     "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_2X_703044-MLA96099988273_102025-F.webp",
     "adsEnabled": false,
     "hero": {
@@ -1956,6 +1956,6 @@
     "lastRankCheck": "2026-05-21T00:11:19.552Z",
     "id": "34f26572-a0aa-469d-9162-67bcb82645a1",
     "createdAt": "2026-05-21T00:11:19.573Z",
-    "updatedAt": "2026-05-22T00:30:38.153Z"
+    "updatedAt": "2026-05-22T00:31:31.556Z"
   }
 ]
