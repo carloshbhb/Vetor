@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { 
   Wand2, Save, Upload, Loader2, Eye, EyeOff, CheckCircle2, AlertCircle, 
-  HelpCircle, FileText, Settings, BarChart3, TrendingUp, Sparkles, BookOpen 
+  HelpCircle, FileText, Settings, BarChart3, TrendingUp, Sparkles, BookOpen,
+  Search, ShoppingCart
 } from 'lucide-react';
 import type { ReviewData } from '@/lib/types';
 import Logo from '@/components/Logo';
@@ -147,6 +148,8 @@ export default function ReviewForm({ initial, reviewId }: { initial?: ReviewData
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [syncingPrice, setSyncingPrice] = useState(false);
+  const [mlEnriching, setMlEnriching] = useState(false);
+  const [mlSource, setMlSource] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -215,6 +218,48 @@ export default function ReviewForm({ initial, reviewId }: { initial?: ReviewData
   const totalChecks = seoChecks.length + croChecks.length;
   const passedChecks = [...seoChecks, ...croChecks].filter(c => c.pass).length;
   const healthScore = Math.round((passedChecks / totalChecks) * 100);
+
+  // ─── ML Product Enrichment ──────────────────────────────────────────────────
+  async function handleMLEnrich() {
+    if (!form.product && !form.affiliateUrl) {
+      showToast('Preencha o Nome do Produto ou o Link de Afiliado primeiro.', 'error');
+      return;
+    }
+    setMlEnriching(true);
+    setMlSource(null);
+    try {
+      const res = await fetch('/api/ml-enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: form.product || undefined,
+          affiliateUrl: form.affiliateUrl || undefined,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+
+      setForm(f => ({
+        ...f,
+        // Only update product name if it was empty
+        product: f.product || json.title || f.product,
+        priceNew: json.price || f.priceNew,
+        priceOld: json.priceOld || f.priceOld,
+        imageUrl: json.imageUrl || f.imageUrl,
+        affiliateUrl: json.affiliateUrl || f.affiliateUrl,
+      }));
+
+      setMlSource(json.source || 'Mercado Livre');
+      showToast(
+        `Dados reais extraídos via ${json.source}! Imagem, preço e link atualizados.`,
+        'success'
+      );
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao buscar dados no Mercado Livre.', 'error');
+    } finally {
+      setMlEnriching(false);
+    }
+  }
 
   // ─── Price Synchronization ──────────────────────────────────────────────────
   async function handleSyncPrice() {
@@ -307,6 +352,7 @@ export default function ReviewForm({ initial, reviewId }: { initial?: ReviewData
           product: form.product, category: form.category,
           price: currentPriceNew, old_price: currentPriceOld,
           affiliate_url: form.affiliateUrl, marketplace: form.marketplace,
+          image_url: form.imageUrl || undefined,
           specs: form.specs.map(s => `${s.label}: ${s.value}`).join(', ') || 'Preencher',
           competitors: form.compareTable.columns.slice(1).join(', ') || 'Concorrentes',
           tone: 'misto', site_name: 'Vetor Blog', site_url: 'https://vetor.blog',
@@ -469,9 +515,38 @@ export default function ReviewForm({ initial, reviewId }: { initial?: ReviewData
               {/* 1. Produto & SEO */}
               <Section title="1. Produto & SEO" desc="Dados base do produto e metadados de indexação.">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 col-span-2">
                     <Label req>Nome do Produto</Label>
-                    <Input value={form.product} onChange={e => set('product', e.target.value)} placeholder="Samsung Galaxy Fit3" />
+                    <div className="flex gap-2">
+                      <Input
+                        value={form.product}
+                        onChange={e => set('product', e.target.value)}
+                        placeholder="Samsung Galaxy Fit3"
+                        className="flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleMLEnrich}
+                        disabled={mlEnriching}
+                        title="Buscar dados reais no Mercado Livre (imagem, preço e link de afiliado)"
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-syne font-bold text-xs uppercase tracking-wide transition-all disabled:opacity-50 shrink-0 shadow-sm whitespace-nowrap"
+                      >
+                        {mlEnriching ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Search size={14} />
+                        )}
+                        {mlEnriching ? 'Buscando…' : 'Buscar no ML'}
+                      </button>
+                    </div>
+                    {mlSource && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <ShoppingCart size={11} className="text-emerald-600" />
+                        <span className="text-[11px] font-semibold text-emerald-700">
+                          Dados reais via {mlSource} ✓
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label req>Slug (URL)</Label>

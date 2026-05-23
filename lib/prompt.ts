@@ -4,6 +4,7 @@ export interface GenerateInput {
   price?: string;
   old_price?: string;
   affiliate_url: string;
+  image_url?: string;           // Real product image URL sourced from ML API
   marketplace?: string;
   specs?: string;
   competitors?: string;
@@ -28,6 +29,7 @@ DADOS FORNECIDOS DE ENTRADA:
 - CATEGORIAS JÁ EXISTENTES NO SITE: ${input.existingCategories && input.existingCategories.length > 0 ? input.existingCategories.join(', ') : 'Nenhuma'}
 - PREÇO SUGERIDO: ${input.price || 'Não fornecido (deduza/estime um valor de mercado realista em Reais R$)'}
 - PREÇO ANTIGO SUGERIDO: ${input.old_price || 'Não fornecido (deduza/estime um preço de "De" realista em Reais R$)'}
+- IMAGEM DO PRODUTO: ${input.image_url ? `URL REAL DISPONÍVEL: ${input.image_url} — NÃO sugira nem invente URLs de imagem; use somente esta.` : 'Não fornecida (o sistema buscará automaticamente)'}
 - MARKETPLACE: ${input.marketplace || 'Mercado Livre'}
 - CONCORRENTES: ${input.competitors || 'Não fornecido (identifique os 2 principais concorrentes diretos no mercado brasileiro)'}
 - ESPECIFICAÇÕES ADICIONAIS: ${input.specs || 'Não fornecido (use seu conhecimento para listar especificações reais do produto)'}

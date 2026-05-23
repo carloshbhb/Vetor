@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateText } from '@/lib/ai';
 import { getAllReviews, createReview } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
 import { buildPrompt } from '@/lib/prompt';
+import { fetchMLProduct } from '@/lib/mercadolivre';
 
 export const maxDuration = 60;
 
@@ -70,15 +71,6 @@ async function handleAutonomousCycle() {
   const startTime = Date.now();
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'GEMINI_API_KEY não configurada no servidor.' },
-        { status: 500 }
-      );
-    }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
     const reviews = getAllReviews();
 
     // 1. Determine the niche/category to target
@@ -95,19 +87,16 @@ async function handleAutonomousCycle() {
     // 2. Discover trending product
     let trendingProduct = '';
     try {
-      const searchModel = genAI.getGenerativeModel({
-        model: 'gemini-2.0-flash',
-        tools: [{ googleSearchRetrieval: {} }] as any,
-      });
-
       const trendPrompt = `Você é o Agente de Descoberta de Tráfego do vetor.blog.
 Pesquise na internet do Brasil em tempo real (${new Date().getFullYear()}) na categoria "${targetCategory}".
 Identifique o produto que está tendo o maior crescimento de buscas ou interesse de compra nos últimos dias (um produto real, com nome exato, ex: "Sony WH-1000XM5" ou "Samsung Galaxy Fit 3").
 Responda EXCLUSIVAMENTE com o nome exato desse produto, sem pontuação, sem aspas e sem explicações.`;
 
-      const trendResponse = await searchModel.generateContent(trendPrompt);
-      trendingProduct = trendResponse.response
-        .text()
+      const text = await generateText({
+        prompt: trendPrompt,
+        useSearchGrounding: true,
+      });
+      trendingProduct = text
         .trim()
         .replace(/['\"""]/g, '');
     } catch (searchError: any) {
@@ -197,14 +186,36 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto, sem pontuação, sem asp
       });
     }
 
-    // 4. Generate the full review article via AI
-    const generationModel = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-    });
+    // 4. Enrich product data from Mercado Livre API
+    let mlImageUrl = '';
+    let mlPrice = '';
+    let mlPriceOld = '';
+    let mlAffiliateUrl = `https://lista.mercadolivre.com.br/${encodeURIComponent(trendingProduct)}?ref=vetorblog`;
+
+    try {
+      console.log(`[Autonomous Agent] Fetching ML product data for: "${trendingProduct}"`);
+      const mlData = await fetchMLProduct(trendingProduct);
+      if (mlData) {
+        mlImageUrl = mlData.imageUrl || '';
+        mlPrice = mlData.price || '';
+        mlPriceOld = mlData.priceOld || '';
+        mlAffiliateUrl = mlData.affiliateUrl || mlAffiliateUrl;
+        console.log(`[Autonomous Agent] ✅ ML API enrichment: image=${!!mlImageUrl}, price=${mlPrice}, source=${mlData.source}`);
+      } else {
+        console.warn('[Autonomous Agent] ML API returned no data. Proceeding with defaults.');
+      }
+    } catch (mlErr: any) {
+      console.warn('[Autonomous Agent] ML API fetch failed (non-fatal):', mlErr.message);
+    }
+
+    // 5. Generate the full review article via AI
     const prompt = buildPrompt({
       product: trendingProduct,
       category: targetCategory,
-      affiliate_url: `https://lista.mercadolivre.com.br/${encodeURIComponent(trendingProduct)}`,
+      price: mlPrice || undefined,
+      old_price: mlPriceOld || undefined,
+      affiliate_url: mlAffiliateUrl,
+      image_url: mlImageUrl || undefined,
       tone: 'misto',
       site_name: 'Vetor Blog',
       site_url: 'https://vetor.blog',
@@ -212,16 +223,12 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto, sem pontuação, sem asp
       existingCategories,
     });
 
-    const result = await generationModel.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        maxOutputTokens: 8192,
-        temperature: 0.7,
-      },
+    const responseText = await generateText({
+      prompt,
+      responseJson: true,
+      maxOutputTokens: 8192,
+      temperature: 0.7,
     });
-
-    const responseText = result.response.text();
     if (!responseText) throw new Error('AI returned empty content');
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -250,8 +257,9 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto, sem pontuação, sem asp
       marketplace: d.marketplace || 'Mercado Livre',
       priceOld: d.priceOld || d.old_price || '',
       priceNew: d.priceNew || d.price || '',
-      affiliateUrl: `https://lista.mercadolivre.com.br/${encodeURIComponent(trendingProduct)}`,
+      affiliateUrl: mlAffiliateUrl,
       imageUrl:
+        mlImageUrl ||
         d.imageUrl ||
         'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80',
       adsEnabled: false,
