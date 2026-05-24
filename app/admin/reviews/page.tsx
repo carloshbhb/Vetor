@@ -5,8 +5,8 @@ import { getAllReviews, deleteReview } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { PlusCircle, Pencil, Eye, Trash2 } from 'lucide-react';
 
-export default function ReviewsListPage() {
-  const reviews = getAllReviews();
+export default async function ReviewsListPage() {
+  const reviews = await getAllReviews();
 
   async function remove(id: string) {
     'use server';

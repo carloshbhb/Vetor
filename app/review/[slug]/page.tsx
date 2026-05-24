@@ -40,19 +40,20 @@ export const revalidate = 0; // Garante que qualquer alteração no CMS reflita 
 
 // ── SSG params ────────────────────────────────────────────────────────────────
 export async function generateStaticParams() {
-  return getPublishedSlugs().map(slug => ({ slug }));
+  const slugs = await getPublishedSlugs();
+  return slugs.map(slug => ({ slug }));
 }
 
 // ── Dynamic Metadata ─────────────────────────────────────────────────────────
 export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const review = getReviewBySlug(params.slug);
+  const review = await getReviewBySlug(params.slug);
   if (!review) return {};
   return buildReviewMetadata(review);
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default async function ReviewPage({ params }: { params: { slug: string } }) {
-  const review = getReviewBySlug(params.slug);
+  const review = await getReviewBySlug(params.slug);
   if (!review) notFound();
 
   // Render each section's Markdown to HTML on the server

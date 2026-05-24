@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     // Retrieve unique list of existing categories in the database
-    const reviews = getAllReviews();
+    const reviews = await getAllReviews();
     const existingCategories = Array.from(new Set(reviews.map(r => r.category).filter(Boolean)));
 
     const prompt = buildPrompt({

@@ -4,8 +4,8 @@ import { getReviewById } from '@/lib/db';
 import ReviewForm from '@/components/admin/ReviewForm';
 import { notFound } from 'next/navigation';
 
-export default function EditarReviewPage({ params }: { params: { id: string } }) {
-  const review = getReviewById(params.id);
+export default async function EditarReviewPage({ params }: { params: { id: string } }) {
+  const review = await getReviewById(params.id);
   if (!review) notFound();
 
   return (

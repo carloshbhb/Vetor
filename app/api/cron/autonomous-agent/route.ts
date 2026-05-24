@@ -71,7 +71,7 @@ async function handleAutonomousCycle() {
   const startTime = Date.now();
 
   try {
-    const reviews = getAllReviews();
+    const reviews = await getAllReviews();
 
     // 1. Determine the niche/category to target
     const existingCategories = Array.from(
@@ -344,7 +344,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto, sem pontuação, sem asp
 
     // 6. Save locally (for immediate visibility in case of warm Lambda)
     try {
-      createReview(fullReview);
+      await createReview(fullReview);
       console.log(`[Autonomous Agent] Saved locally: ${trendingProduct} (${reviewId})`);
     } catch (localErr: any) {
       console.warn('[Autonomous Agent] Local save failed (non-fatal):', localErr.message);

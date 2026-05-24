@@ -5,8 +5,8 @@ import Logo from '@/components/Logo';
 
 export const revalidate = 0; // Garante que a página inicial sempre exiba a lista de reviews em tempo real
 
-export default function Home() {
-  const reviews = getPublishedReviews();
+export default async function Home() {
+  const reviews = await getPublishedReviews();
 
   return (
     <div className="bg-bg2 min-h-screen">

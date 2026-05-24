@@ -3,7 +3,7 @@ import { getReviewById, updateReview, deleteReview } from '@/lib/db';
 import { commitUpdateReviewToGitHub, commitDeleteReviewFromGitHub } from '@/lib/github';
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
-  const review = getReviewById(params.id);
+  const review = await getReviewById(params.id);
   if (!review) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(review);
 }
@@ -11,12 +11,12 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
     const body = await req.json();
-    const ok = updateReview(params.id, body);
+    const ok = await updateReview(params.id, body);
     if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     // Sync to GitHub
     if (process.env.GITHUB_TOKEN) {
-      const fullReview = getReviewById(params.id);
+      const fullReview = await getReviewById(params.id);
       if (fullReview) {
         await commitUpdateReviewToGitHub(params.id, fullReview);
       }
@@ -34,7 +34,7 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     await commitDeleteReviewFromGitHub(params.id);
   }
 
-  const ok = deleteReview(params.id);
+  const ok = await deleteReview(params.id);
   if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   
   return NextResponse.json({ success: true });

@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(req: NextRequest) {
   try {
-    const published = getPublishedReviews();
+    const published = await getPublishedReviews();
     if (!published.length) {
       return NextResponse.json({ message: 'Nenhum review publicado para rastrear.' }, { status: 200 });
     }
@@ -57,7 +57,7 @@ Responda exclusivamente com o JSON, sem adicionar qualquer markdown, bloco de c√
       }
 
       // Save to database
-      updateReview(review.id, {
+      await updateReview(review.id, {
         googleRank: finalRank,
         lastRankCheck: new Date().toISOString()
       });

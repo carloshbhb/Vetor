@@ -1,24 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 import type { ReviewData, ReviewSummary } from './types';
-import { v4 as uuidv4 } from 'uuid';
 
-// ─── Supabase Configuration ───────────────────────────────────────────────────
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('[Database] Supabase credentials not configured. Falling back to file system.');
-  // Fallback to original implementation
-  const originalDb = require('./db.original');
-  module.exports = originalDb;
-  return;
+const supabase = supabaseUrl && supabaseKey
+  ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
+  : null;
+
+// ─── Backup Module ────────────────────────────────────────────────────────────
+
+async function getBackup() {
+  return import('./db.backup');
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: false
-  }
-});
 
 // ─── Type Mappers ─────────────────────────────────────────────────────────────
 function mapToReviewData(row: any): ReviewData {
@@ -62,7 +56,7 @@ function mapToReviewData(row: any): ReviewData {
       text: row.verdict_text,
       note: row.verdict_note,
     },
-    faq: [], // FAQ will be added separately if needed
+    faq: [],
     schemaRating: {
       ratingValue: parseFloat(row.schema_rating_value),
       reviewCount: row.schema_review_count,
@@ -107,8 +101,8 @@ function mapToReviewSummary(row: any): ReviewSummary {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-/** Return all reviews sorted newest-first (full data). */
 export async function getAllReviews(): Promise<ReviewData[]> {
+  if (!supabase) { const b = await getBackup(); return b.getAllReviews(); }
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
@@ -122,8 +116,8 @@ export async function getAllReviews(): Promise<ReviewData[]> {
   return data.map(mapToReviewData);
 }
 
-/** Return lightweight summaries for listing pages. */
 export async function getReviewSummaries(): Promise<ReviewSummary[]> {
+  if (!supabase) { const b = await getBackup(); return b.getReviewSummaries(); }
   const { data, error } = await supabase
     .rpc('get_published_reviews');
 
@@ -135,8 +129,8 @@ export async function getReviewSummaries(): Promise<ReviewSummary[]> {
   return data.map(mapToReviewSummary);
 }
 
-/** Return only published reviews. */
 export async function getPublishedReviews(): Promise<ReviewData[]> {
+  if (!supabase) { const b = await getBackup(); return b.getPublishedReviews(); }
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
@@ -151,8 +145,8 @@ export async function getPublishedReviews(): Promise<ReviewData[]> {
   return data.map(mapToReviewData);
 }
 
-/** Find by id. */
 export async function getReviewById(id: string): Promise<ReviewData | undefined> {
+  if (!supabase) { const b = await getBackup(); return b.getReviewById(id); }
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
@@ -160,7 +154,7 @@ export async function getReviewById(id: string): Promise<ReviewData | undefined>
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return undefined; // Not found
+    if (error.code === 'PGRST116') return undefined;
     console.error('[Database] Error fetching review by id:', error);
     return undefined;
   }
@@ -168,8 +162,8 @@ export async function getReviewById(id: string): Promise<ReviewData | undefined>
   return mapToReviewData(data);
 }
 
-/** Find by slug (for public page). */
 export async function getReviewBySlug(slug: string): Promise<ReviewData | undefined> {
+  if (!supabase) { const b = await getBackup(); return b.getReviewBySlug(slug); }
   const { data, error } = await supabase
     .rpc('get_review_by_slug', { slug_param: slug });
 
@@ -182,8 +176,8 @@ export async function getReviewBySlug(slug: string): Promise<ReviewData | undefi
   return mapToReviewData(data[0]);
 }
 
-/** Create a new review. Returns the new id. */
 export async function createReview(data: Omit<ReviewData, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  if (!supabase) { const b = await getBackup(); return b.createReview(data); }
   const insertData = {
     slug: data.slug,
     status: data.status,
@@ -237,11 +231,10 @@ export async function createReview(data: Omit<ReviewData, 'id' | 'createdAt' | '
   return inserted.id;
 }
 
-/** Update an existing review. Returns false if not found. */
 export async function updateReview(id: string, patch: Partial<Omit<ReviewData, 'id' | 'createdAt'>>): Promise<boolean> {
+  if (!supabase) { const b = await getBackup(); return b.updateReview(id, patch as any); }
   const updateData: any = {};
 
-  // Map the patch data to database columns
   if (patch.slug !== undefined) updateData.slug = patch.slug;
   if (patch.status !== undefined) updateData.status = patch.status;
   if (patch.product !== undefined) updateData.product = patch.product;
@@ -299,7 +292,7 @@ export async function updateReview(id: string, patch: Partial<Omit<ReviewData, '
     .eq('id', id);
 
   if (error) {
-    if (error.code === 'PGRST116') return false; // Not found
+    if (error.code === 'PGRST116') return false;
     console.error('[Database] Error updating review:', error);
     throw new Error(`Failed to update review: ${error.message}`);
   }
@@ -307,15 +300,15 @@ export async function updateReview(id: string, patch: Partial<Omit<ReviewData, '
   return true;
 }
 
-/** Delete a review. Returns false if not found. */
 export async function deleteReview(id: string): Promise<boolean> {
+  if (!supabase) { const b = await getBackup(); return b.deleteReview(id); }
   const { error } = await supabase
     .from('reviews')
     .delete()
     .eq('id', id);
 
   if (error) {
-    if (error.code === 'PGRST116') return false; // Not found
+    if (error.code === 'PGRST116') return false;
     console.error('[Database] Error deleting review:', error);
     throw new Error(`Failed to delete review: ${error.message}`);
   }
@@ -323,8 +316,8 @@ export async function deleteReview(id: string): Promise<boolean> {
   return true;
 }
 
-/** All slugs for published reviews (for generateStaticParams). */
 export async function getPublishedSlugs(): Promise<string[]> {
+  if (!supabase) { const b = await getBackup(); return b.getPublishedSlugs(); }
   const { data, error } = await supabase
     .from('reviews')
     .select('slug')

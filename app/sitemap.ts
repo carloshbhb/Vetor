@@ -1,9 +1,9 @@
 import { MetadataRoute } from 'next';
 import { getPublishedReviews } from '@/lib/db';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
-  const reviews = getPublishedReviews();
+  const reviews = await getPublishedReviews();
 
   const reviewUrls = reviews.map(review => ({
     url: `${baseUrl}/review/${review.slug}`,

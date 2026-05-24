@@ -5,9 +5,10 @@ import { PlusCircle, FileText, Star, Eye } from 'lucide-react';
 import { getAllReviews } from '@/lib/db';
 import SerpRefreshButton from '@/components/admin/SerpRefreshButton';
 import AutonomousAgentButton from '@/components/admin/AutonomousAgentButton';
+import RealtimeIndicator from '@/components/admin/RealtimeIndicator';
 
-export default function AdminDashboard() {
-  const reviews = getAllReviews();
+export default async function AdminDashboard() {
+  const reviews = await getAllReviews();
   const published = reviews.filter(r => r.status === 'published');
   const drafts    = reviews.filter(r => r.status === 'draft');
   const avgScore  = reviews.length
@@ -61,6 +62,7 @@ export default function AdminDashboard() {
             Reviews Recentes
           </p>
           <div className="flex items-center gap-4">
+            <RealtimeIndicator />
             <SerpRefreshButton />
             <Link href="/admin/reviews" className="text-blue text-xs font-medium hover:underline">
               Ver todos →

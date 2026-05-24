@@ -1,30 +1,50 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { createClient } from '@/lib/supabase/middleware'
 
-export function middleware(req: NextRequest) {
-  const basicAuth = req.headers.get('authorization');
-  
-  if (basicAuth) {
-    const authValue = basicAuth.split(' ')[1];
-    const [user, pwd] = atob(authValue).split(':');
+const adminRoutes = ['/admin/:path*']
+const apiRoutes = ['/api/generate', '/api/upload', '/api/reviews/:path*']
+const publicRoutes = ['/auth/login', '/auth/callback', '/auth/logout']
 
-    const expectedUser = process.env.ADMIN_USER || 'admin';
-    const expectedPwd = process.env.ADMIN_PASSWORD || 'vetor123';
+export async function middleware(req: NextRequest) {
+  const { supabase, supabaseResponse } = createClient(req)
 
-    if (user === expectedUser && pwd === expectedPwd) {
-      return NextResponse.next();
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const isPublicRoute = publicRoutes.some(route => {
+    if (route.endsWith(':path*')) {
+      return req.nextUrl.pathname.startsWith(route.replace('/:path*', ''))
     }
+    return req.nextUrl.pathname === route
+  })
+
+  // Allow public routes
+  if (isPublicRoute) {
+    return supabaseResponse
   }
 
-  return new NextResponse('Auth required', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Basic realm="Secure Area"',
-    },
-  });
+  // Protected routes - redirect to login if not authenticated
+  if (!user) {
+    const isApiRoute = apiRoutes.some(route => {
+      if (route.endsWith(':path*')) {
+        return req.nextUrl.pathname.startsWith(route.replace('/:path*', ''))
+      }
+      return req.nextUrl.pathname === route
+    })
+
+    if (isApiRoute) {
+      return NextResponse.json({ error: 'Auth required' }, { status: 401 })
+    }
+
+    const url = req.nextUrl.clone()
+    url.pathname = '/auth/login'
+    url.searchParams.set('redirect', req.nextUrl.pathname)
+    return NextResponse.redirect(url)
+  }
+
+  return supabaseResponse
 }
 
 export const config = {
-  // Note: /api/cron/* is intentionally excluded — it uses CRON_SECRET for auth
-  matcher: ['/admin/:path*', '/api/generate', '/api/upload', '/api/reviews/:path*'],
-};
+  matcher: ['/admin/:path*', '/api/generate', '/api/upload', '/api/reviews/:path*', '/auth/:path*'],
+}

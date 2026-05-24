@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { uploadImage } from '@/lib/supabase-storage';
 
 const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
 
@@ -39,10 +40,19 @@ export async function POST(req: Request) {
       .toLowerCase()
       .slice(0, 40);
     const filename = `${safeName}-${timestamp}.${ext}`;
-    const filepath = path.join(UPLOADS_DIR, filename);
-
-    // Write file
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Try Supabase Storage first
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const supabaseUrl = await uploadImage(buffer, filename, file.type);
+      if (supabaseUrl) {
+        return NextResponse.json({ url: supabaseUrl }, { status: 201 });
+      }
+      console.warn('[Upload] Supabase Storage failed, falling back to local filesystem.');
+    }
+
+    // Fallback to local filesystem
+    const filepath = path.join(UPLOADS_DIR, filename);
     let url = `/uploads/${filename}`;
     try {
       fs.writeFileSync(filepath, buffer);

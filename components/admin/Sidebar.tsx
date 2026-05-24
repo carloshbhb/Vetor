@@ -9,6 +9,7 @@ import {
   Settings,
   ExternalLink,
   Zap,
+  LogOut,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 
@@ -71,8 +72,15 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-5 py-4 border-t border-white/10">
-        <div className="flex items-center gap-2 mb-1">
+      <div className="px-5 py-4 border-t border-white/10 space-y-2">
+        <a
+          href="/auth/logout"
+          className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-sm font-medium text-white/60 hover:bg-white/10 hover:text-white transition-all"
+        >
+          <LogOut size={17} className="opacity-60" />
+          Sair
+        </a>
+        <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#4ade80]" />
           <span className="text-white/50 text-[11px] font-medium">Gemini API</span>
         </div>

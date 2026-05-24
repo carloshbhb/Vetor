@@ -4,18 +4,18 @@ import { commitNewReviewToGitHub } from '@/lib/github';
 import type { ReviewData } from '@/lib/types';
 
 export async function GET() {
-  const reviews = getAllReviews();
+  const reviews = await getAllReviews();
   return NextResponse.json(reviews);
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json() as Omit<ReviewData, 'id' | 'createdAt' | 'updatedAt'>;
-    const id = createReview(body);
+    const id = await createReview(body);
 
     // Sync to GitHub to trigger Vercel deployment/SSG rebuild
     if (process.env.GITHUB_TOKEN) {
-      const fullReview = getReviewById(id);
+      const fullReview = await getReviewById(id);
       if (fullReview) {
         await commitNewReviewToGitHub(fullReview);
       }
