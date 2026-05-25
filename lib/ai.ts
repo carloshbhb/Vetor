@@ -71,22 +71,22 @@ async function callOpenAIFallback(
   const openAIKey = process.env.OPENAI_API_KEY;
   const openRouterKey = process.env.OPENROUTER_API_KEY;
   const groqKey = process.env.GROQ_API_KEY;
-  
+
   let apiKey = openAIKey || openRouterKey || groqKey;
-  const model = openRouterKey
-+    ? 'anthropic/claude-3-haiku'
-+    : groqKey
-+    ? 'llama-3.3-70b-versatile'
-+    : 'gpt-4o-mini';
-  
+  let apiUrl = '';
+  let model = 'gpt-4o-mini';
+
   if (openRouterKey) {
     apiKey = openRouterKey;
     apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
-    model = 'google/gemini-2.0-flash'; // OpenRouter default fallback
+    model = 'anthropic/claude-3-haiku';
   } else if (groqKey) {
     apiKey = groqKey;
     apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-    model = 'llama-3.3-70b-versatile'; // Groq default fallback
+    model = 'llama-3.3-70b-versatile';
+  } else if (openAIKey) {
+    apiUrl = 'https://api.openai.com/v1/chat/completions';
+    model = 'gpt-4o-mini';
   }
   
   // Developer override options
