@@ -16,6 +16,8 @@ import FAQAccordion from '@/components/review/FAQAccordion';
 import VerdictBox   from '@/components/review/VerdictBox';
 import ReviewTOC    from '@/components/review/ReviewTOC';
 import AdSlot       from '@/components/review/AdSlot';
+import Link         from 'next/link';
+import { getPublishedReviews } from '@/lib/db';
 
 // Helper to safely highlight search terms within headlines
 function renderWithHighlight(text: string, highlight: string) {
@@ -72,6 +74,9 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
 
   const { hero, specs, compareTable, pros, cons, faq, verdict, adsEnabled } = review;
   const adSlotId = process.env.NEXT_PUBLIC_AD_SLOT;
+
+  const allReviews = await getPublishedReviews();
+  const relatedReviews = allReviews.filter(r => r.slug !== review.slug && r.category === review.category).slice(0, 3);
 
   return (
     <>
@@ -227,14 +232,31 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
                 priceNew={review.priceNew}
               />
 
-              {/* FAQ */}
-              {faq.length > 0 && (
-                <>
-                  <h2 id="faq">Perguntas Frequentes</h2>
-                  <FAQAccordion faq={faq} />
-                </>
-              )}
-            </article>
+{/* FAQ */}
+               {faq.length > 0 && (
+                 <>
+                   <h2 id="faq">Perguntas Frequentes</h2>
+                   <FAQAccordion faq={faq} />
+                 </>
+               )}
+
+               {/* Related Reviews - Internal Links */}
+               {relatedReviews.length > 0 && (
+                 <>
+                   <h2>Reviews Relacionados</h2>
+                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                     {relatedReviews.map(r => (
+                       <Link key={r.id} href={`/review/${r.slug}`} className="group bg-bg2 rounded-xl p-4 border border-border hover:shadow-md transition-all">
+                         <h3 className="font-syne font-bold text-sm text-text group-hover:text-blue transition-colors line-clamp-2 mb-2">
+                           {r.product}
+                         </h3>
+                         <p className="text-xs text-text-muted line-clamp-2">{r.hero.lead}</p>
+                       </Link>
+                     ))}
+                   </div>
+                 </>
+               )}
+             </article>
 
             {/* ── Sidebar ── */}
             <aside className="sidebar" aria-label="Navegação do artigo e oferta">

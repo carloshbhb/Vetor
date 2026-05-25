@@ -109,7 +109,7 @@ export function buildBreadcrumbSchema(review: ReviewData) {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Início',  item: SITE_URL },
-      { '@type': 'ListItem', position: 2, name: 'Reviews', item: `${SITE_URL}/reviews` },
+      { '@type': 'ListItem', position: 2, name: 'Reviews', item: SITE_URL },
       { '@type': 'ListItem', position: 3, name: review.product, item: `${SITE_URL}/review/${review.slug}` },
     ],
   };
