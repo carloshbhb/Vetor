@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getReviewById, updateReview, deleteReview } from '@/lib/db';
 import { commitUpdateReviewToGitHub, commitDeleteReviewFromGitHub } from '@/lib/github';
+import { submitUrl } from '@/lib/indexnow';
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   const review = await getReviewById(params.id);
@@ -19,6 +20,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       const fullReview = await getReviewById(params.id);
       if (fullReview) {
         await commitUpdateReviewToGitHub(params.id, fullReview);
+        if (fullReview.status === 'published') {
+          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+          await submitUrl(`${siteUrl}/review/${fullReview.slug}`);
+        }
       }
     }
 

@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getCachedResponse, setCachedResponse } from '@/lib/agentCache';
 
 let lastRequestTime = 0;
 
@@ -72,8 +73,11 @@ async function callOpenAIFallback(
   const groqKey = process.env.GROQ_API_KEY;
   
   let apiKey = openAIKey || openRouterKey || groqKey;
-  let apiUrl = 'https://api.openai.com/v1/chat/completions';
-  let model = 'gpt-4o-mini';
+  const model = openRouterKey
++    ? 'anthropic/claude-3-haiku'
++    : groqKey
++    ? 'llama-3.3-70b-versatile'
++    : 'gpt-4o-mini';
   
   if (openRouterKey) {
     apiKey = openRouterKey;
@@ -156,6 +160,12 @@ interface GenerateTextOptions {
  * Features: Rate limiter protection, 429 Retry logic (Exponential Backoff with Jitter), and Automatic Provider Fallback.
  */
 export async function generateText(options: GenerateTextOptions): Promise<string> {
+  // Check cache first
+  const cached = getCachedResponse(options.prompt);
+  if (cached) {
+    console.log('[AI Cache] Returning cached response');
+    return cached;
+  }
   const {
     prompt,
     responseJson = false,
@@ -175,7 +185,7 @@ export async function generateText(options: GenerateTextOptions): Promise<string
   await enforceConcurrencyDelay(minConcurrencyDelayMs);
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const modelName = 'gemini-2.0-flash';
+  const modelName = 'gemini-1.5-flash';
   
   const modelConfig: any = { model: modelName };
   if (useSearchGrounding) {
@@ -212,7 +222,9 @@ export async function generateText(options: GenerateTextOptions): Promise<string
         throw new Error('Gemini API returned an empty response text.');
       }
 
-      return responseText;
+        // Cache successful Gemini response
+        setCachedResponse(options.prompt, responseText);
+        return responseText;
     } catch (error: any) {
       lastError = error;
       

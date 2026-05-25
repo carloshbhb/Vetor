@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAllReviews, createReview, getReviewById } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
+import { submitUrl } from '@/lib/indexnow';
 import type { ReviewData } from '@/lib/types';
 
 export async function GET() {
@@ -15,10 +16,14 @@ export async function POST(req: Request) {
 
     // Sync to GitHub to trigger Vercel deployment/SSG rebuild
     if (process.env.GITHUB_TOKEN) {
-      const fullReview = await getReviewById(id);
-      if (fullReview) {
-        await commitNewReviewToGitHub(fullReview);
+    const fullReview = await getReviewById(id);
+    if (fullReview) {
+      await commitNewReviewToGitHub(fullReview);
+      if (fullReview.status === 'published') {
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+        await submitUrl(`${siteUrl}/review/${fullReview.slug}`);
       }
+    }
     }
 
     return NextResponse.json({ id }, { status: 201 });
