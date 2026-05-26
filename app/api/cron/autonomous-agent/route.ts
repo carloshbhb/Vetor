@@ -3,7 +3,7 @@ import { generateText } from '@/lib/ai';
 import { getAllReviews, createReview } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
 import { buildPrompt } from '@/lib/prompt';
-import { fetchMLProduct } from '@/lib/mercadolivre';
+import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
 
 export const maxDuration = 60;
 
@@ -190,7 +190,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto, sem pontuação, sem asp
     let mlImageUrl = '';
     let mlPrice = '';
     let mlPriceOld = '';
-    let mlAffiliateUrl = `https://lista.mercadolivre.com.br/${encodeURIComponent(trendingProduct)}?ref=vetorblog`;
+    let mlAffiliateUrl = buildAffiliateUrl(`https://lista.mercadolivre.com.br/${encodeURIComponent(trendingProduct)}`);
 
     try {
       console.log(`[Autonomous Agent] Fetching ML product data for: "${trendingProduct}"`);

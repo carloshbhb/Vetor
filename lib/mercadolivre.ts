@@ -52,6 +52,7 @@ export function buildAffiliateUrl(permalink: string, publisherId?: string): stri
   try {
     const url = new URL(permalink);
     if (pid) {
+      url.searchParams.set('affiliate', pid);
       url.searchParams.set('ref', pid);
     } else {
       url.searchParams.set('ref', 'vetorblog');
@@ -60,8 +61,10 @@ export function buildAffiliateUrl(permalink: string, publisherId?: string): stri
   } catch {
     // If URL parsing fails, append manually
     const sep = permalink.includes('?') ? '&' : '?';
-    const tag = pid || 'vetorblog';
-    return `${permalink}${sep}ref=${tag}`;
+    if (pid) {
+      return `${permalink}${sep}affiliate=${pid}&ref=${pid}`;
+    }
+    return `${permalink}${sep}ref=vetorblog`;
   }
 }
 
