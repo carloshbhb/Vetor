@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
   return handleAutonomousCycle();
 }
 
-async function handleAutonomousCycle() {
+export async function handleAutonomousCycle() {
   const startTime = Date.now();
 
   try {
