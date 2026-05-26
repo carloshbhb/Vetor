@@ -1,7 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import { createClient } from '@supabase/supabase-js';
-import { getAllReviews } from './lib/db.original.js';
+const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const path = require('path');
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -84,7 +83,10 @@ async function migrateReviews() {
   console.log('📖 Loading reviews from local JSON file...');
   
   try {
-    const reviews = await getAllReviews();
+    const reviewsPath = path.join(process.cwd(), 'data', 'reviews.json');
+    const reviewsData = fs.readFileSync(reviewsPath, 'utf-8');
+    const reviews = JSON.parse(reviewsData);
+    
     console.log(`✅ Loaded ${reviews.length} reviews from local file.`);
     
     if (reviews.length === 0) {
@@ -141,18 +143,18 @@ async function verifyMigration() {
   console.log('\n🔍 Verifying migration results...');
   
   try {
-    const { data: localReviews, error: localError } = await getAllReviews();
-    if (localError) {
-      console.error('❌ Error loading local reviews:', localError);
-      return;
-    }
-
-    const { data: supabaseReviews, error: supabaseError } = await supabase
+    // Load local reviews
+    const reviewsPath = path.join(process.cwd(), 'data', 'reviews.json');
+    const reviewsData = fs.readFileSync(reviewsPath, 'utf-8');
+    const localReviews = JSON.parse(reviewsData);
+    
+    // Load Supabase reviews
+    const { data: supabaseReviews, error } = await supabase
       .from('reviews')
       .select('*');
     
-    if (supabaseError) {
-      console.error('❌ Error loading Supabase reviews:', supabaseError);
+    if (error) {
+      console.error('❌ Error loading Supabase reviews:', error);
       return;
     }
 
