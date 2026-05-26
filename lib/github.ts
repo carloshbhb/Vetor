@@ -118,6 +118,15 @@ export async function commitNewReviewToGitHub(
       `🤖 Auto-publish: ${newReview.product}`,
     );
 
+    // After successful commit, ping Google to re‑index the sitemap
+    try {
+      const sitemapUrl = encodeURIComponent('https://vetor.blog/sitemap.xml');
+      await fetch(`https://www.google.com/ping?sitemap=${sitemapUrl}`);
+      console.log('[GitHub] ✅ Pinged Google sitemap after commit');
+    } catch (pingErr) {
+      console.warn('[GitHub] Failed to ping Google sitemap:', pingErr);
+    }
+
     console.log(`[GitHub] ✅ Committed review "${newReview.product}" (ID: ${newReview.id}) to ${GITHUB_REPO}`);
     return { success: true };
   } catch (err: any) {

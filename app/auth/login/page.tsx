@@ -19,17 +19,30 @@ export default function LoginPage() {
     setError(null)
     setSuccess(null)
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao realizar login.');
+      }
+
+      if (data.session) {
+        const supabase = createClient();
+        const { error } = await supabase.auth.setSession(data.session);
+        if (error) throw error;
+      }
+
+      router.push('/admin');
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || 'Erro inesperado.');
+      setLoading(false);
     }
-
-    router.push('/admin')
-    router.refresh()
   }
 
   async function handleMagicLink(e: React.MouseEvent) {

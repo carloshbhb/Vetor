@@ -3,8 +3,9 @@ import type { ReviewData, ReviewSummary } from './types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const fallbackToFile = process.env.SUPABASE_FALLBACK_TO_FILE === 'true';
 
-const supabase = supabaseUrl && supabaseKey
+const supabase = !fallbackToFile && supabaseUrl && supabaseKey
   ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
   : null;
 
