@@ -154,7 +154,14 @@ export async function getAllReviews(): Promise<ReviewData[]> {
     return b.getAllReviews();
   }
 
-  return data.map(mapToReviewData);
+  try {
+    return data.map(mapToReviewData);
+  } catch (mapError) {
+    console.error('[Database] Error mapping all reviews data:', mapError);
+    console.log('[DB] Falling back to backup due to mapping error');
+    const b = await getBackup();
+    return b.getAllReviews();
+  }
 }
 
 export async function getReviewSummaries(): Promise<ReviewSummary[]> {
@@ -203,7 +210,14 @@ export async function getPublishedReviews(): Promise<ReviewData[]> {
   }
 
   console.log('[DB] Mapping Supabase data');
-  return data.map(mapToReviewData);
+  try {
+    return data.map(mapToReviewData);
+  } catch (mapError) {
+    console.error('[Database] Error mapping published reviews data:', mapError);
+    console.log('[DB] Falling back to backup due to mapping error');
+    const b = await getBackup();
+    return b.getPublishedReviews();
+  }
 }
 
 export async function getReviewById(id: string): Promise<ReviewData | undefined> {
