@@ -171,8 +171,10 @@ export async function getReviewSummaries(): Promise<ReviewSummary[]> {
 }
 
 export async function getPublishedReviews(): Promise<ReviewData[]> {
+  console.log('[DB] getPublishedReviews called');
   // If Supabase is not configured, use backup directly
   if (!supabase) { 
+    console.log('[DB] Supabase not configured, using backup');
     const b = await getBackup(); 
     return b.getPublishedReviews(); 
   }
@@ -186,11 +188,13 @@ export async function getPublishedReviews(): Promise<ReviewData[]> {
 
   if (error) {
     console.error('[Database] Error fetching published reviews:', error);
+    console.log('[DB] Falling back to backup due to error');
     // Fallback to backup on Supabase error
     const b = await getBackup();
     return b.getPublishedReviews();
   }
 
+  console.log(`[DB] Supabase returned ${data?.length ?? 0} published reviews`);
   // If Supabase returned empty array, fallback to backup (may happen during migration or if table is empty)
   if (!data || data.length === 0) {
     console.warn('[Database] Supabase returned empty published reviews; falling back to JSON backup.');
@@ -198,6 +202,7 @@ export async function getPublishedReviews(): Promise<ReviewData[]> {
     return b.getPublishedReviews();
   }
 
+  console.log('[DB] Mapping Supabase data');
   return data.map(mapToReviewData);
 }
 
