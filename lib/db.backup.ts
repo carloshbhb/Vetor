@@ -72,9 +72,11 @@ function writeAll(reviews: ReviewData[]) {
 
 /** Return all reviews sorted newest-first (full data). */
 export function getAllReviews(): ReviewData[] {
-  return readAll().sort(
+  const reviews = readAll().sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   );
+  console.log('[DB Backup] getAllReviews returning', reviews.length, 'reviews');
+  return reviews;
 }
 
 /** Return lightweight summaries for listing pages. */
@@ -86,7 +88,10 @@ export function getReviewSummaries(): ReviewSummary[] {
 
 /** Return only published reviews. */
 export function getPublishedReviews(): ReviewData[] {
-  return getAllReviews().filter(r => r.status === 'published');
+  const all = getAllReviews();
+  const published = all.filter(r => r.status === 'published');
+  console.log('[DB Backup] getPublishedReviews returning', published.length, 'published reviews');
+  return published;
 }
 
 /** Find by id. */
