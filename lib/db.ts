@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { ReviewData, ReviewSummary } from './types';
+import type { ReviewData, ReviewSummary, FAQItem } from './types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -17,88 +17,113 @@ async function getBackup() {
 
 // ─── Type Mappers ─────────────────────────────────────────────────────────────
 function mapToReviewData(row: any): ReviewData {
-  return {
-    id: row.id,
-    slug: row.slug,
-    status: row.status,
-    product: row.product,
-    category: row.category,
-    marketplace: row.marketplace,
-    priceOld: row.price_old,
-    priceNew: row.price_new,
-    affiliateUrl: row.affiliate_url,
-    imageUrl: row.image_url,
-    adsEnabled: row.ads_enabled,
-    meta: {
-      title: row.meta_title,
-      description: row.meta_description,
-      keywords: row.meta_keywords,
-      readingTime: row.meta_reading_time,
-      canonical: row.meta_canonical,
-      ogImage: row.meta_og_image,
-    },
-    hero: {
-      headlineLine1: row.hero_headline_line1,
-      headlineLine2: row.hero_headline_line2,
-      headlineEm: row.hero_headline_em,
-      lead: row.hero_lead,
-      overallScore: parseFloat(row.hero_overall_score),
-      bars: row.hero_bars || [],
-    },
-    specs: row.specs || [],
-    sections: row.sections || [],
-    compareTable: row.compare_table || {},
-    pros: row.pros || [],
-    cons: row.cons || [],
-    testimonials: row.testimonials || [],
-    verdict: {
-      score: parseFloat(row.verdict_score),
-      label: row.verdict_label,
-      text: row.verdict_text,
-      note: row.verdict_note,
-    },
-    faq: [],
-    schemaRating: {
-      ratingValue: parseFloat(row.schema_rating_value),
-      reviewCount: row.schema_review_count,
-    },
-    googleRank: row.google_rank,
-    lastRankCheck: row.last_rank_check,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
+   const parseSafe = (val: any) => {
+      if (val === null || val === undefined) return 0;
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? 0 : parsed;
+   };
+
+   // FAQ may be stored as JSON string or array
+   let faq: FAQItem[] = [];
+   if (row.faq) {
+      if (typeof row.faq === 'string') {
+         try {
+            faq = JSON.parse(row.faq);
+         } catch {
+            faq = [];
+         }
+      } else if (Array.isArray(row.faq)) {
+         faq = row.faq;
+      }
+   }
+
+   return {
+     id: row.id,
+     slug: row.slug,
+     status: row.status,
+     product: row.product ?? '',
+     category: row.category ?? '',
+     marketplace: row.marketplace ?? '',
+     priceOld: row.price_old ?? '',
+     priceNew: row.price_new ?? '',
+     affiliateUrl: row.affiliate_url ?? '',
+     imageUrl: row.image_url ?? '',
+     adsEnabled: !!row.ads_enabled,
+     meta: {
+       title: row.meta_title ?? '',
+       description: row.meta_description ?? '',
+       keywords: row.meta_keywords ?? '',
+       readingTime: parseSafe(row.meta_reading_time),
+       canonical: row.meta_canonical ?? null,
+       ogImage: row.meta_og_image ?? null,
+     },
+     hero: {
+       headlineLine1: row.hero_headline_line1 ?? '',
+       headlineLine2: row.hero_headline_line2 ?? '',
+       headlineEm: row.hero_headline_em ?? '',
+       lead: row.hero_lead ?? '',
+       overallScore: parseSafe(row.hero_overall_score),
+       bars: Array.isArray(row.hero_bars) ? row.hero_bars : [],
+     },
+     specs: Array.isArray(row.specs) ? row.specs : [],
+     sections: Array.isArray(row.sections) ? row.sections : [],
+     compareTable: row.compare_table ?? {},
+     pros: Array.isArray(row.pros) ? row.pros : [],
+     cons: Array.isArray(row.cons) ? row.cons : [],
+     testimonials: Array.isArray(row.testimonials) ? row.testimonials : [],
+     verdict: {
+       score: parseSafe(row.verdict_score),
+       label: row.verdict_label ?? '',
+       text: row.verdict_text ?? '',
+       note: row.verdict_note ?? '',
+     },
+     faq,
+     schemaRating: {
+       ratingValue: parseSafe(row.schema_rating_value),
+       reviewCount: parseSafe(row.schema_review_count),
+     },
+     googleRank: row.google_rank ?? null,
+     lastRankCheck: row.last_rank_check ?? null,
+     createdAt: row.created_at ?? '',
+     updatedAt: row.updated_at ?? '',
+   };
+ }
 
 function mapToReviewSummary(row: any): ReviewSummary {
-  return {
-    id: row.id,
-    slug: row.slug,
-    status: row.status,
-    product: row.product,
-    category: row.category,
-    meta: {
-      title: row.meta_title,
-      description: row.meta_description,
-      keywords: row.meta_keywords,
-      readingTime: row.meta_reading_time,
-      canonical: row.meta_canonical,
-      ogImage: row.meta_og_image,
-    },
-    hero: {
-      headlineLine1: row.hero_headline_line1,
-      headlineLine2: row.hero_headline_line2,
-      headlineEm: row.hero_headline_em,
-      lead: row.hero_lead,
-      overallScore: parseFloat(row.hero_overall_score),
-      bars: row.hero_bars || [],
-    },
-    adsEnabled: row.ads_enabled,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    googleRank: row.google_rank,
-    lastRankCheck: row.last_rank_check,
-  };
-}
+   const parseSafe = (val: any) => {
+      if (val === null || val === undefined) return 0;
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? 0 : parsed;
+   };
+   return {
+     id: row.id,
+     slug: row.slug,
+     status: row.status,
+     product: row.product ?? '',
+     category: row.category ?? '',
+     meta: {
+       title: row.meta_title ?? '',
+       description: row.meta_description ?? '',
+       keywords: row.meta_keywords ?? '',
+       readingTime: parseSafe(row.meta_reading_time),
+       canonical: row.meta_canonical ?? null,
+       ogImage: row.meta_og_image ?? null,
+     },
+     hero: {
+       headlineLine1: row.hero_headline_line1 ?? '',
+       headlineLine2: row.hero_headline_line2 ?? '',
+       headlineEm: row.hero_headline_em ?? '',
+       lead: row.hero_lead ?? '',
+       overallScore: parseSafe(row.hero_overall_score),
+       bars: Array.isArray(row.hero_bars) ? row.hero_bars : [],
+     },
+     adsEnabled: !!row.ads_enabled,
+     createdAt: row.created_at ?? '',
+     updatedAt: row.updatedAt ?? '',
+     googleRank: row.google_rank ?? null,
+     lastRankCheck: row.last_rank_check ?? null,
+   };
+ }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 

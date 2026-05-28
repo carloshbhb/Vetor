@@ -9,8 +9,6 @@
     "lint": "next lint",
     "db:migrate": "node scripts/migrate-to-supabase.js",
     "db:backup": "copy lib\\db.ts lib\\db.backup.ts && copy lib\\db.supabase.ts lib\\db.ts",
-    "sync": "git add . && git commit -m \"auto sync\" && git push",
-    "postbuild": "npm run sync",
     "prepare": "husky"
   },
   "dependencies": {
