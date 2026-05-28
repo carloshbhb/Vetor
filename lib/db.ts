@@ -128,7 +128,13 @@ function mapToReviewSummary(row: any): ReviewSummary {
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 export async function getAllReviews(): Promise<ReviewData[]> {
-  if (!supabase) { const b = await getBackup(); return b.getAllReviews(); }
+  // If Supabase is not configured, use backup directly
+  if (!supabase) { 
+    const b = await getBackup(); 
+    return b.getAllReviews(); 
+  }
+
+  // Query Supabase
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
@@ -136,7 +142,16 @@ export async function getAllReviews(): Promise<ReviewData[]> {
 
   if (error) {
     console.error('[Database] Error fetching all reviews:', error);
-    return [];
+    // Fallback to backup on Supabase error
+    const b = await getBackup();
+    return b.getAllReviews();
+  }
+
+  // If Supabase returned empty array, fallback to backup (may happen during migration or if table is empty)
+  if (!data || data.length === 0) {
+    console.warn('[Database] Supabase returned empty all reviews; falling back to JSON backup.');
+    const b = await getBackup();
+    return b.getAllReviews();
   }
 
   return data.map(mapToReviewData);
@@ -156,7 +171,13 @@ export async function getReviewSummaries(): Promise<ReviewSummary[]> {
 }
 
 export async function getPublishedReviews(): Promise<ReviewData[]> {
-  if (!supabase) { const b = await getBackup(); return b.getPublishedReviews(); }
+  // If Supabase is not configured, use backup directly
+  if (!supabase) { 
+    const b = await getBackup(); 
+    return b.getPublishedReviews(); 
+  }
+
+  // Query Supabase
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
@@ -165,7 +186,16 @@ export async function getPublishedReviews(): Promise<ReviewData[]> {
 
   if (error) {
     console.error('[Database] Error fetching published reviews:', error);
-    return [];
+    // Fallback to backup on Supabase error
+    const b = await getBackup();
+    return b.getPublishedReviews();
+  }
+
+  // If Supabase returned empty array, fallback to backup (may happen during migration or if table is empty)
+  if (!data || data.length === 0) {
+    console.warn('[Database] Supabase returned empty published reviews; falling back to JSON backup.');
+    const b = await getBackup();
+    return b.getPublishedReviews();
   }
 
   return data.map(mapToReviewData);
@@ -189,16 +219,30 @@ export async function getReviewById(id: string): Promise<ReviewData | undefined>
 }
 
 export async function getReviewBySlug(slug: string): Promise<ReviewData | undefined> {
-  if (!supabase) { const b = await getBackup(); return b.getReviewBySlug(slug); }
+  // If Supabase is not configured, use backup directly
+  if (!supabase) { 
+    const b = await getBackup(); 
+    return b.getReviewBySlug(slug); 
+  }
+
+  // Query Supabase
   const { data, error } = await supabase
     .rpc('get_review_by_slug', { slug_param: slug });
 
   if (error) {
     console.error('[Database] Error fetching review by slug:', error);
-    return undefined;
+    // Fallback to backup on Supabase error
+    const b = await getBackup();
+    return b.getReviewBySlug(slug);
   }
 
-  if (!data || data.length === 0) return undefined;
+  // If Supabase returned empty array, fallback to backup
+  if (!data || data.length === 0) {
+    console.warn('[Database] Supabase returned empty review by slug; falling back to JSON backup.');
+    const b = await getBackup();
+    return b.getReviewBySlug(slug);
+  }
+
   return mapToReviewData(data[0]);
 }
 
