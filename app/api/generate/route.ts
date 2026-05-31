@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
      const genAI = new GoogleGenerativeAI(apiKey);
      // Use a stable, widely-available model
-     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
      // Retrieve unique list of existing categories in the database
      const reviews = await getAllReviews();

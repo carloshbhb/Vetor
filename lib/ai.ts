@@ -185,7 +185,7 @@ export async function generateText(options: GenerateTextOptions): Promise<string
   await enforceConcurrencyDelay(minConcurrencyDelayMs);
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const modelName = 'gemini-1.5-flash';
+  const modelName = 'gemini-2.0-flash';
   
   const modelConfig: any = { model: modelName };
   if (useSearchGrounding) {
