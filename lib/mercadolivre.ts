@@ -119,13 +119,21 @@ async function fetchByItemId(itemId: string): Promise<MLProduct | null> {
   const normalizedId = itemId.replace('-', '').toUpperCase(); // MLB123456789
   const url = `${ML_API_BASE}/items/${normalizedId}`;
 
-  const res = await fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-      'User-Agent': 'VetorBlog/1.0',
-    },
-    next: { revalidate: 300 },
-  });
+  const accessToken = process.env.ML_ACCESS_TOKEN;
+
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+    'User-Agent': 'VetorBlog/1.0',
+  };
+
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  } else {
+    console.warn('[ML API] ML_ACCESS_TOKEN not configured. Using placeholder image.');
+    return null;
+  }
+
+  const res = await fetch(url, { headers, next: { revalidate: 300 } });
 
   if (!res.ok) {
     const errorText = await res.text().catch(() => 'Unknown error');
@@ -159,15 +167,23 @@ async function fetchBySearch(query: string): Promise<MLProduct | null> {
   const encodedQuery = encodeURIComponent(query);
   const url = `${ML_API_BASE}/sites/${ML_SITE}/search?q=${encodedQuery}&limit=5`;
 
+  const accessToken = process.env.ML_ACCESS_TOKEN;
+
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+    'User-Agent': 'VetorBlog/1.0',
+  };
+
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  } else {
+    console.warn('[ML API] ML_ACCESS_TOKEN not configured. Using placeholder image.');
+    return null;
+  }
+
   console.log(`[ML API] Searching: ${url}`);
 
-  const res = await fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-      'User-Agent': 'VetorBlog/1.0',
-    },
-    next: { revalidate: 300 },
-  });
+  const res = await fetch(url, { headers, next: { revalidate: 300 } });
 
   if (!res.ok) {
     const errorText = await res.text().catch(() => 'Unknown error');
@@ -263,6 +279,12 @@ export async function fetchMLProduct(
   idOrQuery: string,
 ): Promise<MLEnrichResult | null> {
   if (!idOrQuery?.trim()) return null;
+
+  // Check if ML_ACCESS_TOKEN is configured
+  if (!process.env.ML_ACCESS_TOKEN) {
+    console.warn('[ML API] ML_ACCESS_TOKEN not configured. Product images will use placeholders.');
+    return null;
+  }
 
   let product: MLProduct | null = null;
   let source: MLEnrichResult['source'] = 'Not Found';
