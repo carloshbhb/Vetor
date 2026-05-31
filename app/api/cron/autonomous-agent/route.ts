@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 
 export async function GET(req: NextRequest) {
@@ -231,8 +231,20 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     let modelIdx = 0;
     const nextModel = () => freeModels[modelIdx++ % freeModels.length].id;
 
-    // Helper: parse JSON from AI response
-    const parseJsonResponse = (text: string): any => {
+    // Helper: parse JSON from AI response (aggressive cleanup for free models)
+    const extractBalancedJson = (str: string): string | null => {
+      const start = str.indexOf('{');
+      if (start === -1) return null;
+      let depth = 0;
+      for (let i = start; i < str.length; i++) {
+        if (str[i] === '{') depth++;
+        else if (str[i] === '}') depth--;
+        if (depth === 0) return str.substring(start, i + 1);
+      }
+      return null;
+    };
+    const parseJsonResponse = (text: string, context?: string): any => {
+      if (!text) { console.warn(`[parseJson] Empty response${context ? ' for ' + context : ''}`); return null; }
       let raw = '';
       const codeBlock = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
       if (codeBlock) raw = codeBlock[1].trim();
@@ -240,29 +252,43 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
         const m = text.match(/\{[\s\S]*\}/);
         if (m) raw = m[0];
       }
-      if (!raw) return null;
-      raw = raw.replace(/,\s*([}\]])/g, '$1').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
-      try { return JSON.parse(raw); } catch { return null; }
+      if (!raw) {
+        // Try balanced extraction
+        const bal = extractBalancedJson(text);
+        if (bal) raw = bal;
+      }
+      if (!raw) {
+        console.warn(`[parseJson] No JSON found${context ? ' for ' + context : ''}. Response start:`, text.substring(0, 300));
+        return null;
+      }
+      console.log(`[parseJson] Raw ${context || 'JSON'} (first 500 chars):`, raw.substring(0, 500));
+      raw = raw
+        .replace(/,\s*([}\]])/g, '$1')
+        .replace(/\/\/.*$/gm, '')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/:\s*'([^']*?)'/g, ': "$1"')
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+      try { return JSON.parse(raw); } catch (e: any) {
+        console.warn(`[parseJson] Parse failed${context ? ' for ' + context : ''}: ${e.message}`, 'Raw start:', raw.substring(0, 300));
+        return null;
+      }
     };
 
     // Step 5a: Generate meta, hero, specs
-    const metaPrompt = `Gere um JSON para review do produto "${trendingProduct}" na categoria "${targetCategory}".
-Preço: ${mlPrice || 'não informado'}. Preço antigo: ${mlPriceOld || 'não informado'}.
-Retorne APENAS JSON válido com esta estrutura exata:
+    const metaPrompt = `Retorne APENAS JSON puro (sem markdown, sem explicação) para review do produto "${trendingProduct}", categoria "${targetCategory}". Preço: ${mlPrice || 'não informado'}. Preço antigo: ${mlPriceOld || ''}.
 {
-  "meta": {"title": "string (até 60 chars com nome e ano)", "description": "string (150-160 chars)", "keywords": "string (5-8 tags)", "slug": "string", "reading_time": 8},
+  "meta": {"title": "título com nome e ano", "description": "155 chars", "keywords": "5-8 tags", "slug": "slug-url", "reading_time": 8},
   "product": "${trendingProduct}",
   "category": "${targetCategory}",
   "priceOld": "${mlPriceOld || ''}",
   "priceNew": "${mlPrice || ''}",
-  "hero": {"headline_line1": "string (até 25 chars)", "headline_line2": "string (até 35 chars)", "headline_em": "string", "lead": "string (3 frases persuasivas)", "overall_score": 8.5, "bars": [{"label": "string", "value": 9.0, "pct": 90}]},
-  "specs": [{"label": "string", "value": "string", "highlight": true}]
-}
-Bars: 5 atributos. Specs: mínimo 6. Tudo em português BR.`;
+  "hero": {"headline_line1": "ATÉ 25 CHARS", "headline_line2": "ATÉ 35 CHARS", "headline_em": "destaque", "lead": "3 frases persuasivas", "overall_score": 8.5, "bars": [{"label": "Qualidade", "value": 9, "pct": 90}, {"label": "Custo", "value": 8, "pct": 80}, {"label": "Design", "value": 8.5, "pct": 85}, {"label": "Desempenho", "value": 9, "pct": 90}, {"label": "Bateria", "value": 8, "pct": 80}]},
+  "specs": [{"label": "Marca", "value": "exemplo", "highlight": true}, {"label": "Modelo", "value": "exemplo"}, {"label": "Conectividade", "value": "Bluetooth"}, {"label": "Peso", "value": "200g"}, {"label": "Garantia", "value": "12 meses"}, {"label": "Origem", "value": "Internacional"}]
+}`;
 
     console.log(`[Autonomous Agent] Step 5a: Generating meta/hero/specs with ${nextModel()}...`);
-    const metaText = await generateText({ prompt: metaPrompt, responseJson: true, maxOutputTokens: 4096 });
-    const metaData = parseJsonResponse(metaText);
+    const metaText = await generateText({ prompt: metaPrompt, maxOutputTokens: 4096 });
+    const metaData = parseJsonResponse(metaText, 'meta/hero/specs');
     if (!metaData) throw new Error('Failed to parse meta/hero/specs JSON');
 
     // Step 5b: Generate sections individually with different models
@@ -305,8 +331,8 @@ Seja honesto nos contras (aumenta confiança). Mínimo 5 FAQ. PT-BR.`;
 
     const verdictModel = nextModel();
     console.log(`[Autonomous Agent] Step 5c: Generating pros/cons/verdict with ${verdictModel}...`);
-    const verdictText = await generateTextWithModel(verdictPrompt, verdictModel, { responseJson: true, maxOutputTokens: 2046 });
-    const verdictData = parseJsonResponse(verdictText) || { pros: [], cons: [], verdict: { score: 8.5, label: 'BOM CUSTO-BENEFÍCIO', text: '', note: '' }, faq: [] };
+    const verdictText = await generateTextWithModel(verdictPrompt, verdictModel, { maxOutputTokens: 2046 });
+    const verdictData = parseJsonResponse(verdictText, 'verdict') || { pros: [], cons: [], verdict: { score: 8.5, label: 'BOM CUSTO-BENEFÍCIO', text: '', note: '' }, faq: [] };
 
     // Build full review object from all generated parts
     const now = new Date().toISOString();
