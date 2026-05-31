@@ -7,16 +7,6 @@ import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
 
 export const maxDuration = 120;
 
-const DEFAULT_CATEGORIES = [
-  'Wearables / Smartbands',
-  'Acessórios para Games',
-  'Fones de Ouvido',
-  'Robôs Aspiradores',
-  'Casa Inteligente',
-  'Notebooks',
-  'Tablets',
-  'Câmeras de Segurança',
-];
 
 export async function GET(req: NextRequest) {
   // Verify Vercel cron secret if configured (recommended for production)
@@ -221,7 +211,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto, sem pontuação, sem asp
       site_name: 'Vetor Blog',
       site_url: 'https://vetor.blog',
       author: 'Agente de IA de Tráfego',
-      existingCategories,
+      existingCategories: allCategories,
     });
 
     const responseText = await generateText({
