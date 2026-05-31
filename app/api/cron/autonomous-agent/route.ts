@@ -308,6 +308,8 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
           `Análise técnica completa do ${trendingProduct}.`,
         keywords: d.meta?.keywords || trendingProduct,
         readingTime: d.meta?.reading_time || d.meta?.readingTime || 8,
+        canonical: d.meta?.canonical || null,
+        ogImage: d.meta?.og_image || d.meta?.ogImage || null,
       },
       product: d.product || trendingProduct,
       category: d.category || targetCategory,
