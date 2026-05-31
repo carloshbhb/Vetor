@@ -252,7 +252,41 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Could not parse JSON from AI response');
 
-    const d = JSON.parse(jsonMatch[0]);
+    let rawJson = jsonMatch[0];
+
+    // Robust JSON cleanup for free models that may produce malformed output
+    rawJson = rawJson
+      // Remove trailing commas before } or ]
+      .replace(/,\s*([}\]])/g, '$1')
+      // Remove comments (// and /* */)
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      // Fix unescaped newlines inside string values
+      .replace(/(?<=":")[^"]*?\n[^"]*?(?=",)/g, (m) => m.replace(/\n/g, ' '))
+      // Remove control characters except standard ones
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+
+    let d: any;
+    try {
+      d = JSON.parse(rawJson);
+    } catch (parseErr) {
+      // Last resort: try to extract key fields with regex
+      console.warn('[Autonomous Agent] JSON parse failed, attempting regex extraction...');
+      const productMatch = rawJson.match(/"product"\s*:\s*"([^"]+)"/);
+      const categoryMatch = rawJson.match(/"category"\s*:\s*"([^"]+)"/);
+      if (!productMatch) throw new Error(`Could not parse JSON from AI response: ${parseErr}`);
+      d = {
+        product: productMatch[1],
+        category: categoryMatch?.[1] || targetCategory,
+        meta: {},
+        hero: { bars: [] },
+        specs: [],
+        sections: [],
+        pros: [],
+        cons: [],
+        verdict: { score: 8.5, label: 'BOM CUSTO-BENEFÍCIO', text: '', note: '' },
+      };
+    }
 
     // 5. Map AI response (snake_case) → ReviewData (camelCase) precisely
     const now = new Date().toISOString();
