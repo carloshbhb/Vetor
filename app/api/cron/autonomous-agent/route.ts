@@ -119,7 +119,7 @@ export async function handleAutonomousCycle() {
     };
 
     // Combine all categories for retry
-    const allCategories = [...new Set([...Object.keys(fallbackProducts), ...reviews.map(r => r.category).filter(Boolean)])];
+    const allCategories = Array.from(new Set([...Object.keys(fallbackProducts), ...reviews.map(r => r.category).filter(Boolean)]));
 
     // Try up to 5 times with different categories
     let trendingProduct = '';
