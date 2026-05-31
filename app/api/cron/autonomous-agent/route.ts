@@ -280,7 +280,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     } catch (parseErr) {
       console.warn('[Autonomous Agent] JSON parse failed. First 500 chars of raw:', rawJson.substring(0, 500));
       // Try more aggressive approach: find the outermost { } and parse
-      const depthMatch = rawJson.match(/(\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})/s);
+      const depthMatch = rawJson.match(/(\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})/);
       if (depthMatch) {
         try {
           d = JSON.parse(depthMatch[1]);
