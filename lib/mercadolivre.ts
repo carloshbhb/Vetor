@@ -4,7 +4,7 @@
 // high-resolution images and generate parametrized affiliate URLs.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ML_API_BASE = 'https://api.mercadolivre.com.br';
+const ML_API_BASE = 'https://api.mercadolibre.com';
 const ML_SITE = 'MLB'; // Brazil
 
 export interface MLProduct {
@@ -82,11 +82,21 @@ function pickBestImage(pictures: any[]): string {
   // Try to get the "-O.webp" (original) variant
   if (first.secure_url) {
     // Replace size suffix with -O (original high-res)
-    const highRes = first.secure_url.replace(/-[A-Z]\.webp$/, '-O.webp');
+    const highRes = first.secure_url.replace(/-[A-Z]\.(webp|jpg|jpeg|png)$/i, '-O.webp');
+    console.log(`[ML API] High-res image: ${highRes}`);
     return highRes;
   }
 
-  return first.url || '';
+  if (first.url) {
+    // Try to convert HTTP to HTTPS and get high-res
+    let url = first.url.replace(/-[A-Z]\.(webp|jpg|jpeg|png)$/i, '-O.webp');
+    if (url.startsWith('http://')) {
+      url = url.replace('http://', 'https://');
+    }
+    return url;
+  }
+
+  return '';
 }
 
 /**
@@ -110,16 +120,21 @@ async function fetchByItemId(itemId: string): Promise<MLProduct | null> {
   const url = `${ML_API_BASE}/items/${normalizedId}`;
 
   const res = await fetch(url, {
-    headers: { 'Accept': 'application/json' },
-    next: { revalidate: 300 }, // cache 5 min on Next.js
+    headers: {
+      'Accept': 'application/json',
+      'User-Agent': 'VetorBlog/1.0',
+    },
+    next: { revalidate: 300 },
   });
 
   if (!res.ok) {
-    console.warn(`[ML API] GET /items/${normalizedId} returned ${res.status}`);
+    const errorText = await res.text().catch(() => 'Unknown error');
+    console.warn(`[ML API] GET /items/${normalizedId} returned ${res.status}: ${errorText}`);
     return null;
   }
 
   const item = await res.json();
+  console.log(`[ML API] Item found: ${item.title} (${item.id})`);
 
   const imageUrl = pickBestImage(item.pictures || []);
 
@@ -144,18 +159,26 @@ async function fetchBySearch(query: string): Promise<MLProduct | null> {
   const encodedQuery = encodeURIComponent(query);
   const url = `${ML_API_BASE}/sites/${ML_SITE}/search?q=${encodedQuery}&limit=5`;
 
+  console.log(`[ML API] Searching: ${url}`);
+
   const res = await fetch(url, {
-    headers: { 'Accept': 'application/json' },
+    headers: {
+      'Accept': 'application/json',
+      'User-Agent': 'VetorBlog/1.0',
+    },
     next: { revalidate: 300 },
   });
 
   if (!res.ok) {
-    console.warn(`[ML API] GET /search?q=${query} returned ${res.status}`);
+    const errorText = await res.text().catch(() => 'Unknown error');
+    console.warn(`[ML API] GET /search?q=${query} returned ${res.status}: ${errorText}`);
     return null;
   }
 
   const data = await res.json();
   const results: any[] = data.results || [];
+
+  console.log(`[ML API] Search returned ${results.length} results`);
 
   if (results.length === 0) return null;
 
@@ -182,17 +205,33 @@ async function fetchBySearch(query: string): Promise<MLProduct | null> {
   // For the search results, thumbnail is available but we need to fetch item details
   // to get the full pictures array with high-res variants.
   // We attempt a secondary fetch for the best match item.
-  const detailedProduct = await fetchByItemId(bestResult.id);
-  if (detailedProduct) return detailedProduct;
+  try {
+    const detailedProduct = await fetchByItemId(bestResult.id);
+    if (detailedProduct) return detailedProduct;
+  } catch (err: any) {
+    console.warn(`[ML API] Secondary fetch failed for ${bestResult.id}: ${err.message}`);
+  }
 
   // Fallback: use search result thumbnail directly
-  const thumbnail = (bestResult.thumbnail || '').replace(/-[A-Z]\.jpg$/, '-O.webp');
+  // Convert thumbnail to higher resolution: replace -C.jpg with -O.webp
+  let thumbnail = bestResult.thumbnail || '';
+  if (thumbnail) {
+    // Try to get original high-res version
+    thumbnail = thumbnail.replace(/-[A-Z]\.(jpg|jpeg|png)$/i, '-O.webp');
+    // Ensure HTTPS
+    if (thumbnail.startsWith('http://')) {
+      thumbnail = thumbnail.replace('http://', 'https://');
+    }
+  }
+
+  console.log(`[ML API] Using thumbnail: ${thumbnail}`);
+
   return {
     id: bestResult.id,
     title: bestResult.title,
     price: bestResult.price,
     originalPrice: bestResult.original_price ?? null,
-    imageUrl: thumbnail,
+    imageUrl: thumbnail || 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80',
     permalink: bestResult.permalink,
     affiliateUrl: buildAffiliateUrl(bestResult.permalink),
     currency: bestResult.currency_id || 'BRL',
