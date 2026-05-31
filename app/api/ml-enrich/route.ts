@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchMLProduct } from '@/lib/mercadolivre';
 import { generateText } from '@/lib/ai';
 
+export const dynamic = 'force-dynamic';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/ml-enrich
 //

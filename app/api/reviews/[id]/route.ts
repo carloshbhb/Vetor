@@ -3,6 +3,8 @@ import { getReviewById, updateReview, deleteReview } from '@/lib/db';
 import { commitUpdateReviewToGitHub, commitDeleteReviewFromGitHub } from '@/lib/github';
 import { submitUrl } from '@/lib/indexnow';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   const review = await getReviewById(params.id);
   if (!review) return NextResponse.json({ error: 'Not found' }, { status: 404 });

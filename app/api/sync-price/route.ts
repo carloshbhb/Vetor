@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+export const dynamic = 'force-dynamic';
+
 // Helper to extract first balanced JSON object from string
 function extractFirstJSON(str: string, startIdx: number): string | null {
   let braceCount = 0;

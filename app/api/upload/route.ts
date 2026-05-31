@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { uploadImage } from '@/lib/supabase-storage';
 
+export const dynamic = 'force-dynamic';
+
 const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
 
 export async function POST(req: Request) {

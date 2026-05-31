@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPublishedReviews, updateReview } from '@/lib/db';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const published = await getPublishedReviews();

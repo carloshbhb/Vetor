@@ -4,6 +4,8 @@ import { buildPrompt } from '@/lib/prompt';
 import type { GenerateInput } from '@/lib/prompt';
 import { getAllReviews } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
    try {
      const body = await req.json() as GenerateInput;

@@ -5,6 +5,8 @@ import { commitNewReviewToGitHub } from '@/lib/github';
 import { buildPrompt } from '@/lib/prompt';
 import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
 
+export const dynamic = 'force-dynamic';
+
 export const maxDuration = 120;
 
 

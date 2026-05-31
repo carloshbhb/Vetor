@@ -4,6 +4,8 @@ import { commitNewReviewToGitHub } from '@/lib/github';
 import { submitUrl } from '@/lib/indexnow';
 import type { ReviewData } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const reviews = await getAllReviews();
   return NextResponse.json(reviews);
