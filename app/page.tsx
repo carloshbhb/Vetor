@@ -7,10 +7,6 @@ export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const reviews = await getPublishedReviews();
-  console.log('[Home] reviews count:', reviews.length);
-  if (reviews.length > 0) {
-    console.log('[Home] first review:', reviews[0].slug);
-  }
 
   return (
     <div className="bg-bg2 min-h-screen">

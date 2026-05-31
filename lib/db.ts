@@ -167,7 +167,9 @@ export async function getAllReviews(): Promise<ReviewData[]> {
 export async function getReviewSummaries(): Promise<ReviewSummary[]> {
   if (!supabase) { const b = await getBackup(); return b.getReviewSummaries(); }
   const { data, error } = await supabase
-    .rpc('get_published_reviews');
+    .from('reviews')
+    .select('*')
+    .order('updated_at', { ascending: false });
 
   if (error) {
     console.error('[Database] Error fetching review summaries:', error);
@@ -244,25 +246,23 @@ export async function getReviewBySlug(slug: string): Promise<ReviewData | undefi
     return b.getReviewBySlug(slug); 
   }
 
-  // Query Supabase
+  // Query Supabase directly (not via RPC, which may not exist)
   const { data, error } = await supabase
-    .rpc('get_review_by_slug', { slug_param: slug });
+    .from('reviews')
+    .select('*')
+    .eq('slug', slug)
+    .eq('status', 'published')
+    .single();
 
   if (error) {
+    if (error.code === 'PGRST116') return undefined;
     console.error('[Database] Error fetching review by slug:', error);
     // Fallback to backup on Supabase error
     const b = await getBackup();
     return b.getReviewBySlug(slug);
   }
 
-  // If Supabase returned empty array, fallback to backup
-  if (!data || data.length === 0) {
-    console.warn('[Database] Supabase returned empty review by slug; falling back to JSON backup.');
-    const b = await getBackup();
-    return b.getReviewBySlug(slug);
-  }
-
-  return mapToReviewData(data[0]);
+  return mapToReviewData(data);
 }
 
 export async function createReview(data: Omit<ReviewData, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {

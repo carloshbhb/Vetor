@@ -38,7 +38,7 @@ function renderWithHighlight(text: string, highlight: string) {
   );
 }
 
-export const revalidate = 0; // Garante que qualquer alteração no CMS reflita instantaneamente para os leitores
+export const dynamic = 'force-dynamic';
 
 // ── SSG params ────────────────────────────────────────────────────────────────
 export async function generateStaticParams() {
