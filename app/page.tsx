@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { getPublishedReviews } from '@/lib/db';
 import Logo from '@/components/Logo';
 
-export const revalidate = 0; // Garante que a página inicial sempre exiba a lista de reviews em tempo real
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const reviews = await getPublishedReviews();
