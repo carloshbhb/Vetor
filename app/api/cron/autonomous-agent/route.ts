@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateText } from '@/lib/ai';
+import { generateText, generateTextWithModel, getFreeModels } from '@/lib/ai';
 import { getAllReviews } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
-import { buildPrompt } from '@/lib/prompt';
 import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
 import { createClient } from '@supabase/supabase-js';
 
@@ -227,217 +226,142 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       console.warn('[Autonomous Agent] ML API fetch failed (non-fatal):', mlErr.message);
     }
 
-    // 5. Generate the full review article via AI
-    const prompt = buildPrompt({
-      product: trendingProduct,
-      category: targetCategory,
-      price: mlPrice || undefined,
-      old_price: mlPriceOld || undefined,
-      affiliate_url: mlAffiliateUrl,
-      image_url: mlImageUrl || undefined,
-      tone: 'misto',
-      site_name: 'Vetor Blog',
-      site_url: 'https://vetor.blog',
-      author: 'Agente de IA de Tráfego',
-      existingCategories: allCategories,
-    });
+    // 5. Generate the review in multiple steps using different models per section
+    const freeModels = getFreeModels();
+    let modelIdx = 0;
+    const nextModel = () => freeModels[modelIdx++ % freeModels.length].id;
 
-    const responseText = await generateText({
-      prompt,
-      responseJson: true,
-      maxOutputTokens: 16384,
-      temperature: 0.7,
-    });
-    if (!responseText) throw new Error('AI returned empty content');
+    // Helper: parse JSON from AI response
+    const parseJsonResponse = (text: string): any => {
+      let raw = '';
+      const codeBlock = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+      if (codeBlock) raw = codeBlock[1].trim();
+      else {
+        const m = text.match(/\{[\s\S]*\}/);
+        if (m) raw = m[0];
+      }
+      if (!raw) return null;
+      raw = raw.replace(/,\s*([}\]])/g, '$1').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+      try { return JSON.parse(raw); } catch { return null; }
+    };
 
-    // Try to extract JSON from response, handling markdown code blocks and other artifacts
-    let rawJson = '';
-    const codeBlockMatch = responseText.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-    if (codeBlockMatch) {
-      rawJson = codeBlockMatch[1].trim();
-    } else {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) rawJson = jsonMatch[0];
-    }
+    // Step 5a: Generate meta, hero, specs
+    const metaPrompt = `Gere um JSON para review do produto "${trendingProduct}" na categoria "${targetCategory}".
+Preço: ${mlPrice || 'não informado'}. Preço antigo: ${mlPriceOld || 'não informado'}.
+Retorne APENAS JSON válido com esta estrutura exata:
+{
+  "meta": {"title": "string (até 60 chars com nome e ano)", "description": "string (150-160 chars)", "keywords": "string (5-8 tags)", "slug": "string", "reading_time": 8},
+  "product": "${trendingProduct}",
+  "category": "${targetCategory}",
+  "priceOld": "${mlPriceOld || ''}",
+  "priceNew": "${mlPrice || ''}",
+  "hero": {"headline_line1": "string (até 25 chars)", "headline_line2": "string (até 35 chars)", "headline_em": "string", "lead": "string (3 frases persuasivas)", "overall_score": 8.5, "bars": [{"label": "string", "value": 9.0, "pct": 90}]},
+  "specs": [{"label": "string", "value": "string", "highlight": true}]
+}
+Bars: 5 atributos. Specs: mínimo 6. Tudo em português BR.`;
 
-    if (!rawJson) throw new Error('Could not parse JSON from AI response');
+    console.log(`[Autonomous Agent] Step 5a: Generating meta/hero/specs with ${nextModel()}...`);
+    const metaText = await generateText({ prompt: metaPrompt, responseJson: true, maxOutputTokens: 4096 });
+    const metaData = parseJsonResponse(metaText);
+    if (!metaData) throw new Error('Failed to parse meta/hero/specs JSON');
 
-    // Aggressive JSON cleanup for free models
-    rawJson = rawJson
-      // Remove trailing commas before } or ]
-      .replace(/,\s*([}\]])/g, '$1')
-      // Remove single-line comments
-      .replace(/\/\/.*$/gm, '')
-      // Remove multi-line comments
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      // Replace single quotes with double quotes (only for property values, not inside content)
-      .replace(/:\s*'([^']*?)'/g, ': "$1"')
-      // Remove control characters
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+    // Step 5b: Generate sections individually with different models
+    const sectionPrompts = [
+      { id: 'design', heading: 'Design e Construção', tocLabel: 'Design', tocEmoji: '🎨',
+        prompt: `Escreva uma seção de review (300-500 palavras) sobre DESIGN E CONSTRUÇÃO do produto "${trendingProduct}" (${targetCategory}). Use Markdown com negrito, listas bullets e subtópicos H3. Tom persuasivo e informativo em PT-BR. Foque em materiais, acabamento, ergonomia e transportabilidade.` },
+      { id: 'qualidade', heading: 'Qualidade e Desempenho', tocLabel: 'Qualidade', tocEmoji: '⚡',
+        prompt: `Escreva uma seção de review (300-500 palavras) sobre QUALIDADE E DESEMPENHO do produto "${trendingProduct}" (${targetCategory}). Use Markdown com negrito, listas bullets e subtópicos H3. Tom persuasivo em PT-BR. Foque em performance, recursos, velocidade e experiência de uso real.` },
+      { id: 'bateria', heading: 'Autonomia e Bateria', tocLabel: 'Bateria', tocEmoji: '🔋',
+        prompt: `Escreva uma seção de review (300-500 palavras) sobre AUTONOMIA E BATERIA do produto "${trendingProduct}" (${targetCategory}). Use Markdown com negrito, listas bullets e subtópicos H3. Tom persuasivo em PT-BR. Foque em duração real, tempo de carga e comparativo com concorrentes.` },
+      { id: 'custo-beneficio', heading: 'Custo-Benefício', tocLabel: 'Custo-Benefício', tocEmoji: '💰',
+        prompt: `Escreva uma seção de review (300-500 palavras) sobre CUSTO-BENEFÍCIO do produto "${trendingProduct}" (${targetCategory}). Preço atual: ${mlPrice || 'não informado'}. Use Markdown com negrito, listas bullets e subtópicos H3. Tom persuasivo em PT-BR. Compare com concorrentes e justifique o investimento.` },
+    ];
 
-    let d: any;
-    try {
-      d = JSON.parse(rawJson);
-    } catch (parseErr) {
-      console.warn('[Autonomous Agent] JSON parse failed. First 500 chars of raw:', rawJson.substring(0, 500));
-      // Try more aggressive approach: find the outermost { } and parse
-      const depthMatch = rawJson.match(/(\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})/);
-      if (depthMatch) {
-        try {
-          d = JSON.parse(depthMatch[1]);
-        } catch {
-          throw new Error(`Could not parse JSON from AI response: ${parseErr}`);
-        }
-      } else {
-        throw new Error(`Could not parse JSON from AI response: ${parseErr}`);
+    const sections: any[] = [];
+    for (const sec of sectionPrompts) {
+      const model = nextModel();
+      console.log(`[Autonomous Agent] Step 5b: Generating section "${sec.heading}" with ${model}...`);
+      try {
+        const content = await generateTextWithModel(sec.prompt, model, { maxOutputTokens: 2048 });
+        sections.push({ id: sec.id, heading: sec.heading, tocLabel: sec.tocLabel, tocEmoji: sec.tocEmoji, content });
+      } catch (err: any) {
+        console.warn(`[Autonomous Agent] Section "${sec.heading}" failed: ${err.message}. Using fallback.`);
+        sections.push({ id: sec.id, heading: sec.heading, tocLabel: sec.tocLabel, tocEmoji: sec.tocEmoji,
+          content: `**${sec.heading}**\n\nO ${trendingProduct} impressiona neste aspecto. Sua construção é sólida e os materiais utilizados transmitem qualidade desde o primeiro contato. No uso diário, ele entrega consistentemente o que promete, atendendo às expectativas do público brasileiro.` });
       }
     }
 
-    // 5. Map AI response (snake_case) → ReviewData (camelCase) precisely
+    // Step 5c: Generate pros, cons, verdict, FAQ
+    const verdictPrompt = `Gere um JSON para review do "${trendingProduct}" (${targetCategory}).
+Retorne APENAS JSON válido:
+{
+  "pros": ["string (mínimo 5 prós)"],
+  "cons": ["string (mínimo 4 contras)"],
+  "verdict": {"score": 8.5, "label": "string (ex: EXCELENTE CUSTO-BENEFÍCIO)", "text": "string (3 frases persuasivas)", "note": "string (público-alvo)"},
+  "faq": [{"question": "string", "answer": "string"}],
+  "schemas": {"aggregate_rating": {"rating_value": 8.5, "review_count": 100}}
+}
+Seja honesto nos contras (aumenta confiança). Mínimo 5 FAQ. PT-BR.`;
+
+    const verdictModel = nextModel();
+    console.log(`[Autonomous Agent] Step 5c: Generating pros/cons/verdict with ${verdictModel}...`);
+    const verdictText = await generateTextWithModel(verdictPrompt, verdictModel, { responseJson: true, maxOutputTokens: 2046 });
+    const verdictData = parseJsonResponse(verdictText) || { pros: [], cons: [], verdict: { score: 8.5, label: 'BOM CUSTO-BENEFÍCIO', text: '', note: '' }, faq: [] };
+
+    // Build full review object from all generated parts
     const now = new Date().toISOString();
     const reviewId = crypto.randomUUID();
 
     const fullReview = {
       id: reviewId,
-      slug: d.meta?.slug || d.slug || slugify(trendingProduct),
+      slug: metaData.meta?.slug || slugify(trendingProduct),
       status: 'published' as const,
       meta: {
-        title: d.meta?.title || `Review ${trendingProduct}: Vale a Pena?`,
-        description:
-          d.meta?.description ||
-          `Análise técnica completa do ${trendingProduct}.`,
-        keywords: d.meta?.keywords || trendingProduct,
-        readingTime: d.meta?.reading_time || d.meta?.readingTime || 8,
-        canonical: d.meta?.canonical || null,
-        ogImage: d.meta?.og_image || d.meta?.ogImage || null,
+        title: metaData.meta?.title || `Review ${trendingProduct}: Vale a Pena?`,
+        description: metaData.meta?.description || `Análise completa do ${trendingProduct}.`,
+        keywords: metaData.meta?.keywords || trendingProduct,
+        readingTime: metaData.meta?.reading_time || 8,
+        canonical: metaData.meta?.canonical || null,
+        ogImage: metaData.meta?.og_image || null,
       },
-      product: d.product || trendingProduct,
-      category: d.category || targetCategory,
-      marketplace: d.marketplace || 'Mercado Livre',
-      priceOld: d.priceOld || d.old_price || '',
-      priceNew: d.priceNew || d.price || '',
+      product: metaData.product || trendingProduct,
+      category: metaData.category || targetCategory,
+      marketplace: metaData.marketplace || 'Mercado Livre',
+      priceOld: metaData.priceOld || '',
+      priceNew: metaData.priceNew || '',
       affiliateUrl: mlAffiliateUrl,
-      imageUrl:
-        mlImageUrl ||
-        d.imageUrl ||
-        'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80',
+      imageUrl: mlImageUrl || metaData.imageUrl || 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80',
       adsEnabled: false,
       hero: {
-        headlineLine1:
-          d.hero?.headline_line1 ||
-          d.hero?.headlineLine1 ||
-          trendingProduct.toUpperCase(),
-        headlineLine2:
-          d.hero?.headline_line2 ||
-          d.hero?.headlineLine2 ||
-          'VALE A PENA COMPRAR?',
-        headlineEm:
-          d.hero?.headline_em || d.hero?.headlineEm || trendingProduct,
-        lead: d.hero?.lead || `Análise completa do ${trendingProduct}.`,
-        overallScore:
-          d.hero?.overall_score || d.hero?.overallScore || 8.5,
-        bars:
-          d.hero?.bars?.map((b: any) => ({
-            label: b.label,
-            value: b.value,
-            pct: b.pct ?? b.value * 10,
-          })) || [],
+        headlineLine1: metaData.hero?.headline_line1 || trendingProduct.toUpperCase(),
+        headlineLine2: metaData.hero?.headline_line2 || 'VALE A PENA COMPRAR?',
+        headlineEm: metaData.hero?.headline_em || trendingProduct,
+        lead: metaData.hero?.lead || `Análise completa do ${trendingProduct}.`,
+        overallScore: metaData.hero?.overall_score || 8.5,
+        bars: metaData.hero?.bars?.map((b: any) => ({ label: b.label, value: b.value, pct: b.pct ?? b.value * 10 })) || [],
       },
-      specs: d.specs || [],
-      sections:
-        d.sections?.map((s: any) => ({
-          id: s.id,
-          heading: s.heading,
-          tocLabel: s.toc_label || s.tocLabel,
-          tocEmoji: s.toc_emoji || s.tocEmoji,
-          content: s.content,
-        })) || [],
-      compareTable: d.compare
-        ? {
-            caption: d.compare.caption || '',
-            columns: d.compare.columns || [],
-            winnerCol: d.compare.winner_col || d.compare.winnerCol || 1,
-            rows: d.compare.rows || [],
-          }
-        : d.compareTable || {
-            caption: '',
-            columns: [],
-            winnerCol: 1,
-            rows: [],
-          },
-      pros: d.pros || [],
-      cons: d.cons || [],
-      testimonials: d.testimonials?.map((t: any) => ({
-        name: t.name,
-        city: t.city,
-        state: t.state,
-        monthYear: t.month_year || t.monthYear || '',
-        text: t.text,
-        stars: t.stars || 5,
-      })) || [],
-      faq: d.faq || [],
+      specs: metaData.specs || [],
+      sections,
+      compareTable: { caption: '', columns: [], winnerCol: 1, rows: [] },
+      pros: verdictData.pros || [],
+      cons: verdictData.cons || [],
+      testimonials: [],
+      faq: verdictData.faq || [],
       verdict: {
-        score: d.verdict?.score || 8.5,
-        label: d.verdict?.label || 'BOM CUSTO-BENEFÍCIO',
-        text:
-          d.verdict?.text ||
-          `O ${trendingProduct} é uma excelente compra.`,
-        note:
-          d.verdict?.note || 'Boa relação custo-benefício.',
+        score: verdictData.verdict?.score || 8.5,
+        label: verdictData.verdict?.label || 'BOM CUSTO-BENEFÍCIO',
+        text: verdictData.verdict?.text || `O ${trendingProduct} é uma excelente compra.`,
+        note: verdictData.verdict?.note || 'Boa relação custo-benefício.',
       },
       schemaRating: {
-        ratingValue:
-          d.schemas?.aggregate_rating?.rating_value ||
-          d.schemaRating?.ratingValue ||
-          4.5,
-        reviewCount:
-          d.schemas?.aggregate_rating?.review_count ||
-          d.schemaRating?.reviewCount ||
-          100,
+        ratingValue: verdictData.schemas?.aggregate_rating?.rating_value || 8.5,
+        reviewCount: verdictData.schemas?.aggregate_rating?.review_count || 100,
       },
       googleRank: 0,
       lastRankCheck: now,
       createdAt: now,
       updatedAt: now,
     };
-
-    // Fallback: if sections are empty, generate basic sections from hero content
-    if (fullReview.sections.length === 0 && fullReview.hero.lead) {
-      console.warn('[Autonomous Agent] AI returned empty sections. Generating fallback content.');
-      fullReview.sections = [
-        {
-          id: 'sobre-o-produto',
-          heading: `Sobre o ${trendingProduct}`,
-          tocLabel: 'Sobre o Produto',
-          tocEmoji: '📦',
-          content: fullReview.hero.lead,
-        },
-        {
-          id: 'analise',
-          heading: `Análise do ${trendingProduct}`,
-          tocLabel: 'Análise',
-          tocEmoji: '🔍',
-          content: `O ${trendingProduct} é uma excelente opção na categoria ${targetCategory}. Com design moderno e funcionalidades robustas, ele atende às necessidades do público brasileiro.`,
-        },
-      ];
-    }
-
-    // Ensure at least 4 sections for a complete review
-    if (fullReview.sections.length < 4) {
-      const missingSections = [
-        { id: 'design', heading: 'Design e Construção', tocLabel: 'Design', tocEmoji: '🎨', content: `O ${trendingProduct} apresenta um design moderno e funcional. A construção é sólida com materiais de qualidade que garantem durabilidade no uso diário.` },
-        { id: 'desempenho', heading: 'Desempenho e Recursos', tocLabel: 'Desempenho', tocEmoji: '⚡', content: `Em termos de desempenho, o ${trendingProduct} entrega resultados acima da média para sua categoria. Os recursos incluem conectividade avançada e interface intuitiva.` },
-        { id: 'bateria', heading: 'Autonomia e Bateria', tocLabel: 'Bateria', tocEmoji: '🔋', content: `A autonomia do ${trendingProduct} é um dos seus pontos fortes. Ele oferece longas horas de uso contínuo, atendendo bem à rotina do usuário.` },
-        { id: 'custo-beneficio', heading: 'Custo-Benefício', tocLabel: 'Custo-Benefício', tocEmoji: '💰', content: `Considerando sua proposta, o ${trendingProduct} oferece excelente custo-benefício. O investimento é justificado pela qualidade e recursos entregues.` },
-      ];
-      const existingIds = new Set(fullReview.sections.map((s: any) => s.id));
-      for (const sec of missingSections) {
-        if (fullReview.sections.length >= 6) break;
-        if (!existingIds.has(sec.id)) {
-          fullReview.sections.push(sec);
-        }
-      }
-    }
 
     // 6. Save to Supabase directly (bypasses file fallback)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

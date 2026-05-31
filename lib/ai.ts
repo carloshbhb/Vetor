@@ -211,3 +211,42 @@ export async function generateText(options: GenerateTextOptions): Promise<string
     throw new Error(`AI generation failed: ${fallbackError.message}`);
   }
 }
+
+/**
+ * Generate text with a specific OpenRouter model (no cascade).
+ * Used by the autonomous agent to generate different sections with different models.
+ */
+export async function generateTextWithModel(
+  prompt: string,
+  modelId: string,
+  options: { responseJson?: boolean; temperature?: number; maxOutputTokens?: number } = {}
+): Promise<string> {
+  const { responseJson = false, temperature = 0.7, maxOutputTokens = 4096 } = options;
+  await enforceConcurrencyDelay(1500);
+
+  const cached = getCachedResponse(prompt);
+  if (cached) {
+    console.log(`[AI Cache] Returning cached response for model ${modelId}`);
+    return cached;
+  }
+
+  console.log(`[AI Client] Generating with specific model: ${modelId}`);
+  try {
+    const result = await callOpenRouter(prompt, modelId, responseJson, temperature, maxOutputTokens);
+    setCachedResponse(prompt, result);
+    return result;
+  } catch (err: any) {
+    // If specific model fails, try cascade as fallback
+    console.warn(`[AI Client] Model ${modelId} failed: ${err.message}. Trying cascade...`);
+    const result = await callOpenRouterCascade(prompt, responseJson, temperature, maxOutputTokens);
+    setCachedResponse(prompt, result);
+    return result;
+  }
+}
+
+/**
+ * Returns the list of available free models for rotating across section calls.
+ */
+export function getFreeModels(): OpenRouterModel[] {
+  return [...FREE_MODELS];
+}
