@@ -352,6 +352,53 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
           tocEmoji: s.toc_emoji || s.tocEmoji,
           content: s.content,
         })) || [],
+      compareTable: d.compare
+        ? {
+            caption: d.compare.caption || '',
+            columns: d.compare.columns || [],
+            winnerCol: d.compare.winner_col || d.compare.winnerCol || 1,
+            rows: d.compare.rows || [],
+          }
+        : d.compareTable || {
+            caption: '',
+            columns: [],
+            winnerCol: 1,
+            rows: [],
+          },
+      pros: d.pros || [],
+      cons: d.cons || [],
+      testimonials: d.testimonials?.map((t: any) => ({
+        name: t.name,
+        city: t.city,
+        state: t.state,
+        monthYear: t.month_year || t.monthYear || '',
+        text: t.text,
+        stars: t.stars || 5,
+      })) || [],
+      faq: d.faq || [],
+      verdict: {
+        score: d.verdict?.score || 8.5,
+        label: d.verdict?.label || 'BOM CUSTO-BENEFÍCIO',
+        text:
+          d.verdict?.text ||
+          `O ${trendingProduct} é uma excelente compra.`,
+        note:
+          d.verdict?.note || 'Boa relação custo-benefício.',
+      },
+      schemaRating: {
+        ratingValue:
+          d.schemas?.aggregate_rating?.rating_value ||
+          d.schemaRating?.ratingValue ||
+          4.5,
+        reviewCount:
+          d.schemas?.aggregate_rating?.review_count ||
+          d.schemaRating?.reviewCount ||
+          100,
+      },
+      googleRank: 0,
+      lastRankCheck: now,
+      createdAt: now,
+      updatedAt: now,
     };
 
     // Fallback: if sections are empty, generate basic sections from hero content
