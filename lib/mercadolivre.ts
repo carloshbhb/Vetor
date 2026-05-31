@@ -52,8 +52,12 @@ export function buildAffiliateUrl(permalink: string, publisherId?: string): stri
   try {
     const url = new URL(permalink);
     if (pid) {
-      url.searchParams.set('affiliate', pid);
+      // Use affiliate parameter for ML affiliate program
+      url.searchParams.set('matt_tool', pid);
+      url.searchParams.set('matt_word', 'vetorblog');
       url.searchParams.set('ref', pid);
+      // Also add tracking_id for commission tracking
+      url.searchParams.set('tracking_id', pid);
     } else {
       url.searchParams.set('ref', 'vetorblog');
     }
@@ -62,7 +66,7 @@ export function buildAffiliateUrl(permalink: string, publisherId?: string): stri
     // If URL parsing fails, append manually
     const sep = permalink.includes('?') ? '&' : '?';
     if (pid) {
-      return `${permalink}${sep}affiliate=${pid}&ref=${pid}`;
+      return `${permalink}${sep}matt_tool=${pid}&matt_word=vetorblog&ref=${pid}&tracking_id=${pid}`;
     }
     return `${permalink}${sep}ref=vetorblog`;
   }
