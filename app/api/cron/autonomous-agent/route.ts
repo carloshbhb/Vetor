@@ -111,15 +111,32 @@ export async function handleAutonomousCycle() {
     // Combine all categories for retry
     const allCategories = Array.from(new Set([...Object.keys(fallbackProducts), ...reviews.map(r => r.category).filter(Boolean)]));
 
-    // Try up to 5 times with different categories
+    // Try up to 10 times, skipping fully-reviewed categories
     let trendingProduct = '';
     let targetCategory = '';
     let attempts = 0;
-    const maxAttempts = 5;
+    const maxAttempts = 10;
+    const triedCategories = new Set<string>();
 
     while (attempts < maxAttempts && !trendingProduct) {
       attempts++;
-      targetCategory = allCategories[Math.floor(Math.random() * allCategories.length)];
+
+      // Filter out categories where all products already exist
+      const availableCategories = allCategories.filter(cat => {
+        if (triedCategories.has(cat)) return false;
+        const options = fallbackProducts[cat];
+        if (!options) return true;
+        const available = options.filter(p => !existingProductNames.some(ep => ep.includes(p.toLowerCase()) || p.toLowerCase().includes(ep)));
+        return available.length > 0;
+      });
+
+      if (availableCategories.length === 0) {
+        console.log('[Autonomous Agent] All fallback categories fully reviewed. Stopping.');
+        break;
+      }
+
+      targetCategory = availableCategories[Math.floor(Math.random() * availableCategories.length)];
+      triedCategories.add(targetCategory);
       console.log(`[Autonomous Agent] Niche selected (attempt ${attempts}): ${targetCategory}`);
 
       // 2. Discover trending product
@@ -134,17 +151,26 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto, sem pontuação, sem asp
           useSearchGrounding: true,
         });
         trendingProduct = text.trim().replace(/['\"""]/g, '');
+
+        // Verify search result isn't already reviewed
+        if (reviews.some(r => r.product.toLowerCase().includes(trendingProduct.toLowerCase()))) {
+          console.log(`[Autonomous Agent] Search returned already-reviewed "${trendingProduct}". Trying fallback.`);
+          trendingProduct = '';
+        }
       } catch (searchError: any) {
         console.warn(
           '[Autonomous Agent] Search Grounding failed, using fallback list:',
           searchError?.message || searchError
         );
+      }
 
+      // Fall back to static list if search didn't produce a valid new product
+      if (!trendingProduct) {
         const options = fallbackProducts[targetCategory] || ['Xiaomi Mi Band 9'];
-        // Filter out already existing products
         const available = options.filter(p => !existingProductNames.some(ep => ep.includes(p.toLowerCase()) || p.toLowerCase().includes(ep)));
         if (available.length === 0) {
           console.log(`[Autonomous Agent] All products in "${targetCategory}" already reviewed. Trying another category.`);
+          trendingProduct = '';
           continue;
         }
         trendingProduct = available[Math.floor(Math.random() * available.length)];
@@ -156,7 +182,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto, sem pontuação, sem asp
         continue;
       }
 
-      // 3. Check for duplicates
+      // 3. Final duplicate check
       const exists = reviews.find(
         (r) =>
           r.product.toLowerCase().includes(trendingProduct.toLowerCase()) ||
