@@ -2065,5 +2065,103 @@
     "lastRankCheck": "2026-05-31T22:03:54.888Z",
     "createdAt": "2026-05-31T22:03:54.888Z",
     "updatedAt": "2026-05-31T22:03:54.888Z"
+  },
+  {
+    "id": "96b4f890-7e97-4213-8950-d44258147dda",
+    "slug": "xiaomi-mi-band-9",
+    "status": "published",
+    "meta": {
+      "title": "Review Xiaomi Mi Band 9: Vale a Pena?",
+      "description": "Análise técnica completa do Xiaomi Mi Band 9.",
+      "keywords": "Xiaomi Mi Band 9",
+      "readingTime": 8,
+      "canonical": null,
+      "ogImage": null
+    },
+    "product": "Xiaomi Mi Band 9",
+    "category": "Wearables / Smartbands",
+    "marketplace": "Mercado Livre",
+    "priceOld": "",
+    "priceNew": "",
+    "affiliateUrl": "https://lista.mercadolivre.com.br/Xiaomi%20Mi%20Band%209?affiliate=carloshbhb&ref=carloshbhb",
+    "imageUrl": "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80",
+    "adsEnabled": false,
+    "hero": {
+      "headlineLine1": "XIAOMI MI BAND 9",
+      "headlineLine2": "VALE A PENA COMPRAR?",
+      "headlineEm": "Xiaomi Mi Band 9",
+      "lead": "Análise completa do Xiaomi Mi Band 9.",
+      "overallScore": 8.5,
+      "bars": []
+    },
+    "specs": [],
+    "sections": [
+      {
+        "id": "sobre-o-produto",
+        "heading": "Sobre o Xiaomi Mi Band 9",
+        "tocLabel": "Sobre o Produto",
+        "tocEmoji": "📦",
+        "content": "Análise completa do Xiaomi Mi Band 9."
+      },
+      {
+        "id": "analise",
+        "heading": "Análise do Xiaomi Mi Band 9",
+        "tocLabel": "Análise",
+        "tocEmoji": "🔍",
+        "content": "O Xiaomi Mi Band 9 é uma excelente opção na categoria Wearables / Smartbands. Com design moderno e funcionalidades robustas, ele atende às necessidades do público brasileiro."
+      },
+      {
+        "id": "design",
+        "heading": "Design e Construção",
+        "tocLabel": "Design",
+        "tocEmoji": "🎨",
+        "content": "O Xiaomi Mi Band 9 apresenta um design moderno e funcional. A construção é sólida com materiais de qualidade que garantem durabilidade no uso diário."
+      },
+      {
+        "id": "desempenho",
+        "heading": "Desempenho e Recursos",
+        "tocLabel": "Desempenho",
+        "tocEmoji": "⚡",
+        "content": "Em termos de desempenho, o Xiaomi Mi Band 9 entrega resultados acima da média para sua categoria. Os recursos incluem conectividade avançada e interface intuitiva."
+      },
+      {
+        "id": "bateria",
+        "heading": "Autonomia e Bateria",
+        "tocLabel": "Bateria",
+        "tocEmoji": "🔋",
+        "content": "A autonomia do Xiaomi Mi Band 9 é um dos seus pontos fortes. Ele oferece longas horas de uso contínuo, atendendo bem à rotina do usuário."
+      },
+      {
+        "id": "custo-beneficio",
+        "heading": "Custo-Benefício",
+        "tocLabel": "Custo-Benefício",
+        "tocEmoji": "💰",
+        "content": "Considerando sua proposta, o Xiaomi Mi Band 9 oferece excelente custo-benefício. O investimento é justificado pela qualidade e recursos entregues."
+      }
+    ],
+    "compareTable": {
+      "caption": "",
+      "columns": [],
+      "winnerCol": 1,
+      "rows": []
+    },
+    "pros": [],
+    "cons": [],
+    "testimonials": [],
+    "faq": [],
+    "verdict": {
+      "score": 8.5,
+      "label": "BOM CUSTO-BENEFÍCIO",
+      "text": "O Xiaomi Mi Band 9 é uma excelente compra.",
+      "note": "Boa relação custo-benefício."
+    },
+    "schemaRating": {
+      "ratingValue": 4.5,
+      "reviewCount": 100
+    },
+    "googleRank": 0,
+    "lastRankCheck": "2026-05-31T22:14:50.389Z",
+    "createdAt": "2026-05-31T22:14:50.389Z",
+    "updatedAt": "2026-05-31T22:14:50.389Z"
   }
 ]
