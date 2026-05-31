@@ -5,7 +5,7 @@ import { commitNewReviewToGitHub } from '@/lib/github';
 import { buildPrompt } from '@/lib/prompt';
 import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const DEFAULT_CATEGORIES = [
   'Wearables / Smartbands',
@@ -72,119 +72,120 @@ export async function handleAutonomousCycle() {
 
   try {
     const reviews = await getAllReviews();
+    const existingProductNames = reviews.map(r => r.product.toLowerCase());
 
-    // 1. Determine the niche/category to target
-    const existingCategories = Array.from(
-      new Set(reviews.map((r) => r.category).filter(Boolean))
-    );
-    let targetCategory =
-      existingCategories.length > 0
-        ? existingCategories[Math.floor(Math.random() * existingCategories.length)]
-        : DEFAULT_CATEGORIES[Math.floor(Math.random() * DEFAULT_CATEGORIES.length)];
+    // Static fallback list of popular tech products
+    const fallbackProducts: { [key: string]: string[] } = {
+      'Wearables / Smartbands': [
+        'Xiaomi Mi Band 9', 'Xiaomi Redmi Watch 5', 'Huawei Band 9',
+        'Samsung Galaxy Watch 7', 'Apple Watch SE 2024', 'Amazfit Bip 5',
+        'Samsung Galaxy Fit 3', 'Huawei Watch GT 4',
+      ],
+      'Acessórios para Games': [
+        'PlayStation DualSense Edge', 'Nintendo Switch Pro Controller',
+        'Teclado Mecânico Keychron K2', 'Controle Gamesir G7 SE',
+        'Headset HyperX Cloud III', 'Mouse Logitech G305',
+        'Cadeira Gamer DT3sports', 'Webcam Logitech C920',
+      ],
+      'Fones de Ouvido': [
+        'Sony WF-1000XM5', 'JBL Wave Flex', 'AirPods Pro 2',
+        'QCY T13', 'Samsung Galaxy Buds FE', 'JBL Tune Buds',
+        'Nothing Ear (2)', 'Edifier NeoBuds Pro 2',
+      ],
+      'Robôs Aspiradores': [
+        'Robô Aspirador Xiaomi S20', 'Robô Aspirador Kabum Smart 700',
+        'Robô Aspirador Eufy G10', 'Robô Aspirador Dreame D10s',
+        'Robô Aspirador ILIFE V5s Pro', 'Robô Aspirador Robot L10s',
+      ],
+      'Casa Inteligente': [
+        'Amazon Echo Dot 5ª Geração', 'Lâmpada Inteligente Philips Hue',
+        'Fechadura Eletrônica Intelbras FR 101', 'Tomada Inteligente TP-Link Kasa',
+        'Alexa Echo Pop', 'Sensor de Porta Intelbras',
+        'Aspirador Robô Walmart', 'Lâmpada Inteligente Xiaomi Yeelight',
+      ],
+      'Notebooks': [
+        'Acer Nitro V 15', 'Lenovo IdeaPad 3i', 'Samsung Galaxy Book 4',
+        'Dell Inspiron 15', 'ASUS VivoBook 15', 'HP 15-dy',
+        'MacBook Air M3', 'Lenovo ThinkPad E14',
+      ],
+      'Tablets': [
+        'Samsung Galaxy Tab S9 FE', 'iPad 10ª Geração', 'Xiaomi Pad 6',
+        'Samsung Galaxy Tab A9', 'Lenovo Tab M11', 'iPad Air M2',
+      ],
+      'Câmeras de Segurança': [
+        'Intelbras iM3', 'TP-Link Tapo C200', 'Xiaomi Mi Camera 2K',
+        'Intelbras iD2', 'Ezviz C6C', 'Hikvision DS-2CD1043G0E-I',
+      ],
+    };
 
-    console.log(`[Autonomous Agent] Niche selected: ${targetCategory}`);
+    // Combine all categories for retry
+    const allCategories = [...new Set([...Object.keys(fallbackProducts), ...reviews.map(r => r.category).filter(Boolean)])];
 
-    // 2. Discover trending product
+    // Try up to 5 times with different categories
     let trendingProduct = '';
-    try {
-      const trendPrompt = `Você é o Agente de Descoberta de Tráfego do vetor.blog.
+    let targetCategory = '';
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    while (attempts < maxAttempts && !trendingProduct) {
+      attempts++;
+      targetCategory = allCategories[Math.floor(Math.random() * allCategories.length)];
+      console.log(`[Autonomous Agent] Niche selected (attempt ${attempts}): ${targetCategory}`);
+
+      // 2. Discover trending product
+      try {
+        const trendPrompt = `Você é o Agente de Descoberta de Tráfego do vetor.blog.
 Pesquise na internet do Brasil em tempo real (${new Date().getFullYear()}) na categoria "${targetCategory}".
 Identifique o produto que está tendo o maior crescimento de buscas ou interesse de compra nos últimos dias (um produto real, com nome exato, ex: "Sony WH-1000XM5" ou "Samsung Galaxy Fit 3").
 Responda EXCLUSIVAMENTE com o nome exato desse produto, sem pontuação, sem aspas e sem explicações.`;
 
-      const text = await generateText({
-        prompt: trendPrompt,
-        useSearchGrounding: true,
-      });
-      trendingProduct = text
-        .trim()
-        .replace(/['\"""]/g, '');
-    } catch (searchError: any) {
-      console.warn(
-        '[Autonomous Agent] Search Grounding failed, using fallback list:',
-        searchError?.message || searchError
+        const text = await generateText({
+          prompt: trendPrompt,
+          useSearchGrounding: true,
+        });
+        trendingProduct = text.trim().replace(/['\"""]/g, '');
+      } catch (searchError: any) {
+        console.warn(
+          '[Autonomous Agent] Search Grounding failed, using fallback list:',
+          searchError?.message || searchError
+        );
+
+        const options = fallbackProducts[targetCategory] || ['Xiaomi Mi Band 9'];
+        // Filter out already existing products
+        const available = options.filter(p => !existingProductNames.some(ep => ep.includes(p.toLowerCase()) || p.toLowerCase().includes(ep)));
+        if (available.length === 0) {
+          console.log(`[Autonomous Agent] All products in "${targetCategory}" already reviewed. Trying another category.`);
+          continue;
+        }
+        trendingProduct = available[Math.floor(Math.random() * available.length)];
+      }
+
+      // Sanitize product name
+      if (!trendingProduct || trendingProduct.length > 80 || trendingProduct.includes('\n')) {
+        trendingProduct = '';
+        continue;
+      }
+
+      // 3. Check for duplicates
+      const exists = reviews.find(
+        (r) =>
+          r.product.toLowerCase().includes(trendingProduct.toLowerCase()) ||
+          r.slug === slugify(trendingProduct)
       );
-
-      // Static fallback list of popular tech products
-      const fallbackProducts: { [key: string]: string[] } = {
-        'Wearables / Smartbands': [
-          'Xiaomi Mi Band 9',
-          'Huawei Band 9',
-          'Samsung Galaxy Watch 7',
-          'Apple Watch SE 2024',
-        ],
-        'Acessórios para Games': [
-          'PlayStation DualSense Edge',
-          'Nintendo Switch Pro Controller',
-          'Teclado Mecânico Keychron K2',
-        ],
-        'Fones de Ouvido': [
-          'Sony WF-1000XM5',
-          'JBL Wave Flex',
-          'AirPods Pro 2',
-          'QCY T13',
-        ],
-        'Robôs Aspiradores': [
-          'Robô Aspirador Xiaomi S20',
-          'Robô Aspirador Kabum Smart 700',
-          'Robô Aspirador Eufy G10',
-        ],
-        'Casa Inteligente': [
-          'Amazon Echo Dot 5ª Geração',
-          'Lâmpada Inteligente Philips Hue',
-          'Fechadura Eletrônica Intelbras FR 101',
-        ],
-        'Notebooks': [
-          'Acer Nitro V 15',
-          'Lenovo IdeaPad 3i',
-          'Samsung Galaxy Book 4',
-        ],
-        'Tablets': [
-          'Samsung Galaxy Tab S9 FE',
-          'iPad 10ª Geração',
-          'Xiaomi Pad 6',
-        ],
-        'Câmeras de Segurança': [
-          'Intelbras iM3',
-          'TP-Link Tapo C200',
-          'Xiaomi Mi Camera 2K',
-        ],
-      };
-
-      const options = fallbackProducts[targetCategory] || [
-        'Xiaomi Mi Band 9',
-        'JBL Tune 520BT',
-        'Echo Dot 5',
-      ];
-      trendingProduct = options[Math.floor(Math.random() * options.length)];
+      if (exists) {
+        console.log(`[Autonomous Agent] Review for "${trendingProduct}" already exists. Trying another category.`);
+        trendingProduct = '';
+      }
     }
 
-    // Sanitize product name
-    if (
-      !trendingProduct ||
-      trendingProduct.length > 80 ||
-      trendingProduct.includes('\n')
-    ) {
-      trendingProduct = 'Xiaomi Mi Band 9';
+    if (!trendingProduct) {
+      return NextResponse.json({
+        success: false,
+        message: `Não foi possível encontrar um produto novo após ${maxAttempts} tentativas.`,
+      });
     }
 
     console.log(`[Autonomous Agent] Trending product found: ${trendingProduct}`);
-
-    // 3. Check for duplicates
-    const exists = reviews.find(
-      (r) =>
-        r.product.toLowerCase().includes(trendingProduct.toLowerCase()) ||
-        r.slug === slugify(trendingProduct)
-    );
-    if (exists) {
-      console.log(
-        `[Autonomous Agent] Review for "${trendingProduct}" already exists. Skipping.`
-      );
-      return NextResponse.json({
-        success: false,
-        message: `Review para "${trendingProduct}" já existe. Ignorado.`,
-      });
-    }
 
     // 4. Enrich product data from Mercado Livre API
     let mlImageUrl = '';
