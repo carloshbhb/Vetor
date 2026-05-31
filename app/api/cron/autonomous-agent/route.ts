@@ -244,48 +244,56 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     const responseText = await generateText({
       prompt,
       responseJson: true,
-      maxOutputTokens: 8192,
+      maxOutputTokens: 16384,
       temperature: 0.7,
     });
     if (!responseText) throw new Error('AI returned empty content');
 
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Could not parse JSON from AI response');
+    // Try to extract JSON from response, handling markdown code blocks and other artifacts
+    let rawJson = '';
+    const codeBlockMatch = responseText.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+    if (codeBlockMatch) {
+      rawJson = codeBlockMatch[1].trim();
+    } else {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) rawJson = jsonMatch[0];
+    }
 
-    let rawJson = jsonMatch[0];
+    if (!rawJson) throw new Error('Could not parse JSON from AI response');
 
-    // Robust JSON cleanup for free models that may produce malformed output
+    // Aggressive JSON cleanup for free models
     rawJson = rawJson
       // Remove trailing commas before } or ]
       .replace(/,\s*([}\]])/g, '$1')
-      // Remove comments (// and /* */)
+      // Remove single-line comments
       .replace(/\/\/.*$/gm, '')
+      // Remove multi-line comments
       .replace(/\/\*[\s\S]*?\*\//g, '')
-      // Fix unescaped newlines inside string values
-      .replace(/(?<=":")[^"]*?\n[^"]*?(?=",)/g, (m) => m.replace(/\n/g, ' '))
-      // Remove control characters except standard ones
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+      // Replace single quotes with double quotes (only for property values, not inside content)
+      .replace(/:\s*'([^']*?)'/g, ': "$1"')
+      // Remove control characters
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+      // Fix unescaped newlines inside string values (between quotes)
+      .replace(/"((?:[^"\\]|\\.)*)"/gs, (match) => {
+        return match.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+      });
 
     let d: any;
     try {
       d = JSON.parse(rawJson);
     } catch (parseErr) {
-      // Last resort: try to extract key fields with regex
-      console.warn('[Autonomous Agent] JSON parse failed, attempting regex extraction...');
-      const productMatch = rawJson.match(/"product"\s*:\s*"([^"]+)"/);
-      const categoryMatch = rawJson.match(/"category"\s*:\s*"([^"]+)"/);
-      if (!productMatch) throw new Error(`Could not parse JSON from AI response: ${parseErr}`);
-      d = {
-        product: productMatch[1],
-        category: categoryMatch?.[1] || targetCategory,
-        meta: {},
-        hero: { bars: [] },
-        specs: [],
-        sections: [],
-        pros: [],
-        cons: [],
-        verdict: { score: 8.5, label: 'BOM CUSTO-BENEFÍCIO', text: '', note: '' },
-      };
+      console.warn('[Autonomous Agent] JSON parse failed. First 500 chars of raw:', rawJson.substring(0, 500));
+      // Try more aggressive approach: find the outermost { } and parse
+      const depthMatch = rawJson.match(/(\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})/s);
+      if (depthMatch) {
+        try {
+          d = JSON.parse(depthMatch[1]);
+        } catch {
+          throw new Error(`Could not parse JSON from AI response: ${parseErr}`);
+        }
+      } else {
+        throw new Error(`Could not parse JSON from AI response: ${parseErr}`);
+      }
     }
 
     // 5. Map AI response (snake_case) → ReviewData (camelCase) precisely
