@@ -47,10 +47,11 @@ interface OpenRouterModel {
 }
 
 const FREE_MODELS: OpenRouterModel[] = [
-  { id: 'google/gemma-2-9b-it:free', name: 'Gemma 2 9B' },
-  { id: 'meta-llama/llama-3.1-8b-instruct:free', name: 'Llama 3.1 8B' },
-  { id: 'mistralai/mistral-7b-instruct:free', name: 'Mistral 7B' },
-  { id: 'qwen/qwen-2-7b-instruct:free', name: 'Qwen 2 7B' },
+  { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4 Flash' },
+  { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B' },
+  { id: 'google/gemma-4-31b-it:free', name: 'Gemma 4 31B' },
+  { id: 'nvidia/nemotron-3-nano-30b-a3b:free', name: 'Nemotron 3 Nano 30B' },
+  { id: 'openrouter/free', name: 'OpenRouter Auto' },
 ];
 
 async function callOpenRouter(
