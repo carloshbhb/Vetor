@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateText } from '@/lib/ai';
-import { getAllReviews, createReview } from '@/lib/db';
+import { getAllReviews } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
 import { buildPrompt } from '@/lib/prompt';
 import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
@@ -398,13 +399,62 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       updatedAt: now,
     };
 
-    // 6. Save locally (for immediate visibility in case of warm Lambda)
-    try {
-      await createReview(fullReview);
-      console.log(`[Autonomous Agent] Saved locally: ${trendingProduct} (${reviewId})`);
-    } catch (localErr: any) {
-      console.warn('[Autonomous Agent] Local save failed (non-fatal):', localErr.message);
+    // 6. Save to Supabase directly (bypasses file fallback)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase env vars not configured. Cannot save review.');
     }
+    const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+
+    const insertData = {
+      slug: fullReview.slug,
+      status: fullReview.status,
+      product: fullReview.product,
+      category: fullReview.category,
+      marketplace: fullReview.marketplace,
+      price_old: fullReview.priceOld,
+      price_new: fullReview.priceNew,
+      affiliate_url: fullReview.affiliateUrl,
+      image_url: fullReview.imageUrl,
+      ads_enabled: fullReview.adsEnabled,
+      meta_title: fullReview.meta.title,
+      meta_description: fullReview.meta.description,
+      meta_keywords: fullReview.meta.keywords,
+      meta_reading_time: fullReview.meta.readingTime,
+      meta_canonical: fullReview.meta.canonical,
+      meta_og_image: fullReview.meta.ogImage,
+      hero_headline_line1: fullReview.hero.headlineLine1,
+      hero_headline_line2: fullReview.hero.headlineLine2,
+      hero_headline_em: fullReview.hero.headlineEm,
+      hero_lead: fullReview.hero.lead,
+      hero_overall_score: fullReview.hero.overallScore,
+      hero_bars: fullReview.hero.bars,
+      specs: fullReview.specs,
+      sections: fullReview.sections,
+      compare_table: fullReview.compareTable,
+      pros: fullReview.pros,
+      cons: fullReview.cons,
+      testimonials: fullReview.testimonials,
+      verdict_score: fullReview.verdict.score,
+      verdict_label: fullReview.verdict.label,
+      verdict_text: fullReview.verdict.text,
+      verdict_note: fullReview.verdict.note,
+      schema_rating_value: fullReview.schemaRating.ratingValue,
+      schema_review_count: fullReview.schemaRating.reviewCount,
+      google_rank: fullReview.googleRank,
+      last_rank_check: fullReview.lastRankCheck,
+    };
+
+    const { error: insertError } = await supabase
+      .from('reviews')
+      .insert(insertData);
+
+    if (insertError) {
+      console.error('[Autonomous Agent] Supabase insert failed:', insertError);
+      throw new Error(`Supabase insert failed: ${insertError.message}`);
+    }
+    console.log(`[Autonomous Agent] Saved to Supabase: ${trendingProduct} (${reviewId})`);
 
     // 7. Commit to GitHub → triggers Vercel redeploy with persistent data
     const gitResult = await commitNewReviewToGitHub(fullReview);
