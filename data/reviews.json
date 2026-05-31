@@ -1957,5 +1957,58 @@
     "id": "34f26572-a0aa-469d-9162-67bcb82645a1",
     "createdAt": "2026-05-21T00:11:19.573Z",
     "updatedAt": "2026-05-22T00:31:31.556Z"
+  },
+  {
+    "id": "3604002a-aa59-4cb8-9f83-888d06aa2bef",
+    "slug": "intelbras-im3c",
+    "status": "published",
+    "meta": {
+      "title": "Review Intelbras iM3C: Vale a Pena?",
+      "description": "Análise técnica completa do Intelbras iM3C.",
+      "keywords": "Intelbras iM3C",
+      "readingTime": 8
+    },
+    "product": "Intelbras iM3C",
+    "category": "Câmeras de Segurança",
+    "marketplace": "Mercado Livre",
+    "priceOld": "",
+    "priceNew": "",
+    "affiliateUrl": "https://lista.mercadolivre.com.br/Intelbras%20iM3C?affiliate=carloshbhb&ref=carloshbhb",
+    "imageUrl": "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80",
+    "adsEnabled": false,
+    "hero": {
+      "headlineLine1": "INTELBRAS IM3C",
+      "headlineLine2": "VALE A PENA COMPRAR?",
+      "headlineEm": "Intelbras iM3C",
+      "lead": "Análise completa do Intelbras iM3C.",
+      "overallScore": 8.5,
+      "bars": []
+    },
+    "specs": [],
+    "sections": [],
+    "compareTable": {
+      "caption": "",
+      "columns": [],
+      "winnerCol": 1,
+      "rows": []
+    },
+    "pros": [],
+    "cons": [],
+    "testimonials": [],
+    "faq": [],
+    "verdict": {
+      "score": 8.5,
+      "label": "BOM CUSTO-BENEFÍCIO",
+      "text": "O Intelbras iM3C é uma excelente compra.",
+      "note": "Boa relação custo-benefício."
+    },
+    "schemaRating": {
+      "ratingValue": 4.5,
+      "reviewCount": 100
+    },
+    "googleRank": 0,
+    "lastRankCheck": "2026-05-31T21:51:33.325Z",
+    "createdAt": "2026-05-31T21:51:33.325Z",
+    "updatedAt": "2026-05-31T21:51:33.325Z"
   }
 ]
