@@ -383,7 +383,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
         { id: 'bateria', heading: 'Autonomia e Bateria', tocLabel: 'Bateria', tocEmoji: '🔋', content: `A autonomia do ${trendingProduct} é um dos seus pontos fortes. Ele oferece longas horas de uso contínuo, atendendo bem à rotina do usuário.` },
         { id: 'custo-beneficio', heading: 'Custo-Benefício', tocLabel: 'Custo-Benefício', tocEmoji: '💰', content: `Considerando sua proposta, o ${trendingProduct} oferece excelente custo-benefício. O investimento é justificado pela qualidade e recursos entregues.` },
       ];
-      const existingIds = new Set(fullReview.sections.map(s => s.id));
+      const existingIds = new Set(fullReview.sections.map((s: any) => s.id));
       for (const sec of missingSections) {
         if (fullReview.sections.length >= 6) break;
         if (!existingIds.has(sec.id)) {
