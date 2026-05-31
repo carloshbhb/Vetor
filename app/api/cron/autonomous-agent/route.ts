@@ -272,11 +272,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       // Replace single quotes with double quotes (only for property values, not inside content)
       .replace(/:\s*'([^']*?)'/g, ': "$1"')
       // Remove control characters
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
-      // Fix unescaped newlines inside string values (between quotes)
-      .replace(/"((?:[^"\\]|\\.)*)"/gs, (match) => {
-        return match.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
-      });
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
 
     let d: any;
     try {
