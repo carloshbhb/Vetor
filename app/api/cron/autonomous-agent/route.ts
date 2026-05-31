@@ -142,13 +142,12 @@ export async function handleAutonomousCycle() {
       // 2. Discover trending product
       try {
         const trendPrompt = `Você é o Agente de Descoberta de Tráfego do vetor.blog.
-Pesquise na internet do Brasil em tempo real (${new Date().getFullYear()}) na categoria "${targetCategory}".
-Identifique o produto que está tendo o maior crescimento de buscas ou interesse de compra nos últimos dias (um produto real, com nome exato, ex: "Sony WH-1000XM5" ou "Samsung Galaxy Fit 3").
-Responda EXCLUSIVAMENTE com o nome exato desse produto, sem pontuação, sem aspas e sem explicações.`;
+Na categoria "${targetCategory}", qual é o produto mais popular e com maior demanda no Brasil em ${new Date().getFullYear()}?
+Pense em produtos que estão em alta, com muitas avaliações positivas e boa relação custo-benefício.
+Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou "Samsung Galaxy Fit 3"), sem pontuação, sem aspas e sem explicações.`;
 
         const text = await generateText({
           prompt: trendPrompt,
-          useSearchGrounding: true,
         });
         trendingProduct = text.trim().replace(/['\"""]/g, '');
 
