@@ -15,8 +15,6 @@ export async function middleware(req: NextRequest) {
     supabase = client.supabase
     supabaseResponse = client.supabaseResponse
   } catch (e) {
-    // Supabase client initialization failed (missing env vars, etc.)
-    // Continue with supabase = null; will rely on fallback or public routes
     console.warn('[Middleware] Supabase client initialization failed:', e)
   }
 
@@ -41,12 +39,10 @@ export async function middleware(req: NextRequest) {
     return req.nextUrl.pathname === route
   })
 
-  // Allow public routes
   if (isPublicRoute) {
     return supabaseResponse
   }
 
-  // In fallback mode, allow admin routes if admin session cookie present
   const isAdminRoute = adminRoutes.some(route => {
     if (route.endsWith(':path*')) {
       return req.nextUrl.pathname.startsWith(route.replace('/:path*', ''))
@@ -54,18 +50,23 @@ export async function middleware(req: NextRequest) {
     return req.nextUrl.pathname === route
   })
 
+  const isApiRoute = apiRoutes.some(route => {
+    if (route.endsWith(':path*')) {
+      return req.nextUrl.pathname.startsWith(route.replace('/:path*', ''))
+    }
+    return req.nextUrl.pathname === route
+  })
+
+  // In fallback mode, allow admin routes if admin session cookie present
   if (fallbackToFile && isAdminRoute && adminSession) {
-    return supabaseResponse // bypass auth
+    return supabaseResponse
   }
 
-  // Protected routes - redirect to login if not authenticated
   if (!user) {
-    const isApiRoute = apiRoutes.some(route => {
-      if (route.endsWith(':path*')) {
-        return req.nextUrl.pathname.startsWith(route.replace(':path*', ''))
-      }
-      return req.nextUrl.pathname === route
-    })
+    // Allow API and admin routes with admin cookie fallback (Supabase session may have expired)
+    if (adminSession && (isApiRoute || isAdminRoute)) {
+      return supabaseResponse
+    }
 
     if (isApiRoute) {
       return NextResponse.json({ error: 'Auth required' }, { status: 401 })

@@ -376,17 +376,24 @@ export async function updateReview(id: string, patch: Partial<Omit<ReviewData, '
   if (patch.googleRank !== undefined) updateData.google_rank = patch.googleRank;
   if (patch.lastRankCheck !== undefined) updateData.last_rank_check = patch.lastRankCheck;
 
+  const fieldCount = Object.keys(updateData).length;
+  console.log(`[Database] Updating review ${id} with ${fieldCount} fields`);
+
   const { error } = await supabase
     .from('reviews')
     .update(updateData)
     .eq('id', id);
 
   if (error) {
-    if (error.code === 'PGRST116') return false;
+    if (error.code === 'PGRST116') {
+      console.warn(`[Database] Review ${id} not found for update`);
+      return false;
+    }
     console.error('[Database] Error updating review:', error);
     throw new Error(`Failed to update review: ${error.message}`);
   }
 
+  console.log(`[Database] Review ${id} updated successfully`);
   return true;
 }
 
