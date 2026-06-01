@@ -77,10 +77,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const fieldCount = Object.keys(u).length;
     console.log(`[API-RPC] PUT ${id} — ${fieldCount} fields: ${Object.keys(u).join(', ')}`);
 
-    // Use RPC to bypass PostgREST UPDATE issue
-    const { error } = await client.rpc('update_review_json', {
+    // Use RPC with JSON string — SQL function handles types explicitly
+    const { error } = await client.rpc('update_review_from_json', {
       p_id: id,
-      p_data: u,
+      p_json: JSON.stringify(u),
     });
 
     if (error) {
@@ -89,7 +89,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     console.log(`[API-RPC] Review ${id} updated successfully via RPC`);
-
     return NextResponse.json({ success: true, matched: 1 });
   } catch (err: any) {
     console.error('[API] PUT error:', err);
