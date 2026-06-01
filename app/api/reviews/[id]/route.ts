@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getReviewById, updateReview, deleteReview } from '@/lib/db';
 import { commitUpdateReviewToGitHub, commitDeleteReviewFromGitHub } from '@/lib/github';
 import { submitUrl } from '@/lib/indexnow';
+import { indexNewReview } from '@/lib/google-indexing';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         await commitUpdateReviewToGitHub(params.id, fullReview);
         if (fullReview.status === 'published') {
           const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
-          await submitUrl(`${siteUrl}/review/${fullReview.slug}`);
+          const reviewUrl = `${siteUrl}/review/${fullReview.slug}`;
+          // IndexNow (Bing, Yandex, etc)
+          await submitUrl(reviewUrl);
+          // Google Indexing API
+          await indexNewReview(fullReview.slug);
         }
       }
     }
