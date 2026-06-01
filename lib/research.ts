@@ -58,10 +58,13 @@ export async function getMarketInsights(): Promise<MarketInsight[]> {
       .slice(0, 5)
       .map(([c]) => c);
 
-    const prices = items.map(i => parseFloat(i.priceNew.replace(/[^\d,]/g, '').replace(',', '.')));
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const prices = items
+      .map(i => parseFloat(i.priceNew.replace(/[^\d,]/g, '').replace(',', '.')))
+      .filter(p => !isNaN(p) && p > 0);
+    const hasPrices = prices.length > 0;
+    const minPrice = hasPrices ? Math.min(...prices) : 0;
+    const maxPrice = hasPrices ? Math.max(...prices) : 0;
+    const avgPrice = hasPrices ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
 
     const top = items.reduce((best, cur) => cur.hero.overallScore > best.hero.overallScore ? cur : best);
 
@@ -70,9 +73,9 @@ export async function getMarketInsights(): Promise<MarketInsight[]> {
       totalReviews: items.length,
       avgScore: Math.round(avgScore * 10) / 10,
       priceRange: {
-        min: `R$ ${minPrice.toFixed(2)}`,
-        max: `R$ ${maxPrice.toFixed(2)}`,
-        avg: `R$ ${avgPrice.toFixed(2)}`,
+        min: hasPrices ? `R$ ${minPrice.toFixed(2)}` : 'Sem dados',
+        max: hasPrices ? `R$ ${maxPrice.toFixed(2)}` : 'Sem dados',
+        avg: hasPrices ? `R$ ${avgPrice.toFixed(2)}` : 'Sem dados',
       },
       topProduct: { name: top.product, score: top.hero.overallScore },
       commonPros: freqPros,
