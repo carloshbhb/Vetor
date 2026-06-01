@@ -377,12 +377,13 @@ export async function updateReview(id: string, patch: Partial<Omit<ReviewData, '
   if (patch.lastRankCheck !== undefined) updateData.last_rank_check = patch.lastRankCheck;
 
   const fieldCount = Object.keys(updateData).length;
-  console.log(`[Database] Updating review ${id} with ${fieldCount} fields`);
+  console.log(`[Database] Updating review ${id} with ${fieldCount} fields: ${Object.keys(updateData).join(', ')}`);
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('reviews')
     .update(updateData)
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
 
   if (error) {
     if (error.code === 'PGRST116') {
@@ -393,8 +394,9 @@ export async function updateReview(id: string, patch: Partial<Omit<ReviewData, '
     throw new Error(`Failed to update review: ${error.message}`);
   }
 
-  console.log(`[Database] Review ${id} updated successfully`);
-  return true;
+  const matched = data?.length ?? 0;
+  console.log(`[Database] Review ${id} update result: ${matched} row(s) matched, fields sent: ${fieldCount}`);
+  return matched > 0;
 }
 
 export async function deleteReview(id: string): Promise<boolean> {
