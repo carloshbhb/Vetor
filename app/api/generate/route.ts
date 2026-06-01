@@ -62,7 +62,7 @@ function runSeoChecks(data: any): SEACheckResult {
   return { failedChecks, allPassed: failedChecks.length === 0 };
 }
 
-// ─── OpenRouter refinement pass ──────────────────────────────────────────────
+// ─── OpenRouter refinement pass (MiMo V2.5 + fallback) ───────────────────────
 async function refineWithOpenRouter(data: any, failedChecks: string[]): Promise<any> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
@@ -99,6 +99,7 @@ REGRAS:
 JSON CORRIGIDO:`;
 
   const models = [
+    { id: 'xiaomi/mimo-v2.5', name: 'MiMo V2.5' },
     { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4 Flash' },
     { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B' },
     { id: 'google/gemma-4-31b-it:free', name: 'Gemma 4 31B' },
