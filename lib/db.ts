@@ -396,19 +396,20 @@ export async function updateReview(id: string, patch: Partial<Omit<ReviewData, '
   const fieldCount = Object.keys(updateData).length;
   console.log(`[Database] Updating review ${id} with ${fieldCount} fields: ${Object.keys(updateData).join(', ')}`);
 
-  // Use RPC to bypass PostgREST UPDATE issue
-  const { error } = await supabase.rpc('update_review_json', {
-    p_id: id,
-    p_data: updateData,
-  });
+  const { data, error } = await supabase
+    .from('reviews')
+    .update(updateData)
+    .eq('id', id)
+    .select('id');
 
   if (error) {
-    console.error('[Database] Error updating review via RPC:', error);
+    console.error('[Database] Error updating review:', error);
     throw new Error(`Failed to update review: ${error.message}`);
   }
 
-  console.log(`[Database] Review ${id} updated via RPC, fields sent: ${fieldCount}`);
-  return true;
+  const matched = data?.length ?? 0;
+  console.log(`[Database] Review ${id} update result: ${matched} row(s) matched, fields sent: ${fieldCount}`);
+  return matched > 0;
 }
 
 export async function deleteReview(id: string): Promise<boolean> {

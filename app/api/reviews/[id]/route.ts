@@ -28,7 +28,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: 'Supabase não configurado' }, { status: 500 });
     }
 
-    // Build update data mapping camelCase → snake_case
     const u: Record<string, any> = {};
     if (body.slug !== undefined) u.slug = body.slug;
     if (body.status !== undefined) u.status = body.status;
@@ -75,21 +74,27 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     const fieldCount = Object.keys(u).length;
-    console.log(`[API-RPC] PUT ${id} — ${fieldCount} fields: ${Object.keys(u).join(', ')}`);
+    console.log(`[API] PUT ${id} — ${fieldCount} fields`);
 
-    // Use RPC with JSON string — SQL function handles types explicitly
-    const { error } = await client.rpc('update_review_from_json', {
-      p_id: id,
-      p_json: JSON.stringify(u),
-    });
+    const { data, error } = await client
+      .from('reviews')
+      .update(u)
+      .eq('id', id)
+      .select('id');
 
     if (error) {
-      console.error('[API-RPC] Supabase RPC error:', error);
-      return NextResponse.json({ error: `Supabase RPC: ${error.message}` }, { status: 500 });
+      console.error('[API] Supabase update error:', error);
+      return NextResponse.json({ error: `Supabase: ${error.message}` }, { status: 500 });
     }
 
-    console.log(`[API-RPC] Review ${id} updated successfully via RPC`);
-    return NextResponse.json({ success: true, matched: 1 });
+    const matched = data?.length ?? 0;
+    console.log(`[API] Supabase update matched ${matched} row(s)`);
+
+    if (matched === 0) {
+      return NextResponse.json({ error: `Review ${id} não encontrada` }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, matched });
   } catch (err: any) {
     console.error('[API] PUT error:', err);
     return NextResponse.json({ error: err.message }, { status: 400 });
