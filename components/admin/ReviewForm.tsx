@@ -414,8 +414,8 @@ export default function ReviewForm({ initial, reviewId }: { initial?: ReviewData
       }));
       showToast(
         syncedSuccess
-          ? 'Preço real sincronizado e formulário preenchido pelo Gemini 3.5 Flash!'
-          : 'O Gemini 3.5 Flash preencheu o formulário completo!',
+          ? 'Preço real sincronizado! Gemini + DeepSeek otimizaram o review para SEO.'
+          : 'Gemini + DeepSeek preencheram e otimizaram o review completo!',
         'success'
       );
     } catch (err: any) {
@@ -465,8 +465,8 @@ export default function ReviewForm({ initial, reviewId }: { initial?: ReviewData
         <div className="fixed inset-0 bg-text/60 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-white rounded-2xl p-10 text-center shadow-2xl max-w-sm w-full mx-4 border border-border">
             <div className="w-14 h-14 border-4 border-blue-mid border-t-blue rounded-full animate-spin mx-auto mb-5" />
-            <p className="font-syne font-extrabold text-2xl text-text mb-2 tracking-tight">Gemini 3.5 Flash</p>
-            <p className="text-text-muted text-sm">Estruturando dados, fazendo benchmark de concorrentes e otimizando SEO do review completo...</p>
+            <p className="font-syne font-extrabold text-2xl text-text mb-2 tracking-tight">Gemini + DeepSeek</p>
+            <p className="text-text-muted text-sm">Gemini gera o review completo e DeepSeek otimiza automaticamente para SEO ficar verde...</p>
           </div>
         </div>
       )}
