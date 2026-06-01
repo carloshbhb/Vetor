@@ -6,11 +6,6 @@ import { indexNewReview } from '@/lib/google-indexing';
 
 export const dynamic = 'force-dynamic';
 
-async function checkAuth(req: Request): Promise<boolean> {
-  const cookieHeader = req.headers.get('cookie') || '';
-  return cookieHeader.split(';').some(c => c.trim().startsWith('vetor_admin_session='));
-}
-
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   const review = await getReviewById(params.id);
   if (!review) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -19,18 +14,18 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
-    const authed = await checkAuth(req);
-    if (!authed) {
-      return NextResponse.json({ error: 'Não autenticado. Faça login novamente.' }, { status: 401 });
-    }
-
     const body = await req.json();
-    console.log(`[API] PUT /api/reviews/${params.id} - ${Object.keys(body).length} fields`);
+    console.log(`[API] PUT /api/reviews/${params.id} - fields: ${Object.keys(body).join(', ')}`);
 
     const ok = await updateReview(params.id, body);
-    if (!ok) return NextResponse.json({ error: 'Review não encontrada' }, { status: 404 });
 
-    // Sync to GitHub (non-blocking, don't fail the save if this fails)
+    if (!ok) {
+      console.error(`[API] PUT failed - review ${params.id} not found or no changes`);
+      return NextResponse.json({ error: 'Review não encontrada' }, { status: 404 });
+    }
+
+    console.log(`[API] PUT success for ${params.id}`);
+
     if (process.env.GITHUB_TOKEN) {
       try {
         const fullReview = await getReviewById(params.id);
