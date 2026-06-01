@@ -1,13 +1,27 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { ReviewData, ReviewSummary, FAQItem } from './types';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const fallbackToFile = process.env.SUPABASE_FALLBACK_TO_FILE === 'true';
+let _supabase: SupabaseClient | null = null;
+let _supabaseChecked = false;
 
-const supabase = !fallbackToFile && supabaseUrl && supabaseKey
-  ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
-  : null;
+function getSupabase(): SupabaseClient | null {
+  if (_supabaseChecked) return _supabase;
+  _supabaseChecked = true;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const fallbackToFile = process.env.SUPABASE_FALLBACK_TO_FILE === 'true';
+
+  if (!fallbackToFile && supabaseUrl && supabaseKey) {
+    _supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+    console.log('[DB] Supabase client created successfully (lazy)');
+  } else {
+    console.log('[DB] Supabase NOT created:', { fallbackToFile, hasUrl: !!supabaseUrl, hasKey: !!supabaseKey });
+    _supabase = null;
+  }
+
+  return _supabase;
+}
 
 // ─── Backup Module ────────────────────────────────────────────────────────────
 
@@ -128,13 +142,12 @@ function mapToReviewSummary(row: any): ReviewSummary {
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 export async function getAllReviews(): Promise<ReviewData[]> {
-  // If Supabase is not configured, use backup directly
+  const supabase = getSupabase();
   if (!supabase) { 
     const b = await getBackup(); 
     return b.getAllReviews(); 
   }
 
-  // Query Supabase
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
@@ -165,6 +178,7 @@ export async function getAllReviews(): Promise<ReviewData[]> {
 }
 
 export async function getReviewSummaries(): Promise<ReviewSummary[]> {
+  const supabase = getSupabase();
   if (!supabase) { const b = await getBackup(); return b.getReviewSummaries(); }
   const { data, error } = await supabase
     .from('reviews')
@@ -181,7 +195,7 @@ export async function getReviewSummaries(): Promise<ReviewSummary[]> {
 
 export async function getPublishedReviews(): Promise<ReviewData[]> {
   console.log('[DB] getPublishedReviews called');
-  // If Supabase is not configured, use backup directly
+  const supabase = getSupabase();
   if (!supabase) { 
     console.log('[DB] Supabase not configured, using backup');
     const b = await getBackup(); 
@@ -223,6 +237,7 @@ export async function getPublishedReviews(): Promise<ReviewData[]> {
 }
 
 export async function getReviewById(id: string): Promise<ReviewData | undefined> {
+  const supabase = getSupabase();
   if (!supabase) { const b = await getBackup(); return b.getReviewById(id); }
   const { data, error } = await supabase
     .from('reviews')
@@ -240,7 +255,7 @@ export async function getReviewById(id: string): Promise<ReviewData | undefined>
 }
 
 export async function getReviewBySlug(slug: string): Promise<ReviewData | undefined> {
-  // If Supabase is not configured, use backup directly
+  const supabase = getSupabase();
   if (!supabase) { 
     const b = await getBackup(); 
     return b.getReviewBySlug(slug); 
@@ -266,6 +281,7 @@ export async function getReviewBySlug(slug: string): Promise<ReviewData | undefi
 }
 
 export async function createReview(data: Omit<ReviewData, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  const supabase = getSupabase();
   if (!supabase) { const b = await getBackup(); return b.createReview(data); }
   const insertData = {
     slug: data.slug,
@@ -321,6 +337,7 @@ export async function createReview(data: Omit<ReviewData, 'id' | 'createdAt' | '
 }
 
 export async function updateReview(id: string, patch: Partial<Omit<ReviewData, 'id' | 'createdAt'>>): Promise<boolean> {
+  const supabase = getSupabase();
   if (!supabase) { const b = await getBackup(); return b.updateReview(id, patch as any); }
   const updateData: any = {};
 
@@ -400,6 +417,7 @@ export async function updateReview(id: string, patch: Partial<Omit<ReviewData, '
 }
 
 export async function deleteReview(id: string): Promise<boolean> {
+  const supabase = getSupabase();
   if (!supabase) { const b = await getBackup(); return b.deleteReview(id); }
   const { error } = await supabase
     .from('reviews')
@@ -416,6 +434,7 @@ export async function deleteReview(id: string): Promise<boolean> {
 }
 
 export async function getPublishedSlugs(): Promise<string[]> {
+  const supabase = getSupabase();
   if (!supabase) { const b = await getBackup(); return b.getPublishedSlugs(); }
   const { data, error } = await supabase
     .from('reviews')
