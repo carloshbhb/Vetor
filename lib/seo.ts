@@ -1,7 +1,39 @@
 import type { ReviewData } from './types';
+import { getAuthorSchema } from './author';
 
 const SITE_URL  = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
 const SITE_NAME = 'Vetor Blog';
+
+// ─── NewsArticle Schema (PR Digital / Google News) ──────────────────────────
+export function buildNewsArticleSchema(review: ReviewData) {
+  const url = `${SITE_URL}/review/${review.slug}`;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: review.meta.title,
+    description: review.meta.description,
+    image: review.imageUrl || `${SITE_URL}/og-default.jpg`,
+    url,
+    datePublished: review.createdAt,
+    dateModified: review.updatedAt,
+    author: getAuthorSchema(),
+    publisher: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/logo.png`,
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': url,
+    },
+    keywords: review.meta.keywords,
+    articleSection: review.category,
+    wordCount: review.sections.reduce((acc, s) => acc + s.content.split(' ').length, 0),
+  };
+}
 
 // ─── Metadata (Next.js Metadata API) ────────────────────────────────────────
 
@@ -46,7 +78,7 @@ export function buildArticleSchema(review: ReviewData) {
     url,
     datePublished: review.createdAt,
     dateModified:  review.updatedAt,
-    author:        { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
+    author:        getAuthorSchema(),
     publisher:     {
       '@type': 'Organization',
       name:    SITE_NAME,

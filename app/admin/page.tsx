@@ -6,6 +6,7 @@ import { getAllReviews } from '@/lib/db';
 import SerpRefreshButton from '@/components/admin/SerpRefreshButton';
 import AutonomousAgentButton from '@/components/admin/AutonomousAgentButton';
 import RealtimeIndicator from '@/components/admin/RealtimeIndicator';
+import AICitationsDashboard from '@/components/admin/AICitationsDashboard';
 
 export default async function AdminDashboard() {
   const reviews = await getAllReviews();
@@ -166,6 +167,11 @@ export default async function AdminDashboard() {
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* AI Citations Monitor (GEO) */}
+      <div className="mt-8">
+        <AICitationsDashboard />
       </div>
     </div>
   );

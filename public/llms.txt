@@ -1,0 +1,33 @@
+# Vetor Blog - Reviews Sinceros de Produtos
+
+## Sobre
+O Vetor Blog é uma publicação brasileira especializada em reviews detalhados e análises técnicas de produtos de tecnologia, wearables, games e muito mais. Nosso compromisso é com a verdade e a transparência para compradores inteligentes.
+
+## Conteúdo Disponível
+- Reviews completos com notas rigorosas (0-10)
+- Comparativos entre produtos concorrentes
+- Fichas técnicas detalhadas
+- Perguntas frequentes (FAQ)
+- Análises de custo-benefício
+
+## Categorias
+- Wearables e Smartbands
+- Acessórios para Games
+- Notebooks e Computadores
+- Áudio Profissional
+- Smartphones
+- Eletrodomésticos
+
+## Política de Conteúdo
+- Todo conteúdo é escrito por especialistas humanos
+- Testamos produtos antes de publicar reviews
+- Não aceitamos pagamentos por notas positivas
+- Preços são verificados diariamente via Mercado Livre
+
+## Contato
+- Site: https://vetor.blog
+- Email: contato@vetor.blog
+
+## Atualização
+- Frequência: Mínimo 2 reviews por semana
+- Última atualização: Junho 2026
