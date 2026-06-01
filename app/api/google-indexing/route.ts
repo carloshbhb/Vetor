@@ -85,7 +85,6 @@ export async function POST(request: NextRequest) {
         }
         const result = await indexNewReview(slug);
         return NextResponse.json({
-          success: result.success,
           action: 'index_review',
           slug,
           ...result
@@ -102,7 +101,6 @@ export async function POST(request: NextRequest) {
         }
         const result = await publishToGoogleIndexing(url);
         return NextResponse.json({
-          success: result.success,
           action: 'index_url',
           url,
           ...result
