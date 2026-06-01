@@ -358,6 +358,7 @@ export async function updateReview(id: string, patch: Partial<Omit<ReviewData, '
   if (patch.compareTable !== undefined) updateData.compare_table = patch.compareTable;
   if (patch.pros !== undefined) updateData.pros = patch.pros;
   if (patch.cons !== undefined) updateData.cons = patch.cons;
+  if (patch.faq !== undefined) updateData.faq = patch.faq;
   if (patch.testimonials !== undefined) updateData.testimonials = patch.testimonials;
 
   if (patch.verdict) {
