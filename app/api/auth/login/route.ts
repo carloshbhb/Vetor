@@ -50,6 +50,14 @@ export async function POST(req: NextRequest) {
     }
 
     const response = NextResponse.json({ success: true, session: data.session });
+    // Also set admin session cookie so middleware can use it as fallback
+    response.cookies.set('vetor_admin_session', 'true', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: 'lax',
+    });
     return response;
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
