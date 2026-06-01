@@ -15,7 +15,6 @@ interface SEACheckResult {
 function runSeoChecks(data: any): SEACheckResult {
   const failedChecks: string[] = [];
 
-  // SEO checks
   const title = data.meta?.title || '';
   if (title.length < 40 || title.length > 60) {
     failedChecks.push(`Título SEO deve ter 40-60 caracteres (atual: ${title.length})`);
@@ -42,7 +41,6 @@ function runSeoChecks(data: any): SEACheckResult {
     failedChecks.push(`Mínimo 4 perguntas FAQ (atual: ${data.faq?.length || 0})`);
   }
 
-  // CRO checks
   if (!data.specs || data.specs.length < 5) {
     failedChecks.push(`Mínimo 5 especificações (atual: ${data.specs?.length || 0})`);
   }
@@ -62,14 +60,77 @@ function runSeoChecks(data: any): SEACheckResult {
   return { failedChecks, allPassed: failedChecks.length === 0 };
 }
 
-// ─── OpenRouter refinement pass (MiMo V2.5 + fallback) ───────────────────────
-async function refineWithOpenRouter(data: any, failedChecks: string[]): Promise<any> {
+// ─── OpenRouter call helper ──────────────────────────────────────────────────
+async function callOpenRouterModel(
+  prompt: string,
+  modelId: string,
+  modelName: string,
+  temperature: number = 0.7,
+  maxTokens: number = 8192
+): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    console.warn('[Generate] OPENROUTER_API_KEY not set, skipping refinement');
-    return data;
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY not set');
+
+  console.log(`[Generate] Calling ${modelName} (${modelId})...`);
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': 'https://vetor.blog',
+      'X-Title': 'Vetor Blog',
+    },
+    body: JSON.stringify({
+      model: modelId,
+      messages: [{ role: 'user', content: prompt }],
+      temperature,
+      max_tokens: maxTokens,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenRouter ${modelName} failed (${response.status}): ${errText}`);
   }
 
+  const result = await response.json();
+  const content = result.choices?.[0]?.message?.content;
+  if (!content) throw new Error(`OpenRouter ${modelName} returned empty`);
+  return content;
+}
+
+// ─── Generate via OpenRouter (when Gemini fails) ─────────────────────────────
+async function generateWithOpenRouter(prompt: string): Promise<any> {
+  const models = [
+    { id: 'xiaomi/mimo-v2.5', name: 'MiMo V2.5' },
+    { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4 Flash' },
+    { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B' },
+    { id: 'google/gemma-4-31b-it:free', name: 'Gemma 4 31B' },
+  ];
+
+  for (const m of models) {
+    try {
+      const text = await callOpenRouterModel(prompt, m.id, m.name, 0.7, 8192);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.warn(`[Generate] ${m.name} returned no JSON, trying next...`);
+        continue;
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+      console.log(`[Generate] ${m.name} generation succeeded`);
+      return { data: parsed, provider: m.name };
+    } catch (err: any) {
+      console.warn(`[Generate] ${m.name} failed:`, err.message);
+      continue;
+    }
+  }
+
+  throw new Error('Todos os modelos de IA estão temporariamente indisponíveis. Tente novamente em alguns minutos.');
+}
+
+// ─── Refine with OpenRouter (MiMo V2.5 + fallback) ──────────────────────────
+async function refineWithOpenRouter(data: any, failedChecks: string[]): Promise<any> {
   const refinementPrompt = `Você é um especialista em SEO e copywriting. O review abaixo foi gerado por IA, mas NÃO passou em todas as verificações de qualidade SEO.
 
 DADOS ATUAIS DO REVIEW:
@@ -102,49 +163,18 @@ JSON CORRIGIDO:`;
     { id: 'xiaomi/mimo-v2.5', name: 'MiMo V2.5' },
     { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4 Flash' },
     { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B' },
-    { id: 'google/gemma-4-31b-it:free', name: 'Gemma 4 31B' },
   ];
 
   for (const m of models) {
     try {
-      console.log(`[Generate] Refining with ${m.name}...`);
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://vetor.blog',
-        'X-Title': 'Vetor Blog',
-      };
-
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model: m.id,
-          messages: [{ role: 'user', content: refinementPrompt }],
-          temperature: 0.5,
-          max_tokens: 8192,
-          response_format: { type: 'json_object' },
-        }),
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        console.warn(`[Generate] ${m.name} failed (${response.status}): ${errText}`);
-        continue;
-      }
-
-      const result = await response.json();
-      const content = result.choices?.[0]?.message?.content;
-      if (!content) continue;
-
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      const text = await callOpenRouterModel(refinementPrompt, m.id, m.name, 0.5, 8192);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) continue;
-
       const refined = JSON.parse(jsonMatch[0]);
       console.log(`[Generate] ${m.name} refinement succeeded`);
       return refined;
     } catch (err: any) {
-      console.warn(`[Generate] ${m.name} error:`, err.message);
+      console.warn(`[Generate] ${m.name} refinement failed:`, err.message);
       continue;
     }
   }
@@ -157,14 +187,6 @@ export async function POST(req: Request) {
    try {
      const body = await req.json() as GenerateInput;
 
-     const apiKey = process.env.GEMINI_API_KEY;
-     if (!apiKey) {
-       return NextResponse.json({ error: 'GEMINI_API_KEY is not set' }, { status: 500 });
-     }
-
-     const genAI = new GoogleGenerativeAI(apiKey);
-     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
      // Retrieve unique list of existing categories in the database
      const reviews = await getAllReviews();
      const existingCategories = Array.from(new Set(reviews.map(r => r.category).filter(Boolean)));
@@ -174,34 +196,56 @@ export async function POST(req: Request) {
        existingCategories,
      });
 
-     // ── Pass 1: Gemini generates the full review ──────────────────────────
-     console.log('[Generate] Pass 1: Gemini generating review...');
-     const result = await model.generateContent({
-       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-       generationConfig: { 
-         maxOutputTokens: 8192,
-         temperature: 0.7,
-       },
-     });
+     let reviewJson: any;
+     let provider = 'Gemini';
 
-     const responseText = result.response.text();
-     if (!responseText) throw new Error('Empty AI response');
+     // ── Pass 1: Try Gemini first, fallback to OpenRouter ──────────────────
+     const geminiKey = process.env.GEMINI_API_KEY;
+     if (geminiKey) {
+       try {
+         console.log('[Generate] Pass 1: Gemini generating review...');
+         const genAI = new GoogleGenerativeAI(geminiKey);
+         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-     if (!jsonMatch) throw new Error('Could not parse JSON from AI response');
+         const result = await model.generateContent({
+           contents: [{ role: 'user', parts: [{ text: prompt }] }],
+           generationConfig: { 
+             maxOutputTokens: 8192,
+             temperature: 0.7,
+           },
+         });
 
-     let reviewJson = JSON.parse(jsonMatch[0]);
+         const responseText = result.response.text();
+         if (!responseText) throw new Error('Empty Gemini response');
+
+         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+         if (!jsonMatch) throw new Error('Could not parse JSON from Gemini');
+
+         reviewJson = JSON.parse(jsonMatch[0]);
+         console.log('[Generate] Gemini generation succeeded');
+       } catch (geminiErr: any) {
+         console.warn('[Generate] Gemini failed:', geminiErr.message);
+         console.log('[Generate] Falling back to OpenRouter...');
+         const fallback = await generateWithOpenRouter(prompt);
+         reviewJson = fallback.data;
+         provider = fallback.provider;
+       }
+     } else {
+       console.log('[Generate] No GEMINI_API_KEY, using OpenRouter directly...');
+       const fallback = await generateWithOpenRouter(prompt);
+       reviewJson = fallback.data;
+       provider = fallback.provider;
+     }
 
      // ── SEO Quality Check ─────────────────────────────────────────────────
      const { failedChecks, allPassed } = runSeoChecks(reviewJson);
      console.log(`[Generate] SEO checks: ${allPassed ? 'ALL PASSED' : `${failedChecks.length} FAILED`}`);
 
-     // ── Pass 2: OpenRouter refines failing checks ─────────────────────────
+     // ── Pass 2: MiMo V2.5 refines failing checks ─────────────────────────
      if (!allPassed) {
-       console.log('[Generate] Pass 2: OpenRouter refining SEO issues...');
+       console.log('[Generate] Pass 2: MiMo V2.5 refining SEO issues...');
        reviewJson = await refineWithOpenRouter(reviewJson, failedChecks);
 
-       // Re-check after refinement
        const { failedChecks: recheckFailed, allPassed: recheckPassed } = runSeoChecks(reviewJson);
        if (!recheckPassed) {
          console.warn(`[Generate] Still ${recheckFailed.length} checks failing after refinement:`, recheckFailed);
@@ -213,6 +257,7 @@ export async function POST(req: Request) {
      return NextResponse.json({ 
        success: true, 
        data: reviewJson,
+       provider,
        seo: { 
          passed: allPassed, 
          failedChecks: allPassed ? [] : failedChecks 
