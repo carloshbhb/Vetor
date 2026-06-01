@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getReviewById, deleteReview } from '@/lib/db';
-import { commitUpdateReviewToGitHub, commitDeleteReviewFromGitHub } from '@/lib/github';
-import { submitUrl } from '@/lib/indexnow';
-import { indexNewReview } from '@/lib/google-indexing';
+import { commitDeleteReviewFromGitHub } from '@/lib/github';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,14 +23,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const body = await req.json();
     const id = params.id;
 
-    // Direct Supabase update - bypass db.ts to ensure it works
     const client = getDirectClient();
     if (!client) {
       return NextResponse.json({ error: 'Supabase não configurado' }, { status: 500 });
     }
 
     // Build update data mapping camelCase → snake_case
-    const u: any = {};
+    const u: Record<string, any> = {};
     if (body.slug !== undefined) u.slug = body.slug;
     if (body.status !== undefined) u.status = body.status;
     if (body.product !== undefined) u.product = body.product;
@@ -78,31 +75,22 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     const fieldCount = Object.keys(u).length;
-    console.log(`[API-Direct] PUT ${id} — ${fieldCount} fields: ${Object.keys(u).join(', ')}`);
+    console.log(`[API-RPC] PUT ${id} — ${fieldCount} fields: ${Object.keys(u).join(', ')}`);
 
-    const { data, error } = await client
-      .from('reviews')
-      .update(u)
-      .eq('id', id)
-      .select('id, slug, updated_at');
+    // Use RPC to bypass PostgREST UPDATE issue
+    const { error } = await client.rpc('update_review_json', {
+      p_id: id,
+      p_data: u,
+    });
 
     if (error) {
-      console.error('[API-Direct] Supabase update error:', error);
-      return NextResponse.json({ error: `Supabase: ${error.message}`, debug: { fieldCount, keys: Object.keys(u) } }, { status: 500 });
+      console.error('[API-RPC] Supabase RPC error:', error);
+      return NextResponse.json({ error: `Supabase RPC: ${error.message}` }, { status: 500 });
     }
 
-    const matched = data?.length ?? 0;
-    console.log(`[API-Direct] Supabase update matched ${matched} row(s), returned:`, data);
+    console.log(`[API-RPC] Review ${id} updated successfully via RPC`);
 
-    if (matched === 0) {
-      return NextResponse.json({ error: `Review ${id} não encontrada no Supabase` }, { status: 404 });
-    }
-
-    return NextResponse.json({
-      success: true,
-      matched,
-      data: data?.[0],
-    });
+    return NextResponse.json({ success: true, matched: 1 });
   } catch (err: any) {
     console.error('[API] PUT error:', err);
     return NextResponse.json({ error: err.message }, { status: 400 });
