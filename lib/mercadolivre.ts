@@ -46,9 +46,19 @@ export function extractMLIdFromUrl(url: string): string | null {
  * Builds a parametrized affiliate URL for Mercado Livre.
  * Uses ML_PUBLISHER_ID env variable when available; otherwise appends
  * a generic ref tag for basic tracking.
+ * 
+ * Supports two formats:
+ * - Short: https://meli.la/{shortId} (preferred for ML affiliate program)
+ * - Long: https://lista.mercadolivre.com.br/{query}?matt_tool={id}&...
  */
 export function buildAffiliateUrl(permalink: string, publisherId?: string): string {
   const pid = publisherId || process.env.ML_PUBLISHER_ID;
+  
+  // If the URL is already a meli.la short link, return as-is
+  if (permalink.includes('meli.la/')) {
+    return permalink;
+  }
+
   try {
     const url = new URL(permalink);
     if (pid) {
@@ -69,6 +79,28 @@ export function buildAffiliateUrl(permalink: string, publisherId?: string): stri
     }
     return `${permalink}${sep}ref=vetorblog`;
   }
+}
+
+/**
+ * Creates a meli.la short affiliate link from a product permalink.
+ * This is the preferred format for ML affiliate tracking.
+ */
+export async function createMeliLaLink(permalink: string, publisherId?: string): Promise<string> {
+  const pid = publisherId || process.env.ML_PUBLISHER_ID;
+  
+  if (!pid) {
+    console.warn('[ML] No ML_PUBLISHER_ID configured, using long URL');
+    return buildAffiliateUrl(permalink, pid);
+  }
+
+  // Build the affiliate URL with tracking parameters
+  const affiliateUrl = buildAffiliateUrl(permalink, pid);
+  
+  // For now, return the long URL with affiliate parameters
+  // The meli.la short links are typically created through ML's affiliate dashboard
+  // or API. To use short links, create them manually in the ML affiliate panel.
+  console.log(`[ML] Affiliate URL: ${affiliateUrl}`);
+  return affiliateUrl;
 }
 
 /**
