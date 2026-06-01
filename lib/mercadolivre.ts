@@ -52,11 +52,10 @@ export function buildAffiliateUrl(permalink: string, publisherId?: string): stri
   try {
     const url = new URL(permalink);
     if (pid) {
-      // Use affiliate parameter for ML affiliate program
+      // Use affiliate parameters for ML affiliate program
       url.searchParams.set('matt_tool', pid);
       url.searchParams.set('matt_word', 'vetorblog');
       url.searchParams.set('ref', pid);
-      // Also add tracking_id for commission tracking
       url.searchParams.set('tracking_id', pid);
     } else {
       url.searchParams.set('ref', 'vetorblog');
@@ -69,6 +68,68 @@ export function buildAffiliateUrl(permalink: string, publisherId?: string): stri
       return `${permalink}${sep}matt_tool=${pid}&matt_word=vetorblog&ref=${pid}&tracking_id=${pid}`;
     }
     return `${permalink}${sep}ref=vetorblog`;
+  }
+}
+
+/**
+ * Scrapes product image from Mercado Livre product page using og:image meta tag.
+ */
+async function scrapeProductImage(query: string): Promise<string> {
+  try {
+    // Search for the product on ML
+    const searchUrl = `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}`;
+    console.log(`[ML Scrape] Searching: ${searchUrl}`);
+
+    const searchRes = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!searchRes.ok) {
+      console.warn(`[ML Scrape] Search failed: ${searchRes.status}`);
+      return '';
+    }
+
+    const html = await searchRes.text();
+
+    // Find first product link
+    const productMatch = html.match(/href="(https:\/\/produto\.mercadolivre\.com\.br\/MLB-\d+)"/);
+    if (!productMatch) {
+      console.warn('[ML Scrape] No product link found');
+      return '';
+    }
+
+    const productUrl = productMatch[1];
+    console.log(`[ML Scrape] Found product: ${productUrl}`);
+
+    // Fetch product page
+    const productRes = await fetch(productUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!productRes.ok) {
+      console.warn(`[ML Scrape] Product page failed: ${productRes.status}`);
+      return '';
+    }
+
+    const productHtml = await productRes.text();
+
+    // Extract og:image
+    const ogImageMatch = productHtml.match(/og:image.*?content="([^"]+)"/);
+    if (ogImageMatch) {
+      const imageUrl = ogImageMatch[1];
+      console.log(`[ML Scrape] Found image: ${imageUrl}`);
+      return imageUrl;
+    }
+
+    console.warn('[ML Scrape] No og:image found');
+    return '';
+  } catch (err: any) {
+    console.warn(`[ML Scrape] Error: ${err.message}`);
+    return '';
   }
 }
 
@@ -284,56 +345,71 @@ export async function fetchMLProduct(
 ): Promise<MLEnrichResult | null> {
   if (!idOrQuery?.trim()) return null;
 
-  // Check if ML_ACCESS_TOKEN is configured
-  if (!process.env.ML_ACCESS_TOKEN) {
-    console.warn('[ML API] ML_ACCESS_TOKEN not configured. Product images will use placeholders.');
-    return null;
+  // Try API first if token is configured
+  if (process.env.ML_ACCESS_TOKEN) {
+    let product: MLProduct | null = null;
+    let source: MLEnrichResult['source'] = 'Not Found';
+
+    // 1. Check if input is a URL containing an MLB ID
+    const extractedId = extractMLIdFromUrl(idOrQuery);
+    if (extractedId) {
+      console.log(`[ML API] Fetching by extracted Item ID: ${extractedId}`);
+      product = await fetchByItemId(extractedId);
+      if (product) source = 'ML API (Item ID)';
+    }
+
+    // 2. Check if input is a raw MLB ID
+    if (!product && isMLBItemId(idOrQuery)) {
+      console.log(`[ML API] Fetching by raw Item ID: ${idOrQuery}`);
+      product = await fetchByItemId(idOrQuery);
+      if (product) source = 'ML API (Item ID)';
+    }
+
+    // 3. Fall back to text search
+    if (!product) {
+      console.log(`[ML API] Fetching by search query: "${idOrQuery}"`);
+      product = await fetchBySearch(idOrQuery);
+      if (product) source = 'ML API (Search)';
+    }
+
+    if (product) {
+      let priceOld: string;
+      if (product.originalPrice && product.originalPrice > product.price) {
+        priceOld = formatBRL(product.originalPrice);
+      } else {
+        priceOld = formatBRL(product.price * 1.15);
+      }
+
+      return {
+        title: product.title,
+        price: formatBRL(product.price),
+        priceOld,
+        imageUrl: product.imageUrl,
+        affiliateUrl: product.affiliateUrl,
+        source,
+      };
+    }
   }
 
-  let product: MLProduct | null = null;
-  let source: MLEnrichResult['source'] = 'Not Found';
+  // Fallback: scrape image from product page
+  console.log(`[ML Scrape] Falling back to web scraping for: "${idOrQuery}"`);
+  const scrapedImage = await scrapeProductImage(idOrQuery);
+  
+  if (scrapedImage) {
+    // Build affiliate URL
+    const searchUrl = `https://lista.mercadolivre.com.br/${encodeURIComponent(idOrQuery)}`;
+    const affiliateUrl = buildAffiliateUrl(searchUrl);
 
-  // 1. Check if input is a URL containing an MLB ID
-  const extractedId = extractMLIdFromUrl(idOrQuery);
-  if (extractedId) {
-    console.log(`[ML API] Fetching by extracted Item ID: ${extractedId}`);
-    product = await fetchByItemId(extractedId);
-    if (product) source = 'ML API (Item ID)';
+    return {
+      title: idOrQuery,
+      price: '',
+      priceOld: '',
+      imageUrl: scrapedImage,
+      affiliateUrl,
+      source: 'ML API (Search)',
+    };
   }
 
-  // 2. Check if input is a raw MLB ID
-  if (!product && isMLBItemId(idOrQuery)) {
-    console.log(`[ML API] Fetching by raw Item ID: ${idOrQuery}`);
-    product = await fetchByItemId(idOrQuery);
-    if (product) source = 'ML API (Item ID)';
-  }
-
-  // 3. Fall back to text search
-  if (!product) {
-    console.log(`[ML API] Fetching by search query: "${idOrQuery}"`);
-    product = await fetchBySearch(idOrQuery);
-    if (product) source = 'ML API (Search)';
-  }
-
-  if (!product) {
-    console.warn(`[ML API] No product found for: "${idOrQuery}"`);
-    return null;
-  }
-
-  // Build priceOld: use originalPrice if available, otherwise +15%
-  let priceOld: string;
-  if (product.originalPrice && product.originalPrice > product.price) {
-    priceOld = formatBRL(product.originalPrice);
-  } else {
-    priceOld = formatBRL(product.price * 1.15);
-  }
-
-  return {
-    title: product.title,
-    price: formatBRL(product.price),
-    priceOld,
-    imageUrl: product.imageUrl,
-    affiliateUrl: product.affiliateUrl,
-    source,
-  };
+  console.warn(`[ML API] No product found for: "${idOrQuery}"`);
+  return null;
 }
