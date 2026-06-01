@@ -72,60 +72,37 @@ export function buildAffiliateUrl(permalink: string, publisherId?: string): stri
 }
 
 /**
- * Scrapes product image from Mercado Livre product page using og:image meta tag.
+ * Scrapes product image from Bing image search for Mercado Livre products.
  */
 async function scrapeProductImage(query: string): Promise<string> {
   try {
-    // Search for the product on ML
-    const searchUrl = `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}`;
-    console.log(`[ML Scrape] Searching: ${searchUrl}`);
+    // Search Bing for ML product images
+    const searchQuery = `${query} Mercado Livre`;
+    const bingUrl = `https://www.bing.com/images/search?q=${encodeURIComponent(searchQuery)}&form=HDRSC3`;
+    console.log(`[ML Scrape] Searching Bing: ${bingUrl}`);
 
-    const searchRes = await fetch(searchUrl, {
+    const bingRes = await fetch(bingUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
     });
 
-    if (!searchRes.ok) {
-      console.warn(`[ML Scrape] Search failed: ${searchRes.status}`);
+    if (!bingRes.ok) {
+      console.warn(`[ML Scrape] Bing search failed: ${bingRes.status}`);
       return '';
     }
 
-    const html = await searchRes.text();
+    const html = await bingRes.text();
 
-    // Find first product link
-    const productMatch = html.match(/href="(https:\/\/produto\.mercadolivre\.com\.br\/MLB-\d+)"/);
-    if (!productMatch) {
-      console.warn('[ML Scrape] No product link found');
-      return '';
-    }
-
-    const productUrl = productMatch[1];
-    console.log(`[ML Scrape] Found product: ${productUrl}`);
-
-    // Fetch product page
-    const productRes = await fetch(productUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-    });
-
-    if (!productRes.ok) {
-      console.warn(`[ML Scrape] Product page failed: ${productRes.status}`);
-      return '';
-    }
-
-    const productHtml = await productRes.text();
-
-    // Extract og:image
-    const ogImageMatch = productHtml.match(/og:image.*?content="([^"]+)"/);
-    if (ogImageMatch) {
-      const imageUrl = ogImageMatch[1];
+    // Find first ML product image
+    const imageMatch = html.match(/https:\/\/http2\.mlstatic\.com\/D_NQ_NP_[^"]+\.webp/);
+    if (imageMatch) {
+      const imageUrl = imageMatch[0];
       console.log(`[ML Scrape] Found image: ${imageUrl}`);
       return imageUrl;
     }
 
-    console.warn('[ML Scrape] No og:image found');
+    console.warn('[ML Scrape] No ML image found in Bing results');
     return '';
   } catch (err: any) {
     console.warn(`[ML Scrape] Error: ${err.message}`);
