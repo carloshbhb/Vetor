@@ -17,19 +17,20 @@ export async function POST(req: Request) {
     const body = await req.json() as Omit<ReviewData, 'id' | 'createdAt' | 'updatedAt'>;
     const id = await createReview(body);
 
-    // Sync to GitHub to trigger Vercel deployment/SSG rebuild
     if (process.env.GITHUB_TOKEN) {
-      const fullReview = await getReviewById(id);
-      if (fullReview) {
-        await commitNewReviewToGitHub(fullReview);
-        if (fullReview.status === 'published') {
-          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
-          const reviewUrl = `${siteUrl}/review/${fullReview.slug}`;
-          // IndexNow (Bing, Yandex, etc)
-          await submitUrl(reviewUrl);
-          // Google Indexing API
-          await indexNewReview(fullReview.slug);
+      try {
+        const fullReview = await getReviewById(id);
+        if (fullReview) {
+          await commitNewReviewToGitHub(fullReview);
+          if (fullReview.status === 'published') {
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+            const reviewUrl = `${siteUrl}/review/${fullReview.slug}`;
+            await submitUrl(reviewUrl);
+            await indexNewReview(fullReview.slug);
+          }
         }
+      } catch (syncErr: any) {
+        console.error('[API] GitHub sync failed (non-fatal):', syncErr.message);
       }
     }
 

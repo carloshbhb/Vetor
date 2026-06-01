@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/middleware'
 
 const adminRoutes = ['/admin/:path*']
-const apiRoutes = ['/api/generate', '/api/upload', '/api/reviews/:path*']
+const apiRoutes = ['/api/generate', '/api/upload']
 const publicRoutes = ['/auth/login', '/auth/callback', '/auth/logout']
 
 export async function middleware(req: NextRequest) {
@@ -52,18 +52,16 @@ export async function middleware(req: NextRequest) {
 
   const isApiRoute = apiRoutes.some(route => {
     if (route.endsWith(':path*')) {
-      return req.nextUrl.pathname.startsWith(route.replace('/:path*', ''))
+      return req.nextUrl.pathname.startsWith(route.replace(':path*', ''))
     }
     return req.nextUrl.pathname === route
   })
 
-  // In fallback mode, allow admin routes if admin session cookie present
   if (fallbackToFile && isAdminRoute && adminSession) {
     return supabaseResponse
   }
 
   if (!user) {
-    // Allow API and admin routes with admin cookie fallback (Supabase session may have expired)
     if (adminSession && (isApiRoute || isAdminRoute)) {
       return supabaseResponse
     }
@@ -82,5 +80,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/generate', '/api/upload', '/api/reviews/:path*', '/auth/:path*'],
+  matcher: ['/admin/:path*', '/api/generate', '/api/upload', '/auth/:path*'],
 }
