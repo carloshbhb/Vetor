@@ -80,18 +80,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const fieldCount = Object.keys(u).length;
     console.log(`[API-Direct] PUT ${id} — ${fieldCount} fields: ${Object.keys(u).join(', ')}`);
 
-    // Read BEFORE
-    const { data: before } = await client
-      .from('reviews')
-      .select('product, slug, updated_at')
-      .eq('id', id)
-      .single();
-
     const { data, error } = await client
       .from('reviews')
       .update(u)
       .eq('id', id)
-      .select('id');
+      .select('id, slug, updated_at');
 
     if (error) {
       console.error('[API-Direct] Supabase update error:', error);
@@ -99,29 +92,16 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     const matched = data?.length ?? 0;
-    console.log(`[API-Direct] Supabase update matched ${matched} row(s)`);
+    console.log(`[API-Direct] Supabase update matched ${matched} row(s), returned:`, data);
 
     if (matched === 0) {
       return NextResponse.json({ error: `Review ${id} não encontrada no Supabase` }, { status: 404 });
     }
 
-    // Read AFTER to verify persistence
-    const { data: after } = await client
-      .from('reviews')
-      .select('product, slug, updated_at')
-      .eq('id', id)
-      .single();
-
     return NextResponse.json({
       success: true,
       matched,
-      debug: {
-        before,
-        after,
-        productChanged: before?.product !== after?.product,
-        updated_atChanged: before?.updated_at !== after?.updated_at,
-        updatePayload: u,
-      },
+      data: data?.[0],
     });
   } catch (err: any) {
     console.error('[API] PUT error:', err);
