@@ -6,7 +6,8 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const reviewId = url.searchParams.get('id') || '5d55a581-a1c9-45f8-9c02-6681dcaf12a5';
-  const testValue = url.searchParams.get('val') || 'TEST-' + Date.now();
+  const testValue1 = 'JS-CLIENT-' + Date.now();
+  const testValue2 = 'RAW-REST-' + Date.now();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -17,35 +18,73 @@ export async function GET(req: Request) {
 
   const client = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-  // 1. Read BEFORE
-  const { data: before } = await client
+  // Save original value
+  const { data: original } = await client
     .from('reviews')
-    .select('id, slug, product, meta_title, updated_at')
+    .select('meta_title')
     .eq('id', reviewId)
     .single();
 
-  // 2. Update with just ONE field (meta_title) - same code path as PUT
-  const { data: updateResult, error } = await client
+  // TEST 1: Supabase JS client update
+  const { data: jsResult, error: jsError } = await client
     .from('reviews')
-    .update({ meta_title: testValue })
+    .update({ meta_title: testValue1 })
     .eq('id', reviewId)
-    .select('id, meta_title');
+    .select('meta_title');
 
-  // 3. Read AFTER
-  const { data: after } = await client
+  // Immediate read-back
+  const { data: afterJs } = await client
     .from('reviews')
-    .select('id, slug, product, meta_title, updated_at')
+    .select('meta_title')
     .eq('id', reviewId)
     .single();
+
+  const jsPersisted = afterJs?.meta_title === testValue1;
+
+  // TEST 2: Raw REST API update (same row)
+  const restRes = await fetch(`${supabaseUrl}/rest/v1/reviews?id=eq.${reviewId}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': serviceKey,
+      'Authorization': `Bearer ${serviceKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+    },
+    body: JSON.stringify({ meta_title: testValue2 }),
+  });
+  const restJson = await restRes.json();
+
+  // Read-back after REST
+  const { data: afterRest } = await client
+    .from('reviews')
+    .select('meta_title')
+    .eq('id', reviewId)
+    .single();
+
+  const restPersisted = afterRest?.meta_title === testValue2;
+
+  // Revert
+  await client
+    .from('reviews')
+    .update({ meta_title: original?.meta_title })
+    .eq('id', reviewId);
 
   return NextResponse.json({
-    before,
-    updateResult,
-    updateError: error,
-    after,
-    persisted: after?.meta_title === testValue,
-    beforeTitle: before?.meta_title,
-    afterTitle: after?.meta_title,
-    testValue,
+    test1_jsClient: {
+      wrote: testValue1,
+      updateReturned: jsResult?.[0]?.meta_title,
+      error: jsError,
+      readBack: afterJs?.meta_title,
+      persisted: jsPersisted,
+    },
+    test2_rawRest: {
+      wrote: testValue2,
+      status: restRes.status,
+      returned: restJson?.[0]?.meta_title,
+      readBack: afterRest?.meta_title,
+      persisted: restPersisted,
+    },
+    originalValue: original?.meta_title,
+    rowId: reviewId,
   });
 }
