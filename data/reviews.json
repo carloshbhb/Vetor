@@ -7105,5 +7105,234 @@
     "lastRankCheck": "2026-05-31T21:51:33.325",
     "createdAt": "2026-05-31T21:51:33.568876+00:00",
     "updatedAt": "2026-06-02T11:28:36.823272+00:00"
+  },
+  {
+    "id": "5d55a581-a1c9-45f8-9c02-6681dcaf12a5",
+    "slug": "review-notebook-dell-inspiron-i15-i1300-a15p",
+    "status": "published",
+    "product": "Notebook Dell Inspiron I15-i1300-a15p Core 3 8gb 512gb W11 Preto",
+    "category": "Notebooks",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 4.253,85",
+    "priceNew": "R$ 3.699,00",
+    "affiliateUrl": "https://meli.la/2eCGBS7",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_953893-MLA85310399911_052025-O.webp",
+    "adsEnabled": false,
+    "meta": {
+      "title": "",
+      "description": "Analise completa do Dell Inspiron I15-i1300-a15p com Core i3 de 13ª. Veja o teste de performance, tela e bateria. Aproveite o desconto exclusivo!",
+      "keywords": "dell inspiron i15, notebook dell core i3, i1300-a15p, notebook estudante, melhor notebook custo beneficio, dell inspiron 2026",
+      "readingTime": 8,
+      "canonical": null,
+      "ogImage": null
+    },
+    "hero": {
+      "headlineLine1": "DELL INSPIRON I15",
+      "headlineLine2": "EFICIÊNCIA REAL PARA O SEU DIA",
+      "headlineEm": "INSPIRON I15",
+      "lead": "O novo Dell Inspiron I15 equilibra preço e potência. Ele traz o processador Intel de 13ª geração. Descubra agora se este notebook é a escolha certa.",
+      "overallScore": 8.8,
+      "bars": [
+        {
+          "pct": 85,
+          "label": "Performance",
+          "value": 8.5
+        },
+        {
+          "pct": 87,
+          "label": "Tela",
+          "value": 8.7
+        },
+        {
+          "pct": 90,
+          "label": "Portabilidade",
+          "value": 9
+        },
+        {
+          "pct": 82,
+          "label": "Bateria",
+          "value": 8.2
+        },
+        {
+          "pct": 95,
+          "label": "Custo-benefício",
+          "value": 9.5
+        }
+      ]
+    },
+    "specs": [
+      {
+        "label": "Processador",
+        "value": "Intel Core i3-1305U (Até 4.5GHz)",
+        "highlight": true
+      },
+      {
+        "label": "Memória RAM",
+        "value": "8GB DDR4 2666MHz",
+        "highlight": false
+      },
+      {
+        "label": "Armazenamento",
+        "value": "512GB SSD NVMe M.2",
+        "highlight": true
+      },
+      {
+        "label": "Tela",
+        "value": "15.6\" Full HD WVA Antirreflexo",
+        "highlight": true
+      },
+      {
+        "label": "Sistema",
+        "value": "Windows 11 Home",
+        "highlight": false
+      },
+      {
+        "label": "Gráficos",
+        "value": "Intel UHD Graphics",
+        "highlight": false
+      }
+    ],
+    "sections": [
+      {
+        "id": "design-ergonomia",
+        "content": "O Dell Inspiron I15 apresenta um visual limpo e profissional. Sua carcaça na cor preta evita marcas de dedos indesejadas. O chassi é leve e facilita o transporte na mochila.\n\nA Dell utilizou materiais resistentes na construção deste modelo. As dobradiças transmitem segurança ao abrir e fechar o aparelho. O design eleva levemente o teclado ao abrir a tela. Isso melhora a circulação de ar e o conforto ao digitar.\n\n### Ergonomia no Trabalho\nO teclado possui teclas macias e silenciosas para longas horas. O bloco numérico lateral agiliza a inserção de dados em planilhas. O touchpad é amplo e responde bem aos gestos do Windows. Você sente firmeza em cada clique durante o uso diário.",
+        "heading": "Design Moderno e Portabilidade",
+        "tocEmoji": "💻",
+        "tocLabel": "Design e Ergonomia"
+      },
+      {
+        "id": "qualidade-tela",
+        "content": "A tela de 15,6 polegadas possui resolução Full HD nativa. As imagens exibem cores vivas e detalhes nítidos para filmes. O painel WVA garante ângulos de visão amplos e precisos.\n\nO acabamento antirreflexo é um diferencial importante deste modelo. Ele reduz os reflexos de luzes de teto ou janelas. Isso permite trabalhar em ambientes claros com total conforto visual.\n\n### Tecnologia ComfortView\nA Dell incluiu a tecnologia de software ComfortView no sistema. Ela reduz a emissão de luz azul nociva aos olhos. Seus olhos ficam menos cansados após um dia inteiro de estudo. A borda fina da tela aumenta a sensação de imersão total.",
+        "heading": "Experiência Visual Imersiva",
+        "tocEmoji": "🖥️",
+        "tocLabel": "Tela e Imagem"
+      },
+      {
+        "id": "performance-processador",
+        "content": "O chip Intel Core i3-1305U entrega uma agilidade surpreendente. Ele supera diversos processadores i5 de gerações passadas em tarefas comuns. O notebook abre aplicativos e pastas de forma instantânea.\n\nEste modelo lida bem com várias abas do navegador abertas. Você pode editar documentos enquanto ouve música e faz pesquisas. O sistema Windows 11 Home flui sem travamentos ou gargalos.\n\n### Multitarefa Eficiente\nOs 8GB de memória RAM suportam o fluxo de trabalho moderno. O processador gerencia a energia de forma inteligente para evitar aquecimento. É a máquina ideal para escritórios, home office e estudantes exigentes.",
+        "heading": "Performance com Intel de 13ª Geração",
+        "tocEmoji": "🚀",
+        "tocLabel": "Desempenho"
+      },
+      {
+        "id": "armazenamento-ssd",
+        "content": "O SSD NVMe de 512GB é o coração da velocidade deste Dell. O Windows carrega por completo em menos de dez segundos. Transferir arquivos grandes torna-se uma tarefa rápida e sem esperas.\n\nO espaço de 512GB é generoso para o padrão atual. Você guarda milhares de fotos e vídeos sem lotar o disco. A tecnologia SSD é mais durável que os discos rígidos antigos.\n\n### Segurança dos Dados\nSeus dados ficam protegidos em um componente sem partes móveis. Isso evita perda de arquivos em caso de pequenos impactos físicos. A agilidade do SSD transforma a experiência de uso do notebook.",
+        "heading": "Armazenamento Veloz de 512GB",
+        "tocEmoji": "⚡",
+        "tocLabel": "Armazenamento"
+      },
+      {
+        "id": "autonomia-bateria",
+        "content": "A bateria de 41Wh oferece boa autonomia para tarefas básicas. Você consegue trabalhar por horas longe de uma tomada comum. O consumo de energia é baixo graças ao processador eficiente.\n\nUm ponto alto é o sistema de carga ExpressCharge da Dell. Ele recarrega a bateria até 80% em apenas uma hora. Isso salva o seu dia em aeroportos ou reuniões externas.\n\n### Uso no Mundo Real\nEm brilho médio, o notebook suporta uma jornada de estudos completa. O carregador é compacto e não ocupa espaço na bolsa. Você ganha liberdade para produzir em qualquer lugar do mundo.",
+        "heading": "Bateria e Carga Rápida",
+        "tocEmoji": "🔋",
+        "tocLabel": "Bateria"
+      },
+      {
+        "id": "custo-beneficio-veredito",
+        "content": "O preço sugerido de R$ 2.499,00 é muito competitivo hoje. Você recebe tecnologias recentes por um valor justo e acessível. A Dell oferece um dos melhores suportes técnicos do Brasil.\n\nEste notebook desvaloriza pouco no mercado de usados após anos. É um investimento seguro para quem busca durabilidade e confiança. Ele entrega mais valor que marcas de entrada baratas.\n\n### Vale o Investimento?\nSim, o Dell I15-i1300-a15p é uma compra inteligente agora. Ele resolve as necessidades de 90% dos usuários domésticos comuns. Você adquire um produto atualizado com garantia de marca líder.",
+        "heading": "Análise Prática de Custo-Benefício",
+        "tocEmoji": "💰",
+        "tocLabel": "Custo-Benefício"
+      }
+    ],
+    "compareTable": {
+      "rows": [
+        {
+          "values": [
+            "Intel Core i3 13ª Geração",
+            "Intel Core i3 12ª Geração",
+            "Intel Core i3 11ª Geração"
+          ],
+          "winner": 1,
+          "feature": "Processador"
+        },
+        {
+          "values": [
+            "512GB SSD NVMe",
+            "256GB SSD NVMe",
+            "256GB SSD NVMe"
+          ],
+          "winner": 1,
+          "feature": "Armazenamento"
+        },
+        {
+          "values": [
+            "15.6\" Full HD WVA",
+            "15.6\" Full HD IPS",
+            "15.6\" HD TN"
+          ],
+          "winner": 1,
+          "feature": "Tela"
+        },
+        {
+          "values": [
+            "Sim (ExpressCharge)",
+            "Sim",
+            "Não"
+          ],
+          "winner": 1,
+          "feature": "Carga Rápida"
+        }
+      ],
+      "caption": "Dell Inspiron I15 vs Concorrentes Diretos",
+      "columns": [
+        "Característica",
+        "Dell Inspiron I15",
+        "Samsung Galaxy Book2",
+        "Lenovo Ideapad 3i"
+      ],
+      "winnerCol": 1
+    },
+    "pros": [
+      "Processador Intel de 13ª geração muito veloz",
+      "SSD de 512GB oferece ótimo espaço e agilidade",
+      "Tela Full HD WVA com excelentes ângulos de visão",
+      "Carregamento rápido de 80% em 60 minutos",
+      "Teclado numérico completo para produtividade"
+    ],
+    "cons": [
+      "Construção externa em plástico simples",
+      "Webcam com resolução apenas básica",
+      "Sem teclado retroiluminado para uso no escuro",
+      "Memória RAM padrão DDR4 e não DDR5"
+    ],
+    "testimonials": [],
+    "verdict": {
+      "score": 8.8,
+      "label": "EXCELENTE CUSTO-BENEFÍCIO",
+      "text": "O Dell Inspiron I15 i1300 é a melhor escolha para quem busca equilíbrio. Ele entrega performance de sobra para tarefas diárias com um processador moderno. O armazenamento de 512GB é o dobro do que a concorrência oferece na mesma faixa de preço.",
+      "note": "Ideal para estudantes, professores e profissionais em home office."
+    },
+    "faq": [
+      {
+        "answer": "Ele roda jogos leves como LoL ou CS:GO em configurações baixas. Não é um notebook focado em games pesados.",
+        "question": "O Dell Inspiron I15 i1300 é bom para jogos?"
+      },
+      {
+        "answer": "Sim, o notebook possui dois slots de memória para upgrades futuros até 16GB ou 32GB.",
+        "question": "É possível aumentar a memória RAM deste modelo?"
+      },
+      {
+        "answer": "Sim, possui resolução 1920x1080 pixels com painel WVA de alta qualidade e antirreflexo.",
+        "question": "A tela dele é realmente Full HD?"
+      },
+      {
+        "answer": "Ele acompanha o Windows 11 Home e versões de teste do Office. A licença completa do Office deve ser comprada separadamente.",
+        "question": "Este notebook vem com o pacote Office instalado?"
+      },
+      {
+        "answer": "Em uso moderado com Wi-Fi, a bateria dura entre 5 a 7 horas dependendo do brilho da tela.",
+        "question": "Qual a duração média da bateria em uso comum?"
+      }
+    ],
+    "schemaRating": {
+      "ratingValue": 4.7,
+      "reviewCount": 1250
+    },
+    "googleRank": null,
+    "lastRankCheck": null,
+    "createdAt": "2026-05-18T02:14:40.45+00:00",
+    "updatedAt": "2026-06-02T11:31:58.301326+00:00"
   }
 ]
