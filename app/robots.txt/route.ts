@@ -1,4 +1,3 @@
-import { MetadataRoute } from 'next';
 import { NextResponse } from 'next/server';
 
 export function GET(): NextResponse {

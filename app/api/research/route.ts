@@ -35,7 +35,7 @@ export async function GET() {
         'Access-Control-Allow-Origin': '*',
       },
     });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Erro ao gerar dados de pesquisa' },
       { status: 500 }

@@ -2,10 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { 
   Wand2, Save, Upload, Loader2, Eye, EyeOff, CheckCircle2, AlertCircle, 
-  HelpCircle, FileText, Settings, BarChart3, TrendingUp, Sparkles, BookOpen,
+  FileText, Settings, BarChart3, TrendingUp, Sparkles,
   Search, ShoppingCart
 } from 'lucide-react';
 import type { ReviewData } from '@/lib/types';
@@ -29,7 +28,7 @@ import CompareTable from '@/components/review/CompareTable';
 import ProsConsGrid from '@/components/review/ProsConsGrid';
 import FAQAccordion from '@/components/review/FAQAccordion';
 import VerdictBox from '@/components/review/VerdictBox';
-import ReviewTOC from '@/components/review/ReviewTOC';
+
 
 const DEFAULT_BARS = [
   { label: 'Tela',    value: 8.0, pct: 80 },

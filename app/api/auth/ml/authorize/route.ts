@@ -9,7 +9,7 @@ const ML_REDIRECT_URI = process.env.ML_REDIRECT_URI || 'https://vetor.blog/api/a
  * Initiates the OAuth flow with Mercado Livre.
  * Redirects the user to Mercado Livre's authorization page.
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   if (!ML_CLIENT_ID) {
     return NextResponse.json({ error: 'ML_CLIENT_ID not configured' }, { status: 500 });
   }

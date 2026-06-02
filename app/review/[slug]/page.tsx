@@ -76,7 +76,6 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
   const newsSchema       = buildNewsArticleSchema(review);
 
   const { hero, specs, compareTable, pros, cons, faq, verdict, adsEnabled } = review;
-  const adSlotId = process.env.NEXT_PUBLIC_AD_SLOT;
 
   const allReviews = await getPublishedReviews();
   const relatedReviews = allReviews.filter(r => r.slug !== review.slug && r.category === review.category).slice(0, 3);

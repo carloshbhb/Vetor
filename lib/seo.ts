@@ -38,7 +38,7 @@ export function buildNewsArticleSchema(review: ReviewData) {
 // ─── Metadata (Next.js Metadata API) ────────────────────────────────────────
 
 export function buildReviewMetadata(review: ReviewData) {
-  const { meta, slug, hero, imageUrl } = review;
+  const { meta, slug, imageUrl } = review;
   const url    = `${SITE_URL}/review/${slug}`;
   const ogImage = meta.ogImage || imageUrl || `${SITE_URL}/og-default.jpg`;
 

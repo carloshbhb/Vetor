@@ -6,7 +6,6 @@ import { RefreshCw } from 'lucide-react'
 
 export default function RealtimeIndicator() {
   const [changes, setChanges] = useState(0)
-  const [enabled, setEnabled] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -17,9 +16,7 @@ export default function RealtimeIndicator() {
         { event: '*', schema: 'public', table: 'reviews' },
         () => setChanges(c => c + 1),
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') setEnabled(true)
-      })
+      .subscribe()
 
     return () => { supabase.removeChannel(channel) }
   }, [])

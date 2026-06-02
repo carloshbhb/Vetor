@@ -30,7 +30,7 @@ const shareLinks = [
       </svg>
     ),
     color: 'hover:bg-[#0077b5] hover:text-white',
-    getUrl: (url: string, title: string) =>
+    getUrl: (url: string, _title: string) =>
       `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
   },
   {
@@ -57,7 +57,7 @@ const shareLinks = [
   },
 ];
 
-export default function ShareButtons({ url, title, description }: ShareButtonsProps) {
+export default function ShareButtons({ url, title: _title, description: _description }: ShareButtonsProps) {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(url);

@@ -10,7 +10,7 @@ export default function ReviewCard({ review, onDelete }: { review: any, onDelete
   let data = null;
   try {
     data = JSON.parse(review.json_data);
-  } catch (e) {
+  } catch (_e) {
     // empty
   }
 

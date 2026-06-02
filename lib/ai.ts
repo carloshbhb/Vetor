@@ -6,31 +6,6 @@ async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function getRetryDelay(error: any): number | null {
-  if (error && typeof error === 'object') {
-    if (typeof error.retryDelay === 'number') return error.retryDelay;
-    if (typeof error.retryAfter === 'number') return error.retryAfter * 1000;
-
-    const status = error.status || error.statusCode || error.response?.status;
-    if (status === 429) {
-      const headers = error.headers || error.response?.headers;
-      if (headers) {
-        let retryAfterHeader: string | null = null;
-        if (typeof headers.get === 'function') {
-          retryAfterHeader = headers.get('retry-after');
-        } else if (headers['retry-after']) {
-          retryAfterHeader = headers['retry-after'];
-        }
-        if (retryAfterHeader) {
-          const parsed = parseInt(retryAfterHeader, 10);
-          if (!isNaN(parsed) && parsed > 0) return parsed * 1000;
-        }
-      }
-    }
-  }
-  return null;
-}
-
 async function enforceConcurrencyDelay(minDelayMs = 2000) {
   const now = Date.now();
   const timeSinceLast = now - lastRequestTime;

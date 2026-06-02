@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   PlusCircle,
   FileText,
-  Settings,
   ExternalLink,
   Zap,
   LogOut,

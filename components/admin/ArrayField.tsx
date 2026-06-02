@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { PlusCircle, Trash2, GripVertical } from 'lucide-react';
+import { useState } from 'react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 
 // ─── Generic string array field ───────────────────────────────────────────────
 interface StringArrayProps {
