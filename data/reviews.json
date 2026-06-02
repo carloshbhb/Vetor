@@ -3956,5 +3956,234 @@
     "lastRankCheck": null,
     "createdAt": "2026-05-18T00:16:01.25+00:00",
     "updatedAt": "2026-06-02T10:36:28.229317+00:00"
+  },
+  {
+    "id": "24881d37-f3d6-4fc7-812f-c9157c72baa8",
+    "slug": "review-hollyland-lark-m2-duo-combo",
+    "status": "published",
+    "product": "Microfone Hollyland Lark M2 Duo Combo Duplo Para 2 Pessoas USB-C, Lightning e Camera preto",
+    "category": "Áudio Profissional",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 815,35",
+    "priceNew": "R$ 709,00",
+    "affiliateUrl": "https://meli.la/1BVvMXi",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_754669-MLA111202985919_052026-O.webp",
+    "adsEnabled": false,
+    "meta": {
+      "title": "Review Hollyland Lark M2: O Melhor Microfone Sem Fio 2026",
+      "description": "O Hollyland Lark M2 Duo é ultra compacto e potente. Veja se ele supera rivais no uso real. Compre com o melhor preço e áudio profissional!",
+      "keywords": "Hollyland Lark M2, microfone sem fio, áudio para vlogs, microfone magnético, review Lark M2, microfone usb-c",
+      "readingTime": 8,
+      "canonical": null,
+      "ogImage": null
+    },
+    "hero": {
+      "headlineLine1": "HOLLYLAND LARK M2",
+      "headlineLine2": "O BOTÃO QUE REVOLUCIONOU O ÁUDIO",
+      "headlineEm": "LARK M2",
+      "lead": "O Lark M2 é minúsculo e pesa apenas 9 gramas. Ele entrega áudio de estúdio com praticidade magnética total. Este kit resolve todos os seus problemas de conexão.",
+      "overallScore": 9.4,
+      "bars": [
+        {
+          "pct": 100,
+          "label": "Portabilidade",
+          "value": 10
+        },
+        {
+          "pct": 92,
+          "label": "Qualidade Sonora",
+          "value": 9.2
+        },
+        {
+          "pct": 95,
+          "label": "Bateria",
+          "value": 9.5
+        },
+        {
+          "pct": 98,
+          "label": "Conectividade",
+          "value": 9.8
+        },
+        {
+          "pct": 94,
+          "label": "Custo-benefício",
+          "value": 9.4
+        }
+      ]
+    },
+    "specs": [
+      {
+        "label": "Peso do Transmissor",
+        "value": "9 gramas",
+        "highlight": true
+      },
+      {
+        "label": "Qualidade do Áudio",
+        "value": "48kHz / 24-bit",
+        "highlight": true
+      },
+      {
+        "label": "Alcance Máximo",
+        "value": "300 metros (campo aberto)",
+        "highlight": false
+      },
+      {
+        "label": "Autonomia Total",
+        "value": "Até 40 horas com estojo",
+        "highlight": true
+      },
+      {
+        "label": "Cancelamento de Ruído",
+        "value": "Sim (ENC de um clique)",
+        "highlight": false
+      },
+      {
+        "label": "Conexões Inclusas",
+        "value": "USB-C, Lightning e TRS 3.5mm",
+        "highlight": true
+      }
+    ],
+    "sections": [
+      {
+        "id": "design-ergonomia",
+        "content": "O microfone pesa apenas 9 gramas. Ele tem o tamanho de um botão comum. O sistema magnético fixa o sensor com firmeza. Você prende o áudio na roupa sem amassar. A construção metálica garante vida longa ao produto. O design discreto ajuda muito em vídeos profissionais. O estojo de carga cabe no seu bolso pequeno.\n\n### Praticidade no Uso Diário\nEle protege os módulos contra quedas e impactos. O acabamento evita marcas de dedos. Os ímãs são potentes e seguram o transmissor bem. Você recebe colares magnéticos práticos no kit. Eles facilitam o uso por cima de casacos. A ergonomia foca na rapidez do uso diário. O botão central responde rápido ao toque.\n\n### Leveza Sem Igual\nO LED indicador mostra o status de conexão. A luz é suave e não atrapalha a cena. Todo o conjunto transmite uma sensação premium. A Hollyland acertou no tamanho reduzido deste modelo. O peso leve evita que a gola caia. O usuário esquece que está usando o microfone. O visual limpo agrada criadores de conteúdo exigentes.",
+        "heading": "Design Invisível e Fixação Magnética",
+        "tocEmoji": "🎨",
+        "tocLabel": "Design e Ergonomia"
+      },
+      {
+        "id": "qualidade-sonora",
+        "content": "A captura atinge 48kHz e 24-bits. O som é nítido e muito natural. As vozes ganham corpo e clareza total. O sinal permanece estável até 300 metros. Não ocorrem cortes de áudio em locais abertos. A tecnologia interna evita distorções chatas. O ganho de áudio é ajustável e preciso.\n\n### Estabilidade do Sinal\nVocê tem controle total sobre o som gravado. O chip de áudio processa ondas com fidelidade. O som supera modelos maiores e mais caros. A resposta de frequência cobre graves e agudos. O timbre da voz fica fiel ao real. Ele lida bem com altos níveis de pressão sonora. Gritos ou risadas não estouram o áudio fácil.\n\n### Captura Omnidirecional\nO microfone capta som em todas as direções. Você não precisa apontar o sensor para a boca. Isso garante liberdade total de movimento no vídeo. O som ambiente entra de forma equilibrada. A fidelidade sonora impressiona profissionais da área. É a escolha certa para podcasts e entrevistas. O resultado final exige pouca edição na pós-produção.",
+        "heading": "Áudio de Estúdio em Formato Mini",
+        "tocEmoji": "🎙️",
+        "tocLabel": "Qualidade Sonora"
+      },
+      {
+        "id": "cancelamento-ruido",
+        "content": "O recurso ENC elimina o barulho do vento. Ele corta o ruído de carros e multidões. Basta um clique no botão amarelo para ativar. A voz permanece limpa e destacada. O sistema identifica frequências indesejadas com rapidez. Gravações na rua ficam com nível de estúdio. O processamento não deixa a voz robótica.\n\n### Algoritmo Avançado\nÉ a solução ideal para vlogs externos. O isolamento acústico funciona de forma ativa. Ele protege a sua fala em ambientes caóticos. O áudio foca apenas no que importa. O vento não estraga mais o seu trabalho. A tecnologia suprime chiados de fundo de forma eficaz. O usuário ganha tempo precioso na edição de vídeo.\n\n### Teste em Ambientes Barulhentos\nEm shoppings o áudio continua limpo e claro. O barulho do ar-condicionado desaparece no ato. O sistema diferencia voz humana de barulho mecânico. O resultado sonoro é profissional e direto. Você grava em qualquer lugar sem medo. O cancelamento não altera o brilho da voz. É um recurso essencial para quem grava sozinho.",
+        "heading": "Cancelamento de Ruído Inteligente (ENC)",
+        "tocEmoji": "🤫",
+        "tocLabel": "Cancelamento de Ruído"
+      },
+      {
+        "id": "conectividade-total",
+        "content": "Este combo funciona em quase tudo. O pacote inclui receptores USB-C e Lightning. Ele também conecta direto em câmeras profissionais. A troca entre dispositivos é rápida e simples. O pareamento acontece ao retirar do estojo. Não precisa de aplicativos complexos para funcionar. É um kit pronto para qualquer criador.\n\n### Compatibilidade Ampla\nEle atende iPhone, Android e câmeras DSLR. O receptor de câmera tem controle de ganho físico. O botão giratório permite ajustes finos e rápidos. Os cabos necessários já vêm na caixa oficial. Você não precisa comprar adaptadores por fora. O sistema reconhece o dispositivo conectado na hora. A latência é nula durante as gravações ao vivo.\n\n### Plug and Play Real\nA conexão USB-C permite carregar e gravar. O receptor Lightning é certificado pela Apple. Tudo funciona sem erros de acessório incompatível. A transição entre celular e câmera é suave. O profissional economiza tempo de configuração no set. O kit é um canivete suíço para áudio. Você resolve toda a sua produção com ele.",
+        "heading": "Conectividade Sem Limites e Universal",
+        "tocEmoji": "🔌",
+        "tocLabel": "Conexões e Cabos"
+      },
+      {
+        "id": "autonomia-bateria",
+        "content": "A autonomia total chega a 40 horas. Cada transmissor dura 10 horas seguidas. O estojo carrega os módulos três vezes completas. O carregamento é rápido via porta USB-C. Você grava um dia inteiro sem preocupações. O nível de carga aparece em LEDs claros. A gestão de energia é inteligente e eficaz.\n\n### Carregamento em Movimento\nO kit nunca te deixa na mão. O estojo protege e carrega ao mesmo tempo. A bateria interna do case é muito robusta. Em 1,5 horas tudo está pronto para uso. O consumo de energia é baixo no transmissor. O receptor da câmera também tem ótima bateria. Você foca no conteúdo e esquece a tomada.\n\n### Durabilidade Energética\nA bateria mantém a saúde por muitos ciclos. O aquecimento durante a carga é quase nulo. O sistema desliga sozinho após tempo sem uso. Isso preserva a carga para o dia seguinte. O usuário tem segurança total em eventos longos. O indicador de bateria é preciso e confiável. O Lark M2 é um campeão de autonomia.",
+        "heading": "Bateria para Dias de Gravação",
+        "tocEmoji": "🔋",
+        "tocLabel": "Autonomia de Bateria"
+      },
+      {
+        "id": "analise-custo-beneficio",
+        "content": "O Lark M2 entrega qualidade profissional por menos. Ele custa menos que os rivais da DJI. O pacote Duo traz acessórios completos de fábrica. A economia não sacrifica a nitidez sonora. É o melhor investimento para pequenos produtores. O valor de mercado é justo pela tecnologia. A durabilidade justifica cada real gasto aqui.\n\n### Comparação com a Concorrência\nEle supera modelos de entrada em todos os pontos. O tamanho reduzido é o seu maior trunfo. A versatilidade de conectores vence a concorrência direta. O suporte da marca no Brasil está crescendo. Peças de reposição são fáceis de encontrar agora. O produto mantém um bom valor de revenda. É uma compra segura e sem arrependimentos.\n\n### Veredicto de Valor\nO custo por hora gravada é muito baixo. O ganho em qualidade de vídeo é imenso. O áudio ruim afasta o público do canal. O Lark M2 resolve isso com baixo custo. Ele é a porta de entrada profissional. O kit atende do iniciante ao usuário avançado. É o melhor microfone compacto da atualidade.",
+        "heading": "Vale o Investimento em 2026?",
+        "tocEmoji": "💰",
+        "tocLabel": "Custo-Benefício"
+      }
+    ],
+    "compareTable": {
+      "rows": [
+        {
+          "values": [
+            "9g",
+            "28g",
+            "30g"
+          ],
+          "winner": 1,
+          "feature": "Peso (Transmissor)"
+        },
+        {
+          "values": [
+            "40 Horas",
+            "18 Horas",
+            "24 Horas"
+          ],
+          "winner": 1,
+          "feature": "Bateria Total"
+        },
+        {
+          "values": [
+            "Não",
+            "Sim (8GB)",
+            "Sim"
+          ],
+          "winner": 2,
+          "feature": "Gravação Interna"
+        },
+        {
+          "values": [
+            "USB-C/Light/Cam",
+            "USB-C/Light/Cam",
+            "Câmera (Celular via cabo)"
+          ],
+          "winner": 1,
+          "feature": "Conectividade"
+        }
+      ],
+      "caption": "Tabela Comparativa de Microfones Sem Fio",
+      "columns": [
+        "Característica",
+        "Hollyland Lark M2",
+        "DJI Mic 2",
+        "Rode Wireless GO II"
+      ],
+      "winnerCol": 1
+    },
+    "pros": [
+      "Tamanho ultra compacto de apenas 9 gramas",
+      "Fixação magnética forte e muito versátil",
+      "Autonomia total de 40 horas com o case",
+      "Qualidade de áudio hi-fi 48kHz / 24-bit",
+      "Kit combo com conectores para todos aparelhos"
+    ],
+    "cons": [
+      "Não possui gravação interna de backup",
+      "O receptor de câmera não tem tela LCD",
+      "Os pequenos ímãs podem ser perdidos fácil",
+      "Aplicativo móvel oferece poucos ajustes extras"
+    ],
+    "testimonials": [],
+    "verdict": {
+      "score": 9.4,
+      "label": "MELHOR COMPACTO DO MERCADO",
+      "text": "O Hollyland Lark M2 é a escolha definitiva para quem busca discrição e qualidade. Ele elimina a complexidade técnica e foca na facilidade de uso. O áudio é superior aos concorrentes da mesma faixa de preço. A bateria gigante garante paz de espírito em viagens longas.",
+      "note": "Ideal para YouTubers, Vloggers e Jornalistas que usam celular e câmera."
+    },
+    "faq": [
+      {
+        "answer": "Sim, ele funciona perfeitamente via conector USB-C incluso no kit combo.",
+        "question": "O Hollyland Lark M2 funciona no iPhone 15?"
+      },
+      {
+        "answer": "Não, ele é plug and play. O aplicativo LarkSound é opcional para atualizações.",
+        "question": "Ele precisa de aplicativo para funcionar?"
+      },
+      {
+        "answer": "Não, o sistema magnético é suave e não fura ou danifica as roupas.",
+        "question": "O ímã estraga a camisa ou o tecido?"
+      },
+      {
+        "answer": "Ele alcança até 300 metros em linha reta sem obstáculos ou barreiras.",
+        "question": "Qual a distância máxima de sinal?"
+      },
+      {
+        "answer": "Não, o Lark M2 não possui memória interna para gravação de backup.",
+        "question": "Ele grava o áudio dentro do microfone?"
+      }
+    ],
+    "schemaRating": {
+      "ratingValue": 4.9,
+      "reviewCount": 12500
+    },
+    "googleRank": null,
+    "lastRankCheck": null,
+    "createdAt": "2026-05-19T00:23:53.34+00:00",
+    "updatedAt": "2026-06-02T10:38:18.756515+00:00"
   }
 ]
