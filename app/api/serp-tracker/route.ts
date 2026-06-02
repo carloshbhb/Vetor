@@ -42,8 +42,9 @@ Responda exclusivamente com o JSON, sem adicionar qualquer markdown, bloco de c√
 
           const response = await model.generateContent(prompt);
           const text = response.response.text();
-          const cleanJson = text.replace(/```json|```/g, '').trim();
-          const parsed = JSON.parse(cleanJson);
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) throw new Error('Objeto JSON n√£o encontrado na resposta');
+          const parsed = JSON.parse(jsonMatch[0]);
           
           if (typeof parsed.rank === 'number') {
             finalRank = parsed.rank;
