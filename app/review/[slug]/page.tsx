@@ -40,7 +40,7 @@ function renderWithHighlight(text: string, highlight: string) {
   );
 }
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 // ── SSG params ────────────────────────────────────────────────────────────────
 export async function generateStaticParams() {

@@ -136,12 +136,17 @@ export function buildFAQSchema(review: ReviewData) {
 }
 
 export function buildBreadcrumbSchema(review: ReviewData) {
+  const categorySlug = (review.category || 'Geral').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Início',  item: SITE_URL },
-      { '@type': 'ListItem', position: 2, name: 'Reviews', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: review.category || 'Geral', item: `${SITE_URL}/categoria/${categorySlug}` },
       { '@type': 'ListItem', position: 3, name: review.product, item: `${SITE_URL}/review/${review.slug}` },
     ],
   };

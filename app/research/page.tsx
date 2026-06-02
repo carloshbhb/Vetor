@@ -3,7 +3,7 @@ import { getMarketInsights, getPriceTrends, getScoreDistribution } from '@/lib/r
 import Logo from '@/components/Logo';
 import type { Metadata } from 'next';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
 

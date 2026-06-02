@@ -5,7 +5,7 @@ import { getPublishedReviews } from '@/lib/db';
 import Logo from '@/components/Logo';
 import type { Metadata } from 'next';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
 
@@ -22,6 +22,13 @@ function slugify(text: string): string {
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
+}
+
+export async function generateStaticParams() {
+  const reviews = await getPublishedReviews();
+  const dynamicSlugs = Array.from(new Set(reviews.map(r => slugify(r.category || 'Geral'))));
+  const predefinedSlugs = Object.keys(categoryMeta);
+  return Array.from(new Set([...dynamicSlugs, ...predefinedSlugs])).map(slug => ({ slug }));
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {

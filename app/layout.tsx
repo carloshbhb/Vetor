@@ -25,13 +25,19 @@ const dm = DM_Sans({
   display: 'swap',
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: { default: 'Vetor Blog | Reviews Sinceros de Produtos', template: '%s | Vetor Blog' },
   description: 'Descubra os melhores produtos do mercado com nossas análises detalhadas, prós, contras e notas rigorosas.',
   robots: { index: true, follow: true },
+  alternates: {
+    languages: {
+      'pt-BR': '/',
+    },
+  },
 };
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
 
 const organizationSchema = {
   '@context': 'https://schema.org',
@@ -52,12 +58,29 @@ const organizationSchema = {
   },
 };
 
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Vetor Blog',
+  url: SITE_URL,
+  description: 'Reviews sinceros e análises detalhadas de produtos para compradores inteligentes.',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${SITE_URL}/review/{search_term_string}`,
+    },
+    'query-input': 'required name=search_term_string',
+  },
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={`${bebas.variable} ${syne.variable} ${dm.variable}`}>
       <head>
         <PerformanceHead />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       </head>
       <body>{children}</body>
     </html>

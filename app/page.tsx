@@ -5,8 +5,33 @@ import { getMarketInsights } from '@/lib/research';
 import Logo from '@/components/Logo';
 import CategoryHub from '@/components/CategoryHub';
 import MarketInsights from '@/components/MarketInsights';
+import type { Metadata } from 'next';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+
+export const metadata: Metadata = {
+  title: 'Vetor Blog | Reviews Sinceros de Produtos para Compradores Inteligentes',
+  description: 'Descubra os melhores produtos do mercado com nossas análises detalhadas, prós, contras e notas rigorosas. Reviews honestos de tecnologia, wearables, games e mais.',
+  keywords: 'reviews, produtos, tecnologia, análises, comparativos, notas, prós e contras',
+  alternates: { canonical: SITE_URL },
+  openGraph: {
+    type: 'website',
+    url: SITE_URL,
+    title: 'Vetor Blog | Reviews Sinceros de Produtos',
+    description: 'Descubra os melhores produtos do mercado com nossas análises detalhadas, prós, contras e notas rigorosas.',
+    siteName: 'Vetor Blog',
+    images: [{ url: `${SITE_URL}/og-default.jpg`, width: 1200, height: 630, alt: 'Vetor Blog - Reviews Sinceros' }],
+    locale: 'pt_BR',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Vetor Blog | Reviews Sinceros de Produtos',
+    description: 'Descubra os melhores produtos do mercado com nossas análises detalhadas.',
+    images: [`${SITE_URL}/og-default.jpg`],
+  },
+};
 
 export default async function Home() {
   const reviews = await getPublishedReviews();
