@@ -21,6 +21,9 @@ import ShareButtons from '@/components/review/ShareButtons';
 import Link         from 'next/link';
 import { getPublishedReviews } from '@/lib/db';
 
+const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
+
 // Helper to safely highlight search terms within headlines
 function renderWithHighlight(text: string, highlight: string) {
   if (!text) return '';
@@ -192,7 +195,7 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
             {/* Share Buttons */}
             <div className="mb-6">
               <ShareButtons
-                url={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog'}/review/${review.slug}`}
+                url={`${SITE_URL}/review/${review.slug}`}
                 title={review.meta.title}
                 description={review.meta.description}
               />

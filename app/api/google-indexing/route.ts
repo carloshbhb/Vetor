@@ -25,11 +25,13 @@ async function checkCredentials(): Promise<boolean> {
 
 export async function GET() {
   const hasCredentials = await checkCredentials();
+  const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+  const siteUrl = _raw.startsWith('http') ? _raw : `https://${_raw}`;
 
   return NextResponse.json({
     status: hasCredentials ? 'configured' : 'missing_credentials',
     hasCredentials,
-    siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog',
+    siteUrl,
     usage: {
       'POST /api/google-indexing': {
         description: 'Indexar URL(s) no Google',

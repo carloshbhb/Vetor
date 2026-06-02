@@ -30,7 +30,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         if (fullReview) {
           await commitUpdateReviewToGitHub(id, fullReview);
           if (fullReview.status === 'published') {
-            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+            const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+            const siteUrl = _raw.startsWith('http') ? _raw : `https://${_raw}`;
             const reviewUrl = `${siteUrl}/review/${fullReview.slug}`;
             await submitUrl(reviewUrl);
             await indexNewReview(fullReview.slug);

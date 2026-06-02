@@ -8,7 +8,8 @@ function slugify(text: string): string {
 }
 
 export async function GET() {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+  const rawUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+  const baseUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
   const reviews = await getPublishedReviews();
 
   // Reviews

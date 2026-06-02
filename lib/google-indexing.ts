@@ -10,7 +10,8 @@
 
 import { GoogleAuth } from 'google-auth-library';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
 const GOOGLE_API_URL = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
 
 interface IndexingResponse {
