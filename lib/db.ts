@@ -15,9 +15,6 @@ function getSupabase(): SupabaseClient | null {
   if (!fallbackToFile && supabaseUrl && supabaseKey) {
     _supabase = createClient(supabaseUrl, supabaseKey, {
       auth: { persistSession: false },
-      global: {
-        fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }),
-      },
     });
     console.log('[DB] Supabase client created successfully (lazy)');
   } else {

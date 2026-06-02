@@ -15,6 +15,12 @@ const categoryMeta: Record<string, { icon: string; desc: string; title: string }
   'acessorios-para-games': { icon: '🎮', desc: 'Controles, headsets, cadeiras e acessórios gamers.', title: 'Acessórios para Games' },
   'notebooks': { icon: '💻', desc: 'Notebooks para trabalho, estudo, games e produção.', title: 'Notebooks' },
   'audio-profissional': { icon: '🎧', desc: 'Microfones, fones e equipamentos de áudio profissional.', title: 'Áudio Profissional' },
+  'smartphones': { icon: '📱', desc: 'Reviews de smartphones, celulares e acessórios.', title: 'Smartphones' },
+  'tablets': { icon: '📟', desc: 'Reviews de tablets para trabalho, estudo e lazer.', title: 'Tablets' },
+  'eletroportateis': { icon: '🏠', desc: 'Liquidificadores, air fryers, aspiradores e eletrodomésticos.', title: 'Eletroportáteis' },
+  'casa-inteligente': { icon: '🏡', desc: 'Dispositivos smart home, interruptores e lâmpadas inteligentes.', title: 'Casa Inteligente' },
+  'cameras-de-seguranca': { icon: '📷', desc: 'Câmeras de segurança, IP e monitoramento.', title: 'Câmeras de Segurança' },
+  'fones-de-ouvido': { icon: '🎵', desc: 'Fones de ouvido, earbuds e headsets.', title: 'Fones de Ouvido' },
   'geral': { icon: '📦', desc: 'Reviews diversos de produtos de tecnologia.', title: 'Geral' },
 };
 
