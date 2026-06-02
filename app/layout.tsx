@@ -25,7 +25,8 @@ const dm = DM_Sans({
   display: 'swap',
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+const RAW_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+const SITE_URL = RAW_SITE_URL.startsWith('http') ? RAW_SITE_URL : `https://${RAW_SITE_URL}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
