@@ -7,6 +7,8 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
+export const revalidate = 3600;
+
 export async function GET() {
   const rawUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
   const baseUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
@@ -51,6 +53,9 @@ export async function GET() {
 </urlset>`;
 
   return new Response(sitemapXml, {
-    headers: { 'Content-Type': 'application/xml' },
+    headers: {
+      'Content-Type': 'application/xml',
+      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+    },
   });
 }
