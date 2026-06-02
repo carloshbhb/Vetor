@@ -57,7 +57,7 @@ const shareLinks = [
   },
 ];
 
-export default function ShareButtons({ url, title: _title, description: _description }: ShareButtonsProps) {
+export default function ShareButtons({ url, title, description: _description }: ShareButtonsProps) {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(url);

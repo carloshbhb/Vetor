@@ -13,7 +13,12 @@ function getSupabase(): SupabaseClient | null {
   const fallbackToFile = process.env.SUPABASE_FALLBACK_TO_FILE === 'true';
 
   if (!fallbackToFile && supabaseUrl && supabaseKey) {
-    _supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+    _supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false },
+      global: {
+        fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }),
+      },
+    });
     console.log('[DB] Supabase client created successfully (lazy)');
   } else {
     console.log('[DB] Supabase NOT created:', { fallbackToFile, hasUrl: !!supabaseUrl, hasKey: !!supabaseKey });
