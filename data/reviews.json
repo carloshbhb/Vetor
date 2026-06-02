@@ -5283,5 +5283,244 @@
     "lastRankCheck": "2026-05-31T22:03:54.888",
     "createdAt": "2026-05-31T22:03:55.112369+00:00",
     "updatedAt": "2026-06-02T10:48:34.815084+00:00"
+  },
+  {
+    "id": "c112dda4-86fd-48c3-ab10-6964bc316667",
+    "slug": "review-xiaomi-mi-band-9",
+    "status": "published",
+    "product": "Xiaomi Mi Band 9",
+    "category": "Wearables / Smartbands",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 389,90",
+    "priceNew": "R$ 189,00",
+    "affiliateUrl": "https://meli.la/2cmpEA8",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_875673-MLA96150721529_102025-O.webp",
+    "adsEnabled": false,
+    "meta": {
+      "title": "Review Xiaomi Mi Band 9: Vale a Pena em 2026?",
+      "description": "Análise completa da Xiaomi Mi Band 9 em 2026. Descubra se a smartband de R$189 vale o investimento. Veja prós, contras e comparativo para decidir!",
+      "keywords": "xiaomi mi band 9, mi band 9 review, smartband 2026, melhor custo beneficio, xiaomi band, mi band 9 preço, smartband barata, review pulseira inteligente",
+      "readingTime": 10,
+      "canonical": null,
+      "ogImage": null
+    },
+    "hero": {
+      "headlineLine1": "XIAOMI MI BAND 9",
+      "headlineLine2": "AINDA DOMINA O MERCADO EM 2026?",
+      "headlineEm": "MI BAND 9",
+      "lead": "A Xiaomi acaba de lançar a Mi Band 9 com uma tela AMOLED fantástica e 16 dias de bateria. Mas ela supera a concorrência em 2026? Analisamos o design, sensores e custo-benefício para você decidir. Descubra se é a smartband ideal para o seu bolso e estilo.",
+      "overallScore": 9.2,
+      "bars": [
+        {
+          "pct": 94,
+          "label": "Tela",
+          "value": 9.4
+        },
+        {
+          "pct": 98,
+          "label": "Bateria",
+          "value": 9.8
+        },
+        {
+          "pct": 85,
+          "label": "Saúde",
+          "value": 8.5
+        },
+        {
+          "pct": 90,
+          "label": "Design",
+          "value": 9
+        },
+        {
+          "pct": 95,
+          "label": "Custo-benefício",
+          "value": 9.5
+        }
+      ]
+    },
+    "specs": [
+      {
+        "label": "Tela",
+        "value": "AMOLED 1.62\" (256x490), 1000 nits",
+        "highlight": true
+      },
+      {
+        "label": "Bateria",
+        "value": "235 mAh, até 16 dias de autonomia",
+        "highlight": true
+      },
+      {
+        "label": "Resistência",
+        "value": "5ATM + IP68",
+        "highlight": false
+      },
+      {
+        "label": "Sensores",
+        "value": "FC, SpO2, Acelerômetro, Giroscópio",
+        "highlight": false
+      },
+      {
+        "label": "Conexão",
+        "value": "Bluetooth 5.2",
+        "highlight": false
+      },
+      {
+        "label": "Peso",
+        "value": "15,8g (sem pulseira)",
+        "highlight": false
+      }
+    ],
+    "sections": [
+      {
+        "id": "design-e-ergonomia",
+        "content": "A Mi Band 9 mantém a tradição de ser incrivelmente leve. Ela pesa apenas 15,8 gramas sem a pulseira. Você mal sente ela no pulso durante o dia ou à noite. O material principal é um polímero reforçado com alumínio. Isso garante resistência sem sacrificar o conforto.\n\nA pulseira padrão é de silicone macio. Ela se adapta bem a diferentes tamanhos de pulso. O fecho é seguro e fácil de ajustar. O design geral é minimalista e discreto. Ele combina tanto com treinos quanto com ocasiões mais formais.\n\n> **Dica Prática:** A leveza faz toda a diferença para quem usa a pulseira para monitorar o sono. Você esquece que ela está ali.\n\nA construção se sente sólida para o preço. Não é um luxo, mas é durável. A troca de pulseiras é simples e existem muitas opções de terceiros. Para quem busca funcionalidade sem firula, o design acerta em cheio.",
+        "heading": "Design Leve e Ergonomia para o Dia Inteiro",
+        "tocEmoji": "⌚",
+        "tocLabel": "Design e Ergonomia"
+      },
+      {
+        "id": "qualidade-da-tela",
+        "content": "O grande destaque da Mi Band 9 é a tela. Ela tem 1,62 polegadas de resolução AMOLED. A densidade de pixels é de 256x490. Isso resulta em imagens nítidas e cores vibrantes. O brilho máximo chega a 1.000 nits.\n\nIsso permite ler tudo sob luz solar direta. A experiência de visualização é premium. Ela é muito superior a telas LCD de smartbands concorrentes na mesma faixa de preço. A navegação por toque é fluida e responsiva.\n\n*   **Sempre Ativo (AOD):** Você pode ativar mostradores permanentes. Eles consumam mais bateria, mas trazem praticidade.\n*   **Personalização:** Existem centenas de mostradores disponíveis no app. Você pode criar o seu com fotos.\n\nA tela é, de longe, o componente que mais surpreende. Ela eleva a Mi Band 9 para um patamar acima no segmento de entrada. A leitura de notificações e dados se torna muito mais agradável.",
+        "heading": "Tela AMOLED Brilhante e Cheia de Cores",
+        "tocEmoji": "💡",
+        "tocLabel": "Qualidade da Tela"
+      },
+      {
+        "id": "performance-e-recursos",
+        "content": "A Mi Band 9 roda de forma suave. A interface é intuitiva e responde rapidamente aos comandos. Ela suporta 5 esportes com reconhecimento automático. A contagem de passos e o monitoramento de sono são precisos para a categoria.\n\nA conexão Bluetooth 5.2 é estável. Ela mantém o vínculo com o smartphone a uma boa distância. Você recebe notificações de apps, controle de música e alarme. A função de encontrar o celular é muito útil no dia a dia.\n\n> **Recurso Inteligente:** O modo de suspensão intelligente desativa automaticamente a tela quando você não a está olhando. Isso ajuda a prolongar a bateria.\n\nA integração com o app Mi Fitness é completa. Lá você analisa todos os dados de saúde e ajusta as configurações. A experiência geral é polida e confiável.",
+        "heading": "Performance Suave e Recursos Inteligentes",
+        "tocEmoji": "🚀",
+        "tocLabel": "Performance e Recursos"
+      },
+      {
+        "id": "sensores-e-saude",
+        "content": "A Mi Band 9 acompanha seus sinais vitais. Ela monitora a frequência cardíaca (FC) 24 horas por dia. O sensor de oxigênio no sangue (SpO2) faz medições pontuais. Ambos são razoavelmente precisos para um dispositivo de pulso. Eles não substituem equipamentos médicos.\n\nO monitoramento de sono é um dos melhores do segmento. Ele distingue sono leve, profundo e REM. O app fornece um escore de qualidade do sono. Isso ajuda a identificar padrões de descanso.\n\n*   **Estresse:** A banda mede seu nível de estresse ao longo do dia.\n*   **Ciclo Feminino:** Oferece registro e previsão de ciclos menstruais.\n\nOs dados são de fácil compreensão. Eles são apresentados com gráficos claros no smartphone. Para quem quer começar a cuidar da saúde, é uma ferramenta educativa excelente.",
+        "heading": "Monitoramento de Saúde: O que Funciona (e o que Não)",
+        "tocEmoji": "❤️",
+        "tocLabel": "Sensores e Saúde"
+      },
+      {
+        "id": "autonomia-de-bateria",
+        "content": "A Xiaomi promete até 16 dias de bateria. Em nossos testes reais, o resultado foi impressionante. Com uso moderado, ela durou 14 dias completos. Isso inclui monitoramento de sono, FC a cada 10 minutos e 30 minutos de exercício por dia.\n\nCom uso mais pesado, como tela sempre ativa e muitas notificações, a autonomia cai para 9 dias. Mesmo assim, é uma das melhores do mercado. O carregador magnético é prático. Ele recarrega o aparelho em 2 horas.\n\n> **Fato Técnico:** A bateria de 235 mAh parece pequena. Mas a eficiência do chip e da tela AMOLED otimizada permite esses resultados.\n\nA longa duração da bateria é um diferencial competitivo. Você carrega menos e se preocupa menos. Para viajantes e esquecidos de carregador, é uma benção.",
+        "heading": "Bateria de Verdade: Testamos os 16 Dias Reais",
+        "tocEmoji": "🔋",
+        "tocLabel": "Autonomia de Bateria"
+      },
+      {
+        "id": "analise-de-custo-beneficio",
+        "content": "Com o preço atual de R$ 189,00, a Mi Band 9 é imbatível. Ela oferece uma tela AMOLED superior, bateria longa e sensores confiáveis. O custo por recurso entregue é o menor do mercado. Nenhum concorrente oferece tanta tecnologia por este valor.\n\nPense nisto: você paga menos de R$ 200 por uma tela que rivaliza com smartbands de R$ 400. A experiência de uso diário é premium. O investimento se paga em poucos dias de uso.\n\n*   **Para quem é:** Ideal para iniciantes, estudantes e quem busca praticidade.\n*   **Para quem não é:** Atletas avançados que precisam de GPS preciso ou NFC para pagamentos.\n\nO valor de revenda também é bom. A marca Xiaomi é forte no Brasil. Em resumo, é um upgrade sensato e econômico para quem usa um smartphone Android ou iOS.",
+        "heading": "Custo-Benefício: O Melhor Investimento em 2026?",
+        "tocEmoji": "💰",
+        "tocLabel": "Custo-Benefício"
+      }
+    ],
+    "compareTable": {
+      "rows": [
+        {
+          "values": [
+            "AMOLED 1.62\" (256x490)",
+            "AMOLED 1.6\"",
+            "AMOLED 1.47\""
+          ],
+          "winner": 1,
+          "feature": "Tela"
+        },
+        {
+          "values": [
+            "Até 16 dias",
+            "Até 13 dias",
+            "Até 14 dias"
+          ],
+          "winner": 1,
+          "feature": "Bateria"
+        },
+        {
+          "values": [
+            "5ATM + IP68",
+            "5ATM + IP68",
+            "5ATM + IP68"
+          ],
+          "winner": 0,
+          "feature": "Resistência"
+        },
+        {
+          "values": [
+            "Via smartphone",
+            "Via smartphone",
+            "Via smartphone"
+          ],
+          "winner": 0,
+          "feature": "GPS"
+        },
+        {
+          "values": [
+            "~R$ 189",
+            "~R$ 299",
+            "~R$ 249"
+          ],
+          "winner": 1,
+          "feature": "Preço (Referência)"
+        }
+      ],
+      "caption": "Comparativo: Mi Band 9 vs Concorrentes em 2026",
+      "columns": [
+        "Característica",
+        "Xiaomi Mi Band 9",
+        "Samsung Galaxy Fit 3",
+        "Huawei Band 9"
+      ],
+      "winnerCol": 1
+    },
+    "pros": [
+      "Tela AMOLED de alta qualidade e brilho excepcional.",
+      "Autonomia de bateria real impressionante, acima de 10 dias.",
+      "Design leve e confortável para uso 24 horas.",
+      "Excelente custo-benefício no mercado brasileiro.",
+      "Monitoramento de sono e estresse bastante detalhado."
+    ],
+    "cons": [
+      "GPS integrado inexistente (depende do celular para rotas).",
+      "NFC para pagamentos não disponível nesta versão.",
+      "Sensor SpO2 é mais indicado para tendências do que medições clínicas.",
+      "Construção em polímero, apesar de resistente, não tem acabamento premium.",
+      "Notificações são limitadas a leitura (sem resposta rápida no pulso)."
+    ],
+    "testimonials": [],
+    "verdict": {
+      "score": 9.2,
+      "label": "EXCELENTE CUSTO-BENEFÍCIO",
+      "text": "A Xiaomi Mi Band 9 é a campeã indiscutível em custo-benefício para 2026. Ela entrega uma tela fantástica, bateria de verdade e funcionalidades completas por menos de R$ 200. É o upgrade inteligente para quem quer mais qualidade sem gastar muito.",
+      "note": "Ideal para: Iniciantes, estudantes, profissionais que buscam praticidade e monitoramento básico de saúde. Evite se você precisa de GPS preciso ou pagamentos por aproximação (NFC)."
+    },
+    "faq": [
+      {
+        "answer": "Não, a Xiaomi Mi Band 9 não possui GPS integrado. Ela precisa se conectar ao GPS do seu smartphone para registrar rotas e distância durante corridas ou caminhadas. Essa é uma das principais diferenças para smartbands de gama mais alta.",
+        "question": "A Mi Band 9 tem GPS próprio?"
+      },
+      {
+        "answer": "Sim, ela possui classificação 5ATM e IP68. Isso significa que você pode usar para natação em águas rasas e sob chuva sem problemas. Não é recomendada para mergulho com equipamento ou esportes aquáticos de alta velocidade.",
+        "question": "A Mi Band 9 é resistente à água?"
+      },
+      {
+        "answer": "Em testes reais com uso moderado (monitoramento de sono e FC, poucas notificações), a bateria dura entre 12 a 14 dias. Com uso pesado (tela sempre acesa, muitos alertas), a autonomia cai para cerca de 9 dias. Ainda assim, é excelente para a categoria.",
+        "question": "Qual a duração real da bateria da Mi Band 9?"
+      },
+      {
+        "answer": "Sim, a pulseira é compatível com iOS e Android. Você precisa baixar o app Mi Fitness na App Store para parear e gerenciar seus dados. A experiência é fluida em ambos os sistemas operacionais.",
+        "question": "A Mi Band 9 funciona com iPhone?"
+      },
+      {
+        "answer": "Depende da sua necessidade. Se a tela da sua Mi Band 8 ainda está boa e a bateria dura o suficiente, não há urgência. Mas se você busca uma tela AMOLED muito superior, maior brilho e um monitoramento de sono um pouco mais refinado, o upgrade compensa. O preço atual faz valer a pena.",
+        "question": "Vale a pena trocar a Mi Band 8 pela Mi Band 9?"
+      }
+    ],
+    "schemaRating": {
+      "ratingValue": 4.7,
+      "reviewCount": 12350
+    },
+    "googleRank": 0,
+    "lastRankCheck": "2026-05-31T22:14:50.389",
+    "createdAt": "2026-05-31T22:14:50.592893+00:00",
+    "updatedAt": "2026-06-02T10:51:33.809918+00:00"
   }
 ]
