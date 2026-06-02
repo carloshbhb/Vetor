@@ -21,8 +21,36 @@ const nextConfig = {
       headers: [
         { key: 'X-Content-Type-Options', value: 'nosniff' },
         { key: 'X-Frame-Options', value: 'DENY' },
-        { key: 'X-XSS-Protection', value: '1; mode=block' },
+        { key: 'X-XSS-Protection', value: '0' },
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        {
+          key: 'Content-Security-Policy',
+          value: [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://www.google-analytics.com",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "font-src 'self' https://fonts.gstatic.com",
+            "img-src 'self' data: blob: https://http2.mlstatic.com https://images.mlstatic.com https://images-na.ssl-images-amazon.com https://m.media-amazon.com https://*.supabase.co https://images.unsplash.com https://pagead2.googlesyndication.com",
+            "connect-src 'self' https://*.supabase.co https://indexing.googleapis.com https://api.indexnow.org",
+            "frame-src https://pagead2.googlesyndication.com",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'",
+          ].join('; '),
+        },
+        {
+          key: 'Strict-Transport-Security',
+          value: 'max-age=63072000; includeSubDomains; preload',
+        },
+        {
+          key: 'Cross-Origin-Opener-Policy',
+          value: 'same-origin',
+        },
+        {
+          key: 'Cross-Origin-Resource-Policy',
+          value: 'same-origin',
+        },
       ],
     },
     {
