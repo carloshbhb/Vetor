@@ -38,6 +38,9 @@ export const metadata: Metadata = {
       'pt-BR': '/',
     },
   },
+  verification: {
+    google: 'M3d89AYWh1qAFUV3Od0Za5Es5Ymp-4a5pyCeBvxxEOM',
+  },
 };
 
 const organizationSchema = {
