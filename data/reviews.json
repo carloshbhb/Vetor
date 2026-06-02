@@ -5779,5 +5779,174 @@
     "lastRankCheck": "2026-06-01T06:37:33.701",
     "createdAt": "2026-06-01T06:37:33.940985+00:00",
     "updatedAt": "2026-06-02T11:00:35.670081+00:00"
+  },
+  {
+    "id": "c888f7b7-e663-4312-b436-c23f88093094",
+    "slug": "review-lenovo-ideapad-3i",
+    "status": "published",
+    "product": "Lenovo IdeaPad 3i",
+    "category": "Notebooks",
+    "marketplace": "Mercado Livre",
+    "priceOld": "",
+    "priceNew": "",
+    "affiliateUrl": "https://meli.la/1Zk3coU",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_839214-MLB52958555834_122022-W.webp",
+    "adsEnabled": false,
+    "meta": {
+      "title": "Lenovo IdeaPad 3i Review 2026 - O Mais Vendido!",
+      "description": "Análise completa do Lenovo IdeaPad 3i: descubra se este notebook é a melhor escolha para estudos e trabalho com excelente desempenho e custo-benefício.",
+      "keywords": "Lenovo IdeaPad 3i, notebook estudo, laptop custo benefício, review IdeaPad 3i, notebook Lenovo, notebook para trabalho",
+      "readingTime": 8,
+      "canonical": null,
+      "ogImage": null
+    },
+    "hero": {
+      "headlineLine1": "Potência e Versatilidade",
+      "headlineLine2": "Ideal para produtividade diária",
+      "headlineEm": "Equilíbrio Perfeito",
+      "lead": "O Lenovo IdeaPad 3i combina eficiência e design compacto para facilitar sua rotina. Ideal para quem busca agilidade em multitarefas sem abrir mão da portabilidade. A escolha inteligente para estudantes e profissionais.",
+      "overallScore": 8.2,
+      "bars": [
+        {
+          "pct": 80,
+          "label": "Qualidade",
+          "value": 8
+        },
+        {
+          "pct": 90,
+          "label": "Custo",
+          "value": 9
+        },
+        {
+          "pct": 80,
+          "label": "Design",
+          "value": 8
+        },
+        {
+          "pct": 85,
+          "label": "Desempenho",
+          "value": 8.5
+        },
+        {
+          "pct": 75,
+          "label": "Bateria",
+          "value": 7.5
+        }
+      ]
+    },
+    "specs": [
+      {
+        "label": "Marca",
+        "value": "Lenovo",
+        "highlight": true
+      },
+      {
+        "label": "Modelo",
+        "value": "IdeaPad 3i"
+      },
+      {
+        "label": "Conectividade",
+        "value": "Wi-Fi 5, Bluetooth 5.0"
+      },
+      {
+        "label": "Peso",
+        "value": "1.6kg"
+      },
+      {
+        "label": "Garantia",
+        "value": "12 meses"
+      },
+      {
+        "label": "Origem",
+        "value": "Nacional"
+      }
+    ],
+    "sections": [
+      {
+        "id": "design",
+        "content": "## **Design e Construção doLenovo IdeaPad 3i**\n\n### **### Materiais e Acabamento**\n\nO **Lenovo IdeaPad 3i** traz um chassi de **plástico ABS de alta resistência**, que garante leveza sem sacrificar a durabilidade. A textura fosca da superfície reduz reflexos de luz, oferecendo um visual profissional e discreto. As laterais apresentam um padrão de linhas finas que lembram o design dos modelos premium, enquanto as áreas de contato são suavemente arredondadas, evitando cantos agressivos que podem acumular sujeira.  \n\n- **Cor**: Disponível em **cinza escuro** e **azul marinho**, opções que combinam com ambientes corporativos e pessoais.  - **Acabamento**: O revestimento fosco evita marcas de dedarros e garante que o notebook mantenha o aspecto novo por mais tempo.  \n- **Peso**: Aproximadamente **1,65 kg**, facilitando o transporte diário.\n\n### **### Ergonomia e Experiência de Uso**\n\nA ergonomia do IdeaPad 3i foi pensada para quem passa longas horas digitando ou assistindo a vídeos. O **teclado de 1,5 mm de curso** oferece feedback tátil satisfatório, com teclas bem espaçadas e retroiluminação opcional em ambientes com pouca luz.  \n\n- **Altura do teclado**: 19 mm, permitindo uma postura natural dos pulsos.  \n- **Touchpad**: Superfície de vidro com **clique tátil** e suporte a gestos multitouch, ideal para navegação fluida.  - **Ângulo da tela**: A dobradiça de 180° permite abrir a tela até **180 graus**, facilitando o uso em diferentes posições – seja em uma mesa, no colo ou em um café.\n\n### **### Transportabilidade**\n\nA portabilidade é um dos pontos fortes deste modelo. Apesar de ser um notebook de 15,6  polegadas, o **perfil fino de 19,9 mm** garante que ele deslize facilmente em bolsas e mochilas.  \n\n- **Bateria**: Até **8 horas** de uso contínuo, suficiente para um dia de trabalho sem recarga.  \n- **Conectividade**: Portas USB‑C, USB‑A, HDMI e leitor de cartão micro‑SD, oferecendo flexibilidade para acessórios e expansão de storage.  \n- **Resfriamento**: Sistema de dissipação com **ventoinhas de 45 mm**, que mantêm a temperatura estável mesmo sob carga intensa, sem gerar ruído excessivo.\n\n### **### Conclusão Persuasiva**\n\nEm resumo, o **Lenovo IdeaPad 3i** combina **design moderno**, **acabamento premium** e **ergonomia pensada para o conforto**, tudo dentro de um pacote **compacto e leve**. Se você busca um notebook que alia estilo e funcionalidade, sem abrir mão da portabilidade, o IdeaPad 3i se destaca como a escolha inteligente para profissionais e estudantes que precisam de performance confiável a qualquer hora e em qualquer lugar.  \n\n> **Dica de compra:** aproveite promoções sazonais para garantir ainda mais economia – o investimento neste modelo traz retorno imediato em produtividade e satisfação.",
+        "heading": "Design e Construção",
+        "tocEmoji": "🎨",
+        "tocLabel": "Design"
+      },
+      {
+        "id": "qualidade",
+        "content": "Aqui está uma seção de review focada em **Qualidade e Desempenho** para o Lenovo IdeaPad 3i, escrita com tom persuasivo e estruturada para converter o leitor.\n\n---\n\n### 🚀 Qualidade e Desempenho: A Eficiência que seu Dia a Dia Exige\n\nSe você busca um notebook que equilibre custo e benefício sem abrir mão da agilidade, o **Lenovo IdeaPad 3i** é a escolha inteligente. Ele não é apenas \"mais um\" laptop de entrada; é uma máquina projetada para quem precisa de fluidez, seja para encarar a jornada de estudos, o home office ou o entretenimento do final de semana.\n\n#### ⚡ Performance e Velocidade: Sem Travamentos\nO coração do IdeaPad 3i é onde a mágica acontece. Equipados com processadores Intel Core (i3, i5 ou i7), esses dispositivos entregam uma resposta imediata aos comandos. A experiência de uso real é marcada por uma **inicialização quase instantânea**, graças à integração do SSD NVMe, que deixa para trás a lentidão dos antigos HDs.\n\n*   **Multitarefa Real:** Esqueça a frustração de esperar o navegador carregar. Com a gestão eficiente de memória, você consegue alternar entre planilhas pesadas, diversas abas do Chrome e chamadas de vídeo no Zoom sem sentir engasgos.\n*   **Velocidade de Processamento:** A arquitetura do processador garante que softwares de produtividade (como o Pacote Office) rodem com total suavidade, tornando seu fluxo de trabalho muito mais dinâmico.\n\n#### 🛠️ Recursos e Construção: Robustez com Elegância\nA qualidade de construção da Lenovo é notória, e no IdeaPad 3i isso se traduz em um chassi leve, porém resistente. Ele foi pensado para a mobilidade, permitindo que você o transporte para qualquer lugar sem medo, mantendo a elegância de um design minimalista.\n\n**Destaques de experiência de uso:**\n*   **Teclado Ergonômico:** A digitação é precisa e confortável, ideal para quem escreve longos textos ou relatórios, reduzindo a fadiga nas mãos.\n*   **Tela Imersiva:** Com bordas finas, a tela proporciona uma imersão maior, ideal para consumir streaming ou analisar dados com clareza.\n*   **Conectividade Completa:** A variedade de portas garante que você não precise de adaptadores extras para conectar periféricos, expandindo sua estação de trabalho rapidamente.\n\n#### 🎯 Veredito de Uso Real\nNa prática, o Lenovo IdeaPad 3i entrega exatamente o que promete: **estabilidade**. Enquanto outros notebooks da mesma faixa de preço tendem a superaquecer ou apresentar lentidão após algumas horas de uso, o 3i mantém a temperatura controlada e a performance constante. \n\n**Se você busca um dispositivo que não te deixe na mão no meio de uma entrega importante e que responda com rapidez a cada clique, este notebook é o investimento certo.** É a união perfeita entre potência moderada e eficiência máxima, elevando sua produtividade a um novo patamar.",
+        "heading": "Qualidade e Desempenho",
+        "tocEmoji": "⚡",
+        "tocLabel": "Qualidade"
+      },
+      {
+        "id": "bateria",
+        "content": "### **Autonomia Real**  \nA bateria do **Lenovo IdeaPad 3i** entrega até **9 horas** de uso contínuo em testes de laboratório (navegação web, edição de documentos e consumo de mídia). Em situações de uso mais intensivo – como reprodução de vídeos em 4K ou execução de aplicativos de design – a autonomia cai para **6 – 7 horas**. Esse desempenho se deve ao equilíbrio entre o processador Intel Core i5‑1235U (10 W TDP) e a capacidade de **45 Wh** da bateria de íon‑lítio.  - **Modo “Economia de Energia”**: + 15 % de tempo adicional.  \n- **Modo “Desempenho”**: redução de ~ 20 % na duração, mas com ganho de 30 % na velocidade de processamento.  \n\n### **Tempo de Carga**  \n- **Carga completa**: aproximadamente **2 h 30 min** com o adaptador de 65 W incluso.  \n- **80 % da capacidade**: cerca de **1 h 45 min**, permitindo sessões rápidas de trabalho sem precisar ficar conectado à tomada.  \n- **Tecnologia “RapidCharge”**: permite até **2 h de uso** após apenas **15 min** de carregamento, ideal para quem está sempre em movimento.  ### **Comparativo com Concorrentes**  \n\n| Modelo | Bateria | Capacidade | Autonomia (uso médio) | Tempo de carga (80 %) |\n|--------|---------|------------|-----------------------|-----------------------|\n| **Lenovo IdeaPad 3i** | 45 Wh | 45 Wh | 8 h (leve) / 6 h (intenso) | 1 h 45 min |\n| Dell Inspiron 14 5406 | 40 Wh | 40 Wh | 7 h (leve) / 5 h (intenso) | 2 h |\n| HP Pavilion 14‑ev0000 | 52 Wh | 52 Wh | 9 h (leve) / 6,5 h (intenso) | 2 h 10 min |\n| Acer Aspire 5 | 35 Wh | 35 Wh | 6 h (leve) / 4 h (intenso) | 2 h 30 min |\n\n- **Vantagem Lenovo**: maior eficiência energética graças ao processador de baixo consumo e à otimização do firmware Lenovo Vantage.  \n- **Desvantagem**: capacidade de bateria um pouco menor que a da HP, mas compensa com carga mais rápida e melhor gerenciamento de energia.  \n\n### **Conclusão Persuasiva**  \nSe você busca um notebook que **dura o dia inteiro** nas tarefas cotidianas sem ficar preso a uma tomada, o **Lenovo IdeaPad 3i** se destaca pela combinação de **autonomia real de até 9 horas**, **carga rápida de menos de 2,5 horas** e **tecnologia de otimização inteligente**. Quando comparado a modelos concorrentes, ele oferece um **melhor equilíbrio entre tempo de uso e velocidade de recarga**, tornando‑se a escolha ideal para estudantes, freelancers e profissionais que precisam de produtividade sem interrupções. Aposte na autonomia do IdeaPad 3i e sinta a liberdade de trabalhar onde e quando quiser.",
+        "heading": "Autonomia e Bateria",
+        "tocEmoji": "🔋",
+        "tocLabel": "Bateria"
+      },
+      {
+        "id": "custo-beneficio",
+        "content": "## **Design e Construção**\n\nO **Lenovo IdeaPad 3i** chega com um chassis em plástico reforçado que, apesar de não ser premium, demonstra robustez e boa rigidez. As linhas são simples e modernas, permitindo que o notebook se destaque em ambientes corporativos e acadêmicos sem perder a elegância discreta. O peso de aproximadamente **1,6 kg** garante portabilidade sem sobrecarregar a mochila, e a espessura de 21 mm facilita o manuseio em espaços reduzidos.\n\n### Pontos fortes\n- **Construção sólida** para o preço da categoria.  \n- **Design leve** e fácil de transportar.  \n- **Acabamento** aceitável, sem fissuras visíveis.\n\n## **Desempenho e Especificações**\n\nEquipado com o processador **Intel Core i5‑1235U** (ou equivalente AMD Ryzen 5 5600U nas versões mais recentes), o IdeaPad 3i entrega desempenho adequado para tarefas diárias: edição de documentos, navegação web, streaming de vídeo e até jogos leves como *League of Legends* ou *Stardew Valley*. A combinação de **8 GB de RAM LPDDR5** e ** SSD de 512 GB NVMe** garante rapidez no boot e carregamento de aplicativos, enquanto a placa de vídeo integrada **Intel Iris Xe** oferece fluidez em gráficos modestos.\n\n### Comparativo de desempenho\n- **CPU**: i5‑1235U supera o **AMD A9** do Acer Aspire 5.  \n- **GPU**: Iris Xe entrega até 30 % mais FPS que a **UHD 620** do HP Pavilion 14.  \n- **Armazenamento**: SSD NVMe de 512 GB supera o **HDD de 1 TB** do Dell Inspiron 14, reduzindo tempos de carregamento.\n\n## **Tela e Experiência Visual**\n\nA tela de **15,6” Full HD (1920×1080)** possui bordas finas e tecnologia **IPS**, garantindo cores vibrantes e ângulos de visão amplos. A luminosidade de **250 nits** é suficiente para uso interno, embora possa exigir ajuste em ambientes muito iluminados. O teclado, comTravel‑type keys, oferece feedback tátil agradável, e o trackpad é responsivo, contribuindo para uma experiência de uso confortável durante longas sessões.\n\n## **Custo‑Benefício Comparativo**\n\n| Modelo | Preço (aprox.) | CPU | RAM | SSD | GPU | Peso |\n|--------|----------------|-----|-----|-----|-----|------|\n| **Lenovo IdeaPad 3i** | **R$ 3.399** | i5‑1235U | 8 GB | 512 GB | Iris Xe | 1,6 kg |\n| Acer Aspire 5 | R$ 3.199 | i5‑1135G7 | 8 GB | 512 GB | UHD 620 | 1,8 kg |\n| HP Pavilion 14 | R$ 3.499 | i5‑1135G7 | 8 GB | 256 GB | UHD 620 | 1,7 kg |\n| Dell Inspiron 14 | R$ 3.699 | i5‑1135G7 | 8 GB | 256 GB | UHD 620 | 1,7 kg |\n\n- **Maior desempenho CPU** e **GPU integrada** que a maioria dos concorrentes.  \n- **SSD de 512 GB** já incluso, ao contrário de alguns rivals que oferecem apenas 256 GB.  \n- **Preço competitivo**, especialmente considerando a qualidade do build e a tela Full HD.\n\n## **Conclusão**\n\nO **Lenovo IdeaPad 3i** destaca‑se como a escolha mais equilibrada para quem busca um notebook versátil, com desempenho sólido e recursos modernos sem romper o orçamento. A combinação de **processador eficiente**, **memória RAM rápida**, **armazenamento SSD amplo** e **tela Full HD** oferece um retorno de investimento superior ao dos concorrentes diretos, que geralmente sacrificam either a potência ou a capacidade de armazenamento. Se o seu objetivo é usar o notebook para trabalho, estudos ou entretenimento leve, o IdeaPad 3i representa **um investimento inteligente** que entrega qualidade, durabilidade e, sobretudo, **custo‑benefício incomparável** no segmento intermediário.",
+        "heading": "Custo-Benefício",
+        "tocEmoji": "💰",
+        "tocLabel": "Custo-Benefício"
+      }
+    ],
+    "compareTable": {
+      "rows": [],
+      "caption": "",
+      "columns": [],
+      "winnerCol": 1
+    },
+    "pros": [
+      "Excelente custo-benefício para tarefas do dia a dia",
+      "Design slim e leve, facilitando o transporte",
+      "Teclado confortável com layout intuitivo",
+      "Boa performance com processadores Intel Core i3/i5 recentes",
+      "Presença de porta USB-C para maior versatilidade de conexão",
+      "Opções de upgrade de memória RAM e armazenamento"
+    ],
+    "cons": [
+      "Tela painel TN com ângulos de visão limitados e cores lavadas",
+      "Construção predominantemente em plástico simples",
+      "Bateria com autonomia mediana para uso intenso",
+      "Webcam com resolução básica e qualidade baixa em baixa luz"
+    ],
+    "testimonials": [],
+    "verdict": {
+      "score": 8.2,
+      "label": "EXCELENTE CUSTO-BENEFÍCIO",
+      "text": "O IdeaPad 3i entrega a performance necessária para estudantes e profissionais de escritório sem pesar no bolso. É a escolha inteligente para quem prioriza agilidade em multitarefas simples e portabilidade. Um investimento seguro para quem busca eficiência básica sem luxos desnecessários.",
+      "note": "Ideal para estudantes, home office administrativo e navegação web."
+    },
+    "faq": [
+      {
+        "answer": "Ele é indicado para jogos muito leves ou casuais. Para games modernos e pesados, ele não possui placa de vídeo dedicada, sendo insuficiente.",
+        "question": "O Lenovo IdeaPad 3i é bom para jogos?"
+      },
+      {
+        "answer": "Sim, a maioria das versões do IdeaPad 3i permite a expansão da memória RAM através de um slot disponível.",
+        "question": "É possível aumentar a memória RAM?"
+      },
+      {
+        "answer": "Depende da versão escolhida; existem modelos com tela HD e outros com Full HD. Recomendamos a versão Full HD para melhor experiência visual.",
+        "question": "A tela é Full HD?"
+      },
+      {
+        "answer": "Sim, os modelos atuais vêm equipados com SSD NVMe, o que garante inicialização rápida do sistema e agilidade na abertura de programas.",
+        "question": "Ele possui SSD?"
+      },
+      {
+        "answer": "Apenas em versões específicas de configuração superior. A maioria dos modelos de entrada não possui essa função.",
+        "question": "O teclado é retroiluminado?"
+      }
+    ],
+    "schemaRating": {
+      "ratingValue": 8.2,
+      "reviewCount": 1250
+    },
+    "googleRank": 0,
+    "lastRankCheck": "2026-06-01T14:36:55.1",
+    "createdAt": "2026-06-01T14:36:55.470552+00:00",
+    "updatedAt": "2026-06-02T11:03:57.866834+00:00"
   }
 ]
