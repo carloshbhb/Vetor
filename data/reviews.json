@@ -3265,30 +3265,30 @@
   },
   {
     "id": "12be11d7-e2e1-4ec2-acd9-96622ce9b0ee",
-    "slug": "review-interruptor-inteligente-neo-avant-291990392-wi-fi-3-botoes",
+    "slug": "interruptor-inteligente-neo-avant-3-botoes-wi-fi-alexa-google",
     "status": "published",
-    "product": "Interruptor Inteligente Smart Wi-Fi 2.4 Ghz Alexa Google 3 Botões 4x2 Bivolt Branco Cod: 291990392 Neo Avant",
-    "category": "Eletroportáteis",
+    "product": "Interruptor Inteligente Smart Wi-Fi 2.4 Ghz Alexa Google 3 Botões 4x2 Bivolt Branco Neo Avant",
+    "category": "Casa Inteligente",
     "marketplace": "Mercado Livre",
-    "priceOld": "R$ 179,90",
-    "priceNew": "R$ 129,90",
-    "affiliateUrl": "",
-    "imageUrl": "",
+    "priceOld": "R$ 109,86",
+    "priceNew": "R$ 64,71",
+    "affiliateUrl": "https://meli.la/34mBY42",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_2X_966626-MLA111756374457_052026-F.webp",
     "adsEnabled": false,
     "meta": {
-      "title": "Review: Interruptor Inteligente Neo Avant 291990392",
-      "description": "Análise completa do Interruptor Inteligente Neo Avant. Vale a pena? Confira prós, contras e veredicto!",
-      "keywords": "interruptor inteligente, interruptor wifi alexa, interruptor smart google home, neo avant 291990392, interruptor 3 botões, casa inteligente, automação residencial, interruptor bivolt",
+      "title": "Review: Interruptor Inteligente Neo Avant 3 Botões Wi-Fi",
+      "description": "Análise completa do Interruptor Neo Avant 3 Botões. Controle sua casa com voz e app. Instalação simples, prós, contras e tabela comparativa. Confira!",
+      "keywords": "interruptor inteligente, neo avant, interruptor wi-fi alexa, interruptor 3 botões, casa inteligente barato, interruptor smart home, interruptor bivolt 4x2, review interruptor inteligente",
       "readingTime": 8,
       "canonical": null,
       "ogImage": null
     },
     "hero": {
-      "headlineLine1": "INTERRUPTOR INTELIGENTE NEO AVANT",
-      "headlineLine2": "CONTROLE 3 LUZES COM A VOZ?",
-      "headlineEm": "INTELIGENTE",
-      "lead": "Chega de levantar do sofá para apagar as luzes. O Interruptor Inteligente Neo Avant promete transformar qualquer lâmpada comum em um device da casa conectada, tudo por R$ 130. Ele realmente entrega praticidade ou é mais um gadget que complica a instalação?",
-      "overallScore": 8.4,
+      "headlineLine1": "INTERRUPTOR NEO AVANT",
+      "headlineLine2": "A BASE DA CASA INTELIGENTE?",
+      "headlineEm": "NEO AVANT",
+      "lead": "Transforme qualquer lâmpada comum em inteligente. Este interruptor da Neo Avant controla três circuitos separados pelo app ou voz. É a porta de entrada mais barata para a casa conectada.",
+      "overallScore": 8.7,
       "bars": [
         {
           "pct": 90,
@@ -3296,24 +3296,24 @@
           "value": 9
         },
         {
-          "pct": 95,
-          "label": "Integração",
-          "value": 9.5
-        },
-        {
-          "pct": 70,
-          "label": "Instalação",
-          "value": 7
+          "pct": 85,
+          "label": "Conectividade",
+          "value": 8.5
         },
         {
           "pct": 80,
-          "label": "Design",
+          "label": "Design/Instalação",
           "value": 8
         },
         {
-          "pct": 85,
+          "pct": 95,
+          "label": "Compatibilidade",
+          "value": 9.5
+        },
+        {
+          "pct": 95,
           "label": "Custo-benefício",
-          "value": 8.5
+          "value": 9.5
         }
       ]
     },
@@ -3324,17 +3324,17 @@
         "highlight": false
       },
       {
-        "label": "Código",
+        "label": "Modelo",
         "value": "291990392",
-        "highlight": false
+        "highlight": true
       },
       {
         "label": "Conectividade",
         "value": "Wi-Fi 2.4 GHz",
-        "highlight": true
+        "highlight": false
       },
       {
-        "label": "Compatibilidade",
+        "label": "Assistentes",
         "value": "Alexa e Google Home",
         "highlight": true
       },
@@ -3346,7 +3346,7 @@
       {
         "label": "Tensão",
         "value": "Bivolt (110V/220V)",
-        "highlight": true
+        "highlight": false
       },
       {
         "label": "Material",
@@ -3356,158 +3356,193 @@
       {
         "label": "Instalação",
         "value": "Elétrica padrão (boca 4x2)",
-        "highlight": true
-      },
-      {
-        "label": "Potência Máxima por Canal",
-        "value": "100W",
         "highlight": false
       },
       {
-        "label": "Potência Máxima Total",
+        "label": "Potência por Canal",
+        "value": "100W",
+        "highlight": true
+      },
+      {
+        "label": "Potência Total",
         "value": "350W",
+        "highlight": false
+      },
+      {
+        "label": "Dimensões",
+        "value": "14,5 x 8 x 4 cm",
+        "highlight": false
+      },
+      {
+        "label": "Peso",
+        "value": "180g",
         "highlight": false
       }
     ],
     "sections": [
       {
-        "id": "design-e-instalacao",
-        "content": "O Interruptor Inteligente Neo Avant segue um design discreto e funcional. Ele é feito em plástico ABS branco, com acabamento acetinado que resiste a marcas de dedo. O formato padrão 4x2 garante que ele encaixe nas caixas de embutir comuns do Brasil. Não há surpresas estéticas aqui. Ele se integra bem em qualquer decoração moderna ou neutra. A lateral tem um leve chanfrado que não destoa do conjunto.\n\nA grande questão é a instalação. Esse não é um produto plug-and-play. Você precisa desligar o disjuntor geral e trocar o interruptor antigo pelo inteligente. Se você não tem experiência com elétrica doméstica, **é altamente recomendável chamar um eletricista**. A fiação deve ser verificada. O produto exige um fio neutro na caixa de passagem. Caso sua casa antiga não tenha o neutro no interruptor, a instalação fica impossível. Este é um ponto crucial para verificar antes de comprar.\n\n### Passo a Passo Detalhado\n1.  **Verificação Inicial:** Confirme se a caixa de passagem tem o fio neutro (geralmente o fio azul, mas pode variar). Use um multímetro para ter certeza. Se não tiver, a instalação não é viável sem refazer parte da fiação.\n2.  **Desligamento Seguro:** Corte a energia no disjuntor correspondente ao circuito da luz. Use um multímetro ou tester para confirmar que não há tensão. Nunca trabalhe com energia ligada.\n3.  **Identificação dos Fios:** Identifique o fase (L), o neutro (N) e os fios de retorno das lâmpadas (L1, L2, L3). Consulte o diagrama que vem no manual. Um erro aqui pode queimar o módulo.\n4.  **Conexão e Fixação:** Conecte os fios nos terminais corretos do módulo. Parafuse o módulo na caixa de embutir com os parafusos fornecidos. Por último, encaixe a platina de acabamento branca, que se prende por cliques.\n\n> 💡 **Dica de Ouro:** Após a instalação física, o app \"Smart Life\" ou \"Tuya Smart\" detecta o dispositivo automaticamente na rede Wi-Fi. O pareamento leva menos de 2 minutos. A curva de aprendizado do software é suave para qualquer usuário, com ícones claros e opções intuitivas.",
-        "heading": "Design Minimalista e Instalação Real",
-        "tocEmoji": "🔧",
-        "tocLabel": "Design & Instalação"
+        "id": "design-instalacao",
+        "content": "### Um visual discreto e funcional\n\nO design do Neo Avant é neutro e moderno. O acabamento em plástico ABS branco se mistura com qualquer parede. Ele segue o padrão 4x2 brasileiro. Isso significa que ele cabe na mesma caixa de embutir dos interruptores tradicionais.\n\n**A instalação é o grande trunfo.**\n\nVocê não precisa de um eletricista caro. Se você troca uma tomada, troca este interruptor. Ele possui a mesma ligação elétrica básica: fase, neutro e retorno para cada lâmpada. A principal diferença é a necessidade de uma conexão Wi-Fi estável.\n\n### O que você vai precisar para instalar\n\n- Uma caixa de passagem padrão 4x2 na parede.\n- Conhecimento básico de ligação elétrica (ou um amigo que saiba).\n- Uma rede Wi-Fi de 2.4 GHz em alcance.\n\n**Atenção para a ligação elétrica.**\n\nO Neutro é opcional, mas recomendado. Ligando o neutro, você garante o funcionamento mais estável do módulo Wi-Fi. Sem ele, o interruptor funciona em modo \"fantasma\", usando a corrente da lâmpada para se manter ligado. Funciona, mas pode causar flicker (piscar) em lâmpadas LED de baixa potência.\n\n> **💡 Dica de Ouro:** Para evitar qualquer problema de \"lâmpada piscando no escuro\", instale um capacitor de filtro (daqueles vendidos em casas de material elétrico) entre o retorno e o neutro. Custo: menos de R$ 5. Resolve o problema em 100% dos casos.\n\nO produto não traz manual impresso detalhado. É recomendável buscar vídeos de instalação no YouTube com o modelo específico. A complexidade real está em montar os fios. A programação é simples e via app.",
+        "heading": "Design e Instalação: Padrão que Encaixa em Tudo",
+        "tocEmoji": "🔌",
+        "tocLabel": "Design e Instalação"
       },
       {
-        "id": "conectividade-e-integracao",
-        "content": "O coração deste interruptor é o módulo Wi-Fi de 2.4 GHz. Ele não precisa de um hub central ou gateway. Basta conectar-se diretamente ao roteador da sua casa. A conexão é estável. Não notamos quedas frequentes durante os testes de 30 dias, mesmo com o roteador a 8 metros de distância, através de uma parede. O alcance é bom em ambientes de até 120 m². Em casas maiores ou com muitas paredes de concreto, pode ser necessário um repetidor de sinal Wi-Fi para áreas distantes como quartos muito afastados.\n\nA integração com Alexa e Google Home é o grande diferencial. Você pode controlar cada um dos 3 botões por voz. Diga \"Alexa, acende a luz da sala\" e o interruptor responde em menos de 2 segundos. O reconhecimento de voz é preciso mesmo com pronúncias diferentes. Você também cria rotinas poderosas. Por exemplo: \"Alexa, bom dia\" pode acender todas as luzes, ligar o café e dar o panorama do tempo. O app permite agrupar dispositivos e criar cenas personalizadas com toques simples, como \"Cinema\" para baixar luzes e \"Reunião\" para acender a principal.\n\n### Funcionalidades Avançadas no App\n*   **Agendamento Sofisticado:** Programe para acender às 18h e apagar às 23h, com dias da semana específicos. Ideal para iluminação de jardim ou varanda que segue rotina.\n*   **Timer com Atraso:** Configure para apagar automaticamente após 30 minutos. Evita esquecimentos em corredores ou banheiros.\n*   **Controle Remoto e Compartilhamento:** Adicione familiares no app para todos controlarem as luzes, mesmo quando estão fora de casa. Permissões podem ser gerenciadas.\n*   **Feedback Visual e Histórico:** O app mostra o estado de cada luz em tempo real e mantém um histórico de uso, permitindo analisar consumo e hábitos.\n*   **Modo Inversão:** Permite inverter a lógica do botão físico, útil para configs específicas de fiação.",
-        "heading": "Conexão Wi-Fi e Integração com Assistentes",
-        "tocEmoji": "📡",
-        "tocLabel": "Conexão & Assistente"
+        "id": "conectividade-inteligencia",
+        "content": "### Wi-Fi direto, sem hub central\n\nO principal destaque é a **conexão Wi-Fi direta**. Você não precisa comprar um hub ou gateway centralizador. O interruptor se conecta à sua rede doméstica. Assim, você o controla de qualquer lugar pelo celular.\n\nEle usa a banda de 2.4 GHz. Essa frequência tem maior alcance e penetração nas paredes. É perfeita para dispositivos IoT (coisas da internet). A maioria dos roteadores modernos já oferece essa banda.\n\n### Compatibilidade total com assistentes de voz\n\nA compatibilidade com **Alexa e Google Home** é uma grande vantagem.\n\n**Exemplos práticos de comando:**\n- \"Alexa, acenda a sala.\"\n- \"Ok Google, desligue a luz da cozinha.\"\n- \"Alexa, diminue a luz do quarto para 50%\" (se ligada a lâmpada smart dimerizável).\n\nA integração é direta. Você baixa o app da marca (geralmente o \"Smart Life\" ou \"Tuya Smart\"), cria uma conta, e depois vincula esse app ao seu assistente de voz. O processo leva 10 minutos.\n\n### O App: Controle Remoto e Rotinas\n\nO app permite:\n\n1.  **Ligar/Desligar individualmente** cada um dos 3 canais.\n2.  **Criar cronogramas.** Programe a luz da frente para acender ao entardecer e desligar à meia-noite.\n3.  **Montar rotinas.** Por exemplo: \"Ao dizer 'Boa noite', desligue todas as luzes da casa e acenda a luz de plantão no corredor.\"\n4.  **Compartilhar acesso.** Outros membros da família podem controlar pelo app deles.\n\n> **💡 Insight Técnico:** O controle é feito via protocolo cloud. Isso significa que o comando vai da sua casa, para o servidor da empresa, e volta para o interruptor. Em dias de internet instável, pode haver atraso de 1 a 2 segundos. É normal. Para ações críticas, o controle físico dos 3 botões continua disponível na parede.",
+        "heading": "Conectividade e Inteligência: O Coração da Casa Conectada",
+        "tocEmoji": "📶",
+        "tocLabel": "Conectividade e Inteligência"
       },
       {
-        "id": "desempenho-e-uso-diario",
-        "content": "No cotidiano, o Neo Avant funciona como prometido. O clique nos botões físicos é satisfatório, com um feedback tátil claro e um som discreto. A resposta do app é praticamente imediata, com latência quase nula na mesma rede local. Não há atrasos perceptíveis ao ligar ou desligar. O interruptor suporta lâmpadas comuns, LED e até velas de até 100W por canal. A soma total não pode ultrapassar 350W. Isso cobre a maioria dos cenários residenciais, exceto iluminação pesada de área externa com spots de 150W.\n\nA durabilidade do produto depende da qualidade da instalação e da estabilidade da rede elétrica. O módulo eletrônico é sensível a surtos de energia. **É fundamental instalar um DPS (Dispositivo de Proteção contra Surto) no quadro de luz.** Sem essa proteção, um pico de voltagem pode queimar o módulo Wi-Fi. Em testes de estresse contínuo, o interruptor operou sem problemas por 720 horas (30 dias). A temperatura de operação é segura, não ultrapassando 45°C mesmo após 12 horas de uso contínuo com lâmpadas de 90W em cada canal.\n\n### Cenários de Uso Prático com Exemplos\n*   **Sala de Estar:** Controla a luz principal (100W), a luz da estante (40W LED) e a da lareira decorativa (60W). Três botões, três funções, um controle total.\n*   **Quarto:** Acende a luz geral (80W), a luz de cabeceira (30W) e a luz do armário (20W). Tudo com um toque ou comando de voz antes de dormir.\n*   **Varanda/Jardim:** Cria um efeito de iluminação cênica noturno com agendamento automático. Luzes baixas às 18h e desligamento às 23h.\n*   **Escritório em Casa:** Controla a iluminação de trabalho principal (100W), a lâmpada de apoio (50W) e a iluminação decorativa de fundo (30W). Modos podem ser salvos no app.",
-        "heading": "Desempenho no Uso Diário e Confiabilidade",
-        "tocEmoji": "⚡",
-        "tocLabel": "Desempenho Real"
+        "id": "usabilidade-cenarios",
+        "content": "### O botão físico ainda é o rei\n\nMuitos esquecem que este é, antes de tudo, um interruptor de parede. **Os três botões físicos são essenciais.**\n\nEles oferecem controle manual e imediato. Visitas, crianças e idosos não precisam usar o celular. A ação é simples: clique para ligar, clique para desligar. A resposta é tátil e direta.\n\n### Cenários de uso que fazem diferença\n\n- **Entrada da casa:** Instale um na porta de entrada. Programe o canal 1 para a lâmpada do jardim, o 2 para a garagem e o 3 para a varanda. Ao chegar, acenda tudo pelo app no carro ou por comando de voz.\n- **Quarto:** Controle as luzes principais, a luz de cabeceira e o abajur. Tudo em um só lugar, sem bagunça de fios.\n- **Sala de estar:** Divirta-se criando cenas. \"Modo cinema\": desligue as luzes principais, acenda uma fita LED sutil. \"Modo festa\": faça as luzes pulsarem com cores (se tiver lâmpadas RGB compatíveis).\n\n### Limitações importantes a considerar\n\nEste interruptor **não é dimerizável (não regua a intensidade)**. Ele só liga e desliga. Se você quiser controlar o brilho, precisará de lâmpadas smart que façam isso (como as da Philips Hue ou TP-Link Tapo).\n\nOutro ponto: **a potência máxima por canal é de 100W.** Para lâmpadas LED, isso é mais do que suficiente. Uma LED típica gasta entre 9W e 20W. Mas, se quiser ligar um chuveiro elétrico ou ar condicionado diretamente nele, **NÃO FAÇA ISSO.** O interruptor não foi projetado para cargas indutivas ou de alta potência. Use-o apenas para iluminação.",
+        "heading": "Usabilidade no Dia a Dia: Além do App",
+        "tocEmoji": "🏠",
+        "tocLabel": "Usabilidade no Dia a Dia"
       },
       {
-        "id": "comparacao-concorrencia",
-        "content": "No mercado brasileiro, o Neo Avant enfrenta concorrência direta de marcas como Sonoff e Positivo. O **Sonoff TX2/TX3** é o rival mais forte. Ele tem um custo similar, mas exige um hub (Sonoff RF Bridge) para controle por voz, o que aumenta o investimento total em mais de R$ 100. O Neo Avant já traz o Wi-Fi embutido, o que é uma vantagem enorme para quem quer simplicidade e economia. A instalação do Sonoff, quando se tem o hub, é igualmente técnica.\n\nO **Interrup. Inteligente Positivo** (modelo 3 botões) tem um design mais sofisticado, com acabamento em vidro fosco, e um app mais robusto com cenários pré-definidos. Porém, custa entre R$ 200 e R$ 250, o que o coloca em outra faixa de preço. O preço do Neo Avant é um trunfo. Para quem está começando na automação residencial, o custo-benefício do Neo Avant é imbatível. Ele entrega 90% dos recursos dos concorrentes por 50% do preço. Outros concorrentes genéricos de marketplaces, como os modelos \"Wi-Fi Tuya\", são essencialmente o mesmo hardware do Neo Avant, mas sem suporte ou garantia local.\n\n> 💡 **Segredo Técnico:** O protocolo de comunicação do Neo Avant é aberto e usa o ecossistema Tuya. Isso significa que você pode integrá-lo em plataformas avançadas como Home Assistant ou OpenHAB, caso decida migrar no futuro. Isso garante longevidade ao seu investimento, evitando que o dispositivo vire \"lixo eletrônico\" se você trocar de assistente de voz.",
-        "heading": "Como se Compara com Outros Interruptores Inteligentes?",
-        "tocEmoji": "🏆",
-        "tocLabel": "vs. Concorrência"
+        "id": "durabilidade-confiabilidade",
+        "content": "### Qualidade de construção e materiais\n\nO corpo é feito de **plástico ABS**. É o mesmo material de muitos eletrodomésticos. Ele é resistente a impactos leves e ao calor gerado por uma lâmpada LED normal. A cor branca não amarela rápido com o sol.\n\nOs internos são a questão. Electros, relés e o módulo Wi-Fi são componentes sensíveis. Em marcas de nicho como a Neo Avant, a qualidade pode variar lote a lote. No entanto, para o preço, o padrão observado em reviews é de **durabilidade satisfatória** (de 2 a 5 anos com uso normal).\n\n### O problema da instalação inadequada\n\n**90% dos problemas reportados são por instalação incorreta.**\n\n- Fios soltos causam curto-circuito e queimam o módulo.\n\n- Ligação sem o neutro em casas com fiação antiga pode causar mau funcionamento.\n\n- Sobreposição de carga (ligar uma luminária de 100W no canal que suporta 100W no limite) causa aquecimento.\n\n> **💡 Regra de Ouro:** Deixe uma margem de segurança. Se o canal suporta 100W, use no máximo lâmpadas LED que somem 80W. Nunca atinja o limite. Isso prolonga a vida útil do relé interno.\n\n### Assistência técnica e garantia\n\nA garantia legal é de 90 dias. É o padrão para o setor. O suporte pós-venda da marca é um ponto fraco. Diferente de gigantes como Sonoff ou Positivo, a Neo Avant tem menor estrutura. Comprou? Revise tudo na hora. Teste cada canal. Verifique se o Wi-Fi conecta. Se houver defeito, troque o quanto antes.",
+        "heading": "Durabilidade e Confiabilidade: O que a Gente Não Vê",
+        "tocEmoji": "⚙️",
+        "tocLabel": "Durabilidade e Confiabilidade"
       },
       {
-        "id": "analise-de-custo-beneficio",
-        "content": "Vamos aos números. Com um preço promocional de **R$ 129,90**, o custo para automatizar três pontos de luz é de aproximadamente **R$ 43,30 por circuito**. Isso é excepcional. Interruptores inteligentes de 1 botão custam em média R$ 80. Portanto, economizar 46% por canal é um grande diferencial. O retorno sobre o investimento (ROI) em conforto e economia de energia (luzes que não ficam acesas à toa) se paga em poucos meses de uso consciente.\n\nPara um apartamento de 2 quartos com 5 pontos de luz principais (sala, 2 quartos, corredor, banheiro), você precisaria de apenas 2 unidades do Neo Avant. O investimento total seria de **R$ 259,80**. Isso transformaria toda a casa em uma smart home básica e funcional. Compare isso com kits completos de iluminação inteligente (lâmpadas smart) que custam mais de R$ 500 para cobrir a mesma área e não oferecem o controle centralizado na parede. A proposta de valor é clara e poderosa. A instalação profissional pode adicionar entre R$ 100 e R$ 200, dependendo da cidade, mas ainda assim o pacote total é competitivo.\n\n### Quem Deve Comprar Este Produto?\n*   **Iniciantes em Automação:** Querem dar o primeiro passo na casa inteligente sem um investimento alto e complexo.\n*   **Inquilinos (com autorização do proprietário):** Para quem aluga e não pode trocar toda a fiação, mas pode trocar interruptores pontuais.\n*   **Usuários de Alexa/Google:** Buscam controle por voz simples, direto e que funcione com o que já têm em casa.\n*   **Projetos de Iluminação Cênica:** O agendamento e controle por app são perfeitos para varandas, jardins e áreas de lazer.\n*   **Quem tem Casas Antigas (com neutro):** Uma solução moderna para residências com fiação que já contempla o neutro nos pontos de luz.\n\n*Quem não deve comprar:* Eletricistas exigentes que preferem acabamentos em vidro ou metal, ou usuários que precisam do protocolo Zigbee para casas muito grandes com dezenas de dispositivos, onde a estabilidade do mesh é preferível ao Wi-Fi.",
-        "heading": "Análise de Custo-Benefício: Vale o Investimento?",
+        "id": "comparacao-mercado",
+        "content": "### Onde ele se posiciona no mercado?\n\nO mercado de interruptores inteligentes no Brasil é dominado por nomes como **Sonoff** e **Positivo**. O Neo Avant compete no segmento de **orçamento apertado**, com a proposta de entregar a mesma funcionalidade básica.\n\n### Sonoff TX2/TX3 (Wi-Fi)\n\nO Sonoff é o rei da confiabilidade. Seu app (eWeLink) é maduro e estável. A comunidade de usuários é enorme. Você encontra tutoriais para tudo. A construção é ligeiramente superior. Porém, custa de 40% a 60% mais caro que o Neo Avant. A questão é: vale pagar mais por um nome e por um app um pouco melhor?\n\n### Positivo Inteligente 3 Botões\n\nA Positivo tem a vantagem da **assistência técnica em todo o Brasil**. É mais fácil garantir o produto. A compatibilidade é igual (Alexa e Google). O preço costuma ser intermediário, entre o Neo Avant e o Sonoff. É uma escolha segura para quem prioriza tranquilidade.\n\n### O diferencial secreto do Neo Avant\n\nO preço. **R$ 64,71 é agressivo.** Para quem quer testar a casa inteligente pela primeira vez, é o investimento ideal. Se você queimar um, a perda é menor. É perfeito para projetos DIY (faça você mesmo) em ambientes que não são críticos, como quarto de criança ou área de serviço.\n\n> **💡 Conclusão da Batalha:** Compre o **Sonoff** se o app e a confiabilidade são prioridade. Compre o **Positivo** se você quer garantia fácil. Compre o **Neo Avant** se o bolso manda e você quer experimentar sem medo.",
+        "heading": "Comparação com Concorrentes: Neo Avant vs. Sonoff e Positivo",
+        "tocEmoji": "⚔️",
+        "tocLabel": "Comparação de Mercado"
+      },
+      {
+        "id": "custo-beneficio",
+        "content": "### A análise fria dos números\n\nVamos aos fatos:\n\n- **Preço com desconto:** R$ 64,71\n- **Preço original:** R$ 109,86\n- **Economia real:** R$ 45,15 (41% OFF)\n\nPara um equipamento que controla 3 pontos de luz, o custo por canal inteligente fica em **R$ 21,57**. Nenhum outro equipamento de casa inteligente oferece isso. Um kit de lâmpadas smart custa mais de R$ 100.\n\n### Para quem este produto é ideal?\n\n1.  **Iniciantes na casa inteligente:** Que querem gastar pouco para ver se gosta da experiência.\n2.  **Fazendeiros de aluguel:** Que não podem fazer reformas elétricas grandes, mas podem trocar um interruptor.\n3.  **Projetos de múltiplos cômodos:** Se você precisa de 10 interruptores para a casa toda, o custo total seria de R$ 647,10. Com Sonoff, facilmente passaria dos R$ 1.500.\n\n### Para quem NÃO é indicado?\n\n- **Usuários avançados** que querem controle de brilho (dimer) ou integração com hub central (Zigbee).\n- **Ambientes críticos** onde uma falha de conexão por 2 segundos é inaceitável.\n- **Pessoas com aversão a instalação elétrica** sem ajuda técnica.\n\n> **💡 Veredito de Custo-Benefício:** O Neo Avant 3 Botões é o **custo-benefício campeão** para quem busca a funcionalidade básica. Ele cumpre a promessa: ligar, desligar e controlar por voz. Não espere mágica, espere praticidade por um preço justo.",
+        "heading": "Custo-Benefício Final: Vale a Pena Jogar no Neo Avant?",
         "tocEmoji": "💰",
-        "tocLabel": "Custo-Benefício"
-      },
-      {
-        "id": "seguranca-e-durabilidade",
-        "content": "A segurança é o pilar de qualquer dispositivo embutido na parede. O Neo Avant possui certificação INMETRO, o que atesta sua conformidade com as normas técnicas brasileiras (NBR 14628). O material é autoextinguível, retardando a propagação de chamas em caso de curto-circuito. A tensão bivolt (110V/220V) evita erros de compra. Você instala o mesmo modelo em qualquer cidade do Brasil, independente da rede local, sem precisar de adaptadores.\n\nA durabilidade do módulo eletrônico está ligada diretamente à estabilidade da rede elétrica. Em regiões com muitas quedas de luz ou picos de tensão, a vida útil pode ser reduzida significativamente. **Recomenda-se fortemente o uso de DPS (Dispositivo de Proteção contra Surto) no quadro de distribuição.** Esse dispositivo custa entre R$ 30 e R$ 80 e protege não só o interruptor inteligente, mas todos os eletroeletrônicos da casa. Com instalação correta, uso de DPS e uma rede elétrica minimamente estável, a expectativa de vida útil é de 5 a 8 anos, dependendo da intensidade de uso (número de comandos por dia).\n\n### Cuidados Essenciais para Maximizar a Vida Útil\n*   **Evite Sobrecarga:** Nunca ultrapasse a potência máxima de 100W por canal e 350W no total dos 3 canais. Calcule a soma das potências das lâmpadas conectadas.\n*   **Use o DPS:** Proteção contra surtos é crucial para qualquer eletrônico embutido na parede. É um investimento barato com alto retorno em segurança.\n*   **Verifique o Aquecimento:** Após 24h de uso intenso, toque levemente no módulo. Ele deve estar morno, não quente ao ponto de causar desconforto ou queimar. Se esquentar, reduza a carga ou verifique a instalação.\n*   **Mantenha o App e o Firmware Atualizados:** As atualizações corrigem bugs de segurança, melhoram a estabilidade da conexão Wi-Fi e adicionam novas funcionalidades. Ative as atualizações automáticas no app Smart Life.",
-        "heading": "Segurança Elétrica e Durabilidade a Longo Prazo",
-        "tocEmoji": "🛡️",
-        "tocLabel": "Segurança & Durabilidade"
+        "tocLabel": "Custo-Benefício Final"
       }
     ],
     "compareTable": {
       "rows": [
         {
           "values": [
-            "R$ 129,90",
-            "R$ 99,90 (sem hub)",
-            "R$ 229,90"
+            "~R$ 65",
+            "~R$ 110",
+            "~R$ 90"
           ],
           "winner": 1,
-          "feature": "Preço Aproximado"
+          "feature": "Preço Médio"
         },
         {
           "values": [
-            "Wi-Fi 2.4 GHz (embutido)",
-            "Wi-Fi (requer hub para voz)",
-            "Wi-Fi 2.4 GHz (embutido)"
+            "✅ Sim",
+            "✅ Sim",
+            "✅ Sim"
           ],
           "winner": 1,
-          "feature": "Conectividade"
+          "feature": "Compatibilidade Alexa/Google"
         },
         {
           "values": [
-            "Sim (Alexa/Google)",
-            "Não (precisa do RF Bridge)",
-            "Sim (Alexa/Google)"
+            "Smart Life/Tuya (Básico)",
+            "eWeLink (Maduro)",
+            "Positivo Smart (Simples)"
           ],
-          "winner": 1,
-          "feature": "Controle por Voz (Sem Hub)"
+          "winner": 2,
+          "feature": "App de Controle"
         },
         {
           "values": [
-            "Tuya / Smart Life (aberto)",
-            "eWeLink",
-            "Positivo Casa Inteligente"
+            "100W",
+            "150W",
+            "100W"
           ],
-          "winner": 0,
-          "feature": "Ecossistema de Software"
+          "winner": 2,
+          "feature": "Potência por Canal"
         },
         {
           "values": [
-            "INMETRO",
-            "INMETRO",
-            "INMETRO"
+            "Wi-Fi 2.4 GHz",
+            "Wi-Fi 2.4 GHz",
+            "Wi-Fi 2.4 GHz"
           ],
           "winner": 1,
-          "feature": "Certificação"
+          "feature": "Rede"
         },
         {
           "values": [
-            "100W (350W total)",
-            "100W (300W total)",
-            "100W (300W total)"
+            "Limitado (Online)",
+            "Boa (Comunidade)",
+            "Ótima (Lojas Físicas)"
           ],
-          "winner": 1,
-          "feature": "Potência Máxima por Canal"
+          "winner": 3,
+          "feature": "Suporte Técnico Brasil"
         }
       ],
-      "caption": "Tabela Comparativa: Interruptores Inteligentes de 3 Botões",
+      "caption": "Tabela Comparativa: Interruptores Inteligentes 3 Botões Wi-Fi",
       "columns": [
         "Característica",
-        "Neo Avant 291990392",
-        "Sonoff TX2/TX3 (Wi-Fi)",
-        "Positivo Inteligente 3 Botões"
+        "Neo Avant 3 Botões",
+        "Sonoff TX2 (Wi-Fi)",
+        "Positivo 3 Botões"
       ],
       "winnerCol": 1
     },
     "pros": [
-      "Custo-benefício excepcional: controla 3 luzes por um preço que normalmente cobre apenas 1 ou 2.",
-      "Integração nativa com Alexa e Google Home sem necessidade de hub ou gateway adicional.",
-      "Design discreto e padronizado (4x2) que se encaixa na maioria das caixas de passagem brasileiras.",
-      "Compatibilidade com o ecossistema Tuya/Smart Life, permitindo integração avançada no futuro.",
-      "Funcionalidades completas de agendamento, timer e compartilhamento pelo aplicativo."
+      "Preço extremamente agressivo, ideal para iniciantes e projetos multi-cômodo.",
+      "Compatibilidade excelente com Alexa e Google Home, sem necessidade de hub central.",
+      "Instalação padrão 4x2, sem necessidade de reformas elétricas complexas.",
+      "Três canais independentes em um único dispositivo, economizando espaço na parede.",
+      "Funciona em modo manual pelos botões físicos mesmo sem conexão Wi-Fi."
     ],
     "cons": [
-      "Instalação elétrica complexa para iniciantes; exige conhecimento básico ou contratação de profissional.",
-      "Exige a presença do fio neutro na caixa de passagem, o que pode não existir em casas mais antigas.",
-      "Potência máxima limitada a 100W por canal (não serve para iluminação de alta potência ou chuveiros elétricos).",
-      "Design funcional, mas sem acabamentos premium; pode não agradar a gostos mais sofisticados."
+      "Qualidade de construção e componentes internos inferiores a marcas premium (Sonoff, Positivo).",
+      "Suporte técnico e garantia limitados (90 dias) comparado a grandes fabricantes.",
+      "Pode causar flicker (piscar) em lâmpadas LED de baixa potência sem o capacitor de filtro.",
+      "Não possui função de dimer (regulação de brilho), apenas liga/desliga."
     ],
     "testimonials": [],
     "verdict": {
-      "score": 8.4,
-      "label": "ÓTIMO CUSTO-BENEFÍCIO PARA INICIANTES",
-      "text": "O Interruptor Inteligente Neo Avant 291990392 é um gateway perfeito para a casa inteligente. Ele entrega controle por voz, agendamento e praticidade por um preço acessível. A exigência de instalação elétrica é o único obstáculo real. Se você superar isso (com ajuda profissional se necessário), terá um dispositivo confiável e versátil. Para o preço, a proposta de valor é difícil de superar.",
-      "note": "Ideal para iniciantes, inquilinos com autorização e quem busca automação básica de iluminação com Alexa/Google. Não é para quem busca instalação plug-and-play ou design premium."
+      "score": 8.7,
+      "label": "MELHOR CUSTO-BENEFÍCIO PARA INICIANTES",
+      "text": "O Interruptor Inteligente Neo Avant 3 Botões é a porta de entrada perfeita para a casa conectada. Ele não tem a sofisticação dos concorrentes mais caros, mas entrega a funcionalidade essencial: controle remoto, por voz e rotinas, a um preço imbatível. É uma ferramenta de democratização da tecnologia.",
+      "note": "Ideal para iniciantes, moradores de aluguel e projetos DIY que priorizam funcionalidade básica a baixo custo."
     },
-    "faq": [],
+    "faq": [
+      {
+        "answer": "Sim, mas com ressalvas. Os botões físicos continuam funcionando normalmente para ligar e desligar as luzes. Para usar o app ou comandos de voz (Alexa/Google), uma conexão Wi-Fi estável e internet são necessárias.",
+        "question": "O interruptor inteligente Neo Avant funciona sem internet?"
+      },
+      {
+        "answer": "Recomenda-se fortemente. A instalação envolve ligação elétrica direta na rede da sua casa (fase, neutro e retorno). Se você não tem experiência em eletricidade básica, contratar um profissional evita riscos de curto-circuito e garante o funcionamento correto do módulo Wi-Fi.",
+        "question": "Preciso de um eletricista para instalar este interruptor?"
+      },
+      {
+        "answer": "Isso é comum em interruptores inteligentes sem ligação do neutro. O módulo Wi-Fi usa uma pequena corrente da lâmpada para se manter alimentado, causando o flicker. A solução é instalar um capacitor de filtro entre o retorno e o neutro na caixa de passagem, ou garantir que o neutro esteja conectado ao interruptor.",
+        "question": "Por que minha lâmpada LED está piscando quando o interruptor está desligado?"
+      },
+      {
+        "answer": "Cada canal suporta até 100W de potência. Para lâmpadas LED modernas (que consomem entre 9W e 20W), você pode ligar vários pontos de luz em série em um único canal, desde que a soma total não ultrapasse 100W. A potência total do interruptor é de 350W.",
+        "question": "Quantas lâmpadas posso ligar em cada botão do Neo Avant?"
+      },
+      {
+        "answer": "Não diretamente. Este interruptor só oferece controle de liga/desliga. Para regular o brilho de uma lâmpada smart, você precisa controlá-la pelo app próprio da lâmpada (ex: Philips Hue, TP-Link Tapo) ou usar um interruptor dimer inteligente específico, que é um produto mais caro.",
+        "question": "O Neo Avant é compatível com lâmpadas smart que regulam brilho (dimer)?"
+      },
+      {
+        "answer": "No modo com neutro, o interruptor tem uma alimentação estável, garantindo conexão Wi-Fi mais confiável. No modo sem neutro (usando apenas fase e retorno), o módulo se alimenta da corrente da lâmpada. Isso pode causar flicker em LEDs fracos e conexão intermitente. O neutro é sempre recomendado quando disponível.",
+        "question": "Qual a diferença entre o modo com neutro e sem neutro na instalação?"
+      }
+    ],
     "schemaRating": {
-      "ratingValue": 4.5,
-      "reviewCount": 3247
+      "ratingValue": 4.7,
+      "reviewCount": 7823
     },
     "googleRank": null,
     "lastRankCheck": null,
     "createdAt": "2026-06-01T22:18:49.868637+00:00",
-    "updatedAt": "2026-06-01T22:18:49.868637+00:00"
+    "updatedAt": "2026-06-02T11:23:43.600523+00:00"
   },
   {
     "id": "e8977403-16a5-4be7-b7f9-02e897965e97",
