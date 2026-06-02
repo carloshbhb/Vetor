@@ -45,7 +45,6 @@ const organizationSchema = {
   '@type': 'Organization',
   name: 'Vetor Blog',
   url: SITE_URL,
-  logo: `${SITE_URL}/logo.png`,
   description: 'Reviews sinceros e análises detalhadas de produtos para compradores inteligentes.',
   sameAs: [
     'https://www.youtube.com/@vetorblog',

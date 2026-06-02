@@ -10,9 +10,6 @@ export function PerformanceHead() {
       <link rel="preconnect" href="https://images.mlstatic.com" />
       <link rel="dns-prefetch" href="https://http2.mlstatic.com" />
 
-      {/* Preload do logo (LCP crítico) */}
-      <link rel="preload" href="/logo.png" as="image" type="image/png" />
-
       {/* Preload da fonte crítica */}
       <link
         rel="preload"
