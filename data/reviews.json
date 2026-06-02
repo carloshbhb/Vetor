@@ -7334,5 +7334,304 @@
     "lastRankCheck": null,
     "createdAt": "2026-05-18T02:14:40.45+00:00",
     "updatedAt": "2026-06-02T11:31:58.301326+00:00"
+  },
+  {
+    "id": "3063ed4d-9793-4cb1-98ab-c86a1050a0ea",
+    "slug": "review-camera-xiaomi-mi-home-security-2k",
+    "status": "published",
+    "product": "Xiaomi Mi Home Security Camera 2K",
+    "category": "Câmeras de Segurança",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 418,841",
+    "priceNew": "R$ 364,21",
+    "affiliateUrl": "https://meli.la/11MtxSz",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_619196-MLA80144591013_102024-O.webp",
+    "adsEnabled": false,
+    "meta": {
+      "title": "Review Câmera Xiaomi 2K: Vale a Pena em 2026?",
+      "description": "Análise completa da Câmera Xiaomi Mi Home Security 2K. Descubra se vale o investimento para sua casa inteligente. Confira prós, contras e preço!",
+      "keywords": "câmera xiaomi 2k, câmera de segurança wifi, câmera inteligente casa, mi home security camera, câmera 2k mercado livre, câmera para casa, câmera ip 2k, segurança residencial",
+      "readingTime": 10,
+      "canonical": null,
+      "ogImage": null
+    },
+    "hero": {
+      "headlineLine1": "XIAOMI MI HOME SECURITY 2K",
+      "headlineLine2": "A CÂMERA INTELIGENTE QUE VOCÊ PRECISA?",
+      "headlineEm": "SECURITY 2K",
+      "lead": "Proteger a casa nunca foi tão acessível. A Câmera Xiaomi Mi Home Security Camera 2K promete vigilância nítida, visão noturna impressionante e controle total pelo celular. Mas será que ela entrega o prometido sem quebrar o banco? Analisamos cada detalhe para você.",
+      "overallScore": 8.8,
+      "bars": [
+        {
+          "pct": 85,
+          "label": "Qualidade de Imagem",
+          "value": 8.5
+        },
+        {
+          "pct": 90,
+          "label": "Funcionalidades",
+          "value": 9
+        },
+        {
+          "pct": 90,
+          "label": "Instalação",
+          "value": 9
+        },
+        {
+          "pct": 95,
+          "label": "Custo-benefício",
+          "value": 9.5
+        },
+        {
+          "pct": 80,
+          "label": "Confiabilidade",
+          "value": 8
+        }
+      ]
+    },
+    "specs": [
+      {
+        "label": "Resolução",
+        "value": "2K (2304 x 1296)",
+        "highlight": true
+      },
+      {
+        "label": "Campo de Visão",
+        "value": "130° diagonal",
+        "highlight": false
+      },
+      {
+        "label": "Visão Noturna",
+        "value": "Infravermelho (até 10m)",
+        "highlight": true
+      },
+      {
+        "label": "Conectividade",
+        "value": "Wi-Fi 2.4GHz",
+        "highlight": false
+      },
+      {
+        "label": "Armazenamento",
+        "value": "Cartão microSD (até 256GB) ou Nuvem",
+        "highlight": false
+      },
+      {
+        "label": "Áudio",
+        "value": "Microfone e Alto-falante (comunicação bidirecional)",
+        "highlight": false
+      },
+      {
+        "label": "App Compatível",
+        "value": "Xiaomi Mi Home",
+        "highlight": true
+      },
+      {
+        "label": "Peso",
+        "value": "200g",
+        "highlight": false
+      },
+      {
+        "label": "Garantia",
+        "value": "12 meses",
+        "highlight": false
+      },
+      {
+        "label": "Alimentação",
+        "value": "Cabo micro-USB (5V/1A)",
+        "highlight": false
+      },
+      {
+        "label": "Compressão de Vídeo",
+        "value": "H.265",
+        "highlight": false
+      }
+    ],
+    "sections": [
+      {
+        "id": "design-e-construcao",
+        "content": "A Xiaomi optou por um design **minimalista e funcional**. A câmera tem um corpo cilíndrico branco, discreto o suficiente para se misturar com qualquer decoração. O peso de apenas **200g** facilita a instalação em qualquer superfície. Imagine colocá-la na prateleira da sala ou na moldura da porta de entrada — ela se destoa pouco, mas funciona como um olho atento 24 horas por dia.\n\nO **suporte magnético** é um divisor de águas. Ele permite instalar a câmera no teto, parede ou até em um eletrodoméstico com total facilidade. Você não precisa furar paredes. Basta colar a base adesiva e posicionar a câmera. Por exemplo, se você mora de aluguel e não pode alterar a estrutura, essa instalação sem furacões é uma mão na roda.\n\nO ângulo de rotação manual oferece **liberdade total**. Você pode ajustar a câmera para cobrir exatamente o ponto que deseja monitorar. Isso elimina pontos cegos no seu campo de visão. Na prática, isso significa que você consegue cobrir uma varanda inteira ou monitorar a área de uma portaria doméstica sem precisar de múltiplas câmeras.\n\n> 💡 **Dica Prática:** Para uma instalação externa, compre uma base de proteção contra chuva separada. A câmera tem IP44 (resistência a respingos), mas não é totalmente à prova d'água. Um_case de silicone ou uma cobertura plástica simples pode prolongar a vida útil em ambientes externos. Considere também o comprimento do cabo micro-USB; para instalações no teto, talvez precise de uma extensão ou de um cabo mais longo para esconder o fio elegantemente ao longo da parede.",
+        "heading": "Design Compacto e Instalação Flexível",
+        "tocEmoji": "🏗️",
+        "tocLabel": "Design e Instalação"
+      },
+      {
+        "id": "qualidade-da-imagem",
+        "content": "A resolução de **2K (2304 x 1296 pixels)** é o grande destaque. As imagens ficam nítidas, com cores vibrantes e detalhes nítidos. Você consegue ler placas de carro e reconhecer rostos a curta distância. Isso é crucial em situações reais, como identificar um entregador suspeito ou monitorar o rosto de uma pessoa que toca sua campainha.\n\nO **processamento de imagem** da Xiaomi trabalha em tempo real. Ele ajusta automaticamente a exposição e o contraste em diferentes cenários. Isso evita que imagens fiquem muito escuras ou expostas. Por exemplo, se a câmera estiver de frente para uma janela com sol forte, o WDR (Wide Dynamic Range) equilibra as sombras e as luzes, mantendo os detalhes visíveis tanto dentro quanto fora de casa.\n\nA **visão noturna infravermelha** estende a vigilância para até **10 metros**. Mesmo em ambientes totalmente escuros, a câmera capta formas e movimentos com clareza surpreendente. Ela muda automaticamente para o modo noturno, ativando os LEDs infravermelhos invisíveis a olho nu. Isso é ideal para monitorar quintais, garagens ou corredores sem chamar atenção com luzes vermelhas.\n\n### Comparação de Resolução\n- **Full HD (1080p):** Boa para uso doméstico geral. O suficiente para ver quem está na porta, mas pode perder detalhes finos a maior distância.\n- **2K (1296p):** Excelente para detalhes importantes, como rostos e textos. Oferece cerca de 50% mais pixels que o Full HD, o que faz uma diferença real na hora de ampliar uma imagem.\n- **4K:** Supera-necessário para a maioria dos usuários, com arquivos maiores que consomem muito espaço de armazenamento e banda de internet.\n\nA câmera Xiaomi se posiciona no **ponto ideal** entre qualidade e praticidade. Ela entrega uma imagem superior sem os custos e a complexidade de modelos 4K, que exigem um processamento e uma infraestrutura de rede muito mais robustos.",
+        "heading": "Qualidade da Imagem 2K: Detalhes que Fazem Diferença",
+        "tocEmoji": "📷",
+        "tocLabel": "Qualidade da Imagem"
+      },
+      {
+        "id": "recursos-inteligentes",
+        "content": "A magia acontece no **ecossistema Mi Home**. O aplicativo permite controlar tudo pelo celular, de qualquer lugar do mundo. Você pode ver o vídeo ao vivo, receber alertas e gravar clipes. Imagine estar no trabalho e receber uma notificação de movimento; com dois toques, você verifica o ao vivo e vê que é apenas o carteiro. A tranquilidade é imediata.\n\nA **deteção de movimento com IA** é precisa. Ela diferencia entre pessoas, animais e objetos. Isso reduz drasticamente os alertas falsos, um problema comum em câmeras baratas. Por exemplo, ela não vai te alertar porque uma árvore está balançando com o vento ou porque um gato passou no jardim. Você pode configurar as zonas de detecção no app, focando apenas em áreas críticas, como o portão de entrada ou a janela da sala.\n\nA **comunicação bidirecional** funciona muito bem. O microfone e o alto-falante permitem conversar com quem estiver do outro lado. É útil para espantar vendedores ou se comunicar com a família. Pense em avisar o entregador para deixar a encomenda em local seguro, ou dizer \"ei, estou chegando\" para alguém que está na sua casa sem precisar ligar.\n\n> 💡 **Integração Poderosa:** Conecte a câmera a dispositivos como a **Lâmpada Smart Mi**. Configure para que a luz acenda automaticamente quando a câmera detectar movimento à noite. Uma verdadeira rede de segurança. Outro cenário prático: ao acionar o botão de alarme no app, a câmera pode emitir um som alto e assustador para afastar intrusos, e você pode ver a reação em tempo real pelo celular.",
+        "heading": "Recursos Inteligentes e Integração com Casa Inteligente",
+        "tocEmoji": "🧠",
+        "tocLabel": "Recursos Inteligentes"
+      },
+      {
+        "id": "armazenamento-e-seguranca",
+        "content": "A Xiaomi oferece **duas opções de armazenamento** principais. A primeira é o cartão **microSD** (comprado à parte). A segunda é o serviço de **nuvem da Xiaomi**.\n\nO slot para cartão suporta até **256GB**. Isso permite gravar dias de vídeo em loop (overwrite automático). O custo inicial é maior, mas depois não há mensalidade. Na prática, um cartão de 128GB pode armazenar cerca de 7 a 10 dias de gravação contínua, dependendo do nível de movimento. Quando o cartão enche, ele apaga automaticamente os registros mais antigos para continuar gravando. É ideal para quem quer ter um histórico local sem depender da internet.\n\nA **nuvem Xiaomi** oferece conveniência. Os vídeos ficam seguros fora do seu local. Você pode acessar gravações antigas pelo aplicativo a qualquer momento. Isso é uma segurança extra: se alguém roubar a câmera junto com o cartão, as evidências já estão salvas na nuvem. Geralmente, o plano básico oferece 7 dias de armazenamento por uma taxa mensal acessível.\n\n- **Vantagem do Cartão:** Sem mensalidade. Controle total dos dados. Não depende de internet para gravar (só para acessar).\n- **Vantagem da Nuvem:** Acesso remoto fácil. Dados protegidos contra roubo da câmera. Funciona mesmo que a câmera seja danificada.\n\nO **criptografia** protege seus dados em trânsito e em repouso. A segurança digital é levada a sério. O app permite configurar senhas específicas para o acesso ao vídeo ao vivo, garantindo que apenas pessoas autorizadas possam ver as imagens.",
+        "heading": "Armazenamento e Segurança dos Dados",
+        "tocEmoji": "☁️",
+        "tocLabel": "Armazenamento"
+      },
+      {
+        "id": "conectividade-e-app",
+        "content": "A câmera se conecta via **Wi-Fi 2.4GHz**. Essa frequência tem **maior alcance** e penetração em paredes. É ideal para casas maiores ou instalações externas. No entanto, ela não se conecta a redes 5GHz, o que pode ser uma limitação em ambientes com muito congestionamento de sinal 2.4GHz, como prédios com muitas redes vizinhas.\n\nA conexão com o aplicativo **Mi Home** é rápida e simples. O passo a passo guia você desde a escaneamento do código QR até a configuração final. Leva menos de 5 minutos. O app é intuitivo; você consegue criar \"cenas\" para automatizar ações, como desligar a câmera quando você chega em casa (usando a geolocalização do celular) e ligá-la quando sai.\n\nO **streaming ao vivo** tem latência baixa. O vídeo chega ao seu celular com poucos segundos de atraso. A experiência é fluida, mesmo em conexões de internet mais lentas, graças à compressão H.265 eficiente que equilibra qualidade e consumo de dados. Você pode compartilhar o acesso com familiares, definindo permissões de visualização ou controle total no app.\n\n> 💡 **Problema Comum Resolvido:** Se o sinal Wi-Fi estiver fraco no local da instalação, use um **repetidor Wi-Fi barato**. Isso resolve 90% dos problemas de conexão instável. Outra dica: posicione o roteador o mais próximo possível de onde a câmera ficará instalada, evitando atravessar muitas paredes grossas ou eletrodomésticos grandes que possam interferir no sinal.",
+        "heading": "Conectividade Wi-Fi e Experiência no App",
+        "tocEmoji": "📶",
+        "tocLabel": "Conectividade"
+      },
+      {
+        "id": "analise-de-custo-beneficio",
+        "content": "Com o preço de **R$ 364,21** (vs. R$ 418,84 antigo), a câmera se torna **extremamente competitiva**. Ela entrega recursos de câmeras que custam o dobro. Em um mercado saturado de opções baratas e caras, a Xiaomi encontra o ponto ideal.\n\nPara ter uma ideia, uma câmera com resolução similar da marca **TP-Link** custa em média R$ 450. A Xiaomi oferece mais recursos pelo mesmo preço, como uma integração de ecossistema mais ampla e um design mais moderno. Compare isso com câmeras de marcas genéricas que custam R$ 150-200 e entregam apenas Full HD com aplicativos instáveis e inseguros.\n\nO **investimento se paga rapidamente**. A tranquilidade de saber que sua família e seus bens estão protegidos não tem preço. Uma tentativa de invasão evitada já justifica o custo. Pense nisto como um seguro: você paga uma quantia fixa para evitar uma perda potencialmente muito maior. Além do custo inicial, lembre-se que o custo de manutenção é baixo: apenas a troca eventual do cartão microSD a cada 2-3 anos.\n\n- **Concorrente 1 (TP-Link Tapo C310):** R$ ~400. Boa qualidade, mas app menos intuitivo e menos integrações nativas com outros dispositivos inteligentes.\n- **Concorrente 2 (Intelbras Wisicam 2):** R$ ~350. Marca nacional com suporte local, mas resolução menor (1080p) e design menos flexível.\n\nA Xiaomi vence na **relação preço/desempenho**. Ela oferece o equilíbrio perfeito entre especificações técnicas, usabilidade do software e preço acessível.",
+        "heading": "Custo-Benefício: O Preço Justo por Segurança",
+        "tocEmoji": "💰",
+        "tocLabel": "Custo-Benefício"
+      }
+    ],
+    "compareTable": {
+      "rows": [
+        {
+          "values": [
+            "2K (2304x1296)",
+            "2K (2304x1296)",
+            "Full HD (1920x1080)"
+          ],
+          "winner": 1,
+          "feature": "Resolução Máxima"
+        },
+        {
+          "values": [
+            "130°",
+            "102°",
+            "110°"
+          ],
+          "winner": 1,
+          "feature": "Campo de Visão"
+        },
+        {
+          "values": [
+            "Infravermelho até 10m",
+            "Colorstar até 30m",
+            "Infravermelho até 10m"
+          ],
+          "winner": 2,
+          "feature": "Visão Noturna"
+        },
+        {
+          "values": [
+            "Wi-Fi 2.4GHz",
+            "Wi-Fi 2.4GHz/5GHz",
+            "Wi-Fi 2.4GHz"
+          ],
+          "winner": 2,
+          "feature": "Conectividade"
+        },
+        {
+          "values": [
+            "Mi Home (Ampla integração)",
+            "Tapo/Deco",
+            "Mundo Intelbras"
+          ],
+          "winner": 1,
+          "feature": "Ecossistema"
+        },
+        {
+          "values": [
+            "R$ 364",
+            "R$ 400",
+            "R$ 350"
+          ],
+          "winner": 1,
+          "feature": "Preço Médio (Jun/2026)"
+        },
+        {
+          "values": [
+            "Sim",
+            "Sim",
+            "Sim"
+          ],
+          "winner": 1,
+          "feature": "Comunicação Bidirecional"
+        },
+        {
+          "values": [
+            "Sim",
+            "Não",
+            "Não"
+          ],
+          "winner": 1,
+          "feature": "Suporte Magnético"
+        }
+      ],
+      "caption": "Comparativo de Câmeras de Segurança Wi-Fi",
+      "columns": [
+        "Característica",
+        "Xiaomi Mi Home Security 2K",
+        "TP-Link Tapo C310",
+        "Intelbras Wisicam 2"
+      ],
+      "winnerCol": 1
+    },
+    "pros": [
+      "Resolução 2K nítida, superior a muitas concorrentes na faixa de preço.",
+      "Instalação ultra flexível com base magnética, sem necessidade de furar paredes.",
+      "Integração perfeita com o ecossistema Xiaomi Mi Home e outros dispositivos inteligentes.",
+      "Detecção de movimento inteligente com IA, reduzindo alertas falsos.",
+      "Ótimo custo-benefício com preço acessível e especificações robustas.",
+      "Comunicação bidirecional clara para interação remota."
+    ],
+    "cons": [
+      "Conectividade limitada a Wi-Fi 2.4GHz (não se conecta a redes 5GHz).",
+      "Requer cartão microSD comprado à parte para armazenamento local contínuo.",
+      "Suporte a IP44 não é totalmente à prova d'água para instalações externas expostas.",
+      "Serviço de nuvem da Xiaomi pode ter custo adicional mensal."
+    ],
+    "testimonials": [],
+    "verdict": {
+      "score": 8.8,
+      "label": "MELHOR CUSTO-BENEFÍCIO DO MERCADO",
+      "text": "A Xiaomi Mi Home Security Camera 2K é a escolha inteligente para quem busca segurança doméstica de qualidade sem gastar uma fortuna. Ela combina imagem nítida, instalação flexível e um ecossistema poderoso. Para a maioria dos usuários, ela supera qualquer expectativa.",
+      "note": "Recomendada para: Famílias, proprietários de casas/apartamentos, inquilinos que não podem furar paredes e qualquer pessoa que queira uma câmera de segurança simples e eficaz."
+    },
+    "faq": [
+      {
+        "answer": "Não é obrigatório. Você pode usar um cartão microSD (comprado à parte) para armazenamento local sem custo recorrente. O serviço de nuvem é opcional e pode ter um valor mensal.",
+        "question": "Preciso pagar mensalidade para usar a Câmera Xiaomi 2K?"
+      },
+      {
+        "answer": "Sim. Ela possui visão noturna infravermelha que alcança até 10 metros de distância, capturando imagens claras mesmo no escuro total.",
+        "question": "A câmera funciona bem à noite com pouca luz?"
+      },
+      {
+        "answer": "Ela possui grau de proteção IP44, o que a torna resistente a respingos e chuva leve. Para instalações externas muito expostas a sol ou chuva forte, é recomendado usar um suporte protetor adicional.",
+        "question": "Posso instalar essa câmera na parte externa da casa?"
+      },
+      {
+        "answer": "O app suporta dezenas de dispositivos simultaneamente. Você pode ter várias câmeras Xiaomi e outros produtos da marca (lâmpadas, sensores, etc.) controlados em um só lugar.",
+        "question": "Quantos dispositivos posso conectar ao mesmo tempo no app Mi Home?"
+      },
+      {
+        "answer": "Não, esta versão não possui rotação automática. Ela tem um campo de visão de 130° e uma base magnética para ajuste manual do ângulo. Para cobertura 360°, existem modelos com rotação motorizada (pan-tilt).",
+        "question": "A câmera tem visão panorâmica 360°?"
+      },
+      {
+        "answer": "Esta câmera não possui bateria. Ela precisa estar conectada constantemente a uma fonte de energia via cabo micro-USB para funcionar. Isso garante vigilância 24/7 sem interrupções.",
+        "question": "Qual a duração da bateria da Câmera Xiaomi 2K?"
+      },
+      {
+        "answer": "Sim. Como o vídeo é transmitido pela internet, você pode acessar o feed ao vivo e as gravações de qualquer lugar do mundo, desde que tenha uma conexão estável no celular ou computador.",
+        "question": "Posso acessar as imagens de fora do Brasil?"
+      }
+    ],
+    "schemaRating": {
+      "ratingValue": 4.7,
+      "reviewCount": 12850
+    },
+    "googleRank": 0,
+    "lastRankCheck": "2026-06-01T00:19:29.122",
+    "createdAt": "2026-06-01T00:19:33.132715+00:00",
+    "updatedAt": "2026-06-02T11:35:58.038836+00:00"
   }
 ]
