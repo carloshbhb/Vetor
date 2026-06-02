@@ -4835,5 +4835,192 @@
     "lastRankCheck": "2026-05-21T00:11:19.147",
     "createdAt": "2026-05-21T00:11:19.149+00:00",
     "updatedAt": "2026-06-02T10:42:18.381951+00:00"
+  },
+  {
+    "id": "56f9927e-6d38-478d-8da5-f64e4c49a57a",
+    "slug": "echo-dot-5",
+    "status": "published",
+    "product": "Echo Dot 5",
+    "category": "Notebooks",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 449,00",
+    "priceNew": "R$ 379,00",
+    "affiliateUrl": "https://meli.la/2Tesriz",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_746297-MLA79401219670_092024-O.webp",
+    "adsEnabled": false,
+    "meta": {
+      "title": "Echo Dot 5 em 2026: Vale a Pena Comprar no Mercado Livre?",
+      "description": "Confira nossa análise completa do Echo Dot 5. Veja se o som melhorou, conheça os sensores e garanta o menor preço no Mercado Livre. Compre agora!",
+      "keywords": "Echo Dot 5, Alexa Amazon, caixa de som inteligente, casa inteligente, Mercado Livre Alexa, automação residencial",
+      "readingTime": 8,
+      "canonical": null,
+      "ogImage": null
+    },
+    "hero": {
+      "headlineLine1": "ECHO DOT 5",
+      "headlineLine2": "VALE A PENA COMPRAR?",
+      "headlineEm": "Echo Dot 5",
+      "lead": "O Echo Dot 5 traz som aprimorado e novos sensores inteligentes. Descubra nesta análise se ele ainda domina o mercado de automação residencial.",
+      "overallScore": 8.5,
+      "bars": [
+        {
+          "pct": 88,
+          "label": "Qualidade de Som",
+          "value": 8.8
+        },
+        {
+          "pct": 92,
+          "label": "Microfone",
+          "value": 9.2
+        },
+        {
+          "pct": 95,
+          "label": "Sensores",
+          "value": 9.5
+        },
+        {
+          "pct": 96,
+          "label": "Facilidade de Uso",
+          "value": 9.6
+        },
+        {
+          "pct": 94,
+          "label": "Custo-benefício",
+          "value": 9.4
+        }
+      ]
+    },
+    "specs": [
+      {
+        "label": "Alto-falante",
+        "value": "1,73\" de direcionamento frontal",
+        "highlight": true
+      },
+      {
+        "label": "Conectividade",
+        "value": "Wi-Fi dual-band e Bluetooth",
+        "highlight": false
+      },
+      {
+        "label": "Sensores",
+        "value": "Temperatura e Movimento (Ultrassom)",
+        "highlight": true
+      },
+      {
+        "label": "Assistente Virtual",
+        "value": "Alexa integrada em português",
+        "highlight": false
+      },
+      {
+        "label": "Controles Físicos",
+        "value": "Botões de volume, ação, microfone e painel tátil",
+        "highlight": false
+      },
+      {
+        "label": "Dimensões",
+        "value": "100 mm x 100 mm x 89 mm",
+        "highlight": false
+      }
+    ],
+    "sections": [
+      {
+        "id": "design-e-construcao",
+        "content": "O **Echo Dot 5** mantém o elegante formato esférico que conquistou os lares brasileiros. Esse visual moderno combina com qualquer decoração de forma discreta. O dispositivo possui revestimento em tecido de alta qualidade feito com materiais reciclados. A Amazon usou plásticos e tecidos pós-consumo para reduzir o impacto ambiental do produto.\n\nNa parte superior, você encontra quatro botões físicos de fácil acesso. Eles servem para controlar o volume, acionar a Alexa e silenciar o microfone. O botão de desligar o microfone garante privacidade total para a sua família. Uma grande novidade é o sensor de toque na área do topo. Basta dar um leve toque para pausar músicas ou adiar alarmes de forma rápida.\n\n### Detalhes Visuais e Praticidade\n* **Anel de LED:** Fica na base do aparelho e indica o status da Alexa de forma visual.\n* **Base antiderrapante:** Evita quedas acidentais em superfícies lisas ou molhadas.\n* **Compacto:** Cabe facilmente em mesas de cabeceira, prateleiras e escritórios.\n\n💡 *Dica prática:* O anel de luz azul mostra que a Alexa está ouvindo. A luz vermelha indica que o microfone está desligado para sua total privacidade.",
+        "heading": "Design Esférico e Construção Sustentável",
+        "tocEmoji": "🎨",
+        "tocLabel": "Design e Construção"
+      },
+      {
+        "id": "qualidade-de-som",
+        "content": "A qualidade de áudio é a evolução mais marcante do **Echo Dot 5**. A Amazon adicionou um novo alto-falante de 1,73 polegadas direcionado para frente. Esse driver maior entrega vocais muito mais nítidos e agudos equilibrados. Os graves ganharam o dobro de potência física em relação à geração anterior.\n\nO som preenche ambientes de tamanho médio sem nenhuma distorção perceptível. Você pode ouvir suas playlists favoritas no Spotify, Deezer ou Amazon Music com excelente clareza. O dispositivo funciona muito bem para escutar podcasts e notícias diárias. A voz da Alexa também soa mais natural e menos robotizada devido ao novo projeto acústico.\n\n### Recursos de Áudio Avançados\nVocê pode parear duas unidades do Echo Dot 5 para criar um sistema de som estéreo real. Isso melhora a imersão ao assistir filmes ou ouvir música na sala de estar. O processo de pareamento é feito rapidamente pelo aplicativo Alexa no celular. É uma alternativa barata e inteligente para substituir caixas de som comuns.",
+        "heading": "Performance Sonora com Graves Mais Potentes",
+        "tocEmoji": "🔊",
+        "tocLabel": "Qualidade de Áudio"
+      },
+      {
+        "id": "recursos-inteligentes",
+        "content": "A assistente virtual Alexa é o grande cérebro por trás do **Echo Dot 5**. Ela responde de forma extremamente rápida aos comandos de voz. Os microfones de longo alcance captam sua voz mesmo com música tocando alto no ambiente. Você consegue criar rotinas diárias personalizadas para facilitar sua vida.\n\nO ecossistema da Amazon é o mais compatível do mercado brasileiro de automação. Você pode controlar lâmpadas inteligentes, tomadas conectadas, fechaduras e TVs compatíveis. Basta usar a voz para gerenciar toda a sua casa sem precisar tocar no smartphone. O aplicativo Alexa centraliza todas as configurações de forma muito simples.\n\n### Exemplos de Comandos Úteis\n* *\"Alexa, bom dia\"* para acender as luzes e ouvir as notícias matinais.\n* *\"Alexa, hora do filme\"* para apagar as luzes da sala e ligar a televisão.\n* *\"Alexa, toque músicas relaxantes\"* para criar um clima calmo no quarto.",
+        "heading": "Alexa Integrada e Controle de Casa Inteligente",
+        "tocEmoji": "🧠",
+        "tocLabel": "Recursos e Alexa"
+      },
+      {
+        "id": "sensores-integrados",
+        "content": "O **Echo Dot 5** se destaca pela presença de sensores internos inovadores. Ele possui um sensor de temperatura integrado altamente preciso. Esse sensor mede o clima do cômodo em tempo real de forma constante. Você pode usar essa informação para automatizar outros aparelhos da casa.\n\nOutro recurso excelente é o sensor de movimento por ultrassom. Ele detecta a presença de pessoas no ambiente através de ondas sonoras inaudíveis. Você não precisa de câmeras para saber se alguém entrou no cômodo. Isso garante segurança física e privacidade total dentro do seu lar.\n\n### Como Usar as Automações dos Sensores\n1. **Ar-condicionado inteligente:** Ligue o aparelho se a temperatura do quarto passar de 26 graus.\n2. **Iluminação automática:** Acenda as luzes do escritório assim que você entrar na sala.\n3. **Economia de energia:** Desligue a TV e o ventilador se o cômodo ficar vazio por 15 minutos.",
+        "heading": "Sensores de Temperatura e Movimento por Ultrassom",
+        "tocEmoji": "🌡️",
+        "tocLabel": "Sensores Internos"
+      },
+      {
+        "id": "conectividade-e-instalacao",
+        "content": "A conectividade do **Echo Dot 5** garante uma experiência de uso livre de travamentos. O aparelho conta com Wi-Fi dual-band compatível com redes de 2.4 GHz e 5 GHz. Isso permite uma conexão mais estável e rápida com a internet da sua casa. O pareamento inicial com o aplicativo móvel leva menos de cinco minutos.\n\nO Bluetooth integrado permite usar o dispositivo como uma caixa de som sem fio comum. Você pode conectar seu celular ou notebook diretamente no Echo Dot para reproduzir áudios. A ausência da entrada física P2 de 3,5 mm é a única mudança física nesta geração. No entanto, a conexão sem fio compensa essa falta perfeitamente.\n\n### Passos Simples para Instalação\n* Ligue o Echo Dot 5 na tomada usando a fonte de energia inclusa.\n* Baixe o aplicativo oficial da Alexa na Google Play Store ou Apple App Store.\n* Ative o Bluetooth do celular e siga as instruções na tela do aplicativo para conectar.",
+        "heading": "Conectividade Estável e Instalação Descomplicada",
+        "tocEmoji": "📶",
+        "tocLabel": "Conectividade"
+      },
+      {
+        "id": "custo-beneficio-mercado-livre",
+        "content": "Adquirir o **Echo Dot 5** no Mercado Livre traz diversas vantagens práticas para o consumidor. A plataforma oferece o preço mais competitivo do mercado brasileiro atual. Você encontra diversas opções de vendedores confiáveis com garantia de originalidade do produto.\n\nA entrega rápida através da modalidade Mercado Livre Full é um grande diferencial. Você recebe o produto na sua casa em tempo recorde, muitas vezes no dia seguinte. O parcelamento sem juros facilita a compra sem estourar o orçamento doméstico. A compra protegida garante a devolução do dinheiro caso ocorra qualquer imprevisto.\n\n### Vantagens do Mercado Livre\n* **Frete Grátis:** Disponível para diversas regiões do Brasil na modalidade Full.\n* **Suporte ao Cliente:** Sistema de atendimento eficiente para resolver dúvidas pós-venda.\n* **Avaliações Reais:** Milhares de depoimentos de compradores que atestam a qualidade do produto.",
+        "heading": "Por que Comprar o Echo Dot 5 no Mercado Livre?",
+        "tocEmoji": "🛒",
+        "tocLabel": "Custo-Benefício"
+      }
+    ],
+    "compareTable": {
+      "rows": [],
+      "caption": "",
+      "columns": [],
+      "winnerCol": 1
+    },
+    "pros": [
+      "Qualidade de áudio muito superior com graves potentes",
+      "Sensores de temperatura e movimento integrados para automação",
+      "Painel tátil no topo para pausar músicas e alarmes facilmente",
+      "Microfones de longo alcance com excelente captação de voz",
+      "Design moderno e sustentável feito com materiais reciclados"
+    ],
+    "cons": [
+      "Remoção da saída de áudio analógica P2 de 3,5 mm",
+      "Necessita ficar conectado na tomada de energia constantemente",
+      "Não possui bateria interna para uso portátil",
+      "Fonte de energia com conector proprietário da Amazon"
+    ],
+    "testimonials": [],
+    "verdict": {
+      "score": 9.3,
+      "label": "MELHOR COMPRA DE CASA INTELIGENTE",
+      "text": "O Echo Dot 5 é a melhor caixa de som inteligente de entrada do mercado atual. A evolução na qualidade sonora e os novos sensores de temperatura e movimento justificam o investimento. Ele oferece uma experiência completa de automação por um preço extremamente justo no Mercado Livre.",
+      "note": "Indicado para quem deseja iniciar ou expandir a automação residencial com som de alta qualidade."
+    },
+    "faq": [
+      {
+        "answer": "Não. O Echo Dot 5 não possui bateria interna e precisa ficar conectado à tomada constantemente através da fonte de energia bivolt inclusa na caixa.",
+        "question": "O Echo Dot 5 funciona fora da tomada?"
+      },
+      {
+        "answer": "O Echo Dot 5 possui um alto-falante maior com o dobro de graves, sensor de temperatura, sensor de movimento por ultrassom e painel sensível ao toque no topo.",
+        "question": "Qual a diferença entre o Echo Dot 5 e o Echo Dot 4?"
+      },
+      {
+        "answer": "Não. O uso da assistente Alexa e do aplicativo é totalmente gratuito. Você só paga se assinar serviços de streaming parceiros, como Spotify Premium ou Amazon Music Unlimited.",
+        "question": "É preciso pagar mensalidade para usar a Alexa?"
+      },
+      {
+        "answer": "Sim. O ecossistema Alexa é compatível com milhares de dispositivos inteligentes de marcas famosas como Positivo, Intelbras, Philips Hue, Tuya e muitas outras.",
+        "question": "O Echo Dot 5 é compatível com aparelhos de outras marcas?"
+      },
+      {
+        "answer": "O sensor integrado mede a temperatura do ambiente em tempo real. Você pode visualizar o valor no aplicativo Alexa ou criar rotinas automáticas baseadas no clima do cômodo.",
+        "question": "Como funciona o sensor de temperatura do aparelho?"
+      }
+    ],
+    "schemaRating": {
+      "ratingValue": 4.5,
+      "reviewCount": 100
+    },
+    "googleRank": 1,
+    "lastRankCheck": "2026-05-21T00:11:19.552",
+    "createdAt": "2026-05-21T00:11:19.573+00:00",
+    "updatedAt": "2026-06-02T10:44:51.659883+00:00"
   }
 ]
