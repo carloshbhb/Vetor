@@ -133,7 +133,7 @@ function mapToReviewSummary(row: any): ReviewSummary {
      },
      adsEnabled: !!row.ads_enabled,
      createdAt: row.created_at ?? '',
-     updatedAt: row.updatedAt ?? '',
+      updatedAt: row.updated_at ?? '',
      googleRank: row.google_rank ?? null,
      lastRankCheck: row.last_rank_check ?? null,
    };
@@ -311,6 +311,7 @@ export async function createReview(data: Omit<ReviewData, 'id' | 'createdAt' | '
     compare_table: data.compareTable,
     pros: data.pros,
     cons: data.cons,
+    faq: data.faq,
     testimonials: data.testimonials,
     verdict_score: data.verdict.score,
     verdict_label: data.verdict.label,
