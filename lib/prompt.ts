@@ -76,7 +76,7 @@ Retorne APENAS um objeto JSON válido, sem qualquer texto introdutório, sem blo
     "title": "string (Título SEO ideal de até 60 caracteres contendo o nome do produto e o ano ${year})",
     "description": "string (Meta description otimizada de 150 a 160 caracteres com CTA)",
     "keywords": "string (5 a 8 tags separadas por vírgula)",
-    "slug": "string (slug amigável baseado no nome do produto, sem acentos ou caracteres especiais)",
+    "slug": "string (slug amigável baseado no nome do produto, sem acentos ou caracteres especiais. NÃO inclua a palavra 'review' no slug)",
     "reading_time": 8
   },
   "product": "string (Nome oficial e completo do produto)",
