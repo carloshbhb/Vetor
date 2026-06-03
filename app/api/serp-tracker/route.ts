@@ -72,7 +72,7 @@ export async function POST(_req: NextRequest) {
         try {
           // Attempt Google Search Grounding to check exact rank
           const model = genAI.getGenerativeModel({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-2.5-flash',
             tools: [
               {
                 googleSearchRetrieval: {}

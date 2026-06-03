@@ -205,7 +205,7 @@ export async function POST(req: Request) {
        try {
          console.log('[Generate] Pass 1: Gemini generating review...');
          const genAI = new GoogleGenerativeAI(geminiKey);
-         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
          const result = await model.generateContent({
            contents: [{ role: 'user', parts: [{ text: prompt }] }],

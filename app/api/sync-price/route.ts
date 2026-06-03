@@ -208,7 +208,7 @@ export async function POST(req: Request) {
       const apiKey = process.env.GEMINI_API_KEY;
       if (apiKey) {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
         
         const prompt = `Você é um monitor de preços do e-commerce brasileiro.
 Com base no seu conhecimento de mercado atualizado para o ano atual, estime o preço de mercado atual realista (à vista em Reais R$) do produto "${product}".
