@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const dynamic = 'force-dynamic';
 
-const MAX_PER_RUN = 4;
+const MAX_PER_RUN = 2;
 const DELAY_MS = 42000;
 
 function sleep(ms: number) {
