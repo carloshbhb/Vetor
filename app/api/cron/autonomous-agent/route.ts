@@ -56,10 +56,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
   }
 
-  return handleAutonomousCycle();
+  // Parse optional body for specific product
+  let specificProduct = '';
+  let specificCategory = '';
+  try {
+    const body = await req.json();
+    specificProduct = body.product || '';
+    specificCategory = body.category || '';
+  } catch {
+    // No body or invalid JSON - proceed with autonomous selection
+  }
+
+  return handleAutonomousCycle(specificProduct, specificCategory);
 }
 
-export async function handleAutonomousCycle() {
+export async function handleAutonomousCycle(specificProduct: string = '', specificCategory: string = '') {
   const startTime = Date.now();
 
   try {
@@ -119,6 +130,13 @@ export async function handleAutonomousCycle() {
     let attempts = 0;
     const maxAttempts = 10;
     const triedCategories = new Set<string>();
+
+    // If specific product provided, use it directly
+    if (specificProduct) {
+      trendingProduct = specificProduct;
+      targetCategory = specificCategory || 'Casa Inteligente';
+      console.log(`[Autonomous Agent] Using specific product: ${trendingProduct} (${targetCategory})`);
+    }
 
     while (attempts < maxAttempts && !trendingProduct) {
       attempts++;
@@ -183,15 +201,17 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
         continue;
       }
 
-      // 3. Final duplicate check
-      const exists = reviews.find(
-        (r) =>
-          r.product.toLowerCase().includes(trendingProduct.toLowerCase()) ||
-          r.slug === slugify(trendingProduct)
-      );
-      if (exists) {
-        console.log(`[Autonomous Agent] Review for "${trendingProduct}" already exists. Trying another category.`);
-        trendingProduct = '';
+      // 3. Final duplicate check (skip if specific product requested)
+      if (!specificProduct) {
+        const exists = reviews.find(
+          (r) =>
+            r.product.toLowerCase().includes(trendingProduct.toLowerCase()) ||
+            r.slug === slugify(trendingProduct)
+        );
+        if (exists) {
+          console.log(`[Autonomous Agent] Review for "${trendingProduct}" already exists. Trying another category.`);
+          trendingProduct = '';
+        }
       }
     }
 
@@ -277,13 +297,13 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     // Step 5a: Generate meta, hero, specs
     const metaPrompt = `Retorne APENAS JSON puro (sem markdown, sem explicação) para review do produto "${trendingProduct}", categoria "${targetCategory}". Preço: ${mlPrice || 'não informado'}. Preço antigo: ${mlPriceOld || ''}.
 {
-  "meta": {"title": "título com nome e ano", "description": "155 chars", "keywords": "5-8 tags", "slug": "slug-url", "reading_time": 8},
+  "meta": {"title": "string (título SEO com nome do produto e ano, 50-60 chars)", "description": "string (meta description 150-160 chars com CTA)", "keywords": "string (5-8 tags separadas por vírgula)", "slug": "string (slug amigável sem acentos)", "reading_time": 8},
   "product": "${trendingProduct}",
   "category": "${targetCategory}",
   "priceOld": "${mlPriceOld || ''}",
   "priceNew": "${mlPrice || ''}",
-  "hero": {"headline_line1": "ATÉ 25 CHARS", "headline_line2": "ATÉ 35 CHARS", "headline_em": "destaque", "lead": "3 frases persuasivas", "overall_score": 8.5, "bars": [{"label": "Qualidade", "value": 9, "pct": 90}, {"label": "Custo", "value": 8, "pct": 80}, {"label": "Design", "value": 8.5, "pct": 85}, {"label": "Desempenho", "value": 9, "pct": 90}, {"label": "Bateria", "value": 8, "pct": 80}]},
-  "specs": [{"label": "Marca", "value": "exemplo", "highlight": true}, {"label": "Modelo", "value": "exemplo"}, {"label": "Conectividade", "value": "Bluetooth"}, {"label": "Peso", "value": "200g"}, {"label": "Garantia", "value": "12 meses"}, {"label": "Origem", "value": "Internacional"}]
+  "hero": {"headline_line1": "string (nome curto do produto, ATÉ 25 caracteres, ex: 'SAMSUNG GALAXY FIT3')", "headline_line2": "string (frase de impacto, ATÉ 35 caracteres, ex: 'VALE A PENA EM 2026?')", "headline_em": "string (palavra em destaque azul)", "lead": "string (introdução persuasiva de 3 frases curtas sobre prós e contras)", "overall_score": 8.5, "bars": [{"label": "Qualidade", "value": 9, "pct": 90}, {"label": "Custo", "value": 8, "pct": 80}, {"label": "Design", "value": 8.5, "pct": 85}, {"label": "Desempenho", "value": 9, "pct": 90}, {"label": "Bateria", "value": 8, "pct": 80}]},
+  "specs": [{"label": "string", "value": "string", "highlight": true}]
 }`;
 
     console.log(`[Autonomous Agent] Step 5a: Generating meta/hero/specs with ${nextModel()}...`);
@@ -323,7 +343,7 @@ Retorne APENAS JSON válido:
 {
   "pros": ["string (mínimo 5 prós)"],
   "cons": ["string (mínimo 4 contras)"],
-  "verdict": {"score": 8.5, "label": "string (ex: EXCELENTE CUSTO-BENEFÍCIO)", "text": "string (3 frases persuasivas)", "note": "string (público-alvo)"},
+  "verdict": {"score": 8.5, "label": "string (ex: EXCELENTE CUSTO-BENEFÍCIO)", "text": "string (conclusão persuasiva de 2-3 frases)", "note": "string (público-alvo)"},
   "faq": [{"question": "string", "answer": "string"}],
   "schemas": {"aggregate_rating": {"rating_value": 8.5, "review_count": 100}}
 }

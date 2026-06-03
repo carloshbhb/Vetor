@@ -3571,10 +3571,10 @@
     "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_656423-MLA52233555316_112022-O.webp",
     "adsEnabled": false,
     "hero": {
-      "headlineLine1": "ATÉ 25 CHARS",
-      "headlineLine2": "ATÉ 35 CHARS",
-      "headlineEm": "destaque",
-      "lead": "3 frases persuasivas",
+      "headlineLine1": "ECHO DOT 5ª GERAÇÃO",
+      "headlineLine2": "VALE A PENA EM 2026?",
+      "headlineEm": "ECHO DOT 5",
+      "lead": "O Echo Dot 5ª Geração chegou com sensor de temperatura e graves aprimorados. A Alexa nunca foi tão inteligente, mas a dependência de internet continua sendo o calcanhar de Aquiles. Analisamos se este assistente compacto entrega o prometido para sua casa inteligente.",
       "overallScore": 8.5,
       "bars": [
         {
@@ -3607,28 +3607,37 @@
     "specs": [
       {
         "label": "Marca",
-        "value": "exemplo",
+        "value": "Amazon",
         "highlight": true
       },
       {
         "label": "Modelo",
-        "value": "exemplo"
+        "value": "Echo Dot 5ª Geração",
+        "highlight": true
       },
       {
         "label": "Conectividade",
-        "value": "Bluetooth"
+        "value": "Wi-Fi 802.11ac + Bluetooth 5.0"
       },
       {
         "label": "Peso",
-        "value": "200g"
+        "value": "300g"
+      },
+      {
+        "label": "Driver",
+        "value": "1,6 polegadas"
+      },
+      {
+        "label": "Sensores",
+        "value": "Temperatura ambiente"
       },
       {
         "label": "Garantia",
         "value": "12 meses"
       },
       {
-        "label": "Origem",
-        "value": "Internacional"
+        "label": "Assistente",
+        "value": "Alexa"
       }
     ],
     "sections": [
