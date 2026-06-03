@@ -4,6 +4,34 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const dynamic = 'force-dynamic';
 
+interface GroundingChunk {
+  web?: {
+    uri: string;
+    title: string;
+  };
+}
+
+function extractRankFromGrounding(response: any, targetDomain: string): number {
+  const candidates = response.response?.candidates;
+  if (!candidates?.length) return 0;
+
+  const candidate = candidates[0];
+  const metadata = candidate?.groundingMetadata;
+  if (!metadata) return 0;
+
+  const chunks: GroundingChunk[] = metadata.groundingChunks || [];
+  if (!chunks.length) return 0;
+
+  for (let i = 0; i < chunks.length; i++) {
+    const uri = chunks[i]?.web?.uri || '';
+    if (uri.includes(targetDomain)) {
+      return i + 1;
+    }
+  }
+
+  return 0;
+}
+
 async function trackSERPRanks() {
   const published = await getPublishedReviews();
   if (!published.length) {
@@ -26,25 +54,13 @@ async function trackSERPRanks() {
         tools: [{ googleSearch: {} }] as any,
       });
 
-      const prompt = `Você é o Agente Rastreador de Posição Google da vetor.blog.
-Pesquise no Google Brasil em tempo real a palavra-chave: "${review.product}".
-Encontre onde o site "vetor.blog" aparece na listagem orgânica de resultados.
-
-Retorne APENAS um objeto JSON válido:
-- rank: número de 1 a 100 da posição orgânica (1 = topo), ou 0 se não estiver nas 5 primeiras páginas.
-
-Responda exclusivamente com o JSON, sem markdown.`;
-
+      const prompt = `Pesquise no Google Brasil: "${review.product}"`;
       const response = await model.generateContent(prompt);
-      const text = response.response.text();
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
 
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (typeof parsed.rank === 'number') {
-          finalRank = parsed.rank;
-          groundedCount++;
-        }
+      finalRank = extractRankFromGrounding(response, 'vetor.blog');
+
+      if (finalRank > 0) {
+        groundedCount++;
       }
     } catch (err: any) {
       console.warn(`[SERP] Gemini grounding failed for "${review.product}":`, err.message);
