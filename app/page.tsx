@@ -48,7 +48,9 @@ export default async function Home() {
     .map(([name, count]) => ({
       name,
       count,
-      slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      slug: name.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
     }))
     .sort((a, b) => b.count - a.count);
 
