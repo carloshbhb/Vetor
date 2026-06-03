@@ -39,7 +39,7 @@ const DEFAULT_BARS = [
 ];
 
 function slugify(s: string) {
-  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\x036f]/g, '')
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/\breview\b/gi, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').replace(/-+/g, '-');
 }
