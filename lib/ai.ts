@@ -163,7 +163,7 @@ export async function generateText(options: GenerateTextOptions): Promise<string
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig,
-        tools: [{ googleSearchRetrieval: {} }] as any,
+        tools: [{ googleSearch: {} }] as any,
       });
 
       const responseText = result.response.text();
