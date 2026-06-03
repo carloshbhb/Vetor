@@ -153,7 +153,7 @@ export async function getAllReviews(): Promise<ReviewData[]> {
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
-    .order('updated_at', { ascending: false });
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('[Database] Error fetching all reviews:', error);
@@ -185,7 +185,7 @@ export async function getReviewSummaries(): Promise<ReviewSummary[]> {
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
-    .order('updated_at', { ascending: false });
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('[Database] Error fetching review summaries:', error);
@@ -209,7 +209,7 @@ export async function getPublishedReviews(): Promise<ReviewData[]> {
     .from('reviews')
     .select('*')
     .eq('status', 'published')
-    .order('updated_at', { ascending: false });
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('[Database] Error fetching published reviews:', error);

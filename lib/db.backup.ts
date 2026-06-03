@@ -73,7 +73,7 @@ function writeAll(reviews: ReviewData[]) {
 /** Return all reviews sorted newest-first (full data). */
 export function getAllReviews(): ReviewData[] {
   const reviews = readAll().sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
   console.log('[DB Backup] getAllReviews returning', reviews.length, 'reviews');
   return reviews;
