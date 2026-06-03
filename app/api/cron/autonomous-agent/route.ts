@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateText, generateTextWithModel, getFreeModels } from '@/lib/ai';
+import { generateText } from '@/lib/ai';
 import { getAllReviews } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
 import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
+import { generateReview } from '@/lib/generate';
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
@@ -246,162 +247,83 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       console.warn('[Autonomous Agent] ML API fetch failed (non-fatal):', mlErr.message);
     }
 
-    // 5. Generate the review in multiple steps using different models per section
-    const freeModels = getFreeModels();
-    let modelIdx = 0;
-    const nextModel = () => freeModels[modelIdx++ % freeModels.length].id;
+    // 5. Generate the review using the same flow as "Preencher com IA" button
+    console.log(`[Autonomous Agent] Step 5: Generating review with shared generateReview()...`);
+    const generateResult = await generateReview({
+      product: trendingProduct,
+      category: targetCategory,
+      price: mlPrice || undefined,
+      old_price: mlPriceOld || undefined,
+      affiliate_url: mlAffiliateUrl,
+      image_url: mlImageUrl || undefined,
+      marketplace: 'Mercado Livre',
+      specs: 'Preencher',
+      competitors: 'Concorrentes',
+      tone: 'misto',
+      site_name: 'Vetor Blog',
+      site_url: 'https://www.vetor.blog',
+      author: 'Vetor Blog',
+    });
 
-    // Helper: parse JSON from AI response (aggressive cleanup for free models)
-    const extractBalancedJson = (str: string): string | null => {
-      const start = str.indexOf('{');
-      if (start === -1) return null;
-      let depth = 0;
-      for (let i = start; i < str.length; i++) {
-        if (str[i] === '{') depth++;
-        else if (str[i] === '}') depth--;
-        if (depth === 0) return str.substring(start, i + 1);
-      }
-      return null;
-    };
-    const parseJsonResponse = (text: string, context?: string): any => {
-      if (!text) { console.warn(`[parseJson] Empty response${context ? ' for ' + context : ''}`); return null; }
-      let raw = '';
-      const codeBlock = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-      if (codeBlock) raw = codeBlock[1].trim();
-      else {
-        const m = text.match(/\{[\s\S]*\}/);
-        if (m) raw = m[0];
-      }
-      if (!raw) {
-        // Try balanced extraction
-        const bal = extractBalancedJson(text);
-        if (bal) raw = bal;
-      }
-      if (!raw) {
-        console.warn(`[parseJson] No JSON found${context ? ' for ' + context : ''}. Response start:`, text.substring(0, 300));
-        return null;
-      }
-      console.log(`[parseJson] Raw ${context || 'JSON'} (first 500 chars):`, raw.substring(0, 500));
-      raw = raw
-        .replace(/,\s*([}\]])/g, '$1')
-        .replace(/\/\/.*$/gm, '')
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/:\s*'([^']*?)'/g, ': "$1"')
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
-      try { return JSON.parse(raw); } catch (e: any) {
-        console.warn(`[parseJson] Parse failed${context ? ' for ' + context : ''}: ${e.message}`, 'Raw start:', raw.substring(0, 300));
-        return null;
-      }
-    };
+    const d = generateResult.data;
+    console.log(`[Autonomous Agent] Generation completed with provider: ${generateResult.provider}, SEO passed: ${generateResult.seo.passed}`);
 
-    // Step 5a: Generate meta, hero, specs
-    const metaPrompt = `Retorne APENAS JSON puro (sem markdown, sem explicação) para review do produto "${trendingProduct}", categoria "${targetCategory}". Preço: ${mlPrice || 'não informado'}. Preço antigo: ${mlPriceOld || ''}.
-{
-  "meta": {"title": "string (título SEO com nome do produto e ano, 50-60 chars)", "description": "string (meta description 150-160 chars com CTA)", "keywords": "string (5-8 tags separadas por vírgula)", "slug": "string (slug amigável sem acentos)", "reading_time": 8},
-  "product": "${trendingProduct}",
-  "category": "${targetCategory}",
-  "priceOld": "${mlPriceOld || ''}",
-  "priceNew": "${mlPrice || ''}",
-  "hero": {"headline_line1": "string (nome curto do produto, ATÉ 25 caracteres, ex: 'SAMSUNG GALAXY FIT3')", "headline_line2": "string (frase de impacto, ATÉ 35 caracteres, ex: 'VALE A PENA EM 2026?')", "headline_em": "string (palavra em destaque azul)", "lead": "string (introdução persuasiva de 3 frases curtas sobre prós e contras)", "overall_score": 8.5, "bars": [{"label": "Qualidade", "value": 9, "pct": 90}, {"label": "Custo", "value": 8, "pct": 80}, {"label": "Design", "value": 8.5, "pct": 85}, {"label": "Desempenho", "value": 9, "pct": 90}, {"label": "Bateria", "value": 8, "pct": 80}]},
-  "specs": [{"label": "string", "value": "string", "highlight": true}]
-}`;
-
-    console.log(`[Autonomous Agent] Step 5a: Generating meta/hero/specs with ${nextModel()}...`);
-    const metaText = await generateText({ prompt: metaPrompt, maxOutputTokens: 4096 });
-    const metaData = parseJsonResponse(metaText, 'meta/hero/specs');
-    if (!metaData) throw new Error('Failed to parse meta/hero/specs JSON');
-
-    // Step 5b: Generate sections individually with different models
-    const sectionPrompts = [
-      { id: 'design', heading: 'Design e Construção', tocLabel: 'Design', tocEmoji: '🎨',
-        prompt: `Escreva uma seção de review (300-500 palavras) sobre DESIGN E CONSTRUÇÃO do produto "${trendingProduct}" (${targetCategory}). Use Markdown com negrito, listas bullets e subtópicos H3. Tom persuasivo e informativo em PT-BR. Foque em materiais, acabamento, ergonomia e transportabilidade.` },
-      { id: 'qualidade', heading: 'Qualidade e Desempenho', tocLabel: 'Qualidade', tocEmoji: '⚡',
-        prompt: `Escreva uma seção de review (300-500 palavras) sobre QUALIDADE E DESEMPENHO do produto "${trendingProduct}" (${targetCategory}). Use Markdown com negrito, listas bullets e subtópicos H3. Tom persuasivo em PT-BR. Foque em performance, recursos, velocidade e experiência de uso real.` },
-      { id: 'bateria', heading: 'Autonomia e Bateria', tocLabel: 'Bateria', tocEmoji: '🔋',
-        prompt: `Escreva uma seção de review (300-500 palavras) sobre AUTONOMIA E BATERIA do produto "${trendingProduct}" (${targetCategory}). Use Markdown com negrito, listas bullets e subtópicos H3. Tom persuasivo em PT-BR. Foque em duração real, tempo de carga e comparativo com concorrentes.` },
-      { id: 'custo-beneficio', heading: 'Custo-Benefício', tocLabel: 'Custo-Benefício', tocEmoji: '💰',
-        prompt: `Escreva uma seção de review (300-500 palavras) sobre CUSTO-BENEFÍCIO do produto "${trendingProduct}" (${targetCategory}). Preço atual: ${mlPrice || 'não informado'}. Use Markdown com negrito, listas bullets e subtópicos H3. Tom persuasivo em PT-BR. Compare com concorrentes e justifique o investimento.` },
-    ];
-
-    const sections: any[] = [];
-    for (const sec of sectionPrompts) {
-      const model = nextModel();
-      console.log(`[Autonomous Agent] Step 5b: Generating section "${sec.heading}" with ${model}...`);
-      try {
-        const content = await generateTextWithModel(sec.prompt, model, { maxOutputTokens: 2048 });
-        sections.push({ id: sec.id, heading: sec.heading, tocLabel: sec.tocLabel, tocEmoji: sec.tocEmoji, content });
-      } catch (err: any) {
-        console.warn(`[Autonomous Agent] Section "${sec.heading}" failed: ${err.message}. Using fallback.`);
-        sections.push({ id: sec.id, heading: sec.heading, tocLabel: sec.tocLabel, tocEmoji: sec.tocEmoji,
-          content: `**${sec.heading}**\n\nO ${trendingProduct} impressiona neste aspecto. Sua construção é sólida e os materiais utilizados transmitem qualidade desde o primeiro contato. No uso diário, ele entrega consistentemente o que promete, atendendo às expectativas do público brasileiro.` });
-      }
-    }
-
-    // Step 5c: Generate pros, cons, verdict, FAQ
-    const verdictPrompt = `Gere um JSON para review do "${trendingProduct}" (${targetCategory}).
-Retorne APENAS JSON válido:
-{
-  "pros": ["string (mínimo 5 prós)"],
-  "cons": ["string (mínimo 4 contras)"],
-  "verdict": {"score": 8.5, "label": "string (ex: EXCELENTE CUSTO-BENEFÍCIO)", "text": "string (conclusão persuasiva de 2-3 frases)", "note": "string (público-alvo)"},
-  "faq": [{"question": "string", "answer": "string"}],
-  "schemas": {"aggregate_rating": {"rating_value": 8.5, "review_count": 100}}
-}
-Seja honesto nos contras (aumenta confiança). Mínimo 5 FAQ. PT-BR.`;
-
-    const verdictModel = nextModel();
-    console.log(`[Autonomous Agent] Step 5c: Generating pros/cons/verdict with ${verdictModel}...`);
-    const verdictText = await generateTextWithModel(verdictPrompt, verdictModel, { maxOutputTokens: 2046 });
-    const verdictData = parseJsonResponse(verdictText, 'verdict') || { pros: [], cons: [], verdict: { score: 8.5, label: 'BOM CUSTO-BENEFÍCIO', text: '', note: '' }, faq: [] };
-
-    // Build full review object from all generated parts
+    // 6. Build full review object from generated data
     const now = new Date().toISOString();
     const reviewId = crypto.randomUUID();
 
     const fullReview = {
       id: reviewId,
-      slug: metaData.meta?.slug || slugify(trendingProduct),
+      slug: d.meta?.slug || slugify(trendingProduct),
       status: 'published' as const,
       meta: {
-        title: metaData.meta?.title || `Review ${trendingProduct}: Vale a Pena?`,
-        description: metaData.meta?.description || `Análise completa do ${trendingProduct}.`,
-        keywords: metaData.meta?.keywords || trendingProduct,
-        readingTime: metaData.meta?.reading_time || 8,
-        canonical: metaData.meta?.canonical || null,
-        ogImage: metaData.meta?.og_image || null,
+        title: d.meta?.title || `Review ${trendingProduct}: Vale a Pena?`,
+        description: d.meta?.description || `Análise completa do ${trendingProduct}.`,
+        keywords: d.meta?.keywords || trendingProduct,
+        readingTime: d.meta?.reading_time || 8,
+        canonical: d.meta?.canonical || null,
+        ogImage: d.meta?.og_image || null,
       },
-      product: metaData.product || trendingProduct,
-      category: metaData.category || targetCategory,
-      marketplace: metaData.marketplace || 'Mercado Livre',
-      priceOld: metaData.priceOld || '',
-      priceNew: metaData.priceNew || '',
+      product: d.product || trendingProduct,
+      category: d.category || targetCategory,
+      marketplace: d.marketplace || 'Mercado Livre',
+      priceOld: d.priceOld || d.old_price || '',
+      priceNew: d.priceNew || d.price || '',
       affiliateUrl: mlAffiliateUrl,
-      imageUrl: mlImageUrl || metaData.imageUrl || 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80',
+      imageUrl: mlImageUrl || d.imageUrl || 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80',
       adsEnabled: false,
       hero: {
-        headlineLine1: metaData.hero?.headline_line1 || trendingProduct.toUpperCase(),
-        headlineLine2: metaData.hero?.headline_line2 || 'VALE A PENA COMPRAR?',
-        headlineEm: metaData.hero?.headline_em || trendingProduct,
-        lead: metaData.hero?.lead || `Análise completa do ${trendingProduct}.`,
-        overallScore: metaData.hero?.overall_score || 8.5,
-        bars: metaData.hero?.bars?.map((b: any) => ({ label: b.label, value: b.value, pct: b.pct ?? b.value * 10 })) || [],
+        headlineLine1: d.hero?.headline_line1 || trendingProduct.toUpperCase(),
+        headlineLine2: d.hero?.headline_line2 || 'VALE A PENA COMPRAR?',
+        headlineEm: d.hero?.headline_em || trendingProduct,
+        lead: d.hero?.lead || `Análise completa do ${trendingProduct}.`,
+        overallScore: d.hero?.overall_score || 8.5,
+        bars: d.hero?.bars?.map((b: any) => ({ label: b.label, value: b.value, pct: b.pct ?? b.value * 10 })) || [],
       },
-      specs: metaData.specs || [],
-      sections,
-      compareTable: { caption: '', columns: [], winnerCol: 1, rows: [] },
-      pros: verdictData.pros || [],
-      cons: verdictData.cons || [],
+      specs: d.specs || [],
+      sections: d.sections?.map((s: any) => ({
+        id: s.id, heading: s.heading,
+        tocLabel: s.toc_label, tocEmoji: s.toc_emoji, content: s.content,
+      })) || [],
+      compareTable: d.compare ? {
+        caption: d.compare.caption,
+        columns: d.compare.columns,
+        winnerCol: d.compare.winner_col,
+        rows: d.compare.rows,
+      } : { caption: '', columns: [], winnerCol: 1, rows: [] },
+      pros: d.pros || [],
+      cons: d.cons || [],
       testimonials: [],
-      faq: verdictData.faq || [],
+      faq: d.faq || [],
       verdict: {
-        score: verdictData.verdict?.score || 8.5,
-        label: verdictData.verdict?.label || 'BOM CUSTO-BENEFÍCIO',
-        text: verdictData.verdict?.text || `O ${trendingProduct} é uma excelente compra.`,
-        note: verdictData.verdict?.note || 'Boa relação custo-benefício.',
+        score: d.verdict?.score || 8.5,
+        label: d.verdict?.label || 'BOM CUSTO-BENEFÍCIO',
+        text: d.verdict?.text || `O ${trendingProduct} é uma excelente compra.`,
+        note: d.verdict?.note || 'Boa relação custo-benefício.',
       },
       schemaRating: {
-        ratingValue: verdictData.schemas?.aggregate_rating?.rating_value || 8.5,
-        reviewCount: verdictData.schemas?.aggregate_rating?.review_count || 100,
+        ratingValue: d.schemas?.aggregate_rating?.rating_value || 4.5,
+        reviewCount: d.schemas?.aggregate_rating?.review_count || 5000,
       },
       googleRank: 0,
       lastRankCheck: now,
@@ -409,7 +331,7 @@ Seja honesto nos contras (aumenta confiança). Mínimo 5 FAQ. PT-BR.`;
       updatedAt: now,
     };
 
-    // 6. Save to Supabase directly (bypasses file fallback)
+    // 7. Save to Supabase directly (bypasses file fallback)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !supabaseKey) {
@@ -466,7 +388,7 @@ Seja honesto nos contras (aumenta confiança). Mínimo 5 FAQ. PT-BR.`;
     }
     console.log(`[Autonomous Agent] Saved to Supabase: ${trendingProduct} (${reviewId})`);
 
-    // 7. Commit to GitHub → triggers Vercel redeploy with persistent data
+    // 8. Commit to GitHub → triggers Vercel redeploy with persistent data
     const gitResult = await commitNewReviewToGitHub(fullReview);
     if (gitResult.success) {
       console.log(`[Autonomous Agent] ✅ GitHub commit successful for "${trendingProduct}"`);
@@ -482,6 +404,8 @@ Seja honesto nos contras (aumenta confiança). Mínimo 5 FAQ. PT-BR.`;
       category: targetCategory,
       product: trendingProduct,
       slug: fullReview.slug,
+      provider: generateResult.provider,
+      seoPassed: generateResult.seo.passed,
       githubPersisted: gitResult.success,
       elapsedSeconds: elapsed,
       message: `Artigo "${trendingProduct}" gerado e publicado autonomamente.`,
