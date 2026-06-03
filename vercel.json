@@ -11,6 +11,18 @@
     {
       "path": "/api/serp-tracker",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/serp-tracker",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/serp-tracker",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/serp-tracker",
+      "schedule": "0 21 * * *"
     }
   ]
 }

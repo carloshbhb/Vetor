@@ -44,7 +44,13 @@ async function trackSERPRanks() {
     return { success: true, message: 'Nenhum review publicado.', groundedCount: 0, failedCount: 0, total: 0 };
   }
 
-  const toCheck = published.slice(0, MAX_PER_RUN);
+  const toCheck = [...published]
+    .sort((a, b) => {
+      const aTime = a.lastRankCheck ? new Date(a.lastRankCheck).getTime() : 0;
+      const bTime = b.lastRankCheck ? new Date(b.lastRankCheck).getTime() : 0;
+      return aTime - bTime;
+    })
+    .slice(0, MAX_PER_RUN);
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY não configurada.');
