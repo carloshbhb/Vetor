@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wand2, Loader2, Eye, EyeOff, FileText } from 'lucide-react';
 import type { ReviewData } from '@/lib/types';
@@ -60,6 +60,8 @@ function emptyForm(): FormState {
 export default function ReviewForm({ initial, reviewId }: { initial?: ReviewData; reviewId?: string }) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(initial ? { ...initial } : emptyForm());
+  const formRef = useRef(form);
+  formRef.current = form;
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -240,7 +242,7 @@ export default function ReviewForm({ initial, reviewId }: { initial?: ReviewData
   async function handleSave(status: 'draft' | 'published') {
     setSaving(true);
     try {
-      const payload = { ...form, status };
+      const payload = { ...formRef.current, status };
       const isEdit = !!reviewId;
       const res = await fetch(
         isEdit ? `/api/reviews/${reviewId}` : '/api/reviews',
