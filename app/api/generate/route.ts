@@ -77,7 +77,7 @@ async function callOpenRouterModel(
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
-      'HTTP-Referer': 'https://vetor.blog',
+      'HTTP-Referer': 'https://www.vetor.blog',
       'X-Title': 'Vetor Blog',
     },
     body: JSON.stringify({

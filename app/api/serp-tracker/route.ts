@@ -24,7 +24,7 @@ Responda exclusivamente com o JSON, sem adicionar qualquer markdown, bloco de c√
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
-      'HTTP-Referer': process.env.SITE_URL || 'https://vetor.blog',
+      'HTTP-Referer': process.env.SITE_URL || 'https://www.vetor.blog',
       'X-Title': 'Vetor Blog',
     },
     body: JSON.stringify({

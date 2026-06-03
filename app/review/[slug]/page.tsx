@@ -21,7 +21,7 @@ import ShareButtons from '@/components/review/ShareButtons';
 import Link         from 'next/link';
 import { getPublishedReviews } from '@/lib/db';
 
-const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
 const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
 
 // Helper to safely highlight search terms within headlines

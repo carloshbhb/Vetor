@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const reviews = await getPublishedReviews();
-    const urls = reviews.map(r => `<url><loc>https://vetor.blog/review/${r.slug}</loc></url>`).join('');
+    const urls = reviews.map(r => `<url><loc>https://www.vetor.blog/review/${r.slug}</loc></url>`).join('');
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls}

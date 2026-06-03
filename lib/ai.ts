@@ -44,7 +44,7 @@ async function callOpenRouter(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${apiKey}`,
-    'HTTP-Referer': process.env.SITE_URL || 'https://vetor.blog',
+    'HTTP-Referer': process.env.SITE_URL || 'https://www.vetor.blog',
     'X-Title': 'Vetor Blog',
   };
 

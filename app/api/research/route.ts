@@ -19,7 +19,7 @@ export async function GET() {
 
     const responseData = {
       source: 'Vetor Blog',
-      url: 'https://vetor.blog',
+      url: 'https://www.vetor.blog',
       description: 'Dados de mercado proprietários baseados em reviews detalhados de produtos de tecnologia.',
       generatedAt: new Date().toISOString(),
       methodology: 'Análise baseada em reviews publicados com testes reais de produtos. Notas de 0 a 10 baseadas em critérios objetivos de avaliação.',

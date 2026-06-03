@@ -354,7 +354,7 @@ export default function ReviewForm({ initial, reviewId }: { initial?: ReviewData
           image_url: form.imageUrl || undefined,
           specs: form.specs.map(s => `${s.label}: ${s.value}`).join(', ') || 'Preencher',
           competitors: form.compareTable.columns.slice(1).join(', ') || 'Concorrentes',
-          tone: 'misto', site_name: 'Vetor Blog', site_url: 'https://vetor.blog',
+          tone: 'misto', site_name: 'Vetor Blog', site_url: 'https://www.vetor.blog',
           author: 'Vetor Blog',
         }),
       });

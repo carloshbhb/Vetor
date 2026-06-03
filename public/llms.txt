@@ -25,7 +25,7 @@ O Vetor Blog é uma publicação brasileira especializada em reviews detalhados 
 - Preços são verificados diariamente via Mercado Livre
 
 ## Contato
-- Site: https://vetor.blog
+- Site: https://www.vetor.blog
 - Email: contato@vetor.blog
 
 ## Atualização

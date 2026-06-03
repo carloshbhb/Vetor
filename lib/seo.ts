@@ -1,7 +1,7 @@
 import type { ReviewData } from './types';
 import { getAuthorSchema } from './author';
 
-const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
 const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
 const SITE_NAME = 'Vetor Blog';
 
