@@ -4,6 +4,13 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const dynamic = 'force-dynamic';
 
+const MAX_PER_RUN = 5;
+const DELAY_MS = 42000;
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function extractRankFromGrounding(rawResponse: any, targetDomain: string): { rank: number; debug: string } {
   try {
     const candidates = rawResponse?.candidates;
@@ -13,27 +20,16 @@ function extractRankFromGrounding(rawResponse: any, targetDomain: string): { ran
     const metadata = candidate?.groundingMetadata;
     if (!metadata) return { rank: 0, debug: 'no groundingMetadata' };
 
-    const chunks = metadata.groundingChunks || metadata.search_entry_point?.rendered_content || [];
+    const chunks = metadata.groundingChunks || [];
     if (Array.isArray(chunks) && chunks.length > 0) {
       for (let i = 0; i < chunks.length; i++) {
-        const uri = chunks[i]?.web?.uri || chunks[i]?.uri || '';
+        const uri = chunks[i]?.web?.uri || '';
         if (uri.includes(targetDomain)) {
-          return { rank: i + 1, debug: `found at position ${i + 1}: ${uri}` };
+          return { rank: i + 1, debug: `found at pos ${i + 1}: ${uri}` };
         }
       }
-      const urls = chunks.slice(0, 5).map((c: any) => c?.web?.uri || c?.uri || 'no-uri');
-      return { rank: 0, debug: `not found in ${chunks.length} chunks. Top 5: ${JSON.stringify(urls)}` };
-    }
-
-    const supports = metadata.groundingSupports || [];
-    if (Array.isArray(supports) && supports.length > 0) {
-      for (let i = 0; i < supports.length; i++) {
-        const segment = supports[i]?.segment?.text || '';
-        if (segment.includes(targetDomain)) {
-          return { rank: i + 1, debug: `found in support ${i + 1}` };
-        }
-      }
-      return { rank: 0, debug: `not in ${supports.length} supports` };
+      const urls = chunks.slice(0, 3).map((c: any) => c?.web?.uri || 'no-uri');
+      return { rank: 0, debug: `${chunks.length} results, not found. Top: ${JSON.stringify(urls)}` };
     }
 
     return { rank: 0, debug: `metadata keys: ${Object.keys(metadata).join(',')}` };
@@ -48,6 +44,8 @@ async function trackSERPRanks() {
     return { success: true, message: 'Nenhum review publicado.', groundedCount: 0, failedCount: 0, total: 0 };
   }
 
+  const toCheck = published.slice(0, MAX_PER_RUN);
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY não configurada.');
 
@@ -56,9 +54,14 @@ async function trackSERPRanks() {
   let failedCount = 0;
   const debugLog: string[] = [];
 
-  for (const review of published) {
+  for (let i = 0; i < toCheck.length; i++) {
+    const review = toCheck[i];
     let finalRank = 0;
     let debug = '';
+
+    if (i > 0) {
+      await sleep(DELAY_MS);
+    }
 
     try {
       const model = genAI.getGenerativeModel({
@@ -81,8 +84,14 @@ async function trackSERPRanks() {
         groundedCount++;
       }
     } catch (err: any) {
-      debug = `exception: ${err.message}`;
+      const is429 = err.message?.includes('429') || err.message?.includes('quota');
+      debug = is429 ? '429 quota exceeded' : `exception: ${err.message?.substring(0, 100)}`;
       failedCount++;
+
+      if (is429) {
+        debugLog.push(`${review.product.substring(0, 30)}: 429 - stopping.`);
+        break;
+      }
     }
 
     debugLog.push(`${review.product.substring(0, 30)}: rank=${finalRank} | ${debug}`);
@@ -97,8 +106,9 @@ async function trackSERPRanks() {
     success: true,
     groundedCount,
     failedCount,
+    checked: toCheck.length,
     total: published.length,
-    message: `${groundedCount}/${published.length} rankings atualizados.`,
+    message: `${groundedCount}/${toCheck.length} rankings atualizados. (${published.length - toCheck.length} restantes para amanhã)`,
     debug: debugLog,
   };
 }
