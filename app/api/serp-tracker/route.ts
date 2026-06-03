@@ -4,32 +4,42 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const dynamic = 'force-dynamic';
 
-interface GroundingChunk {
-  web?: {
-    uri: string;
-    title: string;
-  };
-}
+function extractRankFromGrounding(rawResponse: any, targetDomain: string): { rank: number; debug: string } {
+  try {
+    const candidates = rawResponse?.candidates;
+    if (!candidates?.length) return { rank: 0, debug: 'no candidates' };
 
-function extractRankFromGrounding(response: any, targetDomain: string): number {
-  const candidates = response.response?.candidates;
-  if (!candidates?.length) return 0;
+    const candidate = candidates[0];
+    const metadata = candidate?.groundingMetadata;
+    if (!metadata) return { rank: 0, debug: 'no groundingMetadata' };
 
-  const candidate = candidates[0];
-  const metadata = candidate?.groundingMetadata;
-  if (!metadata) return 0;
-
-  const chunks: GroundingChunk[] = metadata.groundingChunks || [];
-  if (!chunks.length) return 0;
-
-  for (let i = 0; i < chunks.length; i++) {
-    const uri = chunks[i]?.web?.uri || '';
-    if (uri.includes(targetDomain)) {
-      return i + 1;
+    const chunks = metadata.groundingChunks || metadata.search_entry_point?.rendered_content || [];
+    if (Array.isArray(chunks) && chunks.length > 0) {
+      for (let i = 0; i < chunks.length; i++) {
+        const uri = chunks[i]?.web?.uri || chunks[i]?.uri || '';
+        if (uri.includes(targetDomain)) {
+          return { rank: i + 1, debug: `found at position ${i + 1}: ${uri}` };
+        }
+      }
+      const urls = chunks.slice(0, 5).map((c: any) => c?.web?.uri || c?.uri || 'no-uri');
+      return { rank: 0, debug: `not found in ${chunks.length} chunks. Top 5: ${JSON.stringify(urls)}` };
     }
-  }
 
-  return 0;
+    const supports = metadata.groundingSupports || [];
+    if (Array.isArray(supports) && supports.length > 0) {
+      for (let i = 0; i < supports.length; i++) {
+        const segment = supports[i]?.segment?.text || '';
+        if (segment.includes(targetDomain)) {
+          return { rank: i + 1, debug: `found in support ${i + 1}` };
+        }
+      }
+      return { rank: 0, debug: `not in ${supports.length} supports` };
+    }
+
+    return { rank: 0, debug: `metadata keys: ${Object.keys(metadata).join(',')}` };
+  } catch (e: any) {
+    return { rank: 0, debug: `error: ${e.message}` };
+  }
 }
 
 async function trackSERPRanks() {
@@ -44,9 +54,11 @@ async function trackSERPRanks() {
   const genAI = new GoogleGenerativeAI(apiKey);
   let groundedCount = 0;
   let failedCount = 0;
+  const debugLog: string[] = [];
 
   for (const review of published) {
     let finalRank = 0;
+    let debug = '';
 
     try {
       const model = genAI.getGenerativeModel({
@@ -55,17 +67,25 @@ async function trackSERPRanks() {
       });
 
       const prompt = `Pesquise no Google Brasil: "${review.product}"`;
-      const response = await model.generateContent(prompt);
+      const result = await model.generateContent(prompt);
 
-      finalRank = extractRankFromGrounding(response, 'vetor.blog');
+      const rawResponse = (result as any).response?.candidates
+        ? (result as any).response
+        : result.response;
+
+      const grounding = extractRankFromGrounding(rawResponse, 'vetor.blog');
+      finalRank = grounding.rank;
+      debug = grounding.debug;
 
       if (finalRank > 0) {
         groundedCount++;
       }
     } catch (err: any) {
-      console.warn(`[SERP] Gemini grounding failed for "${review.product}":`, err.message);
+      debug = `exception: ${err.message}`;
       failedCount++;
     }
+
+    debugLog.push(`${review.product.substring(0, 30)}: rank=${finalRank} | ${debug}`);
 
     await updateReview(review.id, {
       googleRank: finalRank,
@@ -78,7 +98,8 @@ async function trackSERPRanks() {
     groundedCount,
     failedCount,
     total: published.length,
-    message: `${groundedCount}/${published.length} rankings atualizados via Gemini Search Grounding.`,
+    message: `${groundedCount}/${published.length} rankings atualizados.`,
+    debug: debugLog,
   };
 }
 
