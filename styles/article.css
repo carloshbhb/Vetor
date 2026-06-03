@@ -1,0 +1,104 @@
+/* ═══════════════════════════════════════════════════════════
+   ALERT STRIP
+═══════════════════════════════════════════════════════════ */
+.alert-strip {
+  background: var(--blue-light);
+  color: var(--blue-dark);
+  border-bottom: 1px solid var(--blue-mid);
+  text-align: center;
+  padding: 11px 16px;
+  font-family: var(--font-syne), 'Syne', sans-serif;
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BREADCRUMBS
+═══════════════════════════════════════════════════════════ */
+.breadcrumb {
+  padding: 18px 0 0;
+  font-size: .8rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.breadcrumb a {
+  color: var(--blue);
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb span {
+  opacity: .5;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ARTICLE HERO
+═══════════════════════════════════════════════════════════ */
+.article-hero {
+  padding: 36px 0 0;
+}
+
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.meta-tag {
+  background: var(--blue-light);
+  color: var(--blue);
+  border: 1px solid var(--blue-mid);
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-family: var(--font-syne), 'Syne', sans-serif;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.meta-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: .8rem;
+  color: var(--muted);
+}
+
+.meta-info span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.article-hero h1 {
+  font-family: var(--font-bebas), 'Bebas Neue', sans-serif;
+  font-size: clamp(2.4rem, 5vw, 4.2rem);
+  line-height: .95;
+  letter-spacing: .02em;
+  margin-bottom: 20px;
+  max-width: 900px;
+}
+
+.article-hero h1 em {
+  color: var(--blue);
+  font-style: normal;
+}
+
+.hero-lead {
+  font-size: 1.1rem;
+  color: var(--text2);
+  max-width: 740px;
+  line-height: 1.75;
+  margin-bottom: 28px;
+  font-weight: 400;
+}

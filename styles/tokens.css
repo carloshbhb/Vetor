@@ -1,0 +1,29 @@
+/* ═══════════════════════════════════════════════════════════
+   TOKENS — Design Tokens & CSS Variables
+═══════════════════════════════════════════════════════════ */
+:root {
+  --bg: #ffffff;
+  --bg2: #f8fafc;
+  --bg3: #eef2ff;
+  --text: #0f172a;
+  --text2: #334155;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --blue: #2563eb;
+  --blue-dark: #1d4ed8;
+  --blue-light: #eff6ff;
+  --blue-mid: #dbeafe;
+  --green: #16a34a;
+  --green-bg: #dcfce7;
+  --red: #dc2626;
+  --red-bg: #fef2f2;
+  --yellow: #f59e0b;
+  --navy: #1428A0;
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 24px;
+  --sidebar-width: 260px;
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, .06);
+  --shadow: 0 8px 32px rgba(15, 23, 42, .08);
+  --shadow-lg: 0 20px 60px rgba(15, 23, 42, .12);
+}

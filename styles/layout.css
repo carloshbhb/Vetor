@@ -1,0 +1,130 @@
+/* ═══════════════════════════════════════════════════════════
+   LAYOUT: ARTICLE + SIDEBAR
+═══════════════════════════════════════════════════════════ */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 48px;
+  padding: 48px 0 80px;
+  align-items: start;
+}
+
+/* ── ARTICLE BODY ── */
+.article-body {
+  min-width: 0;
+  max-width: 680px;
+}
+
+.article-body h2 {
+  font-family: var(--font-bebas), 'Bebas Neue', sans-serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+  line-height: 1;
+  margin: 52px 0 18px;
+  color: var(--text);
+  letter-spacing: .02em;
+  padding-top: 8px;
+  border-top: 3px solid var(--blue);
+  display: inline-block;
+}
+
+.article-body h3 {
+  font-family: var(--font-syne), 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  margin: 28px 0 10px;
+  color: var(--text);
+}
+
+.article-body p {
+  color: var(--text2);
+  margin-bottom: 18px;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.article-body strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.article-body ul,
+.article-body ol {
+  padding-left: 24px;
+  margin-bottom: 20px;
+  color: var(--text2);
+}
+
+.article-body li {
+  margin-bottom: 8px;
+  line-height: 1.7;
+}
+
+.article-body li strong {
+  color: var(--blue);
+}
+
+/* ── HIGHLIGHT BOX ── */
+.highlight-box {
+  background: var(--blue-light);
+  border-left: 4px solid var(--blue);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 20px 24px;
+  margin: 28px 0;
+}
+
+.highlight-box p {
+  color: var(--blue-dark);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ── VERDICT BOX ── */
+.verdict-box {
+  background: linear-gradient(135deg, #1428A0 0%, #2563eb 100%);
+  border-radius: var(--radius-lg);
+  padding: 36px;
+  color: #fff;
+  margin: 36px 0;
+  box-shadow: 0 20px 50px rgba(37, 99, 235, .25);
+}
+
+.verdict-box .verdict-label {
+  font-family: var(--font-syne), 'Syne', sans-serif;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  opacity: .7;
+  margin-bottom: 10px;
+}
+
+.verdict-box h3 {
+  font-family: var(--font-bebas), 'Bebas Neue', sans-serif;
+  font-size: 2.2rem;
+  color: #fff;
+  margin: 0 0 14px;
+  letter-spacing: .04em;
+}
+
+.verdict-box p {
+  color: rgba(255, 255, 255, .85);
+  margin-bottom: 24px;
+  font-size: 1rem;
+}
+
+.verdict-score {
+  font-family: var(--font-bebas), 'Bebas Neue', sans-serif;
+  font-size: 5rem;
+  line-height: 1;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.verdict-score sup {
+  font-size: 2rem;
+}
+
+.verdict-note {
+  font-size: .78rem;
+  opacity: .65;
+}

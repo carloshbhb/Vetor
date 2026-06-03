@@ -2,13 +2,14 @@
 
 import { useEffect, useRef } from 'react';
 import type { ScoreBar } from '@/lib/types';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 interface ScoreBoxProps {
   overallScore: number;
   bars: ScoreBar[];
 }
 
-export default function ScoreBox({ overallScore, bars }: ScoreBoxProps) {
+function ScoreBoxInner({ overallScore, bars }: ScoreBoxProps) {
   const barsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,5 +62,22 @@ export default function ScoreBox({ overallScore, bars }: ScoreBoxProps) {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function ScoreBox(props: ScoreBoxProps) {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="score-strip" role="region" aria-label="Pontuação geral">
+          <div>
+            <div className="score-label">Nota Vetor Blog</div>
+            <div className="score-number">{props.overallScore.toFixed(1)}</div>
+          </div>
+        </div>
+      }
+    >
+      <ScoreBoxInner {...props} />
+    </ErrorBoundary>
   );
 }

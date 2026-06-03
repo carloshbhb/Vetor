@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
 import { Bebas_Neue, Syne, DM_Sans } from 'next/font/google';
 import './globals.css';
+import '@/styles/tokens.css';
+import '@/styles/base.css';
+import '@/styles/article.css';
+import '@/styles/score.css';
+import '@/styles/layout.css';
+import '@/styles/components.css';
+import '@/styles/sidebar.css';
 import { PerformanceHead } from '@/components/PerformanceHead';
 
 const bebas = Bebas_Neue({
@@ -41,6 +48,8 @@ export const metadata: Metadata = {
   verification: {
     google: 'M3d89AYWh1qAFUV3Od0Za5Es5Ymp-4a5pyCeBvxxEOM',
   },
+  manifest: '/manifest.json',
+  themeColor: '#2563eb',
 };
 
 const organizationSchema = {
@@ -84,6 +93,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PerformanceHead />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.error('SW registration failed:', err));
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body>{children}</body>
     </html>

@@ -1,0 +1,49 @@
+/* ═══════════════════════════════════════════════════════════
+   BASE — Reset & Global Element Styles
+═══════════════════════════════════════════════════════════ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-dm), 'DM Sans', sans-serif;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.container {
+  width: min(1100px, calc(100% - 32px));
+  margin-inline: auto;
+}
+
+/* CLS Prevention — heights reserved for topbar/nav */
+body>div:first-child {
+  min-height: 44px;
+}
+
+body>nav:nth-child(2) {
+  min-height: 72px;
+}
