@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
-const ML_REDIRECT_URI = process.env.ML_REDIRECT_URI || 'https://vetor.blog/api/auth/ml/callback';
+const ML_REDIRECT_URI = 'https://www.vetor.blog/api/auth/ml/callback';
 
 /**
  * Initiates the OAuth flow with Mercado Livre.

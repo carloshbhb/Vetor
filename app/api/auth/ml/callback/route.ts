@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
 const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
-const ML_REDIRECT_URI = process.env.ML_REDIRECT_URI || 'https://vetor.blog/api/auth/ml/callback';
+const ML_REDIRECT_URI = 'https://www.vetor.blog/api/auth/ml/callback';
 
 /**
  * Handles the OAuth callback from Mercado Livre.
@@ -56,15 +56,16 @@ export async function GET(req: NextRequest) {
 
     const tokenData = await tokenResponse.json();
     console.log('[ML OAuth] Token received successfully');
-
-    // Store the token in a secure way (you might want to store it in a database)
-    // For now, we'll log it and redirect to admin
     console.log('[ML OAuth] Access Token:', tokenData.access_token);
     console.log('[ML OAuth] Refresh Token:', tokenData.refresh_token);
     console.log('[ML OAuth] Expires in:', tokenData.expires_in, 'seconds');
 
-    // Redirect to admin with success message
-    return NextResponse.redirect(new URL('/admin?ml_success=token_received', req.url));
+    return NextResponse.json({
+      success: true,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      expires_in: tokenData.expires_in,
+    });
 
   } catch (error: any) {
     console.error('[ML OAuth] Error:', error.message);
