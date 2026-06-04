@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Pinterest, Loader2, Calendar } from 'lucide-react';
+import { Pin, Loader2, Calendar } from 'lucide-react';
 
 interface PinterestPinButtonProps {
   reviewId: string;
@@ -90,7 +90,7 @@ export default function PinterestPinButton({ reviewId, reviewProduct }: Pinteres
         disabled={loading}
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
       >
-        {loading ? <Loader2 size={12} className="animate-spin" /> : <Pinterest size={12} />}
+        {loading ? <Loader2 size={12} className="animate-spin" /> : <Pin size={12} />}
         Criar Pin
       </button>
       <button

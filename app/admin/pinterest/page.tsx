@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { Pinterest, Settings, Loader2, Plus, Calendar, Image } from 'lucide-react';
+import { Pin, Settings, Loader2, Plus, Calendar, Image } from 'lucide-react';
 import { getAllReviews } from '@/lib/db';
 import { getPinterestConfig, getScheduledPins } from '@/lib/pinterest';
 import PinterestSetupForm from '@/components/admin/PinterestSetupForm';
@@ -30,7 +30,7 @@ export default async function PinterestPage() {
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${
             config ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-400'
           }`}>
-            <Pinterest size={18} />
+            <Pin size={18} />
           </div>
           <p className="font-bebas text-4xl text-text leading-none mb-1">
             {config ? 'OK' : 'OFF'}

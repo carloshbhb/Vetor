@@ -16,7 +16,7 @@ import {
   MessageSquare,
   Brain,
   ShoppingBag,
-  PinIcon as PinterestIcon,
+  Pin,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 
@@ -35,7 +35,7 @@ const MONITORING_ITEMS = [
   { href: '/admin/comentarios',   label: 'Comentários',      icon: MessageSquare },
   { href: '/admin/research',      label: 'Research & GEO',   icon: Brain },
   { href: '/admin/ml',            label: 'Mercado Livre',    icon: ShoppingBag },
-  { href: '/admin/pinterest',     label: 'Pinterest',        icon: PinterestIcon },
+  { href: '/admin/pinterest',     label: 'Pinterest',        icon: Pin },
 ];
 
 export default function Sidebar() {
