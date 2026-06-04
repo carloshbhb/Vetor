@@ -12,6 +12,7 @@ import { PerformanceHead } from '@/components/PerformanceHead';
 import Analytics from '@/components/Analytics';
 import WebVitalsReporter from '@/components/WebVitalsReporter';
 import AnalyticsDebugger from '@/components/AnalyticsDebugger';
+import AnalyticsTester from '@/components/AnalyticsTester';
 
 const bebas = Bebas_Neue({
   weight: '400',
@@ -205,6 +206,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Analytics />
         <WebVitalsReporter />
         <AnalyticsDebugger />
+        <AnalyticsTester />
         {children}
       </body>
     </html>

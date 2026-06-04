@@ -31,11 +31,11 @@ const nextConfig = {
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://www.google-analytics.com",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://app.glitchtip.com",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: blob: https://http2.mlstatic.com https://images.mlstatic.com https://images-na.ssl-images-amazon.com https://m.media-amazon.com https://*.supabase.co https://images.unsplash.com https://pagead2.googlesyndication.com",
-            "connect-src 'self' https://*.supabase.co https://indexing.googleapis.com https://api.indexnow.org",
+            "connect-src 'self' https://*.supabase.co https://indexing.googleapis.com https://api.indexnow.org https://www.google-analytics.com https://www.google.com https://*.clarity.ms https://app.glitchtip.com",
             "frame-src https://pagead2.googlesyndication.com",
             "object-src 'none'",
             "base-uri 'self'",
