@@ -38,32 +38,33 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate token by fetching boards
-    const boards = await getPinterestBoards(accessToken);
-    const board = boards.find(b => b.id === boardId);
-
-    if (!board) {
-      return NextResponse.json(
-        { error: 'Board não encontrado ou sem permissão' },
-        { status: 400 }
-      );
+    // Try to validate token by fetching boards, but don't fail if board not found
+    let boardName = 'Board personalizado';
+    try {
+      const boards = await getPinterestBoards(accessToken);
+      const board = boards.find(b => b.id === boardId);
+      if (board) {
+        boardName = board.name;
+      }
+    } catch (e) {
+      console.log('[Pinterest] Could not validate board, proceeding anyway:', e);
     }
 
-    // Save config
+    // Save config even if board validation fails
     await savePinterestConfig({
       accessToken,
       boardId,
-      boardName: board.name,
+      boardName,
     });
 
     return NextResponse.json({
       success: true,
-      boardName: board.name,
+      boardName,
     });
   } catch (error) {
     console.error('Failed to save Pinterest config:', error);
     return NextResponse.json(
-      { error: 'Erro ao salvar configuração' },
+      { error: 'Erro ao salvar configuração: ' + String(error) },
       { status: 500 }
     );
   }
