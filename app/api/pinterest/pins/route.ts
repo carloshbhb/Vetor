@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     const imageUrl = generatePinImageUrl(
       review.product,
       review.hero.overallScore,
-      review.hero.imageUrl
+      review.imageUrl
     );
     const link = `${siteUrl}/review/${review.slug}?utm_source=pinterest&utm_campaign=auto`;
 
