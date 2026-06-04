@@ -13,6 +13,9 @@ import {
   Activity,
   Globe,
   LinkIcon,
+  MessageSquare,
+  Brain,
+  ShoppingBag,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 
@@ -28,6 +31,9 @@ const MONITORING_ITEMS = [
   { href: '/admin/web-vitals',    label: 'Web Vitals',       icon: Activity },
   { href: '/admin/indexing',      label: 'Google Indexing',  icon: Globe },
   { href: '/admin/backlinks',     label: 'Backlinks',        icon: LinkIcon },
+  { href: '/admin/comentarios',   label: 'Comentários',      icon: MessageSquare },
+  { href: '/admin/research',      label: 'Research & GEO',   icon: Brain },
+  { href: '/admin/ml',            label: 'Mercado Livre',    icon: ShoppingBag },
 ];
 
 export default function Sidebar() {
