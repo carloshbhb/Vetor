@@ -139,12 +139,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: `
               (function(){
-                var dsn = '${process.env.NEXT_PUBLIC_GLITCHTIP_DSN || ''}';
+                var dsn = 'https://3bee3ad895124a8bab41c0dd243aa1d1@app.glitchtip.com/24369';
                 if (!dsn) return;
                 
                 window.Sentry = {
                   captureException: function(error, options) {
-                    // Send error to GlitchTip
                     fetch(dsn, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
@@ -175,7 +174,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     }).catch(function() {});
                   },
                   captureMessage: function(message, level) {
-                    // Send message to GlitchTip
                     fetch(dsn, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
