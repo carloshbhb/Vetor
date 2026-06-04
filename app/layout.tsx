@@ -134,6 +134,74 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `,
           }}
         />
+        {/* GlitchTip Error Tracking */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){
+                var dsn = '${process.env.NEXT_PUBLIC_GLITCHTIP_DSN || ''}';
+                if (!dsn) return;
+                
+                window.Sentry = {
+                  captureException: function(error, options) {
+                    // Send error to GlitchTip
+                    fetch(dsn, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        exception: {
+                          values: [{
+                            type: error.name || 'Error',
+                            value: error.message || 'Unknown error',
+                            stacktrace: {
+                              frames: error.stack ? error.stack.split('\\n').slice(1, 6).map(function(line) {
+                                var match = line.match(/at (.+):(\d+:\d+)/);
+                                return {
+                                  filename: match ? match[1] : 'unknown',
+                                  lineno: match ? parseInt(match[2]) : 0,
+                                  colno: match ? parseInt(match[3]) : 0,
+                                };
+                              }) : []
+                            }
+                          }]
+                        },
+                        timestamp: new Date().toISOString(),
+                        platform: 'javascript',
+                        url: window.location.href,
+                        tags: {
+                          mode: '${process.env.NODE_ENV || "production"}'
+                        }
+                      })
+                    }).catch(function() {});
+                  },
+                  captureMessage: function(message, level) {
+                    // Send message to GlitchTip
+                    fetch(dsn, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        logentry: { message: message },
+                        level: level || 'info',
+                        timestamp: new Date().toISOString(),
+                        platform: 'javascript',
+                        url: window.location.href
+                      })
+                    }).catch(function() {});
+                  },
+                  withScope: function(callback) {
+                    var scope = {
+                      setExtra: function() {},
+                      setTag: function() {},
+                      setUser: function() {}
+                    };
+                    if (callback) callback(scope);
+                  },
+                  addBreadcrumb: function() {}
+                };
+              })();
+            `,
+          }}
+        />
       </head>
       <body>
         <Analytics />
