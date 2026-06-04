@@ -340,6 +340,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
     const insertData = {
+      id: reviewId,
       slug: fullReview.slug,
       status: fullReview.status,
       product: fullReview.product,
@@ -367,6 +368,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       compare_table: fullReview.compareTable,
       pros: fullReview.pros,
       cons: fullReview.cons,
+      faq: fullReview.faq,
       testimonials: fullReview.testimonials,
       verdict_score: fullReview.verdict.score,
       verdict_label: fullReview.verdict.label,
