@@ -290,7 +290,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       priceOld: d.priceOld || d.old_price || '',
       priceNew: d.priceNew || d.price || '',
       affiliateUrl: mlAffiliateUrl,
-      imageUrl: mlImageUrl || d.imageUrl || 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80',
+      imageUrl: mlImageUrl || d.imageUrl || '',
       adsEnabled: false,
       hero: {
         headlineLine1: d.hero?.headline_line1 || trendingProduct.toUpperCase(),

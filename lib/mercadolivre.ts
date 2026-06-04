@@ -321,7 +321,7 @@ async function fetchBySearch(query: string): Promise<MLProduct | null> {
     title: bestResult.title,
     price: bestResult.price,
     originalPrice: bestResult.original_price ?? null,
-    imageUrl: thumbnail || 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80',
+    imageUrl: thumbnail || '',
     permalink: bestResult.permalink,
     affiliateUrl: buildAffiliateUrl(bestResult.permalink),
     currency: bestResult.currency_id || 'BRL',
