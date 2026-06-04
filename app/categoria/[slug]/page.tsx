@@ -167,8 +167,14 @@ export default async function CategoryPage({ params }: { params: { slug: string 
 
       {/* Footer */}
       <footer className="border-t border-border bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 text-center">
-          <p className="text-xs text-text-muted">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-text-muted mb-4">
+            <Link href="/sobre" className="hover:text-blue transition-colors">Sobre</Link>
+            <Link href="/privacidade" className="hover:text-blue transition-colors">Privacidade</Link>
+            <Link href="/termos" className="hover:text-blue transition-colors">Termos</Link>
+            <Link href="/sitemap.xml" className="hover:text-blue transition-colors">Sitemap</Link>
+          </div>
+          <p className="text-xs text-text-muted text-center">
             Vetor.blog — Reviews sinceros para compradores inteligentes.
           </p>
         </div>

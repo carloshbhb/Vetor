@@ -31,6 +31,9 @@ export default function VerdictBox({
           >
             Ver Preço de Hoje ({priceNew || 'Oferta'}) →
           </a>
+          <p className="text-xs text-text-muted mt-2">
+            Link de afiliado — ao comprar por aqui, você apoia o Vetor Blog sem custo adicional.
+          </p>
         </div>
       )}
       {note && <p className="verdict-note">★ {note}</p>}

@@ -398,7 +398,10 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
               <span className="font-syne font-bold text-text">vetor.blog</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-text-muted">
+              <Link href="/sobre" className="hover:text-blue transition-colors">Sobre</Link>
               <Link href="/research" className="hover:text-blue transition-colors">Pesquisa de Mercado</Link>
+              <Link href="/privacidade" className="hover:text-blue transition-colors">Privacidade</Link>
+              <Link href="/termos" className="hover:text-blue transition-colors">Termos</Link>
               <Link href="/sitemap.xml" className="hover:text-blue transition-colors">Sitemap</Link>
               <a href="/llms.txt" className="hover:text-blue transition-colors">llms.txt</a>
             </div>
