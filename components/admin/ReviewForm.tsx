@@ -179,7 +179,7 @@ export default function ReviewForm({ initial, reviewId }: { initial?: ReviewData
       
       setForm(f => ({
         ...f,
-        slug: d.meta?.slug || slugify(form.product),
+        slug: slugify(d.meta?.slug || form.product),
         product: d.product || f.product,
         category: d.category || f.category,
         priceOld: syncedSuccess ? currentPriceOld : (d.priceOld || d.old_price || f.priceOld),

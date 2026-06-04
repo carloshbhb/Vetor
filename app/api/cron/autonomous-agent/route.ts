@@ -274,7 +274,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
 
     const fullReview = {
       id: reviewId,
-      slug: d.meta?.slug || slugify(trendingProduct),
+      slug: slugify(d.meta?.slug || trendingProduct),
       status: 'published' as const,
       meta: {
         title: d.meta?.title || `Review ${trendingProduct}: Vale a Pena?`,
