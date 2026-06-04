@@ -9,14 +9,25 @@ import {
   ExternalLink,
   Zap,
   LogOut,
+  AlertTriangle,
+  Activity,
+  Globe,
+  LinkIcon,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 
 const NAV_ITEMS = [
-  { href: '/admin',               label: 'Dashboard',      icon: LayoutDashboard },
-  { href: '/admin/novo-review',   label: 'Novo Review',    icon: PlusCircle },
+  { href: '/admin',               label: 'Dashboard',        icon: LayoutDashboard },
+  { href: '/admin/novo-review',   label: 'Novo Review',      icon: PlusCircle },
   { href: '/admin/reviews',       label: 'Todos os Reviews', icon: FileText },
-  { href: '/admin/tendencias',    label: 'IA Tendências',   icon: Zap },
+  { href: '/admin/tendencias',    label: 'IA Tendências',    icon: Zap },
+];
+
+const MONITORING_ITEMS = [
+  { href: '/admin/errors',        label: 'Error Logs',       icon: AlertTriangle },
+  { href: '/admin/web-vitals',    label: 'Web Vitals',       icon: Activity },
+  { href: '/admin/indexing',      label: 'Google Indexing',  icon: Globe },
+  { href: '/admin/backlinks',     label: 'Backlinks',        icon: LinkIcon },
 ];
 
 export default function Sidebar() {
@@ -54,6 +65,26 @@ export default function Sidebar() {
             {label}
           </Link>
         ))}
+
+        <div className="mt-4 pt-4 border-t border-white/10">
+          <p className="text-white/30 text-[10px] font-bold tracking-[0.14em] uppercase px-3 py-2">
+            Monitoramento
+          </p>
+          {MONITORING_ITEMS.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                ${isActive(href)
+                  ? 'bg-white/20 text-white font-semibold'
+                  : 'text-white/60 hover:bg-white/10 hover:text-white'
+                }`}
+            >
+              <Icon size={17} className={isActive(href) ? 'opacity-100' : 'opacity-60'} />
+              {label}
+            </Link>
+          ))}
+        </div>
 
         <div className="mt-4 pt-4 border-t border-white/10">
           <p className="text-white/30 text-[10px] font-bold tracking-[0.14em] uppercase px-3 py-2">

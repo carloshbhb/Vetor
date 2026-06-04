@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-
-// In-memory store (in production, use database)
-const commentsStore: Array<{ id: string; likes: number }> = [];
+import { likeComment } from '@/lib/db-comments';
 
 export async function POST(
   request: Request,
@@ -9,17 +7,8 @@ export async function POST(
 ) {
   try {
     const commentId = params.id;
-
-    // Find or create comment in store
-    let comment = commentsStore.find((c) => c.id === commentId);
-    if (!comment) {
-      comment = { id: commentId, likes: 0 };
-      commentsStore.push(comment);
-    }
-
-    comment.likes++;
-
-    return NextResponse.json({ success: true, likes: comment.likes });
+    await likeComment(commentId);
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to like comment:', error);
     return NextResponse.json({ success: false }, { status: 500 });
