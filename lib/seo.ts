@@ -152,3 +152,69 @@ export function buildBreadcrumbSchema(review: ReviewData) {
     ],
   };
 }
+
+// ─── HowTo Schema (Steps/Guide) ──────────────────────────────────────────────
+export function buildHowToSchema(review: ReviewData) {
+  if (!review.sections?.length) return null;
+  
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: `Como escolher ${review.product} - Guia Completo`,
+    description: review.meta.description,
+    image: review.imageUrl || `${SITE_URL}/og-default.jpg`,
+    totalTime: 'PT10M',
+    estimatedCost: {
+      '@type': 'MonetaryAmount',
+      currency: 'BRL',
+      value: review.priceNew.replace(/[^\d,]/g, '').replace(',', '.') || '0',
+    },
+    supply: [
+      {
+        '@type': 'HowToSupply',
+        name: 'Pesquisa de preços',
+      },
+    ],
+    tool: [
+      {
+        '@type': 'HowToTool',
+        name: 'Este review detalhado',
+      },
+    ],
+    step: review.sections.slice(0, 5).map((section, index) => ({
+      '@type': 'HowToStep',
+      position: index + 1,
+      name: section.heading,
+      text: section.content.substring(0, 200) + '...',
+      image: review.imageUrl,
+    })),
+  };
+}
+
+// ─── VideoObject Schema (Video Rich Results) ─────────────────────────────────
+export function buildVideoObjectSchema(review: ReviewData) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: `Review ${review.product} - Análise Completa`,
+    description: review.meta.description,
+    thumbnailUrl: review.imageUrl || `${SITE_URL}/og-default.jpg`,
+    uploadDate: review.createdAt,
+    duration: 'PT10M',
+    contentUrl: `${SITE_URL}/review/${review.slug}`,
+    embedUrl: `${SITE_URL}/review/${review.slug}`,
+    publisher: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/logo.png`,
+      },
+    },
+    interactionStatistic: {
+      '@type': 'InteractionCounter',
+      interactionType: { '@type': 'WatchAction' },
+      userInteractionCount: 1000,
+    },
+  };
+}

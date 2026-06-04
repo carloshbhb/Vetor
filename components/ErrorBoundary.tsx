@@ -1,22 +1,22 @@
 'use client';
 
-import { Component, type ReactNode } from 'react';
-
-interface ErrorBoundaryProps {
-  children: ReactNode;
-  fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
-}
+import React from 'react';
 
 interface ErrorBoundaryState {
   hasError: boolean;
-  error: Error | null;
+  error?: Error;
 }
 
-export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+}
+
+export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
@@ -24,8 +24,36 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[ErrorBoundary]', error, errorInfo);
+    // Log to console in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('ErrorBoundary caught:', error, errorInfo);
+    }
+
+    // Send to external error tracking service
+    this.logError(error, errorInfo);
+
+    // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
+  }
+
+  private async logError(error: Error, errorInfo: React.ErrorInfo) {
+    try {
+      // Send to API endpoint for logging
+      await fetch('/api/errors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: error.message,
+          stack: error.stack,
+          componentStack: errorInfo.componentStack,
+          url: typeof window !== 'undefined' ? window.location.href : '',
+          timestamp: new Date().toISOString(),
+          type: 'client',
+        }),
+      });
+    } catch {
+      // Silently fail if error logging fails
+    }
   }
 
   render() {
@@ -35,24 +63,34 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
       }
 
       return (
-        <div className="bg-red-bg border border-red/20 rounded-xl p-6 text-center">
-          <div className="w-12 h-12 bg-red/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
+        <div className="min-h-[200px] flex items-center justify-center p-8 bg-red-50 rounded-xl border border-red-200">
+          <div className="text-center">
+            <svg
+              className="w-12 h-12 text-red-500 mx-auto mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
+            <h3 className="text-lg font-semibold text-red-800 mb-2">
+              Algo deu errado
+            </h3>
+            <p className="text-sm text-red-600 mb-4">
+              Ocorreu um erro inesperado. Tente recarregar a página.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Recarregar Página
+            </button>
           </div>
-          <h3 className="font-syne font-bold text-lg text-text mb-2">Algo deu errado</h3>
-          <p className="text-text-muted text-sm mb-4">
-            Ocorreu um erro inesperado. Por favor, tente novamente.
-          </p>
-          <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-            className="px-4 py-2 bg-blue text-white rounded-lg text-sm font-medium hover:bg-blue-dark transition-colors"
-          >
-            Tentar novamente
-          </button>
         </div>
       );
     }

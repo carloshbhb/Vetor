@@ -9,6 +9,8 @@ import '@/styles/layout.css';
 import '@/styles/components.css';
 import '@/styles/sidebar.css';
 import { PerformanceHead } from '@/components/PerformanceHead';
+import Analytics from '@/components/Analytics';
+import WebVitalsReporter from '@/components/WebVitalsReporter';
 
 const bebas = Bebas_Neue({
   weight: '400',
@@ -107,7 +109,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <Analytics />
+        <WebVitalsReporter />
+        {children}
+      </body>
     </html>
   );
 }

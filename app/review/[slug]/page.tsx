@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Script from 'next/script';
 import { getReviewBySlug, getPublishedSlugs } from '@/lib/db';
 import { markdownToHtml } from '@/lib/markdown';
-import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema, buildNewsArticleSchema } from '@/lib/seo';
+import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema, buildNewsArticleSchema, buildHowToSchema, buildVideoObjectSchema } from '@/lib/seo';
 import { defaultAuthor } from '@/lib/author';
 
 import Logo         from '@/components/Logo';
@@ -18,6 +18,7 @@ import VerdictBox   from '@/components/review/VerdictBox';
 import ReviewTOC    from '@/components/review/ReviewTOC';
 import AdSlot       from '@/components/review/AdSlot';
 import ShareButtons from '@/components/review/ShareButtons';
+import CommentsSection from '@/components/review/CommentsSection';
 import Link         from 'next/link';
 import { getPublishedReviews } from '@/lib/db';
 
@@ -77,6 +78,8 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
   const faqSchema        = buildFAQSchema(review);
   const breadcrumbSchema = buildBreadcrumbSchema(review);
   const newsSchema       = buildNewsArticleSchema(review);
+  const howToSchema      = buildHowToSchema(review);
+  const videoSchema      = buildVideoObjectSchema(review);
 
   const { hero, specs, compareTable, pros, cons, faq, verdict, adsEnabled } = review;
 
@@ -91,6 +94,8 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
       {faqSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(newsSchema) }} />
+      {howToSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }} />}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }} />
 
       {/* AdSense script (only if ads enabled) */}
       {adsEnabled && process.env.NEXT_PUBLIC_AD_CLIENT && (
@@ -351,8 +356,13 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
                      </p>
                    </div>
                  </div>
-               </div>
-             </article>
+                </div>
+              </article>
+
+              {/* Comments Section (UGC) */}
+              <div className="mt-8">
+                <CommentsSection reviewId={review.id} reviewSlug={review.slug} />
+              </div>
 
             {/* ── Sidebar ── */}
             <aside className="sidebar" aria-label="Navegação do artigo e oferta">
