@@ -7,6 +7,7 @@ interface SerpHistoryChartProps {
     id: string;
     product: string;
     slug: string;
+    status?: string;
     googleRank?: number | null;
     lastRankCheck?: string;
     updatedAt: string;
