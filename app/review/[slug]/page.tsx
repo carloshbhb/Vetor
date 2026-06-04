@@ -350,19 +350,19 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
                      </div>
                    </div>
 
-                   <div className="pt-4 border-t border-border">
-                     <p className="text-xs text-text-muted">
-                       <strong>Nota do editor:</strong> Este review é baseado em testes reais do produto. O Vetor Blog não aceita pagamentos por notas positivas. Os links de afiliado ajudam a manter o site sem custos para o leitor.
-                     </p>
-                   </div>
-                 </div>
+                    <div className="pt-4 border-t border-border">
+                      <p className="text-xs text-text-muted">
+                        <strong>Nota do editor:</strong> Este review é baseado em testes reais do produto. O Vetor Blog não aceita pagamentos por notas positivas. Os links de afiliado ajudam a manter o site sem custos para o leitor.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comments Section (UGC) */}
+                <div className="mt-8">
+                  <CommentsSection reviewId={review.id} reviewSlug={review.slug} />
                 </div>
               </article>
-
-              {/* Comments Section (UGC) */}
-              <div className="mt-8">
-                <CommentsSection reviewId={review.id} reviewSlug={review.slug} />
-              </div>
 
             {/* ── Sidebar ── */}
             <aside className="sidebar" aria-label="Navegação do artigo e oferta">
