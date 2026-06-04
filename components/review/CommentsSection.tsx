@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { validateComment, MAX_LENGTH } from '@/lib/commentValidation';
 
 interface Comment {
   id: string;
@@ -24,6 +25,7 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
   const [rating, setRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'popular'>('newest');
+  const [error, setError] = useState<string | null>(null);
 
   // Load comments
   useEffect(() => {
@@ -44,7 +46,16 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
     if (!newComment.trim() || !authorName.trim()) return;
+
+    // Client-side validation
+    const validation = validateComment(newComment, authorName);
+    if (!validation.valid) {
+      setError(validation.error || 'Erro de validação.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -60,13 +71,18 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
         }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         setNewComment('');
         setRating(0);
         loadComments();
+      } else {
+        setError(data.error || 'Erro ao enviar comentário.');
       }
     } catch (error) {
       console.error('Failed to submit comment:', error);
+      setError('Erro ao enviar comentário. Tente novamente.');
     } finally {
       setIsSubmitting(false);
     }
@@ -141,13 +157,28 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
           </label>
           <textarea
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            onChange={(e) => {
+              setNewComment(e.target.value);
+              setError(null);
+            }}
             placeholder="Compartilhe sua experiência com o produto..."
             rows={4}
+            maxLength={MAX_LENGTH}
             className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue focus:border-transparent resize-none"
             required
           />
+          <div className="flex justify-between mt-1">
+            <span className={`text-xs ${newComment.length > 900 ? 'text-orange-500' : 'text-text-muted'}`}>
+              {newComment.length}/{MAX_LENGTH} caracteres
+            </span>
+          </div>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+            {error}
+          </div>
+        )}
 
         <button
           type="submit"
