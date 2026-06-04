@@ -11,6 +11,7 @@ import '@/styles/sidebar.css';
 import { PerformanceHead } from '@/components/PerformanceHead';
 import Analytics from '@/components/Analytics';
 import WebVitalsReporter from '@/components/WebVitalsReporter';
+import AnalyticsDebugger from '@/components/AnalyticsDebugger';
 
 const bebas = Bebas_Neue({
   weight: '400',
@@ -112,6 +113,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Analytics />
         <WebVitalsReporter />
+        <AnalyticsDebugger />
         {children}
       </body>
     </html>
