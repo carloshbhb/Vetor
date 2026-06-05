@@ -23,7 +23,7 @@ export default function ReconfigureButton() {
         throw new Error(data.error || 'Erro ao limpar configuração');
       }
 
-      window.location.reload();
+      window.location.href = '/admin/pinterest?t=' + Date.now();
     } catch (err) {
       setError(String(err));
       setLoading(false);

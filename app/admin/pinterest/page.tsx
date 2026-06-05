@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { headers } from 'next/headers';
 import { Pin, Settings, Loader2, Plus, Calendar, Image } from 'lucide-react';
 import { getAllReviews } from '@/lib/db';
 import { getPinterestConfig, getScheduledPins } from '@/lib/pinterest';
@@ -9,6 +10,7 @@ import PinterestScheduledPins from '@/components/admin/PinterestScheduledPins';
 import ReconfigureButton from '@/components/admin/ReconfigureButton';
 
 export default async function PinterestPage() {
+  headers().set('Cache-Control', 'no-store, no-cache, must-revalidate');
   const [config, reviews, scheduledPins] = await Promise.all([
     getPinterestConfig(),
     getAllReviews(),
