@@ -6,6 +6,7 @@ import { getPinterestConfig, getScheduledPins } from '@/lib/pinterest';
 import PinterestSetupForm from '@/components/admin/PinterestSetupForm';
 import PinterestPinButton from '@/components/admin/PinterestPinButton';
 import PinterestScheduledPins from '@/components/admin/PinterestScheduledPins';
+import ReconfigureButton from '@/components/admin/ReconfigureButton';
 
 export default async function PinterestPage() {
   const [config, reviews, scheduledPins] = await Promise.all([
@@ -65,10 +66,11 @@ export default async function PinterestPage() {
       ) : (
         <>
           <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden mb-8">
-            <div className="px-6 py-4 border-b border-border">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
               <p className="font-syne font-bold text-xs uppercase tracking-widest text-text">
                 Board Conectado: {config.boardName}
               </p>
+              <ReconfigureButton />
             </div>
             <div className="p-6">
               <p className="text-sm text-text-muted mb-4">

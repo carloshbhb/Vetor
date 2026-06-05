@@ -104,7 +104,7 @@ export default function PinterestSetupForm() {
           <h4 className="font-syne font-bold text-sm text-blue-800 mb-2">Como obter o Access Token:</h4>
           <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
             <li>Acesse <a href="https://developers.pinterest.com" target="_blank" className="underline">developers.pinterest.com</a></li>
-            <li>Crie um aplicativo com os scopes: <code className="bg-blue-100 px-1 rounded">pins:write</code>, <code className="bg-blue-100 px-1 rounded">boards:read</code></li>
+            <li>Crie um aplicativo com os scopes: <code className="bg-blue-100 px-1 rounded">pins:write</code>, <code className="bg-blue-100 px-1 rounded">boards:write</code>, <code className="bg-blue-100 px-1 rounded">boards:read</code></li>
             <li>Gere um Access Token via OAuth 2.0</li>
             <li>Cole o token abaixo</li>
           </ol>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPinterestConfig, savePinterestConfig, getPinterestBoards } from '@/lib/pinterest';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,6 +66,24 @@ export async function POST(request: Request) {
     console.error('Failed to save Pinterest config:', error);
     return NextResponse.json(
       { error: 'Erro ao salvar configuração: ' + String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE() {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    await supabase.from('pinterest_config').delete().eq('id', 'default');
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Erro ao limpar configuração: ' + String(error) },
       { status: 500 }
     );
   }
