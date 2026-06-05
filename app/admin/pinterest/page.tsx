@@ -6,7 +6,6 @@ import { getPinterestConfig, getScheduledPins } from '@/lib/pinterest';
 import PinterestSetupForm from '@/components/admin/PinterestSetupForm';
 import PinterestPinButton from '@/components/admin/PinterestPinButton';
 import PinterestScheduledPins from '@/components/admin/PinterestScheduledPins';
-import ReconfigureButton from '@/components/admin/ReconfigureButton';
 
 export default async function PinterestPage() {
   const [config, reviews, scheduledPins] = await Promise.all([
@@ -61,77 +60,74 @@ export default async function PinterestPage() {
         </div>
       </div>
 
-      {!config ? (
-        <PinterestSetupForm />
-      ) : (
-        <>
-          <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden mb-8">
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-              <p className="font-syne font-bold text-xs uppercase tracking-widest text-text">
-                Board Conectado: {config.boardName}
-              </p>
-              <ReconfigureButton />
-            </div>
-            <div className="p-6">
-              <p className="text-sm text-text-muted mb-4">
-                Seu Pinterest está conectado. Clique em "Criar Pin" ao lado de cada review para publicar automaticamente.
-              </p>
-            </div>
+      {config && (
+        <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden mb-8">
+          <div className="px-6 py-4 border-b border-border">
+            <p className="font-syne font-bold text-xs uppercase tracking-widest text-text">
+              Board Conectado: {config.boardName}
+            </p>
           </div>
-
-          <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden mb-8">
-            <div className="px-6 py-4 border-b border-border">
-              <p className="font-syne font-bold text-xs uppercase tracking-widest text-text">
-                Reviews Publicados
-              </p>
-            </div>
-            {publishedReviews.length === 0 ? (
-              <div className="text-center py-16 text-text-muted">
-                <Image size={40} className="mx-auto mb-3 opacity-30" />
-                <p className="font-syne font-bold text-sm">Nenhum review publicado</p>
-                <p className="text-xs mt-1">Publique reviews para criar pins no Pinterest.</p>
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-bg2">
-                    {['Produto', 'Categoria', 'Nota', 'Ações'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-[11px] font-syne font-bold uppercase tracking-widest text-text-muted border-b border-border">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {publishedReviews.map(review => (
-                    <tr key={review.id} className="border-b border-border last:border-0 hover:bg-bg2 transition-colors">
-                      <td className="px-4 py-3">
-                        <p className="font-semibold text-sm text-text">{review.product}</p>
-                        <p className="text-xs text-text-muted mt-0.5">/review/{review.slug}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="bg-bg2 border border-border rounded-full text-xs font-medium px-2.5 py-0.5 text-text-muted">
-                          {review.category}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="bg-blue-light border border-blue-mid rounded-lg text-xs font-syne font-bold px-2.5 py-1 text-blue">
-                          {review.hero.overallScore}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <PinterestPinButton reviewId={review.id} reviewProduct={review.product} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+          <div className="p-6">
+            <p className="text-sm text-text-muted mb-4">
+              Seu Pinterest está conectado. Clique em &quot;Criar Pin&quot; ao lado de cada review para publicar automaticamente.
+            </p>
           </div>
-
-          <PinterestScheduledPins pins={scheduledPins} />
-        </>
+        </div>
       )}
+
+      <PinterestSetupForm />
+
+      <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden mb-8 mt-8">
+        <div className="px-6 py-4 border-b border-border">
+          <p className="font-syne font-bold text-xs uppercase tracking-widest text-text">
+            Reviews Publicados
+          </p>
+        </div>
+        {publishedReviews.length === 0 ? (
+          <div className="text-center py-16 text-text-muted">
+            <Image size={40} className="mx-auto mb-3 opacity-30" />
+            <p className="font-syne font-bold text-sm">Nenhum review publicado</p>
+            <p className="text-xs mt-1">Publique reviews para criar pins no Pinterest.</p>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="bg-bg2">
+                {['Produto', 'Categoria', 'Nota', 'Ações'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-[11px] font-syne font-bold uppercase tracking-widest text-text-muted border-b border-border">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {publishedReviews.map(review => (
+                <tr key={review.id} className="border-b border-border last:border-0 hover:bg-bg2 transition-colors">
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-sm text-text">{review.product}</p>
+                    <p className="text-xs text-text-muted mt-0.5">/review/{review.slug}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="bg-bg2 border border-border rounded-full text-xs font-medium px-2.5 py-0.5 text-text-muted">
+                      {review.category}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="bg-blue-light border border-blue-mid rounded-lg text-xs font-syne font-bold px-2.5 py-1 text-blue">
+                      {review.hero.overallScore}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <PinterestPinButton reviewId={review.id} reviewProduct={review.product} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <PinterestScheduledPins pins={scheduledPins} />
     </div>
   );
 }
