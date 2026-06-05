@@ -10164,6 +10164,14 @@
     "id": "11da77ff-8510-4193-9a88-2ecf04c39e2b",
     "slug": "apple-watch-se-2024",
     "status": "published",
+    "product": "Apple Watch SE (2ª Geração, 2024)",
+    "category": "Wearables / Smartbands",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 2.799,00",
+    "priceNew": "R$ 2.299,00",
+    "affiliateUrl": "https://meli.la/1H6NR6g",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_752820-MLU77145222122_062024-F.webp",
+    "adsEnabled": false,
     "meta": {
       "title": "Apple Watch SE 2024: Review Completo, Prós e Contras",
       "description": "Análise completa do Apple Watch SE 2024. Descubra se vale a pena, seus sensores, bateria e custo-benefício. Confira a oferta imperdível!",
@@ -10172,14 +10180,6 @@
       "canonical": null,
       "ogImage": null
     },
-    "product": "Apple Watch SE (2ª Geração, 2024)",
-    "category": "Wearables / Smartbands",
-    "marketplace": "Mercado Livre",
-    "priceOld": "R$ 2.799,00",
-    "priceNew": "R$ 2.299,00",
-    "affiliateUrl": "https://lista.mercadolivre.com.br/Apple%20Watch%20SE%202024?matt_tool=carloshbhb&matt_word=vetorblog&ref=carloshbhb&tracking_id=carloshbhb",
-    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_752820-MLU77145222122_062024-F.webp",
-    "adsEnabled": false,
     "hero": {
       "headlineLine1": "APPLE WATCH SE 2024",
       "headlineLine2": "A ENTRADA INTELIGENTE PARA O ECOSSISTEMA?",
@@ -10188,29 +10188,29 @@
       "overallScore": 8.7,
       "bars": [
         {
+          "pct": 85,
           "label": "Tela",
-          "value": 8.5,
-          "pct": 85
+          "value": 8.5
         },
         {
+          "pct": 80,
           "label": "Bateria",
-          "value": 8,
-          "pct": 80
+          "value": 8
         },
         {
+          "pct": 90,
           "label": "Saúde",
-          "value": 9,
-          "pct": 90
+          "value": 9
         },
         {
+          "pct": 90,
           "label": "Recursos",
-          "value": 9,
-          "pct": 90
+          "value": 9
         },
         {
+          "pct": 92,
           "label": "Custo-benefício",
-          "value": 9.2,
-          "pct": 92
+          "value": 9.2
         }
       ]
     },
@@ -10259,47 +10259,121 @@
     "sections": [
       {
         "id": "design-ergonomia",
+        "content": "O Apple Watch SE 2024 mantém a linguagem de design icônica da Apple. Sua caixa de alumínio reciclado 100% é leve e robusta. Ela fica confortável no pulso por horas, pesando apenas 26,8 g no modelo de 40 mm.\n\nA grande diferença em relação ao Series 9 está na tela. O SE usa um painel LTPO OLED com bordas um pouco maiores. Isso não compromete a legibilidade, mas faz com que a área útil do visor seja menor. Para a maioria dos usos diários, a experiência é excelente.\n\nA pulseira de fluoroelastômero (silicone médico) é super confortável e suada. O fecho de concha é prático e seguro. A caixa não possui a Digital Crown com feedback háptico, mas mantém o botão lateral para ações rápidas.\n\n> 💡 **Dica de Compra:** O design \"retro\" com as bordas maiores é, na verdade, um ponto de venda para quem prefere um visual mais clássico. Ele se integra perfeitamente em ambientes casuais e esportivos sem chamar muita atenção.\n\nA ergonomia geral é impecável. O relógio não fica preso nas mangas de camisas ou casacos. Ele se adapta a pulsos de diferentes tamanhos com facilidade, graças ao sistema de encaixe rápido das pulseiras.",
         "heading": "Design Familiar e Ergonomia Eficiente",
-        "tocLabel": "Design e Ergonomia",
         "tocEmoji": "⌚",
-        "content": "O Apple Watch SE 2024 mantém a linguagem de design icônica da Apple. Sua caixa de alumínio reciclado 100% é leve e robusta. Ela fica confortável no pulso por horas, pesando apenas 26,8 g no modelo de 40 mm.\n\nA grande diferença em relação ao Series 9 está na tela. O SE usa um painel LTPO OLED com bordas um pouco maiores. Isso não compromete a legibilidade, mas faz com que a área útil do visor seja menor. Para a maioria dos usos diários, a experiência é excelente.\n\nA pulseira de fluoroelastômero (silicone médico) é super confortável e suada. O fecho de concha é prático e seguro. A caixa não possui a Digital Crown com feedback háptico, mas mantém o botão lateral para ações rápidas.\n\n> 💡 **Dica de Compra:** O design \"retro\" com as bordas maiores é, na verdade, um ponto de venda para quem prefere um visual mais clássico. Ele se integra perfeitamente em ambientes casuais e esportivos sem chamar muita atenção.\n\nA ergonomia geral é impecável. O relógio não fica preso nas mangas de camisas ou casacos. Ele se adapta a pulsos de diferentes tamanhos com facilidade, graças ao sistema de encaixe rápido das pulseiras."
+        "tocLabel": "Design e Ergonomia"
       },
       {
         "id": "qualidade-tela",
+        "content": "A tela Retina LTPO OLED do Apple Watch SE 2024 é um dos pontos fortes do aparelho. Ela atinge 1.000 nits de brilho máximo, o que garante boa leitura mesmo sob luz solar direta.\n\nAs cores são vibrantes e os pretos são profundos, típicos de painéis OLED. A resolução de 326 ppi (pixels por polegada) torna os textos e ícones extremamente nítidos. Você não percebe os pixels, mesmo olhando de perto.\n\nO brilho adaptativo funciona de forma automática e suave. Ele ajusta a intensidade do visor de acordo com o ambiente, preservando a bateria. No modo Always-On Display, disponível no Series 9, o SE não acompanha, mas a tela acende rapidamente ao girar o pulso.\n\n> 💡 **Comparativo Rápido:** Em testes externos, a tela do SE é quase idêntica à do antigo Series 6. A única diferença perceptível é a taxa de atualização, que no SE é de 60 Hz fixos. Para a maioria dos usuários, essa transição é tão fluida que não percebe a falta de 120 Hz.",
         "heading": "Tela Retina: Brilho e Cores em Alta Definição",
-        "tocLabel": "Qualidade da Tela",
         "tocEmoji": "👁️",
-        "content": "A tela Retina LTPO OLED do Apple Watch SE 2024 é um dos pontos fortes do aparelho. Ela atinge 1.000 nits de brilho máximo, o que garante boa leitura mesmo sob luz solar direta.\n\nAs cores são vibrantes e os pretos são profundos, típicos de painéis OLED. A resolução de 326 ppi (pixels por polegada) torna os textos e ícones extremamente nítidos. Você não percebe os pixels, mesmo olhando de perto.\n\nO brilho adaptativo funciona de forma automática e suave. Ele ajusta a intensidade do visor de acordo com o ambiente, preservando a bateria. No modo Always-On Display, disponível no Series 9, o SE não acompanha, mas a tela acende rapidamente ao girar o pulso.\n\n> 💡 **Comparativo Rápido:** Em testes externos, a tela do SE é quase idêntica à do antigo Series 6. A única diferença perceptível é a taxa de atualização, que no SE é de 60 Hz fixos. Para a maioria dos usuários, essa transição é tão fluida que não percebe a falta de 120 Hz."
+        "tocLabel": "Qualidade da Tela"
       },
       {
         "id": "performance-recursos",
+        "content": "O segredo da performance do Apple Watch SE 2024 está no chip S8. Este é o mesmo processador que equipou o Series 8 de 2022. Ele oferece velocidade de processamento mais que suficiente para todas as tarefas.\n\nNavegação entre apps, respostas a mensagens e uso de widgets são impecáveis. O watchOS 10 roda sem engasgos ou lentidão. A integração com o iPhone é profunda e contínua.\n\nRecursos inteligentes como os **Modos de Foco** e **Notificações Inteligentes** ajudam a manter o foco no dia a dia. Você pode silenciar alertas específicos durante reuniões ou estudos. O sistema também aprende seus padrões de uso e sugere ações frequentes.\n\nO **App Store** do watchOS oferece milhares de aplicativos. Você encontra apps de meditação, jogos, financeiros e de produtividade. A experiência de instalação e atualização é rápida e direta do pulso.\n\nA integração com o **Apple Pay** é um divisor de águas. Basta aproximar o pulso do terminal de pagamento. A autenticação é feita pelo sensor de temperatura corporal ou código. O processo é seguro e conveniente para compras rápidas.",
         "heading": "Performance de Flagship com Recursos Inteligentes",
-        "tocLabel": "Performance e Recursos",
         "tocEmoji": "🧠",
-        "content": "O segredo da performance do Apple Watch SE 2024 está no chip S8. Este é o mesmo processador que equipou o Series 8 de 2022. Ele oferece velocidade de processamento mais que suficiente para todas as tarefas.\n\nNavegação entre apps, respostas a mensagens e uso de widgets são impecáveis. O watchOS 10 roda sem engasgos ou lentidão. A integração com o iPhone é profunda e contínua.\n\nRecursos inteligentes como os **Modos de Foco** e **Notificações Inteligentes** ajudam a manter o foco no dia a dia. Você pode silenciar alertas específicos durante reuniões ou estudos. O sistema também aprende seus padrões de uso e sugere ações frequentes.\n\nO **App Store** do watchOS oferece milhares de aplicativos. Você encontra apps de meditação, jogos, financeiros e de produtividade. A experiência de instalação e atualização é rápida e direta do pulso.\n\nA integração com o **Apple Pay** é um divisor de águas. Basta aproximar o pulso do terminal de pagamento. A autenticação é feita pelo sensor de temperatura corporal ou código. O processo é seguro e conveniente para compras rápidas."
+        "tocLabel": "Performance e Recursos"
       },
       {
         "id": "sensores-saude",
+        "content": "O Apple Watch SE 2024 é uma ferramenta séria de monitoramento de saúde. Ele inclui sensores de última geração que antes eram exclusivos de modelos mais caros.\n\nO **monitoramento de frequência cardíaca** funciona 24/7. Ele detecta ritmos cardíacos irregulares como a fibrilação atrial. O app Cardio Fitness (VO2 Máx) estima sua capacidade aeróbica ao longo do tempo.\n\nO **sensor de oxigênio no sangue (SpO2)** realiza medições rápidas e discretas. Ele é útil para acompanjar sua oxigenação durante o exercício ou em altitude. O aplicativo de **Sons Altos** alerta quando o volume ao seu redor pode prejudicar sua audição.\n\n> 💡 **Funcionalidade de Segurança:** O **Detector de Quedas** e o **Detector de Acidente de Carro** são salvadores. Eles detectam uma queda brusca e iniciam uma contagem regressiva. Se você não responder, o relógio liga automaticamente para os serviços de emergência e informa seus contatos de emergência.\n\nA **medida de temperatura corporal** é feita durante o sono. Ela ajuda a rastrear o ciclo menstrual e fornecer insights sobre sua saúde geral. Esses dados são integrados de forma segura ao app Saúde no iPhone.",
         "heading": "Monitoramento de Saúde Completo e Preciso",
-        "tocLabel": "Sensores e Saúde",
         "tocEmoji": "❤️",
-        "content": "O Apple Watch SE 2024 é uma ferramenta séria de monitoramento de saúde. Ele inclui sensores de última geração que antes eram exclusivos de modelos mais caros.\n\nO **monitoramento de frequência cardíaca** funciona 24/7. Ele detecta ritmos cardíacos irregulares como a fibrilação atrial. O app Cardio Fitness (VO2 Máx) estima sua capacidade aeróbica ao longo do tempo.\n\nO **sensor de oxigênio no sangue (SpO2)** realiza medições rápidas e discretas. Ele é útil para acompanjar sua oxigenação durante o exercício ou em altitude. O aplicativo de **Sons Altos** alerta quando o volume ao seu redor pode prejudicar sua audição.\n\n> 💡 **Funcionalidade de Segurança:** O **Detector de Quedas** e o **Detector de Acidente de Carro** são salvadores. Eles detectam uma queda brusca e iniciam uma contagem regressiva. Se você não responder, o relógio liga automaticamente para os serviços de emergência e informa seus contatos de emergência.\n\nA **medida de temperatura corporal** é feita durante o sono. Ela ajuda a rastrear o ciclo menstrual e fornecer insights sobre sua saúde geral. Esses dados são integrados de forma segura ao app Saúde no iPhone."
+        "tocLabel": "Sensores e Saúde"
       },
       {
         "id": "autonomia-bateria",
+        "content": "A bateria do Apple Watch SE 2024 dura até 18 horas sob uso típico. Isso cobre um dia inteiro de uso, com monitoramento de saúde, notificações e treinos. Na prática, você precisa carregá-lo todas as noites.\n\nEm testes reais, o relógio chega ao final do dia com 15% a 25% de carga. Isso depende do número de notificações e da duração dos exercícios. O modo de economia de bateria estende a vida útil para até 36 horas.\n\nO **carregador magnético USB-C** é incluído na caixa. Ele recarrega o SE de 0% a 80% em cerca de 75 minutos. A carga completa leva aproximadamente 2 horas. É rápido o suficiente para uma carga de rotina antes de dormir.\n\n> 💡 **Dica Prática:** Para maximizar a bateria, desative o Always-On Display (que o SE não possui) e reduza o brilho da tela. Desative também a medição contínua de SpO2 durante o sono, se não precisar. Essas ações podem adicionar 3 a 4 horas de autonomia ao seu dia.\n\nPara atletas e maratonistas, o modo de baixo consumo estende o rastreamento GPS por até 8 horas. Isso é suficiente para a maioria das corridas de rua e trilhas.",
         "heading": "Autonomia Real e Gestão Eficiente de Energia",
-        "tocLabel": "🔋",
-        "content": "A bateria do Apple Watch SE 2024 dura até 18 horas sob uso típico. Isso cobre um dia inteiro de uso, com monitoramento de saúde, notificações e treinos. Na prática, você precisa carregá-lo todas as noites.\n\nEm testes reais, o relógio chega ao final do dia com 15% a 25% de carga. Isso depende do número de notificações e da duração dos exercícios. O modo de economia de bateria estende a vida útil para até 36 horas.\n\nO **carregador magnético USB-C** é incluído na caixa. Ele recarrega o SE de 0% a 80% em cerca de 75 minutos. A carga completa leva aproximadamente 2 horas. É rápido o suficiente para uma carga de rotina antes de dormir.\n\n> 💡 **Dica Prática:** Para maximizar a bateria, desative o Always-On Display (que o SE não possui) e reduza o brilho da tela. Desative também a medição contínua de SpO2 durante o sono, se não precisar. Essas ações podem adicionar 3 a 4 horas de autonomia ao seu dia.\n\nPara atletas e maratonistas, o modo de baixo consumo estende o rastreamento GPS por até 8 horas. Isso é suficiente para a maioria das corridas de rua e trilhas."
+        "tocLabel": "🔋"
       },
       {
         "id": "custo-beneficio",
+        "content": "Com um preço de mercado que gira em torno de R$ 2.299,00, o Apple Watch SE 2024 é a porta de entrada mais inteligente para o ecossistema da Apple. Ele oferece 80% das funcionalidades do Series 9 por cerca de 50% do preço.\n\nO que você ganha pelo valor pago é surpreendente: chip S8 potente, tela OLED de alta qualidade, sensores completos de saúde e a experiência integrada do watchOS. É um investimento que entrega valor real no dia a dia.\n\nO que você abre mão? Basicamente, o Always-On Display e o sensor de oximetria de pulso contínuo. Esses são recursos de conveniência, não de funcionalidade core. Para 95% dos usuários, essa ausência não faz diferença.\n\n> 💡 **Quem Deve Comprar?** Este relógio é ideal para quem nunca teve um smartwatch. Também é perfeito para quem quer um monitor de saúde confiável e notificações inteligentes. Ele é uma ótima opção para quem deseja o qualidade Apple sem gastar uma fortuna.\n\nEm comparação com smartwatches Android concorrentes, como o Samsung Galaxy Watch FE, o SE tem vantagem na integração com iPhone e na longevidade do software. A Apple atualiza seus relógios por anos, garantindo valor a longo prazo.",
         "heading": "Análise de Custo-Benefício: O Preço da Entrada",
-        "tocLabel": "Custo-Benefício",
         "tocEmoji": "💰",
-        "content": "Com um preço de mercado que gira em torno de R$ 2.299,00, o Apple Watch SE 2024 é a porta de entrada mais inteligente para o ecossistema da Apple. Ele oferece 80% das funcionalidades do Series 9 por cerca de 50% do preço.\n\nO que você ganha pelo valor pago é surpreendente: chip S8 potente, tela OLED de alta qualidade, sensores completos de saúde e a experiência integrada do watchOS. É um investimento que entrega valor real no dia a dia.\n\nO que você abre mão? Basicamente, o Always-On Display e o sensor de oximetria de pulso contínuo. Esses são recursos de conveniência, não de funcionalidade core. Para 95% dos usuários, essa ausência não faz diferença.\n\n> 💡 **Quem Deve Comprar?** Este relógio é ideal para quem nunca teve um smartwatch. Também é perfeito para quem quer um monitor de saúde confiável e notificações inteligentes. Ele é uma ótima opção para quem deseja o qualidade Apple sem gastar uma fortuna.\n\nEm comparação com smartwatches Android concorrentes, como o Samsung Galaxy Watch FE, o SE tem vantagem na integração com iPhone e na longevidade do software. A Apple atualiza seus relógios por anos, garantindo valor a longo prazo."
+        "tocLabel": "Custo-Benefício"
       }
     ],
     "compareTable": {
+      "rows": [
+        {
+          "values": [
+            "R$ 2.299",
+            "R$ 1.499",
+            "R$ 1.299"
+          ],
+          "winner": 0,
+          "feature": "Preço Médio (R$)"
+        },
+        {
+          "values": [
+            "OLED 1,57\" / 1,78\"",
+            "Super AMOLED 1,2\"",
+            "AMOLED 1,43\""
+          ],
+          "winner": 1,
+          "feature": "Tela"
+        },
+        {
+          "values": [
+            "Chip S8 (potente)",
+            "Exynos W920",
+            "Chipset de baixo consumo"
+          ],
+          "winner": 1,
+          "feature": "Processador"
+        },
+        {
+          "values": [
+            "Apple (watchOS - líder)",
+            "Samsung (Wear OS)",
+            "Xiaomi HyperOS"
+          ],
+          "winner": 1,
+          "feature": "Ecossistema e Apps"
+        },
+        {
+          "values": [
+            "Frequência cardíaca, SpO2, Quedas",
+            "Frequência cardíaca, SpO2, BioActive",
+            "Frequência cardíaca, SpO2"
+          ],
+          "winner": 1,
+          "feature": "Sensores de Saúde"
+        },
+        {
+          "values": [
+            "18 horas",
+            "Até 40 horas",
+            "Até 15 dias"
+          ],
+          "winner": 2,
+          "feature": "Autonomia Declarada"
+        },
+        {
+          "values": [
+            "50 metros (WR50)",
+            "5 ATM (50m)",
+            "5 ATM (50m)"
+          ],
+          "winner": 0,
+          "feature": "Resistência à Água"
+        },
+        {
+          "values": [
+            "Usuários de iPhone que querem qualidade e integração",
+            "Usuários de Samsung que querem estilo e tela AMOLED",
+            "Quem busca autonomia extrema e custo-benefício"
+          ],
+          "winner": 1,
+          "feature": "Melhor Para"
+        }
+      ],
       "caption": "Tabela Comparativa: Apple Watch SE 2024 vs. Concorrentes",
       "columns": [
         "Característica",
@@ -10307,81 +10381,7 @@
         "Samsung Galaxy Watch FE",
         "Xiaomi Watch S3"
       ],
-      "winnerCol": 1,
-      "rows": [
-        {
-          "feature": "Preço Médio (R$)",
-          "values": [
-            "R$ 2.299",
-            "R$ 1.499",
-            "R$ 1.299"
-          ],
-          "winner": 0
-        },
-        {
-          "feature": "Tela",
-          "values": [
-            "OLED 1,57\" / 1,78\"",
-            "Super AMOLED 1,2\"",
-            "AMOLED 1,43\""
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Processador",
-          "values": [
-            "Chip S8 (potente)",
-            "Exynos W920",
-            "Chipset de baixo consumo"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Ecossistema e Apps",
-          "values": [
-            "Apple (watchOS - líder)",
-            "Samsung (Wear OS)",
-            "Xiaomi HyperOS"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Sensores de Saúde",
-          "values": [
-            "Frequência cardíaca, SpO2, Quedas",
-            "Frequência cardíaca, SpO2, BioActive",
-            "Frequência cardíaca, SpO2"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Autonomia Declarada",
-          "values": [
-            "18 horas",
-            "Até 40 horas",
-            "Até 15 dias"
-          ],
-          "winner": 2
-        },
-        {
-          "feature": "Resistência à Água",
-          "values": [
-            "50 metros (WR50)",
-            "5 ATM (50m)",
-            "5 ATM (50m)"
-          ],
-          "winner": 0
-        },
-        {
-          "feature": "Melhor Para",
-          "values": [
-            "Usuários de iPhone que querem qualidade e integração",
-            "Usuários de Samsung que querem estilo e tela AMOLED",
-            "Quem busca autonomia extrema e custo-benefício"
-          ],
-          "winner": 1
-        }
-      ]
+      "winnerCol": 1
     },
     "pros": [
       "Chip S8 potente garante performance de flagship e suporte a atualizações por anos.",
@@ -10399,41 +10399,41 @@
       "Compatibilidade exclusiva com iPhone (não funciona com Android)."
     ],
     "testimonials": [],
-    "faq": [
-      {
-        "question": "O Apple Watch SE 2024 funciona com Android?",
-        "answer": "Não. O Apple Watch SE (e todos os modelos da Apple) é compatível apenas com iPhone. Para funcionar, você precisa de um iPhone 8 ou posterior, atualizado para o iOS 17. Ele não se pareia com smartphones Android."
-      },
-      {
-        "question": "Qual a diferença real entre o Apple Watch SE e o Series 9?",
-        "answer": "As principais diferenças são: o Series 9 tem Always-On Display (tela sempre visível), Digital Crown com feedback háptico, processador mais novo (S9) e sensor de oximetria de pulso contínuo. O SE oferece 80% da experiência por cerca de 50% do preço, sem esses recursos extras."
-      },
-      {
-        "question": "O SE 2024 mede SpO2 (oxigênio no sangue)?",
-        "answer": "Sim, ele possui sensor de oxigênio no sangue (SpO2). Porém, diferente dos modelos Series, ele não faz medição contínua durante o sono. Você precisa iniciar a medição manualmente no app a qualquer momento do dia."
-      },
-      {
-        "question": "A bateria dura um dia inteiro de uso?",
-        "answer": "Sim, a Apple declara até 18 horas de uso típico. Na prática, com monitoramento de saúde, notificações e um treino de 30-40 minutos, você chega ao final do dia com 15% a 25% de carga. Para usuários muito intensivos, pode ser necessário um toque de energia ao final da tarde."
-      },
-      {
-        "question": "Vale a pena comprar o SE agora ou esperar o novo modelo?",
-        "answer": "O SE 2024 é o modelo atual e já conta com o potente chip S8. É uma excelente compra. Como os relógios da Apple têm ciclo anual, um modelo novo pode surgir no futuro, mas as melhoriasIncrementais geralmente não justificam a espera. Se você precisa de um smartwatch agora, o SE é uma escolha segura e de alto valor."
-      }
-    ],
     "verdict": {
       "score": 8.7,
       "label": "ÓTIMO CUSTO-BENEFÍCIO APPLE",
       "text": "O Apple Watch SE 2024 é uma joia escondida. Ele entrega a essência do que torna um smartwatch incrível: performance, tela, sensores e integração. As concessões no design e na bateria são inteligentes e mantêm o preço acessível.",
       "note": "Recomendado para: Usuários de iPhone que buscam seu primeiro smartwatch premium, quem quer um monitor de saúde confiável e notificações sem pagar Series 9. Não é ideal para: Usuários que precisam de Always-On Display, bateria para vários dias ou que usam Android."
     },
+    "faq": [
+      {
+        "answer": "Não. O Apple Watch SE (e todos os modelos da Apple) é compatível apenas com iPhone. Para funcionar, você precisa de um iPhone 8 ou posterior, atualizado para o iOS 17. Ele não se pareia com smartphones Android.",
+        "question": "O Apple Watch SE 2024 funciona com Android?"
+      },
+      {
+        "answer": "As principais diferenças são: o Series 9 tem Always-On Display (tela sempre visível), Digital Crown com feedback háptico, processador mais novo (S9) e sensor de oximetria de pulso contínuo. O SE oferece 80% da experiência por cerca de 50% do preço, sem esses recursos extras.",
+        "question": "Qual a diferença real entre o Apple Watch SE e o Series 9?"
+      },
+      {
+        "answer": "Sim, ele possui sensor de oxigênio no sangue (SpO2). Porém, diferente dos modelos Series, ele não faz medição contínua durante o sono. Você precisa iniciar a medição manualmente no app a qualquer momento do dia.",
+        "question": "O SE 2024 mede SpO2 (oxigênio no sangue)?"
+      },
+      {
+        "answer": "Sim, a Apple declara até 18 horas de uso típico. Na prática, com monitoramento de saúde, notificações e um treino de 30-40 minutos, você chega ao final do dia com 15% a 25% de carga. Para usuários muito intensivos, pode ser necessário um toque de energia ao final da tarde.",
+        "question": "A bateria dura um dia inteiro de uso?"
+      },
+      {
+        "answer": "O SE 2024 é o modelo atual e já conta com o potente chip S8. É uma excelente compra. Como os relógios da Apple têm ciclo anual, um modelo novo pode surgir no futuro, mas as melhoriasIncrementais geralmente não justificam a espera. Se você precisa de um smartwatch agora, o SE é uma escolha segura e de alto valor.",
+        "question": "Vale a pena comprar o SE agora ou esperar o novo modelo?"
+      }
+    ],
     "schemaRating": {
       "ratingValue": 4.8,
       "reviewCount": 8450
     },
     "googleRank": 0,
-    "lastRankCheck": "2026-06-05T14:43:25.518Z",
-    "createdAt": "2026-06-05T14:43:25.518Z",
-    "updatedAt": "2026-06-05T14:43:25.518Z"
+    "lastRankCheck": "2026-06-05T14:43:25.518",
+    "createdAt": "2026-06-05T14:43:25.885441+00:00",
+    "updatedAt": "2026-06-05T21:23:52.015196+00:00"
   }
 ]
