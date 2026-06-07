@@ -162,15 +162,25 @@ export async function handleAutonomousCycle(specificProduct: string = '', specif
 
       // 2. Discover trending product
       try {
+        console.log(`[Autonomous Agent] Discovering trending product for category: "${targetCategory}"`);
         const trendPrompt = `Você é o Agente de Descoberta de Tráfego do vetor.blog.
 Na categoria "${targetCategory}", qual é o produto mais popular e com maior demanda no Brasil em ${new Date().getFullYear()}?
 Pense em produtos que estão em alta, com muitas avaliações positivas e boa relação custo-benefício.
+
+IMPORTANTE: O produto DEVE ser da categoria "${targetCategory}". 
+- Se a categoria é "Robôs Aspiradores", retorne apenas robôs aspiradores.
+- Se a categoria é "Fones de Ouvido", retorne apenas fones de ouvido.
+- Se a categoria é "Casa Inteligente", retorne apenas dispositivos de casa inteligente.
+- Se a categoria é "Wearables / Smartbands", retorne apenas smartbands ou relógios inteligentes.
+- NÃO retorne produtos de outras categorias (ex: geladeiras, aspiradores de pó, eletrodomésticos grandes).
+
 Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou "Samsung Galaxy Fit 3"), sem pontuação, sem aspas e sem explicações.`;
 
         const text = await generateText({
           prompt: trendPrompt,
         });
         trendingProduct = text.trim().replace(/['\"""]/g, '');
+        console.log(`[Autonomous Agent] AI suggested product: "${trendingProduct}" for category "${targetCategory}"`);
 
         // Verify search result isn't already reviewed
         if (reviews.some(r => r.product.toLowerCase().includes(trendingProduct.toLowerCase()))) {
@@ -200,6 +210,15 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       if (!trendingProduct || trendingProduct.length > 80 || trendingProduct.includes('\n')) {
         trendingProduct = '';
         continue;
+      }
+
+      // Validate product matches category
+      if (!validateProductCategory(trendingProduct, targetCategory)) {
+        console.log(`[Autonomous Agent] ⚠️ VALIDATION FAILED: Product "${trendingProduct}" doesn't match category "${targetCategory}". Category mismatch detected. Trying fallback.`);
+        trendingProduct = '';
+        continue;
+      } else {
+        console.log(`[Autonomous Agent] ✅ Product "${trendingProduct}" validated for category "${targetCategory}"`);
       }
 
       // 3. Final duplicate check (skip if specific product requested)
@@ -431,4 +450,66 @@ function slugify(s: string) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .replace(/-+/g, '-');
+}
+
+function validateProductCategory(product: string, category: string): boolean {
+  const productLower = product.toLowerCase();
+  
+  // Category-specific validation rules
+  const categoryRules: Record<string, { keywords: string[]; excludeKeywords: string[] }> = {
+    'Robôs Aspiradores': {
+      keywords: ['aspirador', 'robô', 'robo', 'robot', 'vacuum', 'cleaner'],
+      excludeKeywords: ['geladeira', 'refrigerador', 'freezer', 'air fryer', 'liquidificador'],
+    },
+    'Fones de Ouvido': {
+      keywords: ['fone', 'headphone', 'earphone', 'earbuds', 'airpods', 'buds'],
+      excludeKeywords: ['aspirador', 'geladeira', 'tv', 'monitor', 'teclado', 'mouse'],
+    },
+    'Casa Inteligente': {
+      keywords: ['inteligente', 'smart', 'alexa', 'echo', 'google home', 'sensor', 'tomada', 'lâmpada'],
+      excludeKeywords: ['aspirador', 'geladeira', 'cooktop', 'fogão'],
+    },
+    'Wearables / Smartbands': {
+      keywords: ['watch', 'band', 'smartband', 'pulseira', 'relógio', 'relogio', 'fitbit'],
+      excludeKeywords: ['aspirador', 'geladeira', 'fone', 'headphone'],
+    },
+    'Notebooks': {
+      keywords: ['notebook', 'laptop', 'ultrabook', 'macbook'],
+      excludeKeywords: ['aspirador', 'geladeira', 'tablet', 'fone'],
+    },
+    'Tablets': {
+      keywords: ['tablet', 'ipad', 'galaxy tab'],
+      excludeKeywords: ['aspirador', 'geladeira', 'notebook', 'fone'],
+    },
+    'Câmeras de Segurança': {
+      keywords: ['câmera', 'camera', 'cctv', 'segurança', 'seguranca', 'ip camera'],
+      excludeKeywords: ['aspirador', 'geladeira', 'fone', 'watch'],
+    },
+    'Eletroportáteis': {
+      keywords: ['air fryer', 'liquidificador', 'aspirador', 'cafeteira', 'torradeira', 'batedeira'],
+      excludeKeywords: ['geladeira', 'refrigerador', 'freezer', 'cooktop', 'fogão', 'lava-louças'],
+    },
+  };
+
+  const rules = categoryRules[category];
+  if (!rules) {
+    // If no specific rules for category, allow by default
+    return true;
+  }
+
+  // Check if product contains exclude keywords
+  const hasExcludedKeyword = rules.excludeKeywords.some(keyword => 
+    productLower.includes(keyword.toLowerCase())
+  );
+  
+  if (hasExcludedKeyword) {
+    return false;
+  }
+
+  // Check if product contains at least one category keyword
+  const hasCategoryKeyword = rules.keywords.some(keyword => 
+    productLower.includes(keyword.toLowerCase())
+  );
+  
+  return hasCategoryKeyword;
 }
