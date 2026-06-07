@@ -1,20 +1,32 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPinterestConfig, getPinterestBoards } from '@/lib/pinterest';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const config = await getPinterestConfig();
+    let accessToken: string | null = null;
+
+    const authHeader = req.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      accessToken = authHeader.slice(7);
+    }
+
+    if (!accessToken) {
+      const config = await getPinterestConfig();
+      if (config) {
+        accessToken = config.accessToken;
+      }
+    }
     
-    if (!config) {
+    if (!accessToken) {
       return NextResponse.json(
         { error: 'Pinterest não configurado' },
         { status: 400 }
       );
     }
 
-    const boards = await getPinterestBoards(config.accessToken);
+    const boards = await getPinterestBoards(accessToken);
 
     return NextResponse.json({ boards });
   } catch (error) {

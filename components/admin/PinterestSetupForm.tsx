@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, CheckCircle, ExternalLink } from 'lucide-react';
+import { Loader2, CheckCircle, ExternalLink, LogIn } from 'lucide-react';
 
 interface Board {
   id: string;
@@ -17,6 +17,27 @@ export default function PinterestSetupForm() {
   const [fetchingBoards, setFetchingBoards] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const expires = params.get('expires');
+    const errorMsg = params.get('error');
+
+    if (token) {
+      setAccessToken(token);
+      window.history.replaceState({}, '', '/admin/pinterest');
+    }
+
+    if (expires) {
+      window.history.replaceState({}, '', '/admin/pinterest');
+    }
+
+    if (errorMsg) {
+      setError(`Erro na autorização: ${errorMsg}`);
+      window.history.replaceState({}, '', '/admin/pinterest');
+    }
+  }, []);
 
   const handleFetchBoards = async () => {
     if (!accessToken.trim()) {
@@ -100,14 +121,21 @@ export default function PinterestSetupForm() {
         </p>
       </div>
       <div className="p-6">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h4 className="font-syne font-bold text-sm text-blue-800 mb-2">Como obter o Access Token:</h4>
-          <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-            <li>Acesse <a href="https://developers.pinterest.com" target="_blank" className="underline">developers.pinterest.com</a></li>
-            <li>Crie um aplicativo com os scopes: <code className="bg-blue-100 px-1 rounded">pins:write</code>, <code className="bg-blue-100 px-1 rounded">boards:write</code>, <code className="bg-blue-100 px-1 rounded">boards:read</code></li>
-            <li>Gere um Access Token via OAuth 2.0</li>
-            <li>Cole o token abaixo</li>
-          </ol>
+        <button
+          onClick={() => window.location.href = '/api/pinterest/auth'}
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors mb-4"
+        >
+          <LogIn size={18} />
+          Autorizar com Pinterest
+        </button>
+
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-text-2">ou cole manualmente</span>
+          </div>
         </div>
 
         <div className="space-y-4">
