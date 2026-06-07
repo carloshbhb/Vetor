@@ -545,42 +545,42 @@ function slugify(s: string) {
     .replace(/-+/g, '-');
 }
 
-function validateProductCategory(product: string, category: string): boolean {
+export function validateProductCategory(product: string, category: string): boolean {
   const productLower = product.toLowerCase();
   
   // Category-specific validation rules
   const categoryRules: Record<string, { keywords: string[]; excludeKeywords: string[] }> = {
     'Robôs Aspiradores': {
-      keywords: ['aspirador', 'robô', 'robo', 'robot', 'vacuum', 'cleaner'],
+      keywords: ['aspirador', 'robô', 'robo', 'robot', 'vacuum', 'cleaner', 'robo'],
       excludeKeywords: ['geladeira', 'refrigerador', 'freezer', 'air fryer', 'liquidificador'],
     },
     'Fones de Ouvido': {
-      keywords: ['fone', 'headphone', 'earphone', 'earbuds', 'airpods', 'buds'],
-      excludeKeywords: ['aspirador', 'geladeira', 'tv', 'monitor', 'teclado', 'mouse'],
+      keywords: ['fone', 'headphone', 'earphone', 'earbuds', 'airpods', 'buds', 'xm5', 'wh-1000', 'wf-1000'],
+      excludeKeywords: ['aspirador', 'geladeira', 'tv', 'monitor', 'teclado', 'mouse', 'watch', 'band'],
     },
     'Casa Inteligente': {
-      keywords: ['inteligente', 'smart', 'alexa', 'echo', 'google home', 'sensor', 'tomada', 'lâmpada'],
-      excludeKeywords: ['aspirador', 'geladeira', 'cooktop', 'fogão'],
+      keywords: ['inteligente', 'smart', 'alexa', 'echo', 'google home', 'sensor', 'tomada', 'lâmpada', 'lampada'],
+      excludeKeywords: ['aspirador', 'geladeira', 'cooktop', 'fogão', 'fogao'],
     },
     'Wearables / Smartbands': {
-      keywords: ['watch', 'band', 'smartband', 'pulseira', 'relógio', 'relogio', 'fitbit'],
+      keywords: ['watch', 'band', 'smartband', 'pulseira', 'relógio', 'relogio', 'fitbit', 'galaxy fit', 'mi band'],
       excludeKeywords: ['aspirador', 'geladeira', 'fone', 'headphone'],
     },
     'Notebooks': {
-      keywords: ['notebook', 'laptop', 'ultrabook', 'macbook'],
-      excludeKeywords: ['aspirador', 'geladeira', 'tablet', 'fone'],
+      keywords: ['notebook', 'laptop', 'ultrabook', 'macbook', 'ideapad', 'nitro', 'vivobook'],
+      excludeKeywords: ['aspirador', 'geladeira', 'tablet', 'ipad', 'fone'],
     },
     'Tablets': {
       keywords: ['tablet', 'ipad', 'galaxy tab'],
-      excludeKeywords: ['aspirador', 'geladeira', 'notebook', 'fone'],
+      excludeKeywords: ['aspirador', 'geladeira', 'notebook', 'macbook', 'laptop', 'fone'],
     },
     'Câmeras de Segurança': {
-      keywords: ['câmera', 'camera', 'cctv', 'segurança', 'seguranca', 'ip camera'],
-      excludeKeywords: ['aspirador', 'geladeira', 'fone', 'watch'],
+      keywords: ['câmera', 'camera', 'cctv', 'segurança', 'seguranca', 'ip camera', 'tapo', 'im3', 'id2'],
+      excludeKeywords: ['aspirador', 'geladeira', 'fone', 'watch', 'band'],
     },
     'Eletroportáteis': {
-      keywords: ['air fryer', 'liquidificador', 'aspirador', 'cafeteira', 'torradeira', 'batedeira'],
-      excludeKeywords: ['geladeira', 'refrigerador', 'freezer', 'cooktop', 'fogão', 'lava-louças'],
+      keywords: ['air fryer', 'liquidificador', 'aspirador', 'cafeteira', 'torradeira', 'batedeira', 'ar fryer'],
+      excludeKeywords: ['geladeira', 'refrigerador', 'freezer', 'cooktop', 'fogão', 'fogao', 'lava-louças'],
     },
   };
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPublishedReviews, updateReview } from '@/lib/db';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { logger, recordMetric, createTimer } from '@/lib/monitor';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,8 +40,12 @@ function extractRankFromGrounding(rawResponse: any, targetDomain: string): { ran
 }
 
 async function trackSERPRanks() {
+  const cycleTimer = createTimer();
+  await logger.info('SERP tracking started', 'serp-tracker');
+
   const published = await getPublishedReviews();
   if (!published.length) {
+    await logger.info('No published reviews found', 'serp-tracker');
     return { success: true, message: 'Nenhum review publicado.', groundedCount: 0, failedCount: 0, total: 0 };
   }
 
@@ -69,6 +74,7 @@ async function trackSERPRanks() {
       await sleep(DELAY_MS);
     }
 
+    const checkTimer = createTimer();
     try {
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash',
@@ -89,12 +95,30 @@ async function trackSERPRanks() {
       if (finalRank > 0) {
         groundedCount++;
       }
+
+      await recordMetric({
+        agentName: 'serp-tracker',
+        operation: 'check_rank',
+        durationMs: checkTimer.stop(),
+        success: true,
+        provider: 'gemini',
+      });
     } catch (err: any) {
       const is429 = err.message?.includes('429') || err.message?.includes('quota');
       debug = is429 ? '429 quota exceeded' : `exception: ${err.message?.substring(0, 100)}`;
       failedCount++;
 
+      await recordMetric({
+        agentName: 'serp-tracker',
+        operation: 'check_rank',
+        durationMs: checkTimer.stop(),
+        success: false,
+        provider: 'gemini',
+        errorMessage: is429 ? 'Rate limited' : err.message?.substring(0, 100),
+      });
+
       if (is429) {
+        await logger.warn('SERP tracker rate limited', 'serp-tracker', { product: review.product });
         debugLog.push(`${review.product.substring(0, 30)}: 429 - stopping.`);
         break;
       }
@@ -107,6 +131,22 @@ async function trackSERPRanks() {
       lastRankCheck: new Date().toISOString(),
     });
   }
+
+  const totalDuration = cycleTimer.stop();
+  await recordMetric({
+    agentName: 'serp-tracker',
+    operation: 'full_cycle',
+    durationMs: totalDuration,
+    success: true,
+  });
+
+  await logger.info('SERP tracking completed', 'serp-tracker', {
+    groundedCount,
+    failedCount,
+    checked: toCheck.length,
+    total: published.length,
+    durationMs: totalDuration,
+  });
 
   return {
     success: true,

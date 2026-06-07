@@ -9,6 +9,7 @@ import RealtimeIndicator from '@/components/admin/RealtimeIndicator';
 import AICitationsDashboard from '@/components/admin/AICitationsDashboard';
 import SerpHistoryChart from '@/components/admin/SerpHistoryChart';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import AgentMetricsDashboard from '@/components/admin/AgentMetricsDashboard';
 
 export default async function AdminDashboard() {
   const reviews = await getAllReviews();
@@ -184,6 +185,11 @@ export default async function AdminDashboard() {
       {/* Analytics Dashboard */}
       <div className="mt-8">
         <AnalyticsDashboard />
+      </div>
+
+      {/* Agent Metrics */}
+      <div className="mt-8">
+        <AgentMetricsDashboard />
       </div>
     </div>
   );
