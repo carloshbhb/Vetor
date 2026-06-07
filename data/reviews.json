@@ -10440,6 +10440,14 @@
     "id": "0f5bd3c8-24e4-4b47-91c3-a5c2f5fb257c",
     "slug": "echo-dot-5-geracao",
     "status": "published",
+    "product": "Amazon Echo Dot (5ª Geração)",
+    "category": "Casa Inteligente",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 449,00",
+    "priceNew": "R$ 349,00",
+    "affiliateUrl": "https://meli.la/2Trj4PH",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_2X_929868-MLA99520021024_112025-F.webp",
+    "adsEnabled": false,
     "meta": {
       "title": "Review Echo Dot 5ª Geração: Vale a Pena em 2026?",
       "description": "Análise completa do Echo Dot 5. Descubra se este smart speaker de entrada da Amazon vale o investimento em 2026. Leia nosso review!",
@@ -10448,14 +10456,6 @@
       "canonical": null,
       "ogImage": null
     },
-    "product": "Amazon Echo Dot (5ª Geração)",
-    "category": "Casa Inteligente",
-    "marketplace": "Mercado Livre",
-    "priceOld": "R$ 449,00",
-    "priceNew": "R$ 349,00",
-    "affiliateUrl": "https://lista.mercadolivre.com.br/Amazon%20Echo%20Dot%205%C2%AA%20gera%C3%A7%C3%A3o?matt_tool=carloshbhb&matt_word=vetorblog&ref=carloshbhb&tracking_id=carloshbhb",
-    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_696974-MLA88000509968_072025-O.webp",
-    "adsEnabled": false,
     "hero": {
       "headlineLine1": "AMAZON ECHO DOT 5",
       "headlineLine2": "A ENTRADA INTELIGENTE PARA 2026?",
@@ -10464,29 +10464,29 @@
       "overallScore": 8.8,
       "bars": [
         {
+          "pct": 75,
           "label": "Som",
-          "value": 7.5,
-          "pct": 75
+          "value": 7.5
         },
         {
+          "pct": 95,
           "label": "Inteligência",
-          "value": 9.5,
-          "pct": 95
+          "value": 9.5
         },
         {
+          "pct": 85,
           "label": "Design",
-          "value": 8.5,
-          "pct": 85
+          "value": 8.5
         },
         {
+          "pct": 90,
           "label": "Funcionalidades",
-          "value": 9,
-          "pct": 90
+          "value": 9
         },
         {
+          "pct": 95,
           "label": "Custo-benefício",
-          "value": 9.5,
-          "pct": 95
+          "value": 9.5
         }
       ]
     },
@@ -10535,48 +10535,95 @@
     "sections": [
       {
         "id": "design-e-ergonomia",
+        "content": "O design do **Echo Dot 5ª Geração** mantém a linguagem esférica icônica, mas com refinamentos importantes. A tela de tecido mesh é macia ao toque e se disfarça bem em qualquer ambiente, do quarto à sala. Ele é **significativamente menor** que um prato de sobremesa, ocupando espaço mínimo em uma mesa ou estante.\n\nA grande vantagem é a **estabilidade**. A base borrachada evita escorregões. O peso de 304 gramas dá uma sensação de solidez, diferente de produtos plásticos leves que parecem frágeis. A construção resiste bem a poeira e toques acidentais.\n\n**Os controles físicos são intuitivos.** Quatro botões no topo regulam o volume, silenciam o microfone e acionam a Alexa manualmente. A resposta tátil é boa. Um ponto de atenção: a cor preta (chamada Charcoal) esconde melhor a sujeira, mas a opção Branco Geada pode amarelar com o tempo. No geral, o design cumpre seu papel de ser **invisível e funcional**.\n\n> 💡 **Dica Prática:** Para uma instalação limpa, posicione o Echo Dot a pelo menos 10 cm de paredes ou objetos para que o som de 360° se espalhe melhor pela sala.",
         "heading": "Design Compacto e Acabamento de Qualidade",
-        "tocLabel": "Design e Ergonomia",
         "tocEmoji": "🎨",
-        "content": "O design do **Echo Dot 5ª Geração** mantém a linguagem esférica icônica, mas com refinamentos importantes. A tela de tecido mesh é macia ao toque e se disfarça bem em qualquer ambiente, do quarto à sala. Ele é **significativamente menor** que um prato de sobremesa, ocupando espaço mínimo em uma mesa ou estante.\n\nA grande vantagem é a **estabilidade**. A base borrachada evita escorregões. O peso de 304 gramas dá uma sensação de solidez, diferente de produtos plásticos leves que parecem frágeis. A construção resiste bem a poeira e toques acidentais.\n\n**Os controles físicos são intuitivos.** Quatro botões no topo regulam o volume, silenciam o microfone e acionam a Alexa manualmente. A resposta tátil é boa. Um ponto de atenção: a cor preta (chamada Charcoal) esconde melhor a sujeira, mas a opção Branco Geada pode amarelar com o tempo. No geral, o design cumpre seu papel de ser **invisível e funcional**.\n\n> 💡 **Dica Prática:** Para uma instalação limpa, posicione o Echo Dot a pelo menos 10 cm de paredes ou objetos para que o som de 360° se espalhe melhor pela sala."
+        "tocLabel": "Design e Ergonomia"
       },
       {
         "id": "qualidade-de-som",
+        "content": "A expectativa para um device de entrada deve ser calibrada. O **driver de 1,95 polegadas** do Echo Dot 5 entrega um som claro e nítido para voz e música em volumes moderados. A Alexa é compreendida perfeitamente mesmo a 5 metros de distância, graças ao processamento de sinal.\n\nPara **música de fundo** e podcasts, ele é mais do que suficiente. Os médios e agudos são equilibrados. Para gêneros como pop, sertanejo e MPB, o desempenho é satisfatório. O grave, porém, é limitado. Em volumes altos, especialmente em playlist de eletrônica ou rock pesado, o som pode \"estourar\" levemente.\n\n**Comparação com concorrentes:** O som do Echo Dot 5 é **mais alto e claro** que o Google Nest Mini de 2ª geração. No entanto, para quem busca graves profundos, o concorrente JBL Link Mini oferece uma assinatura sonora mais encorpada, embora custe mais.\n\n> 💡 **Segredo Técnico:** Para maximizar o áudio, pareie o Echo Dot 5 via Bluetooth com um alto-falante externo maior. Isso transforma o Echo Dot em um \"cérebro\" de áudio inteligente, mantendo a clareza da voz e ganhando potência sonora.",
         "heading": "Qualidade de Áudio: O que Esperar de um Alto-Falante Compacto?",
-        "tocLabel": "Qualidade de Som",
         "tocEmoji": "🔊",
-        "content": "A expectativa para um device de entrada deve ser calibrada. O **driver de 1,95 polegadas** do Echo Dot 5 entrega um som claro e nítido para voz e música em volumes moderados. A Alexa é compreendida perfeitamente mesmo a 5 metros de distância, graças ao processamento de sinal.\n\nPara **música de fundo** e podcasts, ele é mais do que suficiente. Os médios e agudos são equilibrados. Para gêneros como pop, sertanejo e MPB, o desempenho é satisfatório. O grave, porém, é limitado. Em volumes altos, especialmente em playlist de eletrônica ou rock pesado, o som pode \"estourar\" levemente.\n\n**Comparação com concorrentes:** O som do Echo Dot 5 é **mais alto e claro** que o Google Nest Mini de 2ª geração. No entanto, para quem busca graves profundos, o concorrente JBL Link Mini oferece uma assinatura sonora mais encorpada, embora custe mais.\n\n> 💡 **Segredo Técnico:** Para maximizar o áudio, pareie o Echo Dot 5 via Bluetooth com um alto-falante externo maior. Isso transforma o Echo Dot em um \"cérebro\" de áudio inteligente, mantendo a clareza da voz e ganhando potência sonora."
+        "tocLabel": "Qualidade de Som"
       },
       {
         "id": "performance-e-recursos-inteligentes",
+        "content": "Aqui é onde o Echo Dot 5 **brilha de verdade**. O processador de 2ª geração do Amazon é rápido. Comandos de voz como \"Alexa, acenda as luzes da sala\" ou \"Alexa, toque uma playlist relaxante\" são executados em menos de 2 segundos. A latência é mínima para um device de entrada.\n\n**Rotinas são o grande diferencial.** Você pode criar sequências complexas: \"Alexa, boa noite\" pode desligar todas as luzes, travar as portas, baixar o termostato e tocar sons de chuva. O setup é feito pelo app Alexa no celular. A interface é simples, mesmo para iniciantes.\n\nO suporte a **Matter e Zigbee** é crucial. Isso significa controle direto de dezenas de marcas (Philips Hue, TP-Link, etc.) sem precisar de hubs adicionais. Você liga uma lâmpada inteligente, e o Echo Dot a reconhece automaticamente. Para quem está começando na casa inteligente, essa integração nativa **simplifica tudo**.\n\n> 💡 **Exemplo Prático:** Crie uma rotina de \"Chegada em Casa\". Quando seu smartphone se conecta ao Wi-Fi, o Echo Dot acende a luz da sala, liga o ar-condicionado e dá as boas-vindas com seu podcast favorito.",
         "heading": "Alexa no Controle Total: Performance e Recursos",
-        "tocLabel": "Recursos Inteligentes",
         "tocEmoji": "🧠",
-        "content": "Aqui é onde o Echo Dot 5 **brilha de verdade**. O processador de 2ª geração do Amazon é rápido. Comandos de voz como \"Alexa, acenda as luzes da sala\" ou \"Alexa, toque uma playlist relaxante\" são executados em menos de 2 segundos. A latência é mínima para um device de entrada.\n\n**Rotinas são o grande diferencial.** Você pode criar sequências complexas: \"Alexa, boa noite\" pode desligar todas as luzes, travar as portas, baixar o termostato e tocar sons de chuva. O setup é feito pelo app Alexa no celular. A interface é simples, mesmo para iniciantes.\n\nO suporte a **Matter e Zigbee** é crucial. Isso significa controle direto de dezenas de marcas (Philips Hue, TP-Link, etc.) sem precisar de hubs adicionais. Você liga uma lâmpada inteligente, e o Echo Dot a reconhece automaticamente. Para quem está começando na casa inteligente, essa integração nativa **simplifica tudo**.\n\n> 💡 **Exemplo Prático:** Crie uma rotina de \"Chegada em Casa\". Quando seu smartphone se conecta ao Wi-Fi, o Echo Dot acende a luz da sala, liga o ar-condicionado e dá as boas-vindas com seu podcast favorito."
+        "tocLabel": "Recursos Inteligentes"
       },
       {
         "id": "sensores-e-monitoramento",
+        "content": "Uma novidade importante na 5ª geração são os **sensores embarcados**. O sensor de temperatura ambiente permite que a Alexa faça perguntas como \"Alexa, qual a temperatura aqui?\" e reaja a comandos como \"Alexa, se estiver acima de 25 graus, ligue o ventilador\".\n\nOs **detectores de movimento e energia** são igualmente poderosos. Você pode configurar a Alexa para ligar automaticamente a luz quando entra no quarto ou para desligar dispositivos quando não detecta ninguém na sala há 30 minutos. Isso gera uma **economia real na conta de luz**.\n\n> ⚠️ **Atenção:** Esses sensores são passivos e de baixa precisão. Não substituem termômetros ou sensores PIR profissionais. Para monitoramento de saúde (como temperatura corporal), são inúteis. Seu objetivo é o **conforto e automação doméstica**, não o monitoramento médico.\n\nA **privacidade** é tratada com seriedade. Um botão físico no topo silencia todos os microfones. Um LED vermelho indica claramente quando o dispositivo está mutado. Você também pode revisar e apagar gravações de voz no app.",
         "heading": "Sensores Integrados: Temperatura e Presença",
-        "tocLabel": "Sensores e Monitoramento",
         "tocEmoji": "🌡️",
-        "content": "Uma novidade importante na 5ª geração são os **sensores embarcados**. O sensor de temperatura ambiente permite que a Alexa faça perguntas como \"Alexa, qual a temperatura aqui?\" e reaja a comandos como \"Alexa, se estiver acima de 25 graus, ligue o ventilador\".\n\nOs **detectores de movimento e energia** são igualmente poderosos. Você pode configurar a Alexa para ligar automaticamente a luz quando entra no quarto ou para desligar dispositivos quando não detecta ninguém na sala há 30 minutos. Isso gera uma **economia real na conta de luz**.\n\n> ⚠️ **Atenção:** Esses sensores são passivos e de baixa precisão. Não substituem termômetros ou sensores PIR profissionais. Para monitoramento de saúde (como temperatura corporal), são inúteis. Seu objetivo é o **conforto e automação doméstica**, não o monitoramento médico.\n\nA **privacidade** é tratada com seriedade. Um botão físico no topo silencia todos os microfones. Um LED vermelho indica claramente quando o dispositivo está mutado. Você também pode revisar e apagar gravações de voz no app."
+        "tocLabel": "Sensores e Monitoramento"
       },
       {
         "id": "custo-beneficio-e-mercado",
+        "content": "Com um preço de mercado em torno de **R$ 349,00** (em promoções regulares no Mercado Livre), o Echo Dot 5 é a **porta de entrada mais inteligente** para o ecossistema Amazon. Ele custa menos que um jantar para dois em um restaurante sofisticado, mas entrega valor por anos.\n\n**O valor não está no hardware, mas no serviço.** A Alexa é gratuita e evolui constantemente. Novas rotinas e integrações são adicionadas sem custo. Em comparação, o Google Nest Mini tem uma interface de voz menos madura em português e menos integrações nativas com marcas brasileiras.\n\nPara quem já possui dispositivos Echo antigos, o upgrade vale a pena pela **melhoria drástica no som** e pela adição dos sensores. Para o primeiro device, é uma escolha segura. O custo por功能 é baixíssimo. Você está pagando por um assistente 24/7, um controlador de casa inteligente e um alto-falante.\n\n> 💡 **Lembre-se:** O verdadeiro custo-benefício se revela no longo prazo. A automação de rotinas (luzes, termostato, segurança) pode economizar de R$ 30 a R$ 80 por mês em energia e conveniência.",
         "heading": "Análise de Custo-Benefício: Vale o Investimento em 2026?",
-        "tocLabel": "Custo-Benefício",
         "tocEmoji": "💰",
-        "content": "Com um preço de mercado em torno de **R$ 349,00** (em promoções regulares no Mercado Livre), o Echo Dot 5 é a **porta de entrada mais inteligente** para o ecossistema Amazon. Ele custa menos que um jantar para dois em um restaurante sofisticado, mas entrega valor por anos.\n\n**O valor não está no hardware, mas no serviço.** A Alexa é gratuita e evolui constantemente. Novas rotinas e integrações são adicionadas sem custo. Em comparação, o Google Nest Mini tem uma interface de voz menos madura em português e menos integrações nativas com marcas brasileiras.\n\nPara quem já possui dispositivos Echo antigos, o upgrade vale a pena pela **melhoria drástica no som** e pela adição dos sensores. Para o primeiro device, é uma escolha segura. O custo por功能 é baixíssimo. Você está pagando por um assistente 24/7, um controlador de casa inteligente e um alto-falante.\n\n> 💡 **Lembre-se:** O verdadeiro custo-benefício se revela no longo prazo. A automação de rotinas (luzes, termostato, segurança) pode economizar de R$ 30 a R$ 80 por mês em energia e conveniência."
+        "tocLabel": "Custo-Benefício"
       },
       {
         "id": "cenarios-de-uso-pratico",
+        "content": "O Echo Dot 5 não é apenas um alto-falante. Ele é um **hub doméstico discreto**. Veja os cenários onde ele se destaca:\n\n*   **Cozinha e Banheiro:** A resistência ao vapor (embora não seja à prova d'água) permite uso próximo à pia ou chuveiro. \"Alexa, defina um timer de 10 minutos\" ou \"Alexa, toque rádio online\" transformam tarefas rotineiras.\n*   **Quarto como Relógio Inteligente:** Posicione-o na mesinha de cabeceira. \"Alexa, acorde-me às 7h com uma playlist energética\" é mais eficaz que um alarme tradicional. O sensor de temperatura ajuda a decidir se ligar o ar-condicionado.\n*   **Sala de Estar como Central:** Pareado com uma Smart TV, ele se torna um controle por voz completo. \"Alexa, abra o YouTube e coloque o vídeo de receitas da Ana Maria Braga\". A integração com a Fire TV Stick é imediata.\n*   **Escritório/Home Office:** Crie uma rotina \"Foco\": \"Alexa, modo foco\" desativa notificações, liga a luz branca e toca sons de produtividade. Ideal para aumentar a concentração.\n\n> 💡 **Atalho Útil:** Diga \"Alexa, descubra dispositivos\" a cada nova compra de gadget inteligente. O Echo Dot fará um scan e adicionará tudo à sua rede automaticamente.",
         "heading": "Cenários de Uso: Onde o Echo Dot 5 Mais Brilha?",
-        "tocLabel": "Cenários Práticos",
         "tocEmoji": "🏠",
-        "content": "O Echo Dot 5 não é apenas um alto-falante. Ele é um **hub doméstico discreto**. Veja os cenários onde ele se destaca:\n\n*   **Cozinha e Banheiro:** A resistência ao vapor (embora não seja à prova d'água) permite uso próximo à pia ou chuveiro. \"Alexa, defina um timer de 10 minutos\" ou \"Alexa, toque rádio online\" transformam tarefas rotineiras.\n*   **Quarto como Relógio Inteligente:** Posicione-o na mesinha de cabeceira. \"Alexa, acorde-me às 7h com uma playlist energética\" é mais eficaz que um alarme tradicional. O sensor de temperatura ajuda a decidir se ligar o ar-condicionado.\n*   **Sala de Estar como Central:** Pareado com uma Smart TV, ele se torna um controle por voz completo. \"Alexa, abra o YouTube e coloque o vídeo de receitas da Ana Maria Braga\". A integração com a Fire TV Stick é imediata.\n*   **Escritório/Home Office:** Crie uma rotina \"Foco\": \"Alexa, modo foco\" desativa notificações, liga a luz branca e toca sons de produtividade. Ideal para aumentar a concentração.\n\n> 💡 **Atalho Útil:** Diga \"Alexa, descubra dispositivos\" a cada nova compra de gadget inteligente. O Echo Dot fará um scan e adicionará tudo à sua rede automaticamente."
+        "tocLabel": "Cenários Práticos"
       }
     ],
     "compareTable": {
+      "rows": [
+        {
+          "values": [
+            "Alexa (madura e integrada)",
+            "Google Assistant",
+            "Google Assistant"
+          ],
+          "winner": 1,
+          "feature": "Assistente de Voz"
+        },
+        {
+          "values": [
+            "1.95\" driver, 360°",
+            "40mm driver",
+            "2\" driver (mais grave)"
+          ],
+          "winner": 3,
+          "feature": "Áudio"
+        },
+        {
+          "values": [
+            "Temperatura, movimento, energia",
+            "Nenhum",
+            "Nenhum"
+          ],
+          "winner": 1,
+          "feature": "Sensores"
+        },
+        {
+          "values": [
+            "Zigbee e Matter",
+            "Nenhum",
+            "Nenhum"
+          ],
+          "winner": 1,
+          "feature": "Conectividade IoT"
+        },
+        {
+          "values": [
+            "R$ 349,00",
+            "R$ 299,00",
+            "R$ 499,00"
+          ],
+          "winner": 1,
+          "feature": "Preço Médio (2026)"
+        }
+      ],
       "caption": "Comparativo: Echo Dot 5 vs. Principais Concorrentes",
       "columns": [
         "Característica",
@@ -10584,54 +10631,7 @@
         "Google Nest Mini (2ª Gen)",
         "JBL Link Mini"
       ],
-      "winnerCol": 1,
-      "rows": [
-        {
-          "feature": "Assistente de Voz",
-          "values": [
-            "Alexa (madura e integrada)",
-            "Google Assistant",
-            "Google Assistant"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Áudio",
-          "values": [
-            "1.95\" driver, 360°",
-            "40mm driver",
-            "2\" driver (mais grave)"
-          ],
-          "winner": 3
-        },
-        {
-          "feature": "Sensores",
-          "values": [
-            "Temperatura, movimento, energia",
-            "Nenhum",
-            "Nenhum"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Conectividade IoT",
-          "values": [
-            "Zigbee e Matter",
-            "Nenhum",
-            "Nenhum"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Preço Médio (2026)",
-          "values": [
-            "R$ 349,00",
-            "R$ 299,00",
-            "R$ 499,00"
-          ],
-          "winner": 1
-        }
-      ]
+      "winnerCol": 1
     },
     "pros": [
       "Assistente Alexa madura e com vasto ecossistema de compatibilidade.",
@@ -10647,42 +10647,42 @@
       "Design em tecido pode acumular poeira e ser difícil de limpar."
     ],
     "testimonials": [],
-    "faq": [
-      {
-        "question": "O Echo Dot 5 funciona sem internet?",
-        "answer": "Não. A Alexa depende de uma conexão Wi-Fi estável para processar comandos e acessar serviços online. Ele pode tocar música baixada em alguns dispositivos Bluetooth pareados, mas suas funções inteligentes ficam limitadas sem internet."
-      },
-      {
-        "question": "Preciso de um hub para conectar minhas lâmpadas inteligentes ao Echo Dot 5?",
-        "answer": "Depende da marca. O Echo Dot 5 possui rádio Zigbee integrado e suporte a Matter. Para lâmpadas de marcas como Philips Hue (com hub) ou TP-Link, Wyze (compatíveis com Matter/Wi-Fi), você não precisa de hub adicional. Basta descobrir o dispositivo pela Alexa."
-      },
-      {
-        "question": "Qual a diferença entre o Echo Dot 4 e o Echo Dot 5?",
-        "answer": "A principal diferença está na inclusão de sensores (temperatura, movimento e energia) e no processador ligeiramente mais rápido da 5ª geração. O design também é levemente mais arredondado e o som, embora sutil, é mais nítido. Para quem já tem o 4, o upgrade não é urgente. Para novos compradores, a 5ª é a melhor escolha."
-      },
-      {
-        "question": "O Echo Dot 5 pode ser usado como alarme e timer?",
-        "answer": "Sim, e é uma de suas melhores funções! Você pode definir vários alarmes e timers por voz. \"Alexa, acorde-me às 7h com sertanejo\" ou \"Alexa, timer de 15 minutos para o bolo\". Ele também relata a previsão do tempo e notícias ao acordar."
-      },
-      {
-        "question": "É seguro ter um Echo Dot em casa por questões de privacidade?",
-        "answer": "A Amazon oferece controles robustos. Você pode silenciar o microfone fisicamente, revisar e apagar todas as gravações de voz pelo app Alexa. As configurações de privacidade são claras e acessíveis. Para quem tem preocupações, silenciar o microfone quando não está usando é a melhor prática."
-      }
-    ],
     "verdict": {
       "score": 8.8,
       "label": "MELHOR ESCOLHA PARA INICIANTES",
       "text": "O Echo Dot 5ª Geração é a porta de entrada ideal para o universo da casa inteligente. Ele entrega uma experiência de assistente vocal completa, com sensores úteis e integrações nativas que justificam totalmente o investimento. Para quem busca um \"cérebro\" barato e eficiente, este é o modelo a ser considerado em 2026.",
       "note": "Perfeito para iniciantes em casa inteligente, famílias que buscam praticidade e qualquer pessoa que queira um assistente vocal 24/7."
     },
+    "faq": [
+      {
+        "answer": "Não. A Alexa depende de uma conexão Wi-Fi estável para processar comandos e acessar serviços online. Ele pode tocar música baixada em alguns dispositivos Bluetooth pareados, mas suas funções inteligentes ficam limitadas sem internet.",
+        "question": "O Echo Dot 5 funciona sem internet?"
+      },
+      {
+        "answer": "Depende da marca. O Echo Dot 5 possui rádio Zigbee integrado e suporte a Matter. Para lâmpadas de marcas como Philips Hue (com hub) ou TP-Link, Wyze (compatíveis com Matter/Wi-Fi), você não precisa de hub adicional. Basta descobrir o dispositivo pela Alexa.",
+        "question": "Preciso de um hub para conectar minhas lâmpadas inteligentes ao Echo Dot 5?"
+      },
+      {
+        "answer": "A principal diferença está na inclusão de sensores (temperatura, movimento e energia) e no processador ligeiramente mais rápido da 5ª geração. O design também é levemente mais arredondado e o som, embora sutil, é mais nítido. Para quem já tem o 4, o upgrade não é urgente. Para novos compradores, a 5ª é a melhor escolha.",
+        "question": "Qual a diferença entre o Echo Dot 4 e o Echo Dot 5?"
+      },
+      {
+        "answer": "Sim, e é uma de suas melhores funções! Você pode definir vários alarmes e timers por voz. \"Alexa, acorde-me às 7h com sertanejo\" ou \"Alexa, timer de 15 minutos para o bolo\". Ele também relata a previsão do tempo e notícias ao acordar.",
+        "question": "O Echo Dot 5 pode ser usado como alarme e timer?"
+      },
+      {
+        "answer": "A Amazon oferece controles robustos. Você pode silenciar o microfone fisicamente, revisar e apagar todas as gravações de voz pelo app Alexa. As configurações de privacidade são claras e acessíveis. Para quem tem preocupações, silenciar o microfone quando não está usando é a melhor prática.",
+        "question": "É seguro ter um Echo Dot em casa por questões de privacidade?"
+      }
+    ],
     "schemaRating": {
       "ratingValue": 4.8,
       "reviewCount": 8450
     },
     "googleRank": 0,
-    "lastRankCheck": "2026-06-06T06:50:18.849Z",
-    "createdAt": "2026-06-06T06:50:18.849Z",
-    "updatedAt": "2026-06-06T06:50:18.849Z"
+    "lastRankCheck": "2026-06-06T06:50:18.849",
+    "createdAt": "2026-06-06T06:50:19.194613+00:00",
+    "updatedAt": "2026-06-07T15:47:25.542413+00:00"
   },
   {
     "id": "5e58d0be-212d-4f12-9a8b-91590f1cdfae",
