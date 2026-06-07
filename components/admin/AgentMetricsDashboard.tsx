@@ -89,7 +89,8 @@ export default function AgentMetricsDashboard() {
     );
   }
 
-  const { summary, byAgent, recentMetrics } = data;
+  const { summary, byAgent, recentMetrics } = data || {};
+  if (!summary) return null;
 
   return (
     <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden">
