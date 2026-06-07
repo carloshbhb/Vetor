@@ -1,4 +1,5 @@
 import { getCachedResponse, setCachedResponse, TTL_PRESETS, scheduleCleanup } from '@/lib/agentCache';
+import { isComponentHealthy, recordProviderHealth } from '@/lib/auto-healing';
 
 let lastRequestTime = 0;
 
@@ -167,14 +168,25 @@ async function callOpenRouterCascade(
   let lastError: Error | null = null;
 
   for (const m of models) {
+    // Skip unhealthy providers (auto-healing)
+    if (!isComponentHealthy(`provider-${m.id}`)) {
+      console.log(`[AI OpenRouter] Skipping ${m.name} (unhealthy)`);
+      continue;
+    }
+
     try {
       console.log(`[AI OpenRouter] Trying ${m.name} (${m.id})...`);
       const result = await callOpenRouter(prompt, m.id, responseJson, temperature, maxOutputTokens);
       console.log(`[AI OpenRouter] ${m.name} succeeded.`);
+      await recordProviderHealth(m.id, true);
       return result;
     } catch (err: any) {
       lastError = err;
       const is429 = err.status === 429 || err.message?.includes('429');
+      
+      // Record failure for auto-healing
+      await recordProviderHealth(m.id, false, is429 ? 'Rate limited' : err.message);
+      
       if (is429) {
         console.warn(`[AI OpenRouter] ${m.name} rate-limited (429). Trying next model...`);
         continue;

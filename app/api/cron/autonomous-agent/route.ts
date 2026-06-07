@@ -6,6 +6,7 @@ import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
 import { generateReview } from '@/lib/generate';
 import { createClient } from '@supabase/supabase-js';
 import { logger, recordMetric, createTimer } from '@/lib/monitor';
+import { checkErrorRate } from '@/lib/alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -501,6 +502,9 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       durationMs: totalDuration,
     });
 
+    // Check error rate and trigger alert if needed
+    await checkErrorRate('autonomous-agent');
+
     return NextResponse.json({
       success: true,
       category: targetCategory,
@@ -526,6 +530,9 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       success: false,
       errorMessage: error.message,
     });
+
+    // Check error rate after failure
+    await checkErrorRate('autonomous-agent');
 
     return NextResponse.json(
       { error: 'Erro no agente autônomo: ' + error.message },

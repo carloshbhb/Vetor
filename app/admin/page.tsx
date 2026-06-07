@@ -10,6 +10,7 @@ import AICitationsDashboard from '@/components/admin/AICitationsDashboard';
 import SerpHistoryChart from '@/components/admin/SerpHistoryChart';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import AgentMetricsDashboard from '@/components/admin/AgentMetricsDashboard';
+import AdvancedMetricsDashboard from '@/components/admin/AdvancedMetricsDashboard';
 
 export default async function AdminDashboard() {
   const reviews = await getAllReviews();
@@ -190,6 +191,11 @@ export default async function AdminDashboard() {
       {/* Agent Metrics */}
       <div className="mt-8">
         <AgentMetricsDashboard />
+      </div>
+
+      {/* Advanced Metrics with Trends */}
+      <div className="mt-8">
+        <AdvancedMetricsDashboard />
       </div>
     </div>
   );
