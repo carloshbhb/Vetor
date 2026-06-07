@@ -1,4 +1,4 @@
-import { getCachedResponse, setCachedResponse } from '@/lib/agentCache';
+import { getCachedResponse, setCachedResponse, TTL_PRESETS, scheduleCleanup } from '@/lib/agentCache';
 
 let lastRequestTime = 0;
 
@@ -14,6 +14,66 @@ async function enforceConcurrencyDelay(minDelayMs = 2000) {
     await sleep(waitTime);
   }
   lastRequestTime = Date.now();
+}
+
+// ─── Exponential Backoff Retry ───────────────────────────────────────────────
+
+interface RetryOptions {
+  maxRetries?: number;
+  baseDelayMs?: number;
+  maxDelayMs?: number;
+  jitter?: boolean;
+}
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  options: RetryOptions = {}
+): Promise<T> {
+  const {
+    maxRetries = 3,
+    baseDelayMs = 1000,
+    maxDelayMs = 30000,
+    jitter = true,
+  } = options;
+
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+
+      // Don't retry on 4xx errors (except 429)
+      const status = error.status || error.statusCode;
+      if (status && status >= 400 && status < 500 && status !== 429) {
+        throw error;
+      }
+
+      // Don't retry if no retries left
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      // Calculate delay with exponential backoff
+      let delay = Math.min(baseDelayMs * Math.pow(2, attempt), maxDelayMs);
+
+      // Add jitter (±25%)
+      if (jitter) {
+        const jitterRange = delay * 0.25;
+        delay = delay + (Math.random() * jitterRange * 2 - jitterRange);
+      }
+
+      console.warn(
+        `[AI] Attempt ${attempt + 1}/${maxRetries + 1} failed: ${error.message}. ` +
+        `Retrying in ${Math.round(delay)}ms...`
+      );
+
+      await sleep(delay);
+    }
+  }
+
+  throw lastError;
 }
 
 interface OpenRouterModel {
@@ -41,49 +101,55 @@ async function callOpenRouter(
     throw new Error('OPENROUTER_API_KEY is not set.');
   }
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiKey}`,
-    'HTTP-Referer': process.env.SITE_URL || 'https://www.vetor.blog',
-    'X-Title': 'Vetor Blog',
-  };
+  return withRetry(async () => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': process.env.SITE_URL || 'https://www.vetor.blog',
+      'X-Title': 'Vetor Blog',
+    };
 
-  const messages = [{ role: 'user', content: prompt }];
-  if (responseJson && !prompt.toLowerCase().includes('json')) {
-    messages[0].content += '\n\nResponse must be a valid JSON object.';
-  }
+    const messages = [{ role: 'user', content: prompt }];
+    if (responseJson && !prompt.toLowerCase().includes('json')) {
+      messages[0].content += '\n\nResponse must be a valid JSON object.';
+    }
 
-  const requestBody: Record<string, any> = {
-    model,
-    messages,
-    temperature,
-    max_tokens: maxOutputTokens,
-  };
+    const requestBody: Record<string, any> = {
+      model,
+      messages,
+      temperature,
+      max_tokens: maxOutputTokens,
+    };
 
-  if (responseJson) {
-    requestBody.response_format = { type: 'json_object' };
-  }
+    if (responseJson) {
+      requestBody.response_format = { type: 'json_object' };
+    }
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(requestBody),
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      const err = new Error(`OpenRouter ${model} failed (${response.status}): ${errorText}`);
+      (err as any).status = response.status;
+      throw err;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error(`OpenRouter ${model} returned empty content`);
+    }
+
+    return content;
+  }, {
+    maxRetries: 2,
+    baseDelayMs: 1000,
+    maxDelayMs: 10000,
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    const err = new Error(`OpenRouter ${model} failed (${response.status}): ${errorText}`);
-    (err as any).status = response.status;
-    throw err;
-  }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new Error(`OpenRouter ${model} returned empty content`);
-  }
-
-  return content;
 }
 
 async function callOpenRouterCascade(
@@ -128,9 +194,13 @@ interface GenerateTextOptions {
   maxOutputTokens?: number;
   useSearchGrounding?: boolean;
   minConcurrencyDelayMs?: number;
+  cacheTTLPreset?: keyof typeof TTL_PRESETS;
 }
 
 export async function generateText(options: GenerateTextOptions): Promise<string> {
+  // Run periodic cleanup
+  scheduleCleanup();
+
   const cached = getCachedResponse(options.prompt);
   if (cached) {
     console.log('[AI Cache] Returning cached response');
@@ -143,6 +213,7 @@ export async function generateText(options: GenerateTextOptions): Promise<string
     temperature = 0.7,
     maxOutputTokens = 8192,
     minConcurrencyDelayMs = 2000,
+    cacheTTLPreset = 'GENERAL',
   } = options;
 
   await enforceConcurrencyDelay(minConcurrencyDelayMs);
@@ -168,7 +239,7 @@ export async function generateText(options: GenerateTextOptions): Promise<string
 
       const responseText = result.response.text();
       if (responseText) {
-        setCachedResponse(options.prompt, responseText);
+        setCachedResponse(options.prompt, responseText, TTL_PRESETS[cacheTTLPreset]);
         return responseText;
       }
     } catch (error: any) {
@@ -180,7 +251,7 @@ export async function generateText(options: GenerateTextOptions): Promise<string
   console.log('[AI Client] Using OpenRouter free models cascade...');
   try {
     const result = await callOpenRouterCascade(prompt, responseJson, temperature, maxOutputTokens);
-    setCachedResponse(options.prompt, result);
+    setCachedResponse(options.prompt, result, TTL_PRESETS[cacheTTLPreset]);
     return result;
   } catch (fallbackError: any) {
     console.error('[AI Client] All providers failed.', fallbackError);
@@ -195,9 +266,9 @@ export async function generateText(options: GenerateTextOptions): Promise<string
 export async function generateTextWithModel(
   prompt: string,
   modelId: string,
-  options: { responseJson?: boolean; temperature?: number; maxOutputTokens?: number } = {}
+  options: { responseJson?: boolean; temperature?: number; maxOutputTokens?: number; cacheTTLPreset?: keyof typeof TTL_PRESETS } = {}
 ): Promise<string> {
-  const { responseJson = false, temperature = 0.7, maxOutputTokens = 4096 } = options;
+  const { responseJson = false, temperature = 0.7, maxOutputTokens = 4096, cacheTTLPreset = 'GENERAL' } = options;
   await enforceConcurrencyDelay(1500);
 
   const cached = getCachedResponse(prompt);
@@ -209,13 +280,13 @@ export async function generateTextWithModel(
   console.log(`[AI Client] Generating with specific model: ${modelId}`);
   try {
     const result = await callOpenRouter(prompt, modelId, responseJson, temperature, maxOutputTokens);
-    setCachedResponse(prompt, result);
+    setCachedResponse(prompt, result, TTL_PRESETS[cacheTTLPreset]);
     return result;
   } catch (err: any) {
     // If specific model fails, try cascade as fallback
     console.warn(`[AI Client] Model ${modelId} failed: ${err.message}. Trying cascade...`);
     const result = await callOpenRouterCascade(prompt, responseJson, temperature, maxOutputTokens);
-    setCachedResponse(prompt, result);
+    setCachedResponse(prompt, result, TTL_PRESETS[cacheTTLPreset]);
     return result;
   }
 }

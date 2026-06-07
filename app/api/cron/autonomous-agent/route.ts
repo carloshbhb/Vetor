@@ -5,6 +5,7 @@ import { commitNewReviewToGitHub } from '@/lib/github';
 import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
 import { generateReview } from '@/lib/generate';
 import { createClient } from '@supabase/supabase-js';
+import { logger, recordMetric, createTimer } from '@/lib/monitor';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,6 +74,12 @@ export async function POST(req: NextRequest) {
 
 export async function handleAutonomousCycle(specificProduct: string = '', specificCategory: string = '') {
   const startTime = Date.now();
+  const cycleTimer = createTimer();
+
+  await logger.info('Autonomous cycle started', 'autonomous-agent', {
+    specificProduct: specificProduct || 'auto',
+    specificCategory: specificCategory || 'auto',
+  });
 
   try {
     const reviews = await getAllReviews();
@@ -161,8 +168,9 @@ export async function handleAutonomousCycle(specificProduct: string = '', specif
       console.log(`[Autonomous Agent] Niche selected (attempt ${attempts}): ${targetCategory}`);
 
       // 2. Discover trending product
+      const discoveryTimer = createTimer();
       try {
-        console.log(`[Autonomous Agent] Discovering trending product for category: "${targetCategory}"`);
+        await logger.info('Discovering trending product', 'autonomous-agent', { category: targetCategory });
         const trendPrompt = `Você é o Agente de Descoberta de Tráfego do vetor.blog.
 Na categoria "${targetCategory}", qual é o produto mais popular e com maior demanda no Brasil em ${new Date().getFullYear()}?
 Pense em produtos que estão em alta, com muitas avaliações positivas e boa relação custo-benefício.
@@ -180,18 +188,29 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
           prompt: trendPrompt,
         });
         trendingProduct = text.trim().replace(/['\"""]/g, '');
-        console.log(`[Autonomous Agent] AI suggested product: "${trendingProduct}" for category "${targetCategory}"`);
+        await logger.info('Product discovered', 'autonomous-agent', { product: trendingProduct, category: targetCategory });
 
         // Verify search result isn't already reviewed
         if (reviews.some(r => r.product.toLowerCase().includes(trendingProduct.toLowerCase()))) {
-          console.log(`[Autonomous Agent] Search returned already-reviewed "${trendingProduct}". Trying fallback.`);
+          await logger.warn('Product already reviewed, skipping', 'autonomous-agent', { product: trendingProduct });
           trendingProduct = '';
         }
+
+        await recordMetric({
+          agentName: 'autonomous-agent',
+          operation: 'discover_product',
+          durationMs: discoveryTimer.stop(),
+          success: true,
+        });
       } catch (searchError: any) {
-        console.warn(
-          '[Autonomous Agent] Search Grounding failed, using fallback list:',
-          searchError?.message || searchError
-        );
+        await logger.error('Product discovery failed', 'autonomous-agent', searchError, { category: targetCategory });
+        await recordMetric({
+          agentName: 'autonomous-agent',
+          operation: 'discover_product',
+          durationMs: discoveryTimer.stop(),
+          success: false,
+          errorMessage: searchError?.message,
+        });
       }
 
       // Fall back to static list if search didn't produce a valid new product
@@ -250,24 +269,44 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     let mlPriceOld = '';
     let mlAffiliateUrl = buildAffiliateUrl(`https://lista.mercadolivre.com.br/${encodeURIComponent(trendingProduct)}`);
 
+    const mlTimer = createTimer();
     try {
-      console.log(`[Autonomous Agent] Fetching ML product data for: "${trendingProduct}"`);
+      await logger.info('Fetching ML product data', 'autonomous-agent', { product: trendingProduct });
       const mlData = await fetchMLProduct(trendingProduct);
       if (mlData) {
         mlImageUrl = mlData.imageUrl || '';
         mlPrice = mlData.price || '';
         mlPriceOld = mlData.priceOld || '';
         mlAffiliateUrl = mlData.affiliateUrl || mlAffiliateUrl;
-        console.log(`[Autonomous Agent] ✅ ML API enrichment: image=${!!mlImageUrl}, price=${mlPrice}, source=${mlData.source}`);
+        await logger.info('ML enrichment success', 'autonomous-agent', { 
+          product: trendingProduct, 
+          hasImage: !!mlImageUrl, 
+          price: mlPrice,
+          source: mlData.source,
+        });
       } else {
-        console.warn('[Autonomous Agent] ML API returned no data. Proceeding with defaults.');
+        await logger.warn('ML API returned no data', 'autonomous-agent', { product: trendingProduct });
       }
+      await recordMetric({
+        agentName: 'autonomous-agent',
+        operation: 'ml_enrichment',
+        durationMs: mlTimer.stop(),
+        success: true,
+      });
     } catch (mlErr: any) {
-      console.warn('[Autonomous Agent] ML API fetch failed (non-fatal):', mlErr.message);
+      await logger.warn('ML API fetch failed (non-fatal)', 'autonomous-agent', { product: trendingProduct, error: mlErr.message });
+      await recordMetric({
+        agentName: 'autonomous-agent',
+        operation: 'ml_enrichment',
+        durationMs: mlTimer.stop(),
+        success: false,
+        errorMessage: mlErr.message,
+      });
     }
 
     // 5. Generate the review using the same flow as "Preencher com IA" button
-    console.log(`[Autonomous Agent] Step 5: Generating review with shared generateReview()...`);
+    const generationTimer = createTimer();
+    await logger.info('Generating review content', 'autonomous-agent', { product: trendingProduct, category: targetCategory });
     const generateResult = await generateReview({
       product: trendingProduct,
       category: targetCategory,
@@ -285,7 +324,18 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     });
 
     const d = generateResult.data;
-    console.log(`[Autonomous Agent] Generation completed with provider: ${generateResult.provider}, SEO passed: ${generateResult.seo.passed}`);
+    await recordMetric({
+      agentName: 'autonomous-agent',
+      operation: 'generate_review',
+      durationMs: generationTimer.stop(),
+      success: true,
+      provider: generateResult.provider,
+    });
+    await logger.info('Review generation completed', 'autonomous-agent', {
+      product: trendingProduct,
+      provider: generateResult.provider,
+      seoPassed: generateResult.seo.passed,
+    });
 
     // 6. Build full review object from generated data
     const now = new Date().toISOString();
@@ -351,6 +401,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     };
 
     // 7. Save to Supabase directly (bypasses file fallback)
+    const dbTimer = createTimer();
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !supabaseKey) {
@@ -404,21 +455,51 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       .insert(insertData);
 
     if (insertError) {
-      console.error('[Autonomous Agent] Supabase insert failed:', insertError);
+      await logger.error('Supabase insert failed', 'autonomous-agent', new Error(insertError.message));
       throw new Error(`Supabase insert failed: ${insertError.message}`);
     }
-    console.log(`[Autonomous Agent] Saved to Supabase: ${trendingProduct} (${reviewId})`);
+    await recordMetric({
+      agentName: 'autonomous-agent',
+      operation: 'save_to_supabase',
+      durationMs: dbTimer.stop(),
+      success: true,
+    });
+    await logger.info('Review saved to Supabase', 'autonomous-agent', { product: trendingProduct, reviewId });
 
     // 8. Commit to GitHub → triggers Vercel redeploy with persistent data
+    const gitTimer = createTimer();
     const gitResult = await commitNewReviewToGitHub(fullReview);
+    await recordMetric({
+      agentName: 'autonomous-agent',
+      operation: 'github_commit',
+      durationMs: gitTimer.stop(),
+      success: gitResult.success,
+      errorMessage: gitResult.error || undefined,
+    });
+
     if (gitResult.success) {
-      console.log(`[Autonomous Agent] ✅ GitHub commit successful for "${trendingProduct}"`);
+      await logger.info('GitHub commit successful', 'autonomous-agent', { product: trendingProduct });
     } else {
-      console.warn(`[Autonomous Agent] ⚠️ GitHub commit failed: ${gitResult.error}`);
+      await logger.warn('GitHub commit failed', 'autonomous-agent', { product: trendingProduct, error: gitResult.error });
     }
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`[Autonomous Agent] ✅ Completed in ${elapsed}s`);
+    const totalDuration = cycleTimer.stop();
+    await recordMetric({
+      agentName: 'autonomous-agent',
+      operation: 'full_cycle',
+      durationMs: totalDuration,
+      success: true,
+      provider: generateResult.provider,
+    });
+
+    await logger.info('Autonomous cycle completed', 'autonomous-agent', {
+      product: trendingProduct,
+      category: targetCategory,
+      provider: generateResult.provider,
+      seoPassed: generateResult.seo.passed,
+      githubPersisted: gitResult.success,
+      durationMs: totalDuration,
+    });
 
     return NextResponse.json({
       success: true,
@@ -428,12 +509,24 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       provider: generateResult.provider,
       seoPassed: generateResult.seo.passed,
       githubPersisted: gitResult.success,
-      elapsedSeconds: elapsed,
+      elapsedSeconds: (totalDuration / 1000).toFixed(1),
       message: `Artigo "${trendingProduct}" gerado e publicado autonomamente.`,
     });
   } catch (error: any) {
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.error(`[Autonomous Agent Error] (${elapsed}s):`, error);
+    const totalDuration = cycleTimer.stop();
+    await logger.critical('Autonomous cycle failed', 'autonomous-agent', error, {
+      product: specificProduct || 'auto',
+      category: specificCategory || 'auto',
+      durationMs: totalDuration,
+    });
+    await recordMetric({
+      agentName: 'autonomous-agent',
+      operation: 'full_cycle',
+      durationMs: totalDuration,
+      success: false,
+      errorMessage: error.message,
+    });
+
     return NextResponse.json(
       { error: 'Erro no agente autônomo: ' + error.message },
       { status: 500 }
