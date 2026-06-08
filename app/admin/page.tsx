@@ -6,6 +6,7 @@ import { getAllReviews } from '@/lib/db';
 import SerpRefreshButton from '@/components/admin/SerpRefreshButton';
 import AutonomousAgentButton from '@/components/admin/AutonomousAgentButton';
 import RealtimeIndicator from '@/components/admin/RealtimeIndicator';
+import AICitationsDashboard from '@/components/admin/AICitationsDashboard';
 import SerpHistoryChart from '@/components/admin/SerpHistoryChart';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 
@@ -173,6 +174,11 @@ export default async function AdminDashboard() {
       {/* SERP History */}
       <div className="mt-8">
         <SerpHistoryChart reviews={reviews} />
+      </div>
+
+      {/* AI Citations Monitor (GEO) */}
+      <div className="mt-8">
+        <AICitationsDashboard />
       </div>
 
       {/* Analytics Dashboard */}

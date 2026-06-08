@@ -55,7 +55,7 @@ export default function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
+      <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto min-h-0">
         <p className="text-white/30 text-[10px] font-bold tracking-[0.14em] uppercase px-3 py-2">
           Conteúdo
         </p>

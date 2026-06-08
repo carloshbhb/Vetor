@@ -11,8 +11,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const stats = getCitationStats();
-    const recent = getRecentCitations(5);
+    const stats = await getCitationStats();
+    const recent = await getRecentCitations(5);
 
     return NextResponse.json({
       stats,
