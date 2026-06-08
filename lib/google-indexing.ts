@@ -8,11 +8,12 @@
 //   - GOOGLE_PRIVATE_KEY: Chave privada da conta de serviço
 //   - NEXT_PUBLIC_SITE_URL: URL do site
 
-import { GoogleAuth, JWT } from 'google-auth-library';
+import { createSign } from 'crypto';
 
 const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
 const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
 const GOOGLE_API_URL = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
 interface IndexingResponse {
   success: boolean;
@@ -26,71 +27,76 @@ interface IndexingResponse {
   error?: string;
 }
 
-/**
- * Obtém cliente autenticado usando conta de serviço do Google
- */
-async function getAuthenticatedClient() {
-  let credentials: { client_email: string; private_key: string } | null = null;
+function getPrivateKey(): string | null {
+  const rawKey = process.env.GOOGLE_PRIVATE_KEY;
+  if (!rawKey) return null;
 
-  // Tentar ler das variáveis de ambiente
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
-    // Normalizar a chave privada
-    let privateKey = process.env.GOOGLE_PRIVATE_KEY;
-    
-    // Substituir escaped newlines por newlines reais e limpar
-    privateKey = privateKey
-      .replace(/\\n/g, '\n')
-      .replace(/\\r\\n/g, '\n')
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
-      .trim();
-    
-    // Garantir que a chave começa e termina corretamente
-    if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-      // Tentar adicionar o header PEM se ausente
-      privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
-    }
-    
-    credentials = {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: privateKey,
-    };
-  } else {
-    // Tentar ler do arquivo JSON
-    try {
-      const fs = await import('fs');
-      const path = await import('path');
-      const keyPath = path.join(process.cwd(), 'credentials', 'google-key.json');
-      if (fs.existsSync(keyPath)) {
-        credentials = JSON.parse(fs.readFileSync(keyPath, 'utf-8'));
-      }
-    } catch {
-      // Ignorar erro na leitura do arquivo
-    }
+  // Normalizar a chave
+  let key = rawKey
+    .replace(/\\n/g, '\n')
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  // Garantir headers PEM
+  if (!key.includes('-----BEGIN')) {
+    key = `-----BEGIN PRIVATE KEY-----\n${key}\n-----END PRIVATE KEY-----`;
   }
 
-  if (!credentials) {
-    throw new Error('Google credentials not found. Configure GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY or place google-key.json in credentials/');
-  }
-
-  try {
-    const auth = new GoogleAuth({
-      credentials,
-      scopes: ['https://www.googleapis.com/auth/indexing'],
-    });
-    return auth.getClient();
-  } catch (authError: any) {
-    // Fallback: usar JWT client diretamente
-    console.warn('GoogleAuth failed, trying JWT fallback:', authError?.message);
-    const jwtClient = new JWT({
-      email: credentials.client_email,
-      key: credentials.private_key,
-      scopes: ['https://www.googleapis.com/auth/indexing'],
-    });
-    return jwtClient;
-  }
+  return key;
 }
+
+function base64url(data: Buffer | string): string {
+  const str = typeof data === 'string' ? data : data.toString('base64');
+  return str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function getAccessToken(): Promise<string> {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const privateKey = getPrivateKey();
+
+  if (!email || !privateKey) {
+    throw new Error('Google credentials not found');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + 3600;
+
+  // JWT Header
+  const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+
+  // JWT Payload
+  const payload = base64url(JSON.stringify({
+    iss: email,
+    scope: 'https://www.googleapis.com/auth/indexing',
+    aud: GOOGLE_TOKEN_URL,
+    iat: now,
+    exp: exp,
+  }));
+
+  // Sign
+  const dataToSign = `${header}.${payload}`;
+  const sign = createSign('RSA-SHA256');
+  sign.update(dataToSign);
+  const signature = sign.sign(privateKey, 'base64');
+  const jwt = `${dataToSign}.${base64url(signature)}`;
+
+  // Exchange JWT for access token
+  const response = await fetch(GOOGLE_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Token exchange failed: ${error}`);
+  }
+
+  const data = await response.json();
+  return data.access_token;
 }
 
 /**
@@ -98,37 +104,27 @@ async function getAuthenticatedClient() {
  */
 export async function publishToGoogleIndexing(url: string, type: 'URL_UPDATED' | 'URL_DELETED' = 'URL_UPDATED'): Promise<IndexingResponse> {
   try {
-    const client = await getAuthenticatedClient();
+    const accessToken = await getAccessToken();
 
-    const response = await client.request({
-      url: GOOGLE_API_URL,
+    const response = await fetch(GOOGLE_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
       },
-      data: {
-        url: url,
-        type: type,
-      },
+      body: JSON.stringify({ url, type }),
     });
 
-    return { success: true, urlNotificationMetadata: response.data as any };
-  } catch (error: any) {
-    // Log mais detalhado do erro
-    console.error('Google Indexing API error details:', {
-      message: error?.message,
-      code: error?.code,
-      status: error?.status,
-      errors: error?.errors,
-    });
-    
-    // Extrair mensagem de erro mais específica
-    let errorMessage = error?.message || String(error);
-    if (error?.response?.data?.error) {
-      errorMessage = error.response.data.error.message || JSON.stringify(error.response.data.error);
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.error?.message || JSON.stringify(data) };
     }
-    
-    return { success: false, error: errorMessage };
+
+    return { success: true, urlNotificationMetadata: data };
+  } catch (error: any) {
+    console.error('Google Indexing API error:', error?.message);
+    return { success: false, error: error?.message || String(error) };
   }
 }
 
@@ -142,24 +138,19 @@ export async function indexAllPages(): Promise<{ indexed: number; errors: number
   let indexed = 0;
   let errors = 0;
 
-  // Indexar homepage
   const homeResult = await publishToGoogleIndexing(SITE_URL);
   if (homeResult.success) indexed++;
   else errors++;
 
-  // Indexar research page
   const researchResult = await publishToGoogleIndexing(`${SITE_URL}/research`);
   if (researchResult.success) indexed++;
   else errors++;
 
-  // Indexar reviews
   for (const review of reviews) {
     const url = `${SITE_URL}/review/${review.slug}`;
     const result = await publishToGoogleIndexing(url);
     if (result.success) indexed++;
     else errors++;
-
-    // Rate limit: 200 requests por dia (conta de serviço)
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 
