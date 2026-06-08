@@ -91,6 +91,7 @@ async function getAuthenticatedClient() {
     return jwtClient;
   }
 }
+}
 
 /**
  * Envia URL para indexação/ atualização no Google

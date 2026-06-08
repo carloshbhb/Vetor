@@ -50,6 +50,9 @@
     "typescript": "^5.5.3",
     "vitest": "^4.1.8"
   },
+  "engines": {
+    "node": "18.x"
+  },
   "browserslist": [
     "last 2 Chrome versions",
     "last 2 Firefox versions",
