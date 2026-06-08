@@ -31,15 +31,13 @@ function getPrivateKey(): string | null {
   const rawKey = process.env.GOOGLE_PRIVATE_KEY;
   if (!rawKey) return null;
 
-  console.log('[GoogleIndexing] Raw key length:', rawKey.length);
-  console.log('[GoogleIndexing] Key starts with:', rawKey.substring(0, 30));
-
   // Normalizar a chave
   let key = rawKey
     .replace(/\\n/g, '\n')
     .replace(/\\r\\n/g, '\n')
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
+    .replace(/^"/, '').replace(/"$/, '') // Remove wrapping quotes from Vercel env var
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
@@ -47,10 +45,6 @@ function getPrivateKey(): string | null {
   if (!key.includes('-----BEGIN')) {
     key = `-----BEGIN PRIVATE KEY-----\n${key}\n-----END PRIVATE KEY-----`;
   }
-
-  console.log('[GoogleIndexing] Normalized key starts with:', key.substring(0, 40));
-  console.log('[GoogleIndexing] Has BEGIN marker:', key.includes('-----BEGIN PRIVATE KEY-----'));
-  console.log('[GoogleIndexing] Has END marker:', key.includes('-----END PRIVATE KEY-----'));
 
   return key;
 }

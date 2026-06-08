@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
           .replace(/\\r\\n/g, '\n')
           .replace(/\r\n/g, '\n')
           .replace(/\r/g, '\n')
+          .replace(/^"/, '').replace(/"$/, '') // Remove wrapping quotes
           .trim();
 
         if (!normalized.includes('-----BEGIN')) {
@@ -113,6 +114,7 @@ export async function POST(request: NextRequest) {
           rawLen: rawKey.length,
           hasLiteralBackslashN: rawKey.includes('\\n'),
           hasActualNewlines: rawKey.includes('\n'),
+          hasWrappingQuotes: rawKey.startsWith('"') && rawKey.endsWith('"'),
           normalizedLen: normalized.length,
           lineCount: normalized.split('\n').length,
           firstLine: normalized.split('\n')[0],
