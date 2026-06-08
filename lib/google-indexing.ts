@@ -8,7 +8,8 @@
 //   - GOOGLE_PRIVATE_KEY: Chave privada da conta de serviço
 //   - NEXT_PUBLIC_SITE_URL: URL do site
 
-import { createSign } from 'crypto';
+import { createSign, createPrivateKey } from 'crypto';
+import { GoogleAuth, JWT } from 'google-auth-library';
 
 const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
 const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
@@ -62,13 +63,24 @@ async function getAccessToken(): Promise<string> {
     throw new Error('Google credentials not found');
   }
 
+  // Try google-auth-library first
+  try {
+    const jwtClient = new JWT({
+      email,
+      key: privateKey,
+      scopes: ['https://www.googleapis.com/auth/indexing'],
+    });
+    const token = await jwtClient.authorize();
+    return token.access_token || '';
+  } catch (authError: any) {
+    console.warn('[GoogleIndexing] google-auth-library failed, trying manual JWT:', authError?.message);
+  }
+
+  // Fallback: manual JWT
   const now = Math.floor(Date.now() / 1000);
   const exp = now + 3600;
 
-  // JWT Header
   const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-
-  // JWT Payload
   const payload = base64url(JSON.stringify({
     iss: email,
     scope: 'https://www.googleapis.com/auth/indexing',
@@ -77,14 +89,12 @@ async function getAccessToken(): Promise<string> {
     exp: exp,
   }));
 
-  // Sign
   const dataToSign = `${header}.${payload}`;
   const sign = createSign('RSA-SHA256');
   sign.update(dataToSign);
   const signature = sign.sign(privateKey, 'base64');
   const jwt = `${dataToSign}.${base64url(signature)}`;
 
-  // Exchange JWT for access token
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
