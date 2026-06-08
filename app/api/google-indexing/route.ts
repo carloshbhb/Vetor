@@ -93,22 +93,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      case 'url':
-      default: {
-        if (!url) {
-          return NextResponse.json(
-            { error: 'url é obrigatória para action=url' },
-            { status: 400 }
-          );
-        }
-        const result = await publishToGoogleIndexing(url);
-        return NextResponse.json({
-          action: 'index_url',
-          url,
-          ...result
-        });
-      }
-
       case 'diagnose': {
         const { createPrivateKey } = await import('crypto');
         const rawKey = process.env.GOOGLE_PRIVATE_KEY;
@@ -157,6 +141,22 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json(result);
+      }
+
+      case 'url':
+      default: {
+        if (!url) {
+          return NextResponse.json(
+            { error: 'url é obrigatória para action=url' },
+            { status: 400 }
+          );
+        }
+        const result = await publishToGoogleIndexing(url);
+        return NextResponse.json({
+          action: 'index_url',
+          url,
+          ...result
+        });
       }
     }
   } catch (error) {
