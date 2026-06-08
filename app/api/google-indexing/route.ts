@@ -23,10 +23,61 @@ async function checkCredentials(): Promise<boolean> {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const hasCredentials = await checkCredentials();
   const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
   const siteUrl = _raw.startsWith('http') ? _raw : `https://${_raw}`;
+
+  const url = new URL(request.url);
+  const diagnose = url.searchParams.get('diagnose');
+
+  if (diagnose === 'key') {
+    const { createPrivateKey } = await import('crypto');
+    const rawKey = process.env.GOOGLE_PRIVATE_KEY;
+    if (!rawKey) return NextResponse.json({ error: 'No key' });
+
+    let normalized = rawKey
+      .replace(/\\n/g, '\n')
+      .replace(/\\r\\n/g, '\n')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .trim();
+
+    if (!normalized.includes('-----BEGIN')) {
+      normalized = `-----BEGIN PRIVATE KEY-----\n${normalized}\n-----END PRIVATE KEY-----`;
+    }
+
+    const result: any = {
+      rawLen: rawKey.length,
+      hasLiteralBackslashN: rawKey.includes('\\n'),
+      hasActualNewlines: rawKey.includes('\n'),
+      normalizedLen: normalized.length,
+      lineCount: normalized.split('\n').length,
+      firstLine: normalized.split('\n')[0],
+    };
+
+    try {
+      const keyObj = createPrivateKey({ key: normalized, format: 'pem' });
+      result.importOk = true;
+      result.keySize = (keyObj as any).size;
+    } catch (e: any) {
+      result.importOk = false;
+      result.importError = e.message;
+
+      // Try PKCS1
+      try {
+        const pkcs1 = normalized
+          .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN RSA PRIVATE KEY-----')
+          .replace('-----END PRIVATE KEY-----', '-----END RSA PRIVATE KEY-----');
+        const keyObj = createPrivateKey({ key: pkcs1, format: 'pem' });
+        result.pkcs1Ok = true;
+      } catch (e2: any) {
+        result.pkcs1Ok = false;
+      }
+    }
+
+    return NextResponse.json(result);
+  }
 
   return NextResponse.json({
     status: hasCredentials ? 'configured' : 'missing_credentials',
