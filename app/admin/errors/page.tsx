@@ -26,8 +26,9 @@ async function getErrors(): Promise<{ errors: ErrorLog[]; total: number }> {
 export default async function ErrorsPage() {
   const { errors, total } = await getErrors();
 
-  const clientErrors = errors.filter(e => e.type === 'client');
-  const serverErrors = errors.filter(e => e.type === 'server');
+  const realErrors = errors.filter(e => e.severity === 'error' || e.severity === 'critical' || (!e.severity && e.type));
+  const clientErrors = realErrors.filter(e => e.type === 'client');
+  const serverErrors = realErrors.filter(e => e.type === 'server');
   const recentErrors = errors.slice(0, 50);
 
   const severityColors: Record<string, string> = {
@@ -48,7 +49,7 @@ export default async function ErrorsPage() {
           <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-red-50 text-red-600">
             <AlertTriangle size={18} />
           </div>
-          <p className="font-bebas text-4xl text-text leading-none mb-1">{total}</p>
+          <p className="font-bebas text-4xl text-text leading-none mb-1">{realErrors.length}</p>
           <p className="text-text-muted text-xs font-medium">Total de Erros</p>
         </div>
         <div className="bg-white border border-border rounded-lg p-5 shadow-sm">
