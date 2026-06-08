@@ -1,14 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MousePointerClick, Eye, Clock, Users } from 'lucide-react';
+import { Activity, Clock, Zap, AlertTriangle } from 'lucide-react';
+
+interface VitalAggregate {
+  p50: number;
+  p75: number;
+  p95: number;
+  rating: string;
+}
 
 interface AnalyticsData {
-  affiliateClicks: number;
-  pageViews: number;
-  avgTimeOnPage: number;
-  uniqueVisitors: number;
-  topPages: Array<{ path: string; views: number; clicks: number }>;
+  totalVitals: number;
+  aggregates: Record<string, VitalAggregate>;
+  recentCount: number;
 }
 
 export default function AnalyticsDashboard() {
@@ -16,16 +21,23 @@ export default function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulated analytics data - in production, integrate with GA4 API or similar
-    const mockData: AnalyticsData = {
-      affiliateClicks: 0,
-      pageViews: 0,
-      avgTimeOnPage: 0,
-      uniqueVisitors: 0,
-      topPages: [],
-    };
-    setData(mockData);
-    setLoading(false);
+    async function fetchAnalytics() {
+      try {
+        const res = await fetch('/api/web-vitals', { cache: 'no-store' });
+        const json = await res.json();
+        
+        setData({
+          totalVitals: json.total || 0,
+          aggregates: json.aggregates || {},
+          recentCount: json.metrics?.length || 0,
+        });
+      } catch {
+        setData({ totalVitals: 0, aggregates: {}, recentCount: 0 });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchAnalytics();
   }, []);
 
   if (loading) {
@@ -45,58 +57,90 @@ export default function AnalyticsDashboard() {
 
   if (!data) return null;
 
-  const stats = [
-    { label: 'Cliques Afiliados', value: data.affiliateClicks, icon: MousePointerClick, color: 'bg-blue-light text-blue' },
-    { label: 'Visualizações', value: data.pageViews, icon: Eye, color: 'bg-green-bg text-green' },
-    { label: 'Tempo Médio', value: `${data.avgTimeOnPage}s`, icon: Clock, color: 'bg-yellow/20 text-yellow' },
-    { label: 'Visitantes', value: data.uniqueVisitors, icon: Users, color: 'bg-purple-bg text-purple' },
+  const formatMs = (ms: number) => {
+    if (ms < 1000) return `${Math.round(ms)}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+
+  const vitals = [
+    { 
+      name: 'LCP', 
+      label: 'Largest Contentful Paint', 
+      icon: Clock, 
+      color: 'bg-blue-light text-blue',
+      good: 2500,
+    },
+    { 
+      name: 'FID', 
+      label: 'First Input Delay', 
+      icon: Zap, 
+      color: 'bg-green-bg text-green',
+      good: 100,
+    },
+    { 
+      name: 'CLS', 
+      label: 'Cumulative Layout Shift', 
+      icon: Activity, 
+      color: 'bg-yellow/20 text-yellow',
+      good: 0.1,
+    },
+    { 
+      name: 'TTFB', 
+      label: 'Time to First Byte', 
+      icon: AlertTriangle, 
+      color: 'bg-purple-bg text-purple',
+      good: 800,
+    },
   ];
 
   return (
     <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-border">
         <p className="font-syne font-bold text-xs uppercase tracking-widest text-text">
-          Analytics & Engajamento
+          Performance & Web Vitals
+        </p>
+        <p className="text-xs text-text-muted mt-1">
+          {data.totalVitals} métricas coletadas
         </p>
       </div>
 
       <div className="p-6">
         <div className="grid grid-cols-4 gap-4 mb-6">
-          {stats.map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="bg-bg2 rounded-lg p-4">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${color}`}>
-                <Icon size={16} />
+          {vitals.map(({ name, label, icon: Icon, color, good }) => {
+            const agg = data.aggregates[name];
+            const value = agg?.p50 || 0;
+            const rating = agg?.rating || 'good';
+            const isGood = rating === 'good';
+
+            return (
+              <div key={name} className="bg-bg2 rounded-lg p-4">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${color}`}>
+                  <Icon size={16} />
+                </div>
+                <p className="font-bebas text-2xl text-text leading-none mb-1">
+                  {value > 0 ? formatMs(value) : '—'}
+                </p>
+                <p className="text-text-muted text-[11px] font-medium">{label}</p>
+                {agg && (
+                  <div className="mt-2 flex items-center gap-1">
+                    <span className={`w-1.5 h-1.5 rounded-full ${isGood ? 'bg-green' : 'bg-yellow'}`} />
+                    <span className="text-[10px] text-text-muted">
+                      P75: {formatMs(agg.p75)}
+                    </span>
+                  </div>
+                )}
               </div>
-              <p className="font-bebas text-2xl text-text leading-none mb-1">{value}</p>
-              <p className="text-text-muted text-[11px] font-medium">{label}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {data.topPages.length > 0 && (
-          <div>
-            <h3 className="font-syne font-bold text-xs uppercase tracking-widest text-text mb-3">
-              Páginas Mais Visitadas
-            </h3>
-            <div className="space-y-2">
-              {data.topPages.slice(0, 5).map((page, i) => (
-                <div key={i} className="flex items-center justify-between p-2 bg-bg2 rounded-lg">
-                  <span className="text-sm text-text font-mono truncate max-w-[300px]">{page.path}</span>
-                  <div className="flex items-center gap-4 text-xs text-text-muted">
-                    <span>{page.views} views</span>
-                    <span>{page.clicks} cliques</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {data.recentCount === 0 && (
+          <div className="mt-6 pt-4 border-t border-border">
+            <p className="text-xs text-text-muted">
+              Nenhuma métrica de performance coletada ainda. As métricas serão automaticamente coletadas dos visitantes.
+            </p>
           </div>
         )}
-
-        <div className="mt-6 pt-4 border-t border-border">
-          <p className="text-xs text-text-muted">
-            Para dados completos, integre com Google Analytics 4 ou similar.
-          </p>
-        </div>
       </div>
     </div>
   );

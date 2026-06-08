@@ -4,12 +4,15 @@ import { handleAutonomousCycle } from '@/app/api/cron/autonomous-agent/route';
 export const dynamic = 'force-dynamic';
 
 export async function POST() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 404 });
+  }
+
   try {
     const result = await handleAutonomousCycle();
-    const response = result;
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    return response;
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Unexpected error' }, { status: 500 });
+    return result;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unexpected error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

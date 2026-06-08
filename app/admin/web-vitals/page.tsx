@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { Activity, Clock, Eye, Zap } from 'lucide-react';
+import { getWebVitals } from '@/lib/db-vitals';
 
 interface VitalMetric {
   name: string;
@@ -17,17 +18,6 @@ interface Aggregates {
     p95: number;
     rating: string;
   };
-}
-
-async function getWebVitals(): Promise<{ metrics: VitalMetric[]; aggregates: Aggregates; total: number }> {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/web-vitals`, {
-      cache: 'no-store',
-    });
-    return res.json();
-  } catch {
-    return { metrics: [], aggregates: {}, total: 0 };
-  }
 }
 
 function formatValue(name: string, value: number): string {
@@ -70,13 +60,12 @@ export default async function WebVitalsPage() {
   const { metrics, aggregates, total } = await getWebVitals();
 
   const uniqueUrls = new Set(metrics.map(m => m.url)).size;
-  const recentMetrics = metrics.slice(0, 50);
 
   return (
     <div className="p-8 flex-1">
       <div className="mb-8">
         <h1 className="font-bebas text-5xl tracking-wide text-text mb-1">Web Vitals</h1>
-        <p className="text-text-muted text-sm">Métricas de performance coletadas dos visitantes.</p>
+        <p className="text-text-muted text-sm">Metricas de performance coletadas dos visitantes.</p>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-8">
@@ -85,14 +74,14 @@ export default async function WebVitalsPage() {
             <Activity size={18} />
           </div>
           <p className="font-bebas text-4xl text-text leading-none mb-1">{total}</p>
-          <p className="text-text-muted text-xs font-medium">Total de Métricas</p>
+          <p className="text-text-muted text-xs font-medium">Total de Metricas</p>
         </div>
         <div className="bg-white border border-border rounded-lg p-5 shadow-sm">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-green-bg text-green">
             <Eye size={18} />
           </div>
           <p className="font-bebas text-4xl text-text leading-none mb-1">{uniqueUrls}</p>
-          <p className="text-text-muted text-xs font-medium">Páginas Monitoradas</p>
+          <p className="text-text-muted text-xs font-medium">Paginas Monitoradas</p>
         </div>
         <div className="bg-white border border-border rounded-lg p-5 shadow-sm">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-purple-bg text-purple">
@@ -101,25 +90,25 @@ export default async function WebVitalsPage() {
           <p className="font-bebas text-4xl text-text leading-none mb-1">
             {Object.keys(aggregates).length}
           </p>
-          <p className="text-text-muted text-xs font-medium">Métricas Rastreadas</p>
+          <p className="text-text-muted text-xs font-medium">Metricas Rastreadas</p>
         </div>
         <div className="bg-white border border-border rounded-lg p-5 shadow-sm">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-yellow/20 text-yellow">
             <Clock size={18} />
           </div>
           <p className="font-bebas text-4xl text-text leading-none mb-1">
-            {recentMetrics.length > 0
-              ? new Date(recentMetrics[0].timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+            {metrics.length > 0
+              ? new Date(metrics[0].timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
               : '—'}
           </p>
-          <p className="text-text-muted text-xs font-medium">Última Coleta</p>
+          <p className="text-text-muted text-xs font-medium">Ultima Coleta</p>
         </div>
       </div>
 
       {Object.keys(aggregates).length > 0 && (
         <div className="mb-8">
           <h2 className="font-syne font-bold text-xs uppercase tracking-widest text-text mb-4">
-            Agregados por Métrica
+            Agregados por Metrica
           </h2>
           <div className="grid grid-cols-3 gap-4">
             {Object.entries(aggregates).map(([name, data]) => (
@@ -156,21 +145,21 @@ export default async function WebVitalsPage() {
       <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-border">
           <p className="font-syne font-bold text-xs uppercase tracking-widest text-text">
-            Métricas Recentes
+            Metricas Recentes
           </p>
         </div>
 
-        {recentMetrics.length === 0 ? (
+        {metrics.length === 0 ? (
           <div className="text-center py-16 text-text-muted">
             <Activity size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="font-syne font-bold text-sm">Nenhuma métrica coletada</p>
-            <p className="text-xs mt-1">As métricas são coletadas automaticamente dos visitantes.</p>
+            <p className="font-syne font-bold text-sm">Nenhuma metrica coletada</p>
+            <p className="text-xs mt-1">As metricas sao coletadas automaticamente dos visitantes.</p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
               <tr className="bg-bg2">
-                {['Métrica', 'Valor', 'Rating', 'Página', 'Data'].map(h => (
+                {['Metrica', 'Valor', 'Rating', 'Pagina', 'Data'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-[11px] font-syne font-bold uppercase tracking-widest text-text-muted border-b border-border">
                     {h}
                   </th>
@@ -178,7 +167,7 @@ export default async function WebVitalsPage() {
               </tr>
             </thead>
             <tbody>
-              {recentMetrics.map((metric, i) => (
+              {metrics.map((metric, i) => (
                 <tr key={i} className="border-b border-border last:border-0 hover:bg-bg2 transition-colors">
                   <td className="px-4 py-3">
                     <p className="font-semibold text-sm text-text">{metric.name}</p>

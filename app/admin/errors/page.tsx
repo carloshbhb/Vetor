@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { AlertTriangle, FileText, Globe, Server } from 'lucide-react';
+import { getErrors } from '@/lib/db-comments';
 
 interface ErrorLog {
   message: string;
@@ -12,24 +13,12 @@ interface ErrorLog {
   severity?: 'error' | 'warning' | 'info';
 }
 
-async function getErrors(): Promise<{ errors: ErrorLog[]; total: number }> {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/errors`, {
-      cache: 'no-store',
-    });
-    return res.json();
-  } catch {
-    return { errors: [], total: 0 };
-  }
-}
-
 export default async function ErrorsPage() {
-  const { errors, total } = await getErrors();
+  const { errors, total } = await getErrors(50);
 
   const realErrors = errors.filter(e => e.severity === 'error' || (!e.severity && e.type));
   const clientErrors = realErrors.filter(e => e.type === 'client');
   const serverErrors = realErrors.filter(e => e.type === 'server');
-  const recentErrors = errors.slice(0, 50);
 
   const severityColors: Record<string, string> = {
     error: 'bg-red-50 border-red-200 text-red-700',
@@ -75,15 +64,15 @@ export default async function ErrorsPage() {
           </p>
         </div>
 
-        {recentErrors.length === 0 ? (
+        {errors.length === 0 ? (
           <div className="text-center py-16 text-text-muted">
             <FileText size={40} className="mx-auto mb-3 opacity-30" />
             <p className="font-syne font-bold text-sm">Nenhum erro registrado</p>
-            <p className="text-xs mt-1">O sistema está funcionando sem erros.</p>
+            <p className="text-xs mt-1">O sistema esta funcionando sem erros.</p>
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {recentErrors.map((error, i) => (
+            {errors.map((error, i) => (
               <div key={i} className="px-6 py-4 hover:bg-bg2 transition-colors">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">

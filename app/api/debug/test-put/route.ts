@@ -4,6 +4,10 @@ import { createClient } from '@supabase/supabase-js';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 404 });
+  }
+
   const url = new URL(req.url);
   const reviewId = url.searchParams.get('id') || '5d55a581-a1c9-45f8-9c02-6681dcaf12a5';
   const testValue1 = 'JS-CLIENT-' + Date.now();
@@ -18,21 +22,18 @@ export async function GET(req: Request) {
 
   const client = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-  // Save original value
   const { data: original } = await client
     .from('reviews')
     .select('meta_title')
     .eq('id', reviewId)
     .single();
 
-  // TEST 1: Supabase JS client update
   const { data: jsResult, error: jsError } = await client
     .from('reviews')
     .update({ meta_title: testValue1 })
     .eq('id', reviewId)
     .select('meta_title');
 
-  // Immediate read-back
   const { data: afterJs } = await client
     .from('reviews')
     .select('meta_title')
@@ -41,7 +42,6 @@ export async function GET(req: Request) {
 
   const jsPersisted = afterJs?.meta_title === testValue1;
 
-  // TEST 2: Raw REST API update (same row)
   const restRes = await fetch(`${supabaseUrl}/rest/v1/reviews?id=eq.${reviewId}`, {
     method: 'PATCH',
     headers: {
@@ -54,7 +54,6 @@ export async function GET(req: Request) {
   });
   const restJson = await restRes.json();
 
-  // Read-back after REST
   const { data: afterRest } = await client
     .from('reviews')
     .select('meta_title')
@@ -63,7 +62,6 @@ export async function GET(req: Request) {
 
   const restPersisted = afterRest?.meta_title === testValue2;
 
-  // Revert
   await client
     .from('reviews')
     .update({ meta_title: original?.meta_title })

@@ -1,51 +1,15 @@
 export const dynamic = 'force-dynamic';
 
-import { MessageSquare, Star, ThumbsUp, Trash2 } from 'lucide-react';
+import { MessageSquare, Star, ThumbsUp } from 'lucide-react';
 import { getAllReviews } from '@/lib/db';
+import { getAllComments, type Comment } from '@/lib/db-comments';
 import DeleteCommentButton from '@/components/admin/DeleteCommentButton';
 
-interface Comment {
-  id: string;
-  reviewId: string;
-  reviewSlug: string;
-  author: string;
-  content: string;
-  rating?: number;
-  createdAt: string;
-  likes: number;
-}
-
-async function getAllComments(): Promise<Comment[]> {
-  try {
-    const reviews = await getAllReviews();
-    const allComments: Comment[] = [];
-
-    for (const review of reviews) {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/comments?reviewId=${review.id}&sort=newest`,
-          { cache: 'no-store' }
-        );
-        const data = await res.json();
-        if (data.comments) {
-          allComments.push(...data.comments);
-        }
-      } catch {
-        // Skip failed reviews
-      }
-    }
-
-    return allComments.sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  } catch {
-    return [];
-  }
-}
-
 export default async function ComentariosPage() {
-  const comments = await getAllComments();
-  const reviews = await getAllReviews();
+  const [comments, reviews] = await Promise.all([
+    getAllComments(),
+    getAllReviews(),
+  ]);
 
   const reviewMap = new Map(reviews.map(r => [r.id, r]));
 
@@ -59,8 +23,8 @@ export default async function ComentariosPage() {
   return (
     <div className="p-8 flex-1">
       <div className="mb-8">
-        <h1 className="font-bebas text-5xl tracking-wide text-text mb-1">Comentários</h1>
-        <p className="text-text-muted text-sm">Modere e gerencie os comentários dos leitores.</p>
+        <h1 className="font-bebas text-5xl tracking-wide text-text mb-1">Comentarios</h1>
+        <p className="text-text-muted text-sm">Modere e gerencie os comentarios dos leitores.</p>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-8">
@@ -69,14 +33,14 @@ export default async function ComentariosPage() {
             <MessageSquare size={18} />
           </div>
           <p className="font-bebas text-4xl text-text leading-none mb-1">{totalComments}</p>
-          <p className="text-text-muted text-xs font-medium">Total de Comentários</p>
+          <p className="text-text-muted text-xs font-medium">Total de Comentarios</p>
         </div>
         <div className="bg-white border border-border rounded-lg p-5 shadow-sm">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-yellow/20 text-yellow">
             <Star size={18} />
           </div>
           <p className="font-bebas text-4xl text-text leading-none mb-1">{avgRating}</p>
-          <p className="text-text-muted text-xs font-medium">Nota Média</p>
+          <p className="text-text-muted text-xs font-medium">Nota Media</p>
         </div>
         <div className="bg-white border border-border rounded-lg p-5 shadow-sm">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-green-bg text-green">
@@ -92,22 +56,22 @@ export default async function ComentariosPage() {
           <p className="font-bebas text-4xl text-text leading-none mb-1">
             {commentsWithRating.length}
           </p>
-          <p className="text-text-muted text-xs font-medium">Com Avaliação</p>
+          <p className="text-text-muted text-xs font-medium">Com Avaliacao</p>
         </div>
       </div>
 
       <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-border">
           <p className="font-syne font-bold text-xs uppercase tracking-widest text-text">
-            Todos os Comentários
+            Todos os Comentarios
           </p>
         </div>
 
         {comments.length === 0 ? (
           <div className="text-center py-16 text-text-muted">
             <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="font-syne font-bold text-sm">Nenhum comentário ainda</p>
-            <p className="text-xs mt-1">Os comentários dos leitores aparecerão aqui.</p>
+            <p className="font-syne font-bold text-sm">Nenhum comentario ainda</p>
+            <p className="text-xs mt-1">Os comentarios dos leitores aparecerao aqui.</p>
           </div>
         ) : (
           <div className="divide-y divide-border">

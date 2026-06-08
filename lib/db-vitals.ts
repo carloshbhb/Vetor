@@ -46,7 +46,7 @@ export async function getWebVitals(): Promise<{ metrics: VitalMetric[]; aggregat
         .from('web_vitals')
         .select('*', { count: 'exact' })
         .order('timestamp', { ascending: false })
-        .limit(100);
+        .limit(50);
 
       if (error) throw error;
 

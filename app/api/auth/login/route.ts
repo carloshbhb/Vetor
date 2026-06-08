@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { signSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,18 +11,18 @@ export async function POST(req: NextRequest) {
     const fallbackToFile = process.env.SUPABASE_FALLBACK_TO_FILE === 'true';
 
     if (fallbackToFile) {
-      const expectedUser = process.env.ADMIN_USER || 'admin';
-      const expectedPwd = process.env.ADMIN_PASSWORD || 'vetor123';
+      const expectedUser = process.env.ADMIN_USER;
+      const expectedPwd = process.env.ADMIN_PASSWORD;
 
-      const isUserMatch = 
-        email === expectedUser || 
-        email === 'admin@vetor.blog' || 
-        email === 'admin';
+      if (!expectedUser || !expectedPwd) {
+        return NextResponse.json({ error: 'ADMIN_USER e ADMIN_PASSWORD devem ser configurados nas variaveis de ambiente.' }, { status: 500 });
+      }
 
-      if (isUserMatch && password === expectedPwd) {
+      if (email === expectedUser && password === expectedPwd) {
         const response = NextResponse.json({ success: true, isFallback: true });
-        // Set standard admin session cookie
-        response.cookies.set('vetor_admin_session', 'true', {
+        // Set signed admin session cookie
+        const signedSession = signSession('authenticated');
+        response.cookies.set('vetor_admin_session', signedSession, {
           path: '/',
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.json({ error: 'Credenciais do Supabase não configuradas no servidor.' }, { status: 500 });
+      return NextResponse.json({ error: 'Credenciais do Supabase nao configuradas no servidor.' }, { status: 500 });
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -50,8 +51,9 @@ export async function POST(req: NextRequest) {
     }
 
     const response = NextResponse.json({ success: true, session: data.session });
-    // Also set admin session cookie so middleware can use it as fallback
-    response.cookies.set('vetor_admin_session', 'true', {
+    // Set signed admin session cookie
+    const signedSession = signSession('authenticated');
+    response.cookies.set('vetor_admin_session', signedSession, {
       path: '/',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -59,7 +61,8 @@ export async function POST(req: NextRequest) {
       sameSite: 'lax',
     });
     return response;
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Clock } from 'lucide-react';
 
 interface SerpHistoryChartProps {
   reviews: Array<{
@@ -20,19 +20,11 @@ export default function SerpHistoryChart({ reviews }: SerpHistoryChartProps) {
     .sort((a, b) => (a.googleRank || 999) - (b.googleRank || 999))
     .slice(0, 10);
 
-  const getRankChange = (current: number | null, previous: number | null) => {
-    if (!previous || !current) return 'stable';
-    if (current < previous) return 'up';
-    if (current > previous) return 'down';
-    return 'stable';
-  };
-
-  const getRankIcon = (change: string) => {
-    switch (change) {
-      case 'up': return <TrendingUp size={14} className="text-green" />;
-      case 'down': return <TrendingDown size={14} className="text-red-500" />;
-      default: return <Minus size={14} className="text-text-muted" />;
-    }
+  const getRankIcon = (rank: number | null) => {
+    if (!rank) return <Clock size={14} className="text-text-muted" />;
+    if (rank <= 3) return <TrendingUp size={14} className="text-green" />;
+    if (rank <= 10) return <TrendingUp size={14} className="text-teal-500" />;
+    return <Minus size={14} className="text-text-muted" />;
   };
 
   const getRankColor = (rank: number) => {
@@ -41,11 +33,22 @@ export default function SerpHistoryChart({ reviews }: SerpHistoryChartProps) {
     return 'bg-slate-50 border-slate-200 text-slate-700';
   };
 
+  const getRankLabel = (rank: number) => {
+    if (rank <= 3) return 'Excelente';
+    if (rank <= 5) return 'Muito bom';
+    if (rank <= 10) return 'Bom';
+    if (rank <= 20) return 'Razoável';
+    return 'Baixo';
+  };
+
   return (
     <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-border">
         <p className="font-syne font-bold text-xs uppercase tracking-widest text-text">
           Rankings Google (SERP)
+        </p>
+        <p className="text-xs text-text-muted mt-1">
+          Top 10 páginas melhor ranqueadas
         </p>
       </div>
 
@@ -58,12 +61,12 @@ export default function SerpHistoryChart({ reviews }: SerpHistoryChartProps) {
       ) : (
         <div className="divide-y divide-border">
           {rankedReviews.map((review) => {
-            const change = getRankChange(review.googleRank || null, null);
+            const rank = review.googleRank || 0;
             return (
               <div key={review.id} className="px-6 py-3 flex items-center justify-between hover:bg-bg2 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${getRankColor(review.googleRank || 999)}`}>
-                    #{review.googleRank}
+                  <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${getRankColor(rank)}`}>
+                    #{rank}
                   </span>
                   <div>
                     <p className="font-medium text-sm text-text">{review.product}</p>
@@ -71,7 +74,10 @@ export default function SerpHistoryChart({ reviews }: SerpHistoryChartProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {getRankIcon(change)}
+                  <div className="flex items-center gap-1">
+                    {getRankIcon(rank)}
+                    <span className="text-xs text-text-muted">{getRankLabel(rank)}</span>
+                  </div>
                   <span className="text-xs text-text-muted">
                     {review.lastRankCheck
                       ? new Date(review.lastRankCheck).toLocaleDateString('pt-BR')
@@ -83,6 +89,12 @@ export default function SerpHistoryChart({ reviews }: SerpHistoryChartProps) {
           })}
         </div>
       )}
+
+      <div className="px-6 py-3 border-t border-border bg-bg2">
+        <p className="text-xs text-text-muted">
+          Rankings atualizados automaticamente a cada 24h via Gemini AI.
+        </p>
+      </div>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export default async function ReviewsListPage() {
 
   async function remove(id: string) {
     'use server';
-    deleteReview(id);
+    await deleteReview(id);
     revalidatePath('/admin/reviews');
   }
 

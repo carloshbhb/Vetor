@@ -38,6 +38,39 @@ export interface Comment {
 // In-memory fallback
 const commentsMemory: Comment[] = [];
 
+export async function getAllComments(): Promise<Comment[]> {
+  const supabase = getSupabase();
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map(row => ({
+        id: row.id,
+        reviewId: row.review_id,
+        reviewSlug: row.review_slug,
+        author: row.author,
+        content: row.content,
+        rating: row.rating,
+        createdAt: row.created_at,
+        likes: row.likes || 0,
+      }));
+    } catch (error) {
+      console.error('[DB] Failed to fetch all comments from Supabase:', error);
+    }
+  }
+
+  // Fallback to memory
+  return [...commentsMemory].sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
 export async function getComments(reviewId: string, sort: string = 'newest'): Promise<Comment[]> {
   const supabase = getSupabase();
   

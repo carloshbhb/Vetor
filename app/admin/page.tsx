@@ -14,8 +14,8 @@ export default async function AdminDashboard() {
   const reviews = await getAllReviews();
   const published = reviews.filter(r => r.status === 'published');
   const drafts    = reviews.filter(r => r.status === 'draft');
-  const avgScore  = reviews.length
-    ? (reviews.reduce((s, r) => s + r.hero.overallScore, 0) / reviews.length).toFixed(1)
+  const avgScore  = published.length
+    ? (published.reduce((s, r) => s + r.hero.overallScore, 0) / published.length).toFixed(1)
     : '—';
 
   const stats = [
@@ -62,7 +62,11 @@ export default async function AdminDashboard() {
       <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <p className="font-syne font-bold text-xs uppercase tracking-widest text-text">
-            Reviews Recentes
+            Reviews Recentes {reviews.length > 8 && (
+              <span className="text-text-muted font-normal normal-case">
+                (Mostrando 8 de {reviews.length})
+              </span>
+            )}
           </p>
           <div className="flex items-center gap-4">
             <RealtimeIndicator />

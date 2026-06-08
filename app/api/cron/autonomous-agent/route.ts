@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateText } from '@/lib/ai';
-import { getAllReviews } from '@/lib/db';
+import { getAllReviews, createReview } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
 import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
 import { generateReview } from '@/lib/generate';
-import { createClient } from '@supabase/supabase-js';
 import { logger, recordMetric, createTimer } from '@/lib/monitor';
 import { checkErrorRate } from '@/lib/alerts';
 
@@ -31,8 +30,8 @@ export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
 
   let authorized = false;
-  const expectedUser = process.env.ADMIN_USER || 'admin';
-  const expectedPwd = process.env.ADMIN_PASSWORD || 'vetor123';
+  const expectedUser = process.env.ADMIN_USER;
+  const expectedPwd = process.env.ADMIN_PASSWORD;
 
   // Allow in development if no cron secret is configured and no auth is sent
   if (!cronSecret && !authHeader && process.env.NODE_ENV === 'development') {
@@ -42,7 +41,7 @@ export async function POST(req: NextRequest) {
   if (authHeader) {
     if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
       authorized = true;
-    } else if (authHeader.startsWith('Basic ')) {
+    } else if (authHeader.startsWith('Basic ') && expectedUser && expectedPwd) {
       try {
         const authValue = authHeader.split(' ')[1];
         const [user, pwd] = atob(authValue).split(':');
@@ -401,71 +400,53 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       updatedAt: now,
     };
 
-    // 7. Save to Supabase directly (bypasses file fallback)
+    // 7. Save to database using createReview from db.ts (handles Supabase + file fallback)
     const dbTimer = createTimer();
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase env vars not configured. Cannot save review.');
+    try {
+      await createReview({
+        slug: fullReview.slug,
+        status: fullReview.status,
+        product: fullReview.product,
+        category: fullReview.category,
+        marketplace: fullReview.marketplace,
+        priceOld: fullReview.priceOld,
+        priceNew: fullReview.priceNew,
+        affiliateUrl: fullReview.affiliateUrl,
+        imageUrl: fullReview.imageUrl,
+        adsEnabled: fullReview.adsEnabled,
+        meta: fullReview.meta,
+        hero: fullReview.hero,
+        specs: fullReview.specs,
+        sections: fullReview.sections,
+        compareTable: fullReview.compareTable,
+        pros: fullReview.pros,
+        cons: fullReview.cons,
+        faq: fullReview.faq,
+        testimonials: fullReview.testimonials,
+        verdict: fullReview.verdict,
+        schemaRating: fullReview.schemaRating,
+        googleRank: fullReview.googleRank,
+        lastRankCheck: fullReview.lastRankCheck,
+      });
+      await recordMetric({
+        agentName: 'autonomous-agent',
+        operation: 'save_to_database',
+        durationMs: dbTimer.stop(),
+        success: true,
+      });
+      await logger.info('Review saved to database', 'autonomous-agent', { product: trendingProduct, reviewId });
+    } catch (dbError: unknown) {
+      const message = dbError instanceof Error ? dbError.message : 'Unknown DB error';
+      await logger.error('Database insert failed', 'autonomous-agent', new Error(message));
+      await recordMetric({
+        agentName: 'autonomous-agent',
+        operation: 'save_to_database',
+        durationMs: dbTimer.stop(),
+        success: false,
+        errorMessage: message,
+      });
+      throw new Error(`Database insert failed: ${message}`);
     }
-    const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
-
-    const insertData = {
-      id: reviewId,
-      slug: fullReview.slug,
-      status: fullReview.status,
-      product: fullReview.product,
-      category: fullReview.category,
-      marketplace: fullReview.marketplace,
-      price_old: fullReview.priceOld,
-      price_new: fullReview.priceNew,
-      affiliate_url: fullReview.affiliateUrl,
-      image_url: fullReview.imageUrl,
-      ads_enabled: fullReview.adsEnabled,
-      meta_title: fullReview.meta.title,
-      meta_description: fullReview.meta.description,
-      meta_keywords: fullReview.meta.keywords,
-      meta_reading_time: fullReview.meta.readingTime,
-      meta_canonical: fullReview.meta.canonical,
-      meta_og_image: fullReview.meta.ogImage,
-      hero_headline_line1: fullReview.hero.headlineLine1,
-      hero_headline_line2: fullReview.hero.headlineLine2,
-      hero_headline_em: fullReview.hero.headlineEm,
-      hero_lead: fullReview.hero.lead,
-      hero_overall_score: fullReview.hero.overallScore,
-      hero_bars: fullReview.hero.bars,
-      specs: fullReview.specs,
-      sections: fullReview.sections,
-      compare_table: fullReview.compareTable,
-      pros: fullReview.pros,
-      cons: fullReview.cons,
-      faq: fullReview.faq,
-      testimonials: fullReview.testimonials,
-      verdict_score: fullReview.verdict.score,
-      verdict_label: fullReview.verdict.label,
-      verdict_text: fullReview.verdict.text,
-      verdict_note: fullReview.verdict.note,
-      schema_rating_value: fullReview.schemaRating.ratingValue,
-      schema_review_count: fullReview.schemaRating.reviewCount,
-      google_rank: fullReview.googleRank,
-      last_rank_check: fullReview.lastRankCheck,
-    };
-
-    const { error: insertError } = await supabase
-      .from('reviews')
-      .insert(insertData);
-
-    if (insertError) {
-      await logger.error('Supabase insert failed', 'autonomous-agent', new Error(insertError.message));
-      throw new Error(`Supabase insert failed: ${insertError.message}`);
-    }
-    await recordMetric({
-      agentName: 'autonomous-agent',
-      operation: 'save_to_supabase',
-      durationMs: dbTimer.stop(),
-      success: true,
-    });
-    await logger.info('Review saved to Supabase', 'autonomous-agent', { product: trendingProduct, reviewId });
 
     // 8. Commit to GitHub → triggers Vercel redeploy with persistent data
     const gitTimer = createTimer();
