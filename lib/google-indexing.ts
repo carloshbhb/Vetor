@@ -8,7 +8,7 @@
 //   - GOOGLE_PRIVATE_KEY: Chave privada da conta de serviço
 //   - NEXT_PUBLIC_SITE_URL: URL do site
 
-import { GoogleAuth } from 'google-auth-library';
+import { GoogleAuth, JWT } from 'google-auth-library';
 
 const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
 const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
@@ -37,19 +37,20 @@ async function getAuthenticatedClient() {
     // Normalizar a chave privada
     let privateKey = process.env.GOOGLE_PRIVATE_KEY;
     
-    // Debug: verificar formato原始 da chave
-    console.log('Raw key length:', privateKey.length);
-    console.log('Key starts with:', privateKey.substring(0, 50));
-    
-    // Substituir escaped newlines por newlines reais
+    // Substituir escaped newlines por newlines reais e limpar
     privateKey = privateKey
       .replace(/\\n/g, '\n')
       .replace(/\\r\\n/g, '\n')
       .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n');
+      .replace(/\r/g, '\n')
+      .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
+      .trim();
     
-    // Debug: verificar após normalização
-    console.log('Normalized key starts with:', privateKey.substring(0, 50));
+    // Garantir que a chave começa e termina corretamente
+    if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      // Tentar adicionar o header PEM se ausente
+      privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
+    }
     
     credentials = {
       client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -73,12 +74,22 @@ async function getAuthenticatedClient() {
     throw new Error('Google credentials not found. Configure GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY or place google-key.json in credentials/');
   }
 
-  const auth = new GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/indexing'],
-  });
-
-  return auth.getClient();
+  try {
+    const auth = new GoogleAuth({
+      credentials,
+      scopes: ['https://www.googleapis.com/auth/indexing'],
+    });
+    return auth.getClient();
+  } catch (authError: any) {
+    // Fallback: usar JWT client diretamente
+    console.warn('GoogleAuth failed, trying JWT fallback:', authError?.message);
+    const jwtClient = new JWT({
+      email: credentials.client_email,
+      key: credentials.private_key,
+      scopes: ['https://www.googleapis.com/auth/indexing'],
+    });
+    return jwtClient;
+  }
 }
 
 /**
