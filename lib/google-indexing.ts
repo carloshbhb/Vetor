@@ -72,7 +72,7 @@ async function getAccessToken(): Promise<string> {
   const payload = base64url(JSON.stringify({
     iss: email,
     scope: 'https://www.googleapis.com/auth/indexing',
-    aud: GOOGLE_TOKEN_URL,
+    aud: 'https://oauth2.googleapis.com/token',
     iat: now,
     exp: exp,
   }));
@@ -85,18 +85,19 @@ async function getAccessToken(): Promise<string> {
   const jwt = `${dataToSign}.${base64url(signature)}`;
 
   // Exchange JWT for access token
-  const response = await fetch(GOOGLE_TOKEN_URL, {
+  const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
   });
 
+  const data = await response.json();
+
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Token exchange failed: ${error}`);
+    console.error('[GoogleIndexing] Token exchange failed:', JSON.stringify(data));
+    throw new Error(`Token exchange failed: ${JSON.stringify(data)}`);
   }
 
-  const data = await response.json();
   return data.access_token;
 }
 
