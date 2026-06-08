@@ -11730,6 +11730,14 @@
     "id": "182729a2-d846-4a95-9964-9cefa85aea20",
     "slug": "samsung-galaxy-tab-s10-lite",
     "status": "published",
+    "product": "Samsung Galaxy Tab S10 Lite",
+    "category": "Tablets",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 3.499,00",
+    "priceNew": "R$ 2.999,00",
+    "affiliateUrl": "https://meli.la/1NWpuEr",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_2X_986238-MLA99505933208_112025-F.webp",
+    "adsEnabled": false,
     "meta": {
       "title": "Samsung Galaxy Tab S10 Lite: Review Completo e Preço 2026",
       "description": "Descubra se o Samsung Galaxy Tab S10 Lite vale a pena em 2026. Análise completa de tela, desempenho, S Pen e bateria. Encontre o melhor preço e compre já!",
@@ -11738,14 +11746,6 @@
       "canonical": null,
       "ogImage": null
     },
-    "product": "Samsung Galaxy Tab S10 Lite",
-    "category": "Tablets",
-    "marketplace": "Mercado Livre",
-    "priceOld": "R$ 3.499,00",
-    "priceNew": "R$ 2.999,00",
-    "affiliateUrl": "https://lista.mercadolivre.com.br/Samsung%20Galaxy%20Tab%20S10%20Lite?matt_tool=carloshbhb&matt_word=vetorblog&ref=carloshbhb&tracking_id=carloshbhb",
-    "imageUrl": "",
-    "adsEnabled": false,
     "hero": {
       "headlineLine1": "SAMSUNG GALAXY TAB S10 LITE",
       "headlineLine2": "VALE A PENA PARA ESTUDAR E TRABALHAR?",
@@ -11754,29 +11754,29 @@
       "overallScore": 9,
       "bars": [
         {
+          "pct": 90,
           "label": "Tela",
-          "value": 9,
-          "pct": 90
+          "value": 9
         },
         {
+          "pct": 90,
           "label": "Bateria",
-          "value": 9,
-          "pct": 90
+          "value": 9
         },
         {
+          "pct": 85,
           "label": "Performance",
-          "value": 8.5,
-          "pct": 85
+          "value": 8.5
         },
         {
+          "pct": 90,
           "label": "Recursos (S Pen)",
-          "value": 9,
-          "pct": 90
+          "value": 9
         },
         {
+          "pct": 92,
           "label": "Custo-benefício",
-          "value": 9.2,
-          "pct": 92
+          "value": 9.2
         }
       ]
     },
@@ -11818,55 +11818,111 @@
     "sections": [
       {
         "id": "design-e-ergonomia",
+        "content": "A Samsung projeta o Galaxy Tab S10 Lite com um corpo fino e leve. Sua construção em metal confere um toque premium. Este tablet pesa aproximadamente 480 gramas, tornando-o fácil de transportar. As bordas são ligeiramente arredondadas, oferecendo uma pegada confortável. Você o segura por horas sem cansaço.\n\nO acabamento fosco na parte traseira resiste a marcas de dedo. Isso mantém o aparelho sempre com aparência limpa. A Samsung posiciona os botões de volume e o de energia de forma intuitiva. Eles são facilmente acessíveis. A porta USB-C fica na parte inferior, facilitando o carregamento. Este design minimalista combina funcionalidade e estética.\n\n💡 **Dica de uso:** O design leve do Tab S10 Lite o torna ideal para leitura prolongada. Use-o também para assistir a filmes em viagens. Sua portabilidade é um grande trunfo. Ele cabe facilmente em mochilas e bolsas. A qualidade de construção garante durabilidade. O tablet resiste ao uso diário sem problemas. Sua aparência elegante também impressiona.",
         "heading": "Design e Ergonomia: Conforto e Elegância no Dia a Dia",
-        "tocLabel": "Design e Ergonomia",
         "tocEmoji": "✨",
-        "content": "A Samsung projeta o Galaxy Tab S10 Lite com um corpo fino e leve. Sua construção em metal confere um toque premium. Este tablet pesa aproximadamente 480 gramas, tornando-o fácil de transportar. As bordas são ligeiramente arredondadas, oferecendo uma pegada confortável. Você o segura por horas sem cansaço.\n\nO acabamento fosco na parte traseira resiste a marcas de dedo. Isso mantém o aparelho sempre com aparência limpa. A Samsung posiciona os botões de volume e o de energia de forma intuitiva. Eles são facilmente acessíveis. A porta USB-C fica na parte inferior, facilitando o carregamento. Este design minimalista combina funcionalidade e estética.\n\n💡 **Dica de uso:** O design leve do Tab S10 Lite o torna ideal para leitura prolongada. Use-o também para assistir a filmes em viagens. Sua portabilidade é um grande trunfo. Ele cabe facilmente em mochilas e bolsas. A qualidade de construção garante durabilidade. O tablet resiste ao uso diário sem problemas. Sua aparência elegante também impressiona."
+        "tocLabel": "Design e Ergonomia"
       },
       {
         "id": "qualidade-de-tela-imersao-visual",
+        "content": "O Galaxy Tab S10 Lite apresenta uma tela LCD de 10.9 polegadas. Ela oferece resolução WQXGA (2560x1600 pixels). As imagens são nítidas e os detalhes ficam bem definidos. A taxa de atualização de 120Hz garante fluidez. Você nota isso ao rolar páginas e jogar. A transição entre telas é suave.\n\nA reprodução de cores é vibrante e precisa. Isso a torna ideal para consumir conteúdo multimídia. Filmes, séries e fotos ganham vida. A tela também é excelente para edição de documentos ou criação de arte. Seu brilho máximo permite o uso em ambientes bem iluminados. Você visualiza o conteúdo claramente, mesmo sob luz solar indireta.\n\n💡 **Segredo técnico:** Embora seja LCD, a Samsung otimiza este painel para alta fidelidade. Ele oferece um contraste impressionante para um LCD. A calibração de fábrica garante cores realistas. Isso é crucial para quem trabalha com design ou edição. A tela grande maximiza a produtividade. Você abre múltiplos aplicativos lado a lado. A experiência de visualização é realmente premium.",
         "heading": "Qualidade de Tela: Imersão Visual para Conteúdo e Produtividade",
-        "tocLabel": "Qualidade de Tela",
         "tocEmoji": "📺",
-        "content": "O Galaxy Tab S10 Lite apresenta uma tela LCD de 10.9 polegadas. Ela oferece resolução WQXGA (2560x1600 pixels). As imagens são nítidas e os detalhes ficam bem definidos. A taxa de atualização de 120Hz garante fluidez. Você nota isso ao rolar páginas e jogar. A transição entre telas é suave.\n\nA reprodução de cores é vibrante e precisa. Isso a torna ideal para consumir conteúdo multimídia. Filmes, séries e fotos ganham vida. A tela também é excelente para edição de documentos ou criação de arte. Seu brilho máximo permite o uso em ambientes bem iluminados. Você visualiza o conteúdo claramente, mesmo sob luz solar indireta.\n\n💡 **Segredo técnico:** Embora seja LCD, a Samsung otimiza este painel para alta fidelidade. Ele oferece um contraste impressionante para um LCD. A calibração de fábrica garante cores realistas. Isso é crucial para quem trabalha com design ou edição. A tela grande maximiza a produtividade. Você abre múltiplos aplicativos lado a lado. A experiência de visualização é realmente premium."
+        "tocLabel": "Qualidade de Tela"
       },
       {
         "id": "performance-potencia-para-o-dia-a-dia",
+        "content": "Este tablet vem equipado com o processador Qualcomm Snapdragon 7 Gen 1. Ele oferece um desempenho robusto para a maioria das tarefas. Você navega na internet sem travamentos. Aplicativos de produtividade rodam de forma fluida. A multitarefa ocorre sem engasgos. Você alterna entre apps rapidamente.\n\nO chip Snapdragon 7 Gen 1 também lida bem com jogos. Títulos populares rodam com gráficos médios a altos. A experiência é agradável e responsiva. O tablet oferece 6GB ou 8GB de RAM. Esta quantidade é suficiente para manter muitos apps abertos. Isso evita recarregamentos constantes de páginas. A performance geral impressiona pelo segmento.\n\n💡 **Cenário de uso:** Imagine-se editando um documento no Word e, em seguida, assistindo a um vídeo no YouTube. O Tab S10 Lite realiza ambas as tarefas sem esforço. Ele é perfeito para estudantes e profissionais. O armazenamento interno de 128GB ou 256GB permite guardar muitos arquivos. A expansão via microSD oferece ainda mais espaço. Você não se preocupa com falta de memória.",
         "heading": "Performance: Potência para o Dia a Dia e Jogos Leves",
-        "tocLabel": "Performance",
         "tocEmoji": "🚀",
-        "content": "Este tablet vem equipado com o processador Qualcomm Snapdragon 7 Gen 1. Ele oferece um desempenho robusto para a maioria das tarefas. Você navega na internet sem travamentos. Aplicativos de produtividade rodam de forma fluida. A multitarefa ocorre sem engasgos. Você alterna entre apps rapidamente.\n\nO chip Snapdragon 7 Gen 1 também lida bem com jogos. Títulos populares rodam com gráficos médios a altos. A experiência é agradável e responsiva. O tablet oferece 6GB ou 8GB de RAM. Esta quantidade é suficiente para manter muitos apps abertos. Isso evita recarregamentos constantes de páginas. A performance geral impressiona pelo segmento.\n\n💡 **Cenário de uso:** Imagine-se editando um documento no Word e, em seguida, assistindo a um vídeo no YouTube. O Tab S10 Lite realiza ambas as tarefas sem esforço. Ele é perfeito para estudantes e profissionais. O armazenamento interno de 128GB ou 256GB permite guardar muitos arquivos. A expansão via microSD oferece ainda mais espaço. Você não se preocupa com falta de memória."
+        "tocLabel": "Performance"
       },
       {
         "id": "produtividade-e-s-pen-ferramentas-essenciais",
+        "content": "A S Pen é o grande diferencial do Galaxy Tab S10 Lite. Ela vem inclusa na caixa, sem custo adicional. A caneta oferece uma experiência de escrita natural. Você anota ideias, desenha e edita documentos com precisão. A latência é mínima, quase como papel e caneta. Isso melhora a sua produtividade.\n\nO tablet também suporta o Samsung DeX. Este recurso transforma a interface do tablet em um ambiente de desktop. Você conecta um teclado e mouse. O Tab S10 Lite funciona como um computador portátil. Ele é ideal para trabalhar em trânsito. Você edita planilhas e apresentações facilmente. A S Pen complementa o DeX, tornando-o ainda mais versátil.\n\nVocê usa a S Pen para diversas tarefas:\n*   **Tomar notas:** Escreva em tempo real durante aulas ou reuniões.\n*   **Desenhar e esboçar:** Explore sua criatividade com aplicativos de arte.\n*   **Editar documentos:** Faça anotações em PDFs com facilidade.\n*   **Navegação intuitiva:** Use a caneta para interagir com a interface.\n\nEste conjunto de ferramentas eleva o Tab S10 Lite. Ele se torna mais do que um simples tablet. É uma estação de trabalho e criatividade móvel.",
         "heading": "Produtividade e S Pen: Ferramentas Essenciais para Criadores",
-        "tocLabel": "Produtividade e S Pen",
         "tocEmoji": "✍️",
-        "content": "A S Pen é o grande diferencial do Galaxy Tab S10 Lite. Ela vem inclusa na caixa, sem custo adicional. A caneta oferece uma experiência de escrita natural. Você anota ideias, desenha e edita documentos com precisão. A latência é mínima, quase como papel e caneta. Isso melhora a sua produtividade.\n\nO tablet também suporta o Samsung DeX. Este recurso transforma a interface do tablet em um ambiente de desktop. Você conecta um teclado e mouse. O Tab S10 Lite funciona como um computador portátil. Ele é ideal para trabalhar em trânsito. Você edita planilhas e apresentações facilmente. A S Pen complementa o DeX, tornando-o ainda mais versátil.\n\nVocê usa a S Pen para diversas tarefas:\n*   **Tomar notas:** Escreva em tempo real durante aulas ou reuniões.\n*   **Desenhar e esboçar:** Explore sua criatividade com aplicativos de arte.\n*   **Editar documentos:** Faça anotações em PDFs com facilidade.\n*   **Navegação intuitiva:** Use a caneta para interagir com a interface.\n\nEste conjunto de ferramentas eleva o Tab S10 Lite. Ele se torna mais do que um simples tablet. É uma estação de trabalho e criatividade móvel."
+        "tocLabel": "Produtividade e S Pen"
       },
       {
         "id": "autonomia-de-bateria-liberdade-sem-fio",
+        "content": "O Galaxy Tab S10 Lite vem com uma bateria de 7.700 mAh. Esta capacidade garante excelente autonomia. Você usa o tablet por um dia inteiro sem recarregar. A duração varia conforme o uso. Em testes reais, ele aguenta até 12 horas de navegação na web. Assista a vídeos por cerca de 10-11 horas.\n\nPara tarefas leves, como leitura ou navegação casual, a bateria surpreende. Ela dura ainda mais. O sistema operacional One UI otimiza o consumo de energia. Isso estende a vida útil da carga. Você tem liberdade para trabalhar ou se divertir. Não se preocupe em procurar tomadas constantemente.\n\n💡 **Dica de bateria:** Ative o modo de economia de energia para estender ainda mais a autonomia. Diminua o brilho da tela em ambientes escuros. Desative o Wi-Fi ou Bluetooth quando não estiver usando. O carregamento rápido também está presente. Você recupera boa parte da carga em pouco tempo. Isso é ideal para quem tem uma rotina agitada. A bateria robusta é um dos pontos fortes deste tablet.",
         "heading": "Autonomia de Bateria: Liberdade Sem Fio por Mais Tempo",
-        "tocLabel": "Autonomia de Bateria",
         "tocEmoji": "🔋",
-        "content": "O Galaxy Tab S10 Lite vem com uma bateria de 7.700 mAh. Esta capacidade garante excelente autonomia. Você usa o tablet por um dia inteiro sem recarregar. A duração varia conforme o uso. Em testes reais, ele aguenta até 12 horas de navegação na web. Assista a vídeos por cerca de 10-11 horas.\n\nPara tarefas leves, como leitura ou navegação casual, a bateria surpreende. Ela dura ainda mais. O sistema operacional One UI otimiza o consumo de energia. Isso estende a vida útil da carga. Você tem liberdade para trabalhar ou se divertir. Não se preocupe em procurar tomadas constantemente.\n\n💡 **Dica de bateria:** Ative o modo de economia de energia para estender ainda mais a autonomia. Diminua o brilho da tela em ambientes escuros. Desative o Wi-Fi ou Bluetooth quando não estiver usando. O carregamento rápido também está presente. Você recupera boa parte da carga em pouco tempo. Isso é ideal para quem tem uma rotina agitada. A bateria robusta é um dos pontos fortes deste tablet."
+        "tocLabel": "Autonomia de Bateria"
       },
       {
         "id": "cameras-e-multimidia-captura-e-entretenimento",
+        "content": "O Galaxy Tab S10 Lite possui uma câmera traseira de 13MP. Ela captura fotos com boa qualidade em condições ideais. Você registra momentos importantes. A câmera frontal de 8MP é excelente para videochamadas. Ela oferece nitidez e cores naturais. Você participa de reuniões online com clareza. Estudantes também aproveitam para aulas virtuais.\n\nPara consumo de multimídia, o tablet brilha. Ele tem quatro alto-falantes estéreo com Dolby Atmos. O som é rico, claro e imersivo. Você ouve músicas e assiste a filmes com alta qualidade de áudio. A experiência sonora complementa a tela vibrante. Isso cria um verdadeiro centro de entretenimento portátil.\n\n💡 **Experiência de uso:** Imagine-se em uma videochamada com amigos ou familiares. A câmera frontal garante que você apareça bem. Os alto-falantes reproduzem as vozes com clareza. Ao assistir a um show no tablet, o som envolvente te transporta para o palco. A Samsung pensou na experiência completa. O Tab S10 Lite é mais do que um dispositivo de trabalho. Ele é também um ótimo companheiro para o lazer.",
         "heading": "Câmeras e Multimídia: Captura e Entretenimento Completo",
-        "tocLabel": "Câmeras e Multimídia",
         "tocEmoji": "📸",
-        "content": "O Galaxy Tab S10 Lite possui uma câmera traseira de 13MP. Ela captura fotos com boa qualidade em condições ideais. Você registra momentos importantes. A câmera frontal de 8MP é excelente para videochamadas. Ela oferece nitidez e cores naturais. Você participa de reuniões online com clareza. Estudantes também aproveitam para aulas virtuais.\n\nPara consumo de multimídia, o tablet brilha. Ele tem quatro alto-falantes estéreo com Dolby Atmos. O som é rico, claro e imersivo. Você ouve músicas e assiste a filmes com alta qualidade de áudio. A experiência sonora complementa a tela vibrante. Isso cria um verdadeiro centro de entretenimento portátil.\n\n💡 **Experiência de uso:** Imagine-se em uma videochamada com amigos ou familiares. A câmera frontal garante que você apareça bem. Os alto-falantes reproduzem as vozes com clareza. Ao assistir a um show no tablet, o som envolvente te transporta para o palco. A Samsung pensou na experiência completa. O Tab S10 Lite é mais do que um dispositivo de trabalho. Ele é também um ótimo companheiro para o lazer."
+        "tocLabel": "Câmeras e Multimídia"
       },
       {
         "id": "analise-pratica-de-custo-beneficio",
+        "content": "O Samsung Galaxy Tab S10 Lite se posiciona como um tablet intermediário premium. Ele oferece um pacote completo de recursos. A inclusão da S Pen na caixa agrega muito valor. Você não precisa comprar um acessório caro separadamente. Sua tela de alta qualidade e bateria duradoura são pontos fortes. O desempenho é mais do que suficiente para a maioria dos usuários.\n\nComparado a outros tablets do mercado, o S10 Lite se destaca. Ele oferece uma experiência Samsung completa. O ecossistema One UI é intuitivo e eficiente. A longevidade do suporte a atualizações também é um diferencial. Isso garante que seu tablet permaneça relevante por anos. O preço de lançamento é competitivo. Ele entrega um excelente custo-benefício.\n\nPara quem busca um tablet versátil, este é um investimento inteligente. Ele serve bem para estudo, trabalho e entretenimento. A combinação de hardware e software é harmoniosa. Você recebe um produto confiável e performático. O Galaxy Tab S10 Lite é uma escolha acertada em 2026. Ele cumpre o que promete e vai além.",
         "heading": "Análise Prática de Custo-Benefício: O Investimento Certo em 2026?",
-        "tocLabel": "Custo-Benefício",
         "tocEmoji": "💰",
-        "content": "O Samsung Galaxy Tab S10 Lite se posiciona como um tablet intermediário premium. Ele oferece um pacote completo de recursos. A inclusão da S Pen na caixa agrega muito valor. Você não precisa comprar um acessório caro separadamente. Sua tela de alta qualidade e bateria duradoura são pontos fortes. O desempenho é mais do que suficiente para a maioria dos usuários.\n\nComparado a outros tablets do mercado, o S10 Lite se destaca. Ele oferece uma experiência Samsung completa. O ecossistema One UI é intuitivo e eficiente. A longevidade do suporte a atualizações também é um diferencial. Isso garante que seu tablet permaneça relevante por anos. O preço de lançamento é competitivo. Ele entrega um excelente custo-benefício.\n\nPara quem busca um tablet versátil, este é um investimento inteligente. Ele serve bem para estudo, trabalho e entretenimento. A combinação de hardware e software é harmoniosa. Você recebe um produto confiável e performático. O Galaxy Tab S10 Lite é uma escolha acertada em 2026. Ele cumpre o que promete e vai além."
+        "tocLabel": "Custo-Benefício"
       }
     ],
     "compareTable": {
+      "rows": [
+        {
+          "values": [
+            "10.9\" LCD 120Hz WQXGA",
+            "11\" LCD 144Hz 2.8K",
+            "11.2\" OLED 120Hz 2.5K"
+          ],
+          "winner": 3,
+          "feature": "Tela"
+        },
+        {
+          "values": [
+            "Snapdragon 7 Gen 1",
+            "Snapdragon 870",
+            "MediaTek Kompanio 1300T"
+          ],
+          "winner": 2,
+          "feature": "Processador"
+        },
+        {
+          "values": [
+            "6/8GB RAM, 128/256GB",
+            "6/8GB RAM, 128/256GB",
+            "6/8GB RAM, 128/256GB"
+          ],
+          "winner": 1,
+          "feature": "RAM/Armazenamento"
+        },
+        {
+          "values": [
+            "S Pen Inclusa",
+            "Xiaomi Smart Pen (vendida à parte)",
+            "Precision Pen 3 (vendida à parte)"
+          ],
+          "winner": 1,
+          "feature": "S Pen/Caneta"
+        },
+        {
+          "values": [
+            "7.700 mAh",
+            "8.840 mAh",
+            "8.200 mAh"
+          ],
+          "winner": 2,
+          "feature": "Bateria"
+        },
+        {
+          "values": [
+            "Android 14 (One UI 6.1)",
+            "Android 13 (MIUI Pad 14)",
+            "Android 12 (atualizável)"
+          ],
+          "winner": 1,
+          "feature": "Sistema Operacional"
+        }
+      ],
       "caption": "Tabela Comparativa de Tablets Intermediários",
       "columns": [
         "Característica",
@@ -11874,63 +11930,7 @@
         "Xiaomi Pad 6",
         "Lenovo Tab P11 Pro Gen 2"
       ],
-      "winnerCol": 1,
-      "rows": [
-        {
-          "feature": "Tela",
-          "values": [
-            "10.9\" LCD 120Hz WQXGA",
-            "11\" LCD 144Hz 2.8K",
-            "11.2\" OLED 120Hz 2.5K"
-          ],
-          "winner": 3
-        },
-        {
-          "feature": "Processador",
-          "values": [
-            "Snapdragon 7 Gen 1",
-            "Snapdragon 870",
-            "MediaTek Kompanio 1300T"
-          ],
-          "winner": 2
-        },
-        {
-          "feature": "RAM/Armazenamento",
-          "values": [
-            "6/8GB RAM, 128/256GB",
-            "6/8GB RAM, 128/256GB",
-            "6/8GB RAM, 128/256GB"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "S Pen/Caneta",
-          "values": [
-            "S Pen Inclusa",
-            "Xiaomi Smart Pen (vendida à parte)",
-            "Precision Pen 3 (vendida à parte)"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Bateria",
-          "values": [
-            "7.700 mAh",
-            "8.840 mAh",
-            "8.200 mAh"
-          ],
-          "winner": 2
-        },
-        {
-          "feature": "Sistema Operacional",
-          "values": [
-            "Android 14 (One UI 6.1)",
-            "Android 13 (MIUI Pad 14)",
-            "Android 12 (atualizável)"
-          ],
-          "winner": 1
-        }
-      ]
+      "winnerCol": 1
     },
     "pros": [
       "S Pen inclusa na caixa, oferecendo grande valor.",
@@ -11947,41 +11947,41 @@
       "Sem opção de conectividade 5G no modelo Lite."
     ],
     "testimonials": [],
-    "faq": [
-      {
-        "question": "O Galaxy Tab S10 Lite vem com a S Pen?",
-        "answer": "Sim, o Samsung Galaxy Tab S10 Lite inclui a S Pen na caixa. Você não precisa comprá-la separadamente. Isso adiciona um grande valor ao produto."
-      },
-      {
-        "question": "Qual a duração da bateria do Galaxy Tab S10 Lite?",
-        "answer": "A bateria de 7.700 mAh do Tab S10 Lite oferece excelente autonomia. Ela dura até 12 horas de navegação na web. Para reprodução de vídeo, a duração é de cerca de 10-11 horas. Isso varia conforme o uso."
-      },
-      {
-        "question": "O Galaxy Tab S10 Lite é bom para jogos?",
-        "answer": "Sim, o processador Snapdragon 7 Gen 1 é competente para jogos. Ele roda a maioria dos títulos atuais com gráficos médios a altos. A tela de 120Hz melhora a fluidez da experiência."
-      },
-      {
-        "question": "A tela do Tab S10 Lite é AMOLED ou LCD?",
-        "answer": "O Galaxy Tab S10 Lite possui uma tela LCD de 10.9 polegadas. Embora não seja AMOLED, ela oferece alta resolução WQXGA e 120Hz. A qualidade de imagem é nítida e as cores são vibrantes."
-      },
-      {
-        "question": "Posso usar o Galaxy Tab S10 Lite para trabalhar?",
-        "answer": "Sim, o Tab S10 Lite é ótimo para trabalho. Ele vem com a S Pen para anotações e edição. O suporte ao Samsung DeX transforma o tablet em um ambiente de desktop. Isso facilita a multitarefa e o uso de aplicativos de escritório."
-      }
-    ],
     "verdict": {
       "score": 9,
       "label": "EXCELENTE CUSTO-BENEFÍCIO E VERSATILIDADE",
       "text": "O Samsung Galaxy Tab S10 Lite é uma escolha inteligente em 2026. Ele oferece uma experiência premium sem o preço de um top de linha. A inclusão da S Pen o destaca no mercado. Sua tela vibrante e bateria duradoura garantem produtividade e entretenimento. É um tablet completo para a maioria dos usuários. Ele equilibra performance e recursos de forma exemplar. Você faz um ótimo investimento com este modelo.",
       "note": "Ideal para estudantes, profissionais liberais e quem busca um tablet versátil com S Pen."
     },
+    "faq": [
+      {
+        "answer": "Sim, o Samsung Galaxy Tab S10 Lite inclui a S Pen na caixa. Você não precisa comprá-la separadamente. Isso adiciona um grande valor ao produto.",
+        "question": "O Galaxy Tab S10 Lite vem com a S Pen?"
+      },
+      {
+        "answer": "A bateria de 7.700 mAh do Tab S10 Lite oferece excelente autonomia. Ela dura até 12 horas de navegação na web. Para reprodução de vídeo, a duração é de cerca de 10-11 horas. Isso varia conforme o uso.",
+        "question": "Qual a duração da bateria do Galaxy Tab S10 Lite?"
+      },
+      {
+        "answer": "Sim, o processador Snapdragon 7 Gen 1 é competente para jogos. Ele roda a maioria dos títulos atuais com gráficos médios a altos. A tela de 120Hz melhora a fluidez da experiência.",
+        "question": "O Galaxy Tab S10 Lite é bom para jogos?"
+      },
+      {
+        "answer": "O Galaxy Tab S10 Lite possui uma tela LCD de 10.9 polegadas. Embora não seja AMOLED, ela oferece alta resolução WQXGA e 120Hz. A qualidade de imagem é nítida e as cores são vibrantes.",
+        "question": "A tela do Tab S10 Lite é AMOLED ou LCD?"
+      },
+      {
+        "answer": "Sim, o Tab S10 Lite é ótimo para trabalho. Ele vem com a S Pen para anotações e edição. O suporte ao Samsung DeX transforma o tablet em um ambiente de desktop. Isso facilita a multitarefa e o uso de aplicativos de escritório.",
+        "question": "Posso usar o Galaxy Tab S10 Lite para trabalhar?"
+      }
+    ],
     "schemaRating": {
       "ratingValue": 4.8,
       "reviewCount": 8450
     },
     "googleRank": 0,
-    "lastRankCheck": "2026-06-08T19:27:38.479Z",
-    "createdAt": "2026-06-08T19:27:38.479Z",
-    "updatedAt": "2026-06-08T19:27:38.479Z"
+    "lastRankCheck": "2026-06-08T19:27:38.479",
+    "createdAt": "2026-06-08T19:27:38.541937+00:00",
+    "updatedAt": "2026-06-08T20:40:20.824675+00:00"
   }
 ]
