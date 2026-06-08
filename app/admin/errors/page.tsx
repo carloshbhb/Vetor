@@ -26,7 +26,7 @@ async function getErrors(): Promise<{ errors: ErrorLog[]; total: number }> {
 export default async function ErrorsPage() {
   const { errors, total } = await getErrors();
 
-  const realErrors = errors.filter(e => e.severity === 'error' || e.severity === 'critical' || (!e.severity && e.type));
+  const realErrors = errors.filter(e => e.severity === 'error' || (!e.severity && e.type));
   const clientErrors = realErrors.filter(e => e.type === 'client');
   const serverErrors = realErrors.filter(e => e.type === 'server');
   const recentErrors = errors.slice(0, 50);
