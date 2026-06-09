@@ -4,7 +4,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Zap, Search, Sparkles, Loader2, ArrowRight, CheckCircle2, 
-  AlertTriangle, ShoppingBag, BarChart3, FileText, TrendingUp
+  AlertTriangle, ShoppingBag, BarChart3, FileText, TrendingUp, Globe
 } from 'lucide-react';
 
 interface ViralArticle {
@@ -64,9 +64,11 @@ function ViralArticleContent() {
   );
   const [articleType, setArticleType] = useState<'comparativo' | 'top5' | 'guia'>('comparativo');
   const [generating, setGenerating] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [article, setArticle] = useState<ViralArticle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [provider, setProvider] = useState<string>('');
+  const [publishResult, setPublishResult] = useState<{ success: boolean; slug: string; message: string } | null>(null);
 
   function addProduct() {
     if (products.length < 5) {
@@ -132,6 +134,42 @@ function ViralArticleContent() {
     });
     
     router.push(`/admin/novo-review?${params.toString()}`);
+  }
+
+  async function handlePublish() {
+    if (!article) return;
+    
+    setPublishing(true);
+    setError(null);
+    setPublishResult(null);
+
+    try {
+      const res = await fetch('/api/publish-viral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          articleData: article,
+          category: category.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao publicar artigo.');
+      }
+
+      setPublishResult({
+        success: true,
+        slug: data.slug,
+        message: data.message,
+      });
+      router.refresh();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Erro de conexão.');
+    } finally {
+      setPublishing(false);
+    }
   }
 
   return (
@@ -401,20 +439,65 @@ function ViralArticleContent() {
           {/* Actions */}
           <div className="flex gap-4 justify-end">
             <button
-              onClick={() => setArticle(null)}
+              onClick={() => { setArticle(null); setPublishResult(null); }}
               className="px-6 py-3 rounded-xl border border-border text-text-muted hover:bg-bg2 transition-colors font-syne font-bold text-sm"
             >
               Gerar Novo
             </button>
             <button
               onClick={handleSaveDraft}
-              className="flex items-center gap-2 px-8 py-3 rounded-xl bg-blue text-white font-syne font-bold text-sm hover:bg-blue/90 transition-colors shadow-blue"
+              disabled={publishing}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl border border-blue text-blue font-syne font-bold text-sm hover:bg-blue/5 transition-colors"
             >
-              <ShoppingBag size={17} />
-              Criar Rascunho do Artigo
-              <ArrowRight size={14} />
+              <FileText size={17} />
+              Criar Rascunho
+            </button>
+            <button
+              onClick={handlePublish}
+              disabled={publishing}
+              className="flex items-center gap-2 px-8 py-3 rounded-xl bg-emerald-600 text-white font-syne font-bold text-sm hover:bg-emerald-700 transition-colors shadow-lg disabled:opacity-50"
+            >
+              {publishing ? (
+                <>
+                  <Loader2 className="animate-spin" size={17} />
+                  Publicando...
+                </>
+              ) : (
+                <>
+                  <Zap size={17} />
+                  Publicar Artigo
+                  <ArrowRight size={14} />
+                </>
+              )}
             </button>
           </div>
+
+          {/* Publish Result */}
+          {publishResult && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 flex items-start gap-3 text-emerald-800 mt-4">
+              <CheckCircle2 className="text-emerald-600 shrink-0 mt-0.5" size={20} />
+              <div>
+                <h4 className="font-bold text-sm">Artigo Publicado!</h4>
+                <p className="text-xs mt-1 text-emerald-700">{publishResult.message}</p>
+                <div className="mt-3 flex gap-3">
+                  <a
+                    href={`/review/${publishResult.slug}`}
+                    target="_blank"
+                    className="text-xs font-medium text-emerald-600 hover:underline flex items-center gap-1"
+                  >
+                    Ver Artigo →
+                  </a>
+                  <a
+                    href={`https://www.vetor.blog/review/${publishResult.slug}`}
+                    target="_blank"
+                    className="text-xs font-medium text-emerald-600 hover:underline flex items-center gap-1"
+                  >
+                    Ver no Site →
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
