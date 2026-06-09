@@ -51,13 +51,26 @@ function normalizeCompareTable(raw: any): any {
       normalizedRows.push(row);
       continue;
     }
-    // Raw array: ["Feature", "Val1", "Val2"]
+    // Raw array: could be ["Feature", "Val1", "Val2"] or [{Característica: "Feature"}, {Col: "Val"}, ...]
     if (Array.isArray(row)) {
-      normalizedRows.push({
-        feature: row[0] || '',
-        values: row.slice(1),
-        winner: ct.winnerCol || 1,
-      });
+      // Check if elements are single-key objects (broken format from old publish-viral)
+      if (row.length > 0 && row[0] && typeof row[0] === 'object' && !Array.isArray(row[0]) && Object.keys(row[0]).length === 1) {
+        const feature = row[0][Object.keys(row[0])[0]] || '';
+        const values = row.slice(1).map((item: any) => {
+          if (item && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).length === 1) {
+            return item[Object.keys(item)[0]] || '';
+          }
+          return String(item || '');
+        });
+        normalizedRows.push({ feature, values, winner: ct.winnerCol || 1 });
+      } else {
+        // Normal array: ["Feature", "Val1", "Val2"]
+        normalizedRows.push({
+          feature: row[0] || '',
+          values: row.slice(1),
+          winner: ct.winnerCol || 1,
+        });
+      }
       continue;
     }
     // Broken format: single-key object like {Característica: "Preço"}
