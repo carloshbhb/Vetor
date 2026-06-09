@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Zap, Search, Sparkles, Loader2, ArrowRight, CheckCircle2, 
@@ -54,7 +54,7 @@ interface ViralArticle {
   };
 }
 
-export default function ViralArticlePage() {
+function ViralArticleContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -418,5 +418,20 @@ export default function ViralArticlePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ViralArticlePage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8 flex-1 max-w-6xl">
+        <div className="bg-white border border-border rounded-xl p-12 text-center shadow-sm">
+          <Loader2 className="animate-spin text-blue mx-auto mb-4" size={48} />
+          <h3 className="font-syne font-bold text-lg text-text">Carregando...</h3>
+        </div>
+      </div>
+    }>
+      <ViralArticleContent />
+    </Suspense>
   );
 }
