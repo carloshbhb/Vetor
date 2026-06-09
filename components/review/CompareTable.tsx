@@ -21,19 +21,24 @@ export default function CompareTable({ table }: { table: CompareTableType }) {
           </tr>
         </thead>
         <tbody>
-          {table.rows.map((row, i) => (
-            <tr key={i}>
-              <td className={row.winner === 0 ? "col-winner" : ""}>{row.feature}</td>
-              {row.values.map((val, j) => (
-                <td 
-                  key={j} 
-                  className={j + 1 === row.winner ? "col-winner" : ""}
-                >
-                  {val}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {table.rows.map((row, i) => {
+            const feature = row.feature || '';
+            const values = Array.isArray(row.values) ? row.values : [];
+            const winner = typeof row.winner === 'number' ? row.winner : 0;
+            return (
+              <tr key={i}>
+                <td className={winner === 0 ? "col-winner" : ""}>{feature}</td>
+                {values.map((val, j) => (
+                  <td 
+                    key={j} 
+                    className={j + 1 === winner ? "col-winner" : ""}
+                  >
+                    {val}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

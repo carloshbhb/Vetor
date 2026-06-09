@@ -44,18 +44,25 @@ export async function POST(req: NextRequest) {
       content: typeof s.content === 'string' ? s.content : JSON.stringify(s.content || ''),
     })) || [];
 
-    // Map compareTable rows to objects if they are arrays
+    // Map compareTable rows to {feature, values[], winner} format
     let compareTable = d.compareTable || { caption: '', columns: [], winnerCol: 1, rows: [] };
     if (compareTable.rows && Array.isArray(compareTable.rows)) {
       compareTable = {
         ...compareTable,
         rows: compareTable.rows.map((row: any) => {
-          if (Array.isArray(row)) {
-            return row.map((cell: any, i: number) => ({
-              [compareTable.columns[i] || `col${i}`]: cell,
-            }));
+          // Already in correct format
+          if (row && typeof row === 'object' && !Array.isArray(row) && 'feature' in row && 'values' in row) {
+            return row;
           }
-          return row;
+          // Array format: ["Feature", "Val1", "Val2", ...]
+          if (Array.isArray(row)) {
+            const feature = row[0] || '';
+            const values = row.slice(1);
+            // Determine winner: use compareTable.winnerCol (1-based) or default to 1
+            const winnerCol = compareTable.winnerCol && compareTable.winnerCol > 0 ? compareTable.winnerCol : 1;
+            return { feature, values, winner: winnerCol };
+          }
+          return { feature: '', values: [], winner: 0 };
         }),
       };
     }

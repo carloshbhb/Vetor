@@ -32,6 +32,41 @@ async function getBackup() {
 }
 
 // ─── Type Mappers ─────────────────────────────────────────────────────────────
+
+function normalizeCompareTable(raw: any): any {
+  if (!raw) return { caption: '', columns: [], winnerCol: 1, rows: [] };
+  let ct = raw;
+  if (typeof ct === 'string') {
+    try { ct = JSON.parse(ct); } catch { return { caption: '', columns: [], winnerCol: 1, rows: [] }; }
+  }
+  if (!ct.columns) ct.columns = [];
+  if (!ct.rows) ct.rows = [];
+  if (!ct.winnerCol) ct.winnerCol = 1;
+  // Normalize rows: ensure each row has {feature, values[], winner}
+  ct.rows = ct.rows.map((row: any) => {
+    if (row && typeof row === 'object' && !Array.isArray(row) && 'feature' in row && 'values' in row) {
+      return row;
+    }
+    if (Array.isArray(row)) {
+      return {
+        feature: row[0] || '',
+        values: row.slice(1),
+        winner: ct.winnerCol || 1,
+      };
+    }
+    return { feature: '', values: [], winner: 0 };
+  });
+  return ct;
+}
+
+function parseJsonArray(val: any): any[] {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    try { const parsed = JSON.parse(val); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+  }
+  return [];
+}
+
 function mapToReviewData(row: any): ReviewData {
    const parseSafe = (val: any) => {
       if (val === null || val === undefined) return 0;
@@ -81,12 +116,12 @@ function mapToReviewData(row: any): ReviewData {
        overallScore: parseSafe(row.hero_overall_score),
        bars: Array.isArray(row.hero_bars) ? row.hero_bars : [],
      },
-     specs: Array.isArray(row.specs) ? row.specs : [],
-     sections: Array.isArray(row.sections) ? row.sections : [],
-     compareTable: row.compare_table ?? {},
-     pros: Array.isArray(row.pros) ? row.pros : [],
-     cons: Array.isArray(row.cons) ? row.cons : [],
-     testimonials: Array.isArray(row.testimonials) ? row.testimonials : [],
+     specs: parseJsonArray(row.specs),
+     sections: parseJsonArray(row.sections),
+     compareTable: normalizeCompareTable(row.compare_table),
+     pros: parseJsonArray(row.pros),
+     cons: parseJsonArray(row.cons),
+     testimonials: parseJsonArray(row.testimonials),
      verdict: {
        score: parseSafe(row.verdict_score),
        label: row.verdict_label ?? '',
