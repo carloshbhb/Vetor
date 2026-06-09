@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
 
+const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
+const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
+
 export const metadata: Metadata = {
   title: 'Sobre o Vetor Blog — Quem Somos',
   description: 'Conheça o Vetor Blog. Reviews independentes de produtos com testes reais e análises detalhadas.',
   robots: { index: true, follow: true },
+  alternates: { canonical: `${SITE_URL}/sobre` },
 };
 
 export default function SobrePage() {

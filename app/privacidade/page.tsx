@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
 
+const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
+const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
+
 export const metadata: Metadata = {
   title: 'Política de Privacidade — Vetor Blog',
   description: 'Política de privacidade do Vetor Blog. Saiba como coletamos, usamos e protegemos seus dados.',
   robots: { index: true, follow: true },
+  alternates: { canonical: `${SITE_URL}/privacidade` },
 };
 
 export default function PrivacidadePage() {

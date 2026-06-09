@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
 
+const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
+const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
+
 export const metadata: Metadata = {
   title: 'Termos de Uso — Vetor Blog',
   description: 'Termos de uso do Vetor Blog. Condições para utilização do site e seus conteúdos.',
   robots: { index: true, follow: true },
+  alternates: { canonical: `${SITE_URL}/termos` },
 };
 
 export default function TermosPage() {
