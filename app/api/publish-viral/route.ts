@@ -35,6 +35,45 @@ export async function POST(req: NextRequest) {
     const slug = slugify(d.meta?.title || 'artigo-comparativo');
     const productNames = d.products?.map((p: any) => p.name).join(' vs ') || 'Comparativo';
 
+    // Map sections to proper format with markdown content
+    const sections = d.sections?.map((s: any, idx: number) => ({
+      id: s.id || `section-${idx}`,
+      heading: s.heading || s.toc_label || `Seção ${idx + 1}`,
+      tocLabel: s.toc_label || s.heading || `Seção ${idx + 1}`,
+      tocEmoji: s.toc_emoji || '📌',
+      content: typeof s.content === 'string' ? s.content : JSON.stringify(s.content || ''),
+    })) || [];
+
+    // Map compareTable rows to objects if they are arrays
+    let compareTable = d.compareTable || { caption: '', columns: [], winnerCol: 1, rows: [] };
+    if (compareTable.rows && Array.isArray(compareTable.rows)) {
+      compareTable = {
+        ...compareTable,
+        rows: compareTable.rows.map((row: any) => {
+          if (Array.isArray(row)) {
+            return row.map((cell: any, i: number) => ({
+              [compareTable.columns[i] || `col${i}`]: cell,
+            }));
+          }
+          return row;
+        }),
+      };
+    }
+
+    // Collect all pros and cons from products
+    const allPros: string[] = [];
+    const allCons: string[] = [];
+    if (d.products && Array.isArray(d.products)) {
+      for (const product of d.products) {
+        if (product.pros && Array.isArray(product.pros)) {
+          allPros.push(...product.pros);
+        }
+        if (product.cons && Array.isArray(product.cons)) {
+          allCons.push(...product.cons);
+        }
+      }
+    }
+
     const fullReview = {
       id: reviewId,
       slug,
@@ -61,26 +100,24 @@ export async function POST(req: NextRequest) {
         headlineEm: d.hero?.headline_em || productNames,
         lead: d.hero?.lead || '',
         overallScore: d.hero?.overall_score || 8.5,
-        bars: d.hero?.bars || [],
+        bars: d.hero?.bars?.map((b: any) => ({
+          label: b.label,
+          value: b.value,
+          pct: b.pct ?? b.value * 10,
+        })) || [],
       },
       specs: d.specs || [],
-      sections: d.sections?.map((s: any) => ({
-        id: s.id || slugify(s.heading),
-        heading: s.heading,
-        tocLabel: s.toc_label || s.heading,
-        tocEmoji: s.toc_emoji || '📌',
-        content: s.content,
-      })) || [],
-      compareTable: d.compareTable || { caption: '', columns: [], winnerCol: 1, rows: [] },
-      pros: d.products?.flatMap((p: any) => p.pros || []) || [],
-      cons: d.products?.flatMap((p: any) => p.cons || []) || [],
+      sections,
+      compareTable,
+      pros: allPros.length > 0 ? allPros : ['Produto bem avaliado', 'Boa relação custo-benefício', 'Disponível no mercado brasileiro'],
+      cons: allCons.length > 0 ? allCons : ['Pode não atender a todos os perfis', 'Preço pode variar'],
       testimonials: [],
       faq: d.faq || [],
-      verdict: d.verdict || {
-        score: 8.5,
-        label: 'MELHOR ESCOLHA',
-        text: 'Artigo comparativo com as melhores opções.',
-        note: 'Confira nossa análise completa.',
+      verdict: {
+        score: d.verdict?.score || 8.5,
+        label: d.verdict?.label || 'MELHOR ESCOLHA',
+        text: d.verdict?.text || 'Artigo comparativo com as melhores opções.',
+        note: d.verdict?.note || 'Confira nossa análise completa.',
       },
       schemaRating: {
         ratingValue: d.verdict?.score || 8.5,
