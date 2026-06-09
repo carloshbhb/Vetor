@@ -43,19 +43,54 @@ function normalizeCompareTable(raw: any): any {
   if (!ct.rows) ct.rows = [];
   if (!ct.winnerCol) ct.winnerCol = 1;
   // Normalize rows: ensure each row has {feature, values[], winner}
-  ct.rows = ct.rows.map((row: any) => {
+  const normalizedRows: any[] = [];
+  for (let i = 0; i < ct.rows.length; i++) {
+    const row = ct.rows[i];
+    // Already correct: {feature, values[], winner}
     if (row && typeof row === 'object' && !Array.isArray(row) && 'feature' in row && 'values' in row) {
-      return row;
+      normalizedRows.push(row);
+      continue;
     }
+    // Raw array: ["Feature", "Val1", "Val2"]
     if (Array.isArray(row)) {
-      return {
+      normalizedRows.push({
         feature: row[0] || '',
         values: row.slice(1),
         winner: ct.winnerCol || 1,
-      };
+      });
+      continue;
     }
-    return { feature: '', values: [], winner: 0 };
-  });
+    // Broken format: single-key object like {Característica: "Preço"}
+    // These were created by old buggy code that split each row into N separate objects.
+    // Group consecutive single-key objects back into one row.
+    if (row && typeof row === 'object' && !Array.isArray(row)) {
+      const keys = Object.keys(row);
+      if (keys.length === 1) {
+        const feature = row[keys[0]] || '';
+        const values: string[] = [];
+        // Look ahead for consecutive single-key objects (the values)
+        let j = i + 1;
+        while (j < ct.rows.length) {
+          const next = ct.rows[j];
+          if (next && typeof next === 'object' && !Array.isArray(next) && Object.keys(next).length === 1) {
+            values.push(next[Object.keys(next)[0]] || '');
+            j++;
+          } else {
+            break;
+          }
+        }
+        i = j - 1; // will be incremented by for loop
+        normalizedRows.push({
+          feature,
+          values,
+          winner: ct.winnerCol || 1,
+        });
+        continue;
+      }
+    }
+    normalizedRows.push({ feature: '', values: [], winner: 0 });
+  }
+  ct.rows = normalizedRows;
   return ct;
 }
 
