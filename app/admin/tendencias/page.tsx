@@ -63,6 +63,14 @@ export default function TrendsPage() {
     router.push(`/admin/novo-review?${params.toString()}`);
   }
 
+  function handleCreateViral(idea: TrendIdea) {
+    const params = new URLSearchParams({
+      category: category.trim(),
+      products: [idea.product, ...idea.keywords.slice(0, 2)].join(','),
+    });
+    router.push(`/admin/viral?${params.toString()}`);
+  }
+
   return (
     <div className="p-8 flex-1 max-w-5xl">
       {/* Header */}
@@ -250,7 +258,7 @@ export default function TrendsPage() {
 
                 {/* Generate draft button */}
                 <button
-                  onClick={() => handleCreateDraft(idea)}
+                  onClick={() => activeTab === 'viral' ? handleCreateViral(idea) : handleCreateDraft(idea)}
                   className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-light hover:bg-blue border border-blue-mid text-blue hover:text-white font-syne font-bold text-xs uppercase tracking-wider transition-colors duration-200 mt-2"
                 >
                   {activeTab === 'viral' ? 'Criar Artigo Comparativo' : 'Criar Rascunho do Review'}

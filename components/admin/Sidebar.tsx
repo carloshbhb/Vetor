@@ -23,6 +23,7 @@ import Logo from '@/components/Logo';
 const NAV_ITEMS = [
   { href: '/admin',               label: 'Dashboard',        icon: LayoutDashboard },
   { href: '/admin/novo-review',   label: 'Novo Review',      icon: PlusCircle },
+  { href: '/admin/viral',         label: 'Artigo Viral',     icon: Zap },
   { href: '/admin/reviews',       label: 'Todos os Reviews', icon: FileText },
   { href: '/admin/tendencias',    label: 'IA Tendências',    icon: Zap },
 ];
