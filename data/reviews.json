@@ -12397,160 +12397,105 @@
       ],
       "winnerCol": 1,
       "rows": [
-        [
-          {
-            "Característica": "Preço Atual"
-          },
-          {
-            "QCY AilyPods Lite": "R$ 59,90"
-          },
-          {
-            "JBL Tune 110": "R$ 119,90"
-          },
-          {
-            "Philips TAA1118BK": "R$ 79,90"
-          }
-        ],
-        [
-          {
-            "Característica": "Tipo"
-          },
-          {
-            "QCY AilyPods Lite": "In-Ear (TWS)"
-          },
-          {
-            "JBL Tune 110": "In-Ear (Com Fio)"
-          },
-          {
-            "Philips TAA1118BK": "In-Ear (Com Fio)"
-          }
-        ],
-        [
-          {
-            "Característica": "Bluetooth"
-          },
-          {
-            "QCY AilyPods Lite": "5.3"
-          },
-          {
-            "JBL Tune 110": "Não se aplica"
-          },
-          {
-            "Philips TAA1118BK": "Não se aplica"
-          }
-        ],
-        [
-          {
-            "Característica": "Bateria (Fone)"
-          },
-          {
-            "QCY AilyPods Lite": "5h"
-          },
-          {
-            "JBL Tune 110": "Não se aplica"
-          },
-          {
-            "Philips TAA1118BK": "8h"
-          }
-        ],
-        [
-          {
-            "Característica": "Bateria (Total com Estojinho)"
-          },
-          {
-            "QCY AilyPods Lite": "30h"
-          },
-          {
-            "JBL Tune 110": "Não se aplica"
-          },
-          {
-            "Philips TAA1118BK": "Não se aplica"
-          }
-        ],
-        [
-          {
-            "Característica": "Impedância"
-          },
-          {
-            "QCY AilyPods Lite": "16 ohms"
-          },
-          {
-            "JBL Tune 110": "16 ohms"
-          },
-          {
-            "Philips TAA1118BK": "16 ohms"
-          }
-        ],
-        [
-          {
-            "Característica": "Driver"
-          },
-          {
-            "QCY AilyPods Lite": "13mm"
-          },
-          {
-            "JBL Tune 110": "9mm"
-          },
-          {
-            "Philips TAA1118BK": "8.6mm"
-          }
-        ],
-        [
-          {
-            "Característica": "Controles"
-          },
-          {
-            "QCY AilyPods Lite": "Touch"
-          },
-          {
-            "JBL Tune 110": "No Fio"
-          },
-          {
-            "Philips TAA1118BK": "No Fio"
-          }
-        ],
-        [
-          {
-            "Característica": "Microfone"
-          },
-          {
-            "QCY AilyPods Lite": "Sim (com CVC)"
-          },
-          {
-            "JBL Tune 110": "Sim"
-          },
-          {
-            "Philips TAA1118BK": "Sim"
-          }
-        ],
-        [
-          {
-            "Característica": "Peso"
-          },
-          {
-            "QCY AilyPods Lite": "38g (par)"
-          },
-          {
-            "JBL Tune 110": "13.2g"
-          },
-          {
-            "Philips TAA1118BK": "10g"
-          }
-        ],
-        [
-          {
-            "Característica": "Frete Grátis"
-          },
-          {
-            "QCY AilyPods Lite": "Sim"
-          },
-          {
-            "JBL Tune 110": "Sim"
-          },
-          {
-            "Philips TAA1118BK": "Sim"
-          }
-        ]
+        {
+          "feature": "Preço Atual",
+          "values": [
+            "R$ 59,90",
+            "R$ 119,90",
+            "R$ 79,90"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Tipo",
+          "values": [
+            "In-Ear (TWS)",
+            "In-Ear (Com Fio)",
+            "In-Ear (Com Fio)"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Bluetooth",
+          "values": [
+            "5.3",
+            "Não se aplica",
+            "Não se aplica"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Bateria (Fone)",
+          "values": [
+            "5h",
+            "Não se aplica",
+            "8h"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Bateria (Total com Estojinho)",
+          "values": [
+            "30h",
+            "Não se aplica",
+            "Não se aplica"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Impedância",
+          "values": [
+            "16 ohms",
+            "16 ohms",
+            "16 ohms"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Driver",
+          "values": [
+            "13mm",
+            "9mm",
+            "8.6mm"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Controles",
+          "values": [
+            "Touch",
+            "No Fio",
+            "No Fio"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Microfone",
+          "values": [
+            "Sim (com CVC)",
+            "Sim",
+            "Sim"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Peso",
+          "values": [
+            "38g (par)",
+            "13.2g",
+            "10g"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Frete Grátis",
+          "values": [
+            "Sim",
+            "Sim",
+            "Sim"
+          ],
+          "winner": 1
+        }
       ]
     },
     "pros": [
