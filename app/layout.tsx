@@ -45,8 +45,10 @@ export const metadata: Metadata = {
   description: 'Descubra os melhores produtos do mercado com nossas análises detalhadas, prós, contras e notas rigorosas.',
   robots: { index: true, follow: true },
   alternates: {
+    canonical: SITE_URL,
     languages: {
       'pt-BR': '/',
+      'x-default': '/',
     },
   },
   verification: {

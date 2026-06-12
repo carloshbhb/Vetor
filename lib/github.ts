@@ -120,7 +120,8 @@ export async function commitNewReviewToGitHub(
 
     // After successful commit, ping Google to re‑index the sitemap
     try {
-      const sitemapUrl = encodeURIComponent('https://www.vetor.blog/sitemap.xml');
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
+      const sitemapUrl = encodeURIComponent(`${siteUrl}/sitemap.xml`);
       await fetch(`https://www.google.com/ping?sitemap=${sitemapUrl}`);
       console.log('[GitHub] ✅ Pinged Google sitemap after commit');
     } catch (pingErr) {

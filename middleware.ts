@@ -27,9 +27,7 @@ const protectedApiRoutes = [
 ]
 
 // API routes that are public (read-only, no sensitive data)
-const publicApiRoutes = [
-  '/api/sitemap',
-]
+const publicApiRoutes: string[] = []
 
 // Public pages that don't need auth
 const publicPages = [
