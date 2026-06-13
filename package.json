@@ -19,7 +19,6 @@
     "@google/generative-ai": "^0.15.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.39.0",
-    "dotenv": "^17.4.2",
     "google-auth-library": "^10.6.2",
     "lucide-react": "^1.16.0",
     "next": "^14.2.5",
@@ -27,8 +26,7 @@
     "react-dom": "^18.3.1",
     "remark": "^15.0.1",
     "remark-gfm": "^4.0.1",
-    "remark-html": "^16.0.1",
-    "uuid": "^10.0.0"
+    "remark-html": "^16.0.1"
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.2.7",
@@ -38,7 +36,6 @@
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^6.0.2",
     "autoprefixer": "^10.5.0",
     "eslint": "^8.57.0",

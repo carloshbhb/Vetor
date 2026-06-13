@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Script from 'next/script';
+import dynamic from 'next/dynamic';
 import { getReviewBySlug, getPublishedSlugs } from '@/lib/db';
 import { markdownToHtml } from '@/lib/markdown';
-import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema, buildNewsArticleSchema, buildHowToSchema, buildVideoObjectSchema } from '@/lib/seo';
+import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema, buildNewsArticleSchema } from '@/lib/seo';
 import { defaultAuthor } from '@/lib/author';
 
 import Logo         from '@/components/Logo';
@@ -13,14 +14,15 @@ import SidebarCTA  from '@/components/review/SidebarCTA';
 import SpecsTable  from '@/components/review/SpecsTable';
 import CompareTable from '@/components/review/CompareTable';
 import ProsConsGrid from '@/components/review/ProsConsGrid';
-import FAQAccordion from '@/components/review/FAQAccordion';
 import VerdictBox   from '@/components/review/VerdictBox';
 import ReviewTOC    from '@/components/review/ReviewTOC';
-import AdSlot       from '@/components/review/AdSlot';
-import ShareButtons from '@/components/review/ShareButtons';
-import CommentsSection from '@/components/review/CommentsSection';
 import Link         from 'next/link';
-import { getPublishedReviews } from '@/lib/db';
+
+// Lazy-load below-the-fold components
+const FAQAccordion = dynamic(() => import('@/components/review/FAQAccordion'));
+const AdSlot = dynamic(() => import('@/components/review/AdSlot'), { ssr: false });
+const ShareButtons = dynamic(() => import('@/components/review/ShareButtons'));
+const CommentsSection = dynamic(() => import('@/components/review/CommentsSection'), { ssr: false });
 
 const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
 const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
@@ -78,13 +80,14 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
   const faqSchema        = buildFAQSchema(review);
   const breadcrumbSchema = buildBreadcrumbSchema(review);
   const newsSchema       = buildNewsArticleSchema(review);
-  const howToSchema      = buildHowToSchema(review);
-  const videoSchema      = buildVideoObjectSchema(review);
 
   const { hero, specs, compareTable, pros, cons, faq, verdict, adsEnabled } = review;
 
+  // Use lightweight query for related reviews instead of fetching ALL reviews
   const allReviews = await getPublishedReviews();
-  const relatedReviews = allReviews.filter(r => r.slug !== review.slug && r.category === review.category).slice(0, 3);
+  const relatedReviews = allReviews
+    .filter(r => r.slug !== review.slug && r.category === review.category)
+    .slice(0, 3);
 
   return (
     <>
@@ -94,8 +97,6 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
       {faqSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(newsSchema) }} />
-      {howToSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }} />}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }} />
 
       {/* AdSense script (only if ads enabled) */}
       {adsEnabled && process.env.NEXT_PUBLIC_AD_CLIENT && (

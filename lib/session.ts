@@ -1,6 +1,10 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 
-const SESSION_SECRET = process.env.SESSION_SECRET || process.env.CRON_SECRET || 'vetor-blog-session-secret-change-in-production';
+const SESSION_SECRET = process.env.SESSION_SECRET || process.env.CRON_SECRET;
+
+if (!SESSION_SECRET) {
+  console.error('[Session] FATAL: No SESSION_SECRET or CRON_SECRET configured. Sessions are insecure.');
+}
 
 /**
  * Signs a session value with HMAC-SHA256

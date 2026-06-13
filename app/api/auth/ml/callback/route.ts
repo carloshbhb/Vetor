@@ -55,10 +55,7 @@ export async function GET(req: NextRequest) {
     }
 
     const tokenData = await tokenResponse.json();
-    console.log('[ML OAuth] Token received successfully');
-    console.log('[ML OAuth] Access Token:', tokenData.access_token);
-    console.log('[ML OAuth] Refresh Token:', tokenData.refresh_token);
-    console.log('[ML OAuth] Expires in:', tokenData.expires_in, 'seconds');
+    console.log('[ML OAuth] Token received successfully, expires in:', tokenData.expires_in, 'seconds');
 
     return NextResponse.json({
       success: true,

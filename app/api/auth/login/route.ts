@@ -4,8 +4,36 @@ import { signSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
+// In-memory rate limiter (resets per serverless invocation, but better than nothing)
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const record = loginAttempts.get(ip);
+  
+  if (!record || now > record.resetAt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return true;
+  }
+  
+  if (record.count >= MAX_ATTEMPTS) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json({ error: 'Muitas tentativas. Tente novamente em 15 minutos.' }, { status: 429 });
+    }
+
     const { email, password } = await req.json();
 
     const fallbackToFile = process.env.SUPABASE_FALLBACK_TO_FILE === 'true';
@@ -44,13 +72,13 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ error: 'Credenciais inválidas.' }, { status: 401 });
     }
 
-    const response = NextResponse.json({ success: true, session: data.session });
+    const response = NextResponse.json({ success: true });
     // Set signed admin session cookie
     const signedSession = signSession('authenticated');
     response.cookies.set('vetor_admin_session', signedSession, {

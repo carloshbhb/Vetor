@@ -113,10 +113,7 @@ export async function middleware(req: NextRequest) {
     if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
       return supabaseResponse
     }
-    // Also allow if no CRON_SECRET is configured (dev mode)
-    if (!cronSecret) {
-      return supabaseResponse
-    }
+    // Deny if no CRON_SECRET is configured (security: never allow open access)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
