@@ -6,7 +6,7 @@ import { verifySession } from '@/lib/session'
 const adminRoutes = ['/admin/:path*']
 const publicRoutes = ['/auth/login', '/auth/callback', '/auth/logout']
 
-// API routes that require authentication
+  // API routes that require authentication
 const protectedApiRoutes = [
   '/api/generate',
   '/api/upload',
@@ -18,12 +18,16 @@ const protectedApiRoutes = [
   '/api/google-indexing',
   '/api/serp-tracker',
   '/api/pinterest',
-  '/api/cron',
   '/api/trends',
   '/api/admin',
   '/api/debug',
   '/api/sync-price',
   '/api/ml-enrich',
+]
+
+// API routes that use CRON_SECRET instead of user auth (Vercel cron scheduler)
+const cronApiRoutes = [
+  '/api/cron',
 ]
 
 // API routes that are public (read-only, no sensitive data)
@@ -43,6 +47,10 @@ const publicPages = [
 
 function isProtectedApiRoute(pathname: string): boolean {
   return protectedApiRoutes.some(route => pathname.startsWith(route))
+}
+
+function isCronApiRoute(pathname: string): boolean {
+  return cronApiRoutes.some(route => pathname.startsWith(route))
 }
 
 function isPublicApiRoute(pathname: string): boolean {
@@ -96,6 +104,20 @@ export async function middleware(req: NextRequest) {
   // Public pages - always allow
   if (isPublicPage(pathname)) {
     return supabaseResponse
+  }
+
+  // Cron API routes - allow if CRON_SECRET matches (Vercel cron scheduler)
+  if (isCronApiRoute(pathname)) {
+    const cronSecret = process.env.CRON_SECRET
+    const authHeader = req.headers.get('authorization')
+    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+      return supabaseResponse
+    }
+    // Also allow if no CRON_SECRET is configured (dev mode)
+    if (!cronSecret) {
+      return supabaseResponse
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   let user = null
