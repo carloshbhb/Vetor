@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Script from 'next/script';
 import dynamic from 'next/dynamic';
-import { getReviewBySlug, getPublishedSlugs } from '@/lib/db';
+import { getReviewBySlug, getPublishedSlugs, getPublishedReviews } from '@/lib/db';
 import { markdownToHtml } from '@/lib/markdown';
 import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema, buildNewsArticleSchema } from '@/lib/seo';
 import { defaultAuthor } from '@/lib/author';

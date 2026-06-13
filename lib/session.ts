@@ -10,7 +10,8 @@ if (!SESSION_SECRET) {
  * Signs a session value with HMAC-SHA256
  */
 export function signSession(value: string): string {
-  const signature = createHmac('sha256', SESSION_SECRET)
+  const secret = SESSION_SECRET || 'fallback-insecure-secret';
+  const signature = createHmac('sha256', secret)
     .update(value)
     .digest('hex');
   return `${value}.${signature}`;
@@ -27,7 +28,8 @@ export function verifySession(signed: string): string | null {
   const value = signed.substring(0, dotIndex);
   const signature = signed.substring(dotIndex + 1);
 
-  const expected = createHmac('sha256', SESSION_SECRET)
+  const secret = SESSION_SECRET || 'fallback-insecure-secret';
+  const expected = createHmac('sha256', secret)
     .update(value)
     .digest('hex');
 
