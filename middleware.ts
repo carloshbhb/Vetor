@@ -6,7 +6,6 @@ import { verifySession } from '@/lib/session'
 const adminRoutes = ['/admin/:path*']
 const publicRoutes = ['/auth/login', '/auth/callback', '/auth/logout']
 
-  // API routes that require authentication
 const protectedApiRoutes = [
   '/api/generate',
   '/api/upload',
@@ -25,15 +24,10 @@ const protectedApiRoutes = [
   '/api/ml-enrich',
 ]
 
-// API routes that use CRON_SECRET instead of user auth (Vercel cron scheduler)
-const cronApiRoutes = [
-  '/api/cron',
-]
+const cronApiRoutes = ['/api/cron']
 
-// API routes that are public (read-only, no sensitive data)
 const publicApiRoutes: string[] = []
 
-// Public pages that don't need auth
 const publicPages = [
   '/',
   '/sitemap.xml',
@@ -66,6 +60,14 @@ function isPublicPage(pathname: string): boolean {
 }
 
 export async function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname
+
+  // Cron routes: bypass Supabase entirely to preserve Authorization header.
+  // Auth is verified in the route handler itself.
+  if (isCronApiRoute(pathname)) {
+    return NextResponse.next({ request: req })
+  }
+
   let supabase = null
   let supabaseResponse = NextResponse.next({ request: req })
 
@@ -79,7 +81,6 @@ export async function middleware(req: NextRequest) {
 
   const fallbackToFile = process.env.SUPABASE_FALLBACK_TO_FILE === 'true'
   const rawSession = req.cookies.get('vetor_admin_session')?.value
-  const pathname = req.nextUrl.pathname
 
   // Verify the signed session cookie
   const adminSession = rawSession ? verifySession(rawSession) !== null : false
@@ -96,18 +97,11 @@ export async function middleware(req: NextRequest) {
     return supabaseResponse
   }
 
-  // Public API routes - always allow
   if (isPublicApiRoute(pathname)) {
     return supabaseResponse
   }
 
-  // Public pages - always allow
   if (isPublicPage(pathname)) {
-    return supabaseResponse
-  }
-
-  // Cron API routes - pass through, auth is verified in the route handler
-  if (isCronApiRoute(pathname)) {
     return supabaseResponse
   }
 
