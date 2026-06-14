@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 import type { ReviewData, ReviewSummary } from './types';
 
 // ─── Storage paths ───────────────────────────────────────────────────────────
@@ -108,7 +107,7 @@ export function getReviewBySlug(slug: string): ReviewData | undefined {
 export function createReview(data: Omit<ReviewData, 'id' | 'createdAt' | 'updatedAt'>): string {
   const reviews = readAll();
   const now = new Date().toISOString();
-  const review: ReviewData = { ...data, id: uuidv4(), createdAt: now, updatedAt: now };
+  const review: ReviewData = { ...data, id: crypto.randomUUID(), createdAt: now, updatedAt: now };
   reviews.push(review);
   writeAll(reviews);
   return review.id;
