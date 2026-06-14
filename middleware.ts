@@ -106,15 +106,9 @@ export async function middleware(req: NextRequest) {
     return supabaseResponse
   }
 
-  // Cron API routes - allow if CRON_SECRET matches (Vercel cron scheduler)
+  // Cron API routes - pass through, auth is verified in the route handler
   if (isCronApiRoute(pathname)) {
-    const cronSecret = process.env.CRON_SECRET
-    const authHeader = req.headers.get('authorization')
-    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
-      return supabaseResponse
-    }
-    // Deny if no CRON_SECRET is configured (security: never allow open access)
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return supabaseResponse
   }
 
   let user = null
