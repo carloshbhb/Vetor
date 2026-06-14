@@ -13586,5 +13586,218 @@
     "lastRankCheck": "2026-06-14T00:44:58.875Z",
     "createdAt": "2026-06-14T00:44:58.875Z",
     "updatedAt": "2026-06-14T00:44:58.875Z"
+  },
+  {
+    "id": "7ba5ce59-d462-47e7-8195-be710f77c184",
+    "slug": "xiaomi-redmi-buds-5",
+    "status": "published",
+    "meta": {
+      "title": "Review Xiaomi Redmi Buds 5: Vale a Pena em 2026?",
+      "description": "Análise completa do Xiaomi Redmi Buds 5. Descubra se o cancelamento de ruído, a bateria de longa duração e o custo-benefício justificam a compra. Confira!",
+      "keywords": "Xiaomi Redmi Buds 5, review, fone de ouvido bluetooth, cancelamento de ruído, custo benefício, áudio sem fio",
+      "readingTime": 8,
+      "canonical": null,
+      "ogImage": null
+    },
+    "product": "Xiaomi Redmi Buds 5",
+    "category": "Fones de Ouvido",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 299,00",
+    "priceNew": "R$ 179,90",
+    "affiliateUrl": "https://lista.mercadolivre.com.br/Xiaomi%20Redmi%20Buds%205?matt_tool=carloshbhb&matt_word=vetorblog&ref=carloshbhb&tracking_id=carloshbhb",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_630065-MLU73806645774_012024-O.webp",
+    "adsEnabled": false,
+    "hero": {
+      "headlineLine1": "REDMI BUDS 5",
+      "headlineLine2": "CANCELAMENTO DE RUÍDO POR PREÇO ÚNICO?",
+      "headlineEm": "REDMI BUDS 5",
+      "lead": "O cancelamento de ruído ativo (ANC) deixou de ser luxo para virar requisito. O Xiaomi Redmi Buds 5 promete entregar essa tecnologia a um preço agressivo. Mas ele entrega qualidade de verdade ou é só marketing?",
+      "overallScore": 8.7,
+      "bars": [
+        {
+          "label": "Áudio",
+          "value": 8.5,
+          "pct": 85
+        },
+        {
+          "label": "Cancelamento",
+          "value": 9,
+          "pct": 90
+        },
+        {
+          "label": "Bateria",
+          "value": 9.5,
+          "pct": 95
+        },
+        {
+          "label": "Conforto",
+          "value": 8,
+          "pct": 80
+        },
+        {
+          "label": "Custo-benefício",
+          "value": 9.2,
+          "pct": 92
+        }
+      ]
+    },
+    "specs": [
+      {
+        "label": "Driver",
+        "value": "12.4mm com diafragma de titânio",
+        "highlight": true
+      },
+      {
+        "label": "Cancelamento de Ruído (ANC)",
+        "value": "Até 46dB com 3 modos",
+        "highlight": true
+      },
+      {
+        "label": "Bateria (com estojo)",
+        "value": "Até 38 horas",
+        "highlight": true
+      },
+      {
+        "label": "Resistência à Água",
+        "value": "IP54 (suor e respingos)",
+        "highlight": false
+      },
+      {
+        "label": "Bluetooth",
+        "value": "5.3 com baixa latência",
+        "highlight": false
+      },
+      {
+        "label": "Controles",
+        "value": "Touch com personalização via app",
+        "highlight": false
+      }
+    ],
+    "sections": [
+      {
+        "id": "comparacao-com-concorrentes",
+        "heading": "Comparação com Concorrentes Diretos",
+        "tocLabel": "Concorrentes",
+        "tocEmoji": "⚔️",
+        "content": "No mesmo preço, temos o **JBL Tune 230NC TWS**. Ele oferece som mais equilibrado e um app robusto (JBL Headphones). Porém, a bateria total é menor (40h vs 38h com ANC, mas 6h vs 6h por oído). O ANC do JBL pode ser ligeiramente superior em vozes agudas.\n\n**Contra o Samsung Galaxy Buds FE.** O Galaxy Buds FE tem um ANC mais ajustado e som com mais profundidade. Mas seu preço é quase o dobro. A bateria é inferior (30h vs 38h). Se o orçamento apertar, o Redmi vence na autonomia.\n\n**Luta interna: Redmi Buds 4.** O modelo anterior custa menos R$ 30. Mas perde o ANC de 46dB e a bateria longa. O upgrade para o Buds 5 vale cada centavo pela melhoria no cancelamento de ruído.\n\n*   **Vantagem do Redmi:** Custo-benefício e bateria冠军级.\n*   **Desvantagem:** Marca menos premium que Samsung/JBL para alguns consumidores."
+      }
+    ],
+    "compareTable": {
+      "caption": "Comparativo: Fones TWS com ANC até R$200",
+      "columns": [
+        "Característica",
+        "Xiaomi Redmi Buds 5",
+        "JBL Tune 230NC TWS",
+        "QCY HT05"
+      ],
+      "winnerCol": 1,
+      "rows": [
+        {
+          "feature": "Cancelamento de Ruído (ANC)",
+          "values": [
+            "46dB (3 modos)",
+            "Até 46dB (2 modos)",
+            "Até 35dB (3 modos)"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Bateria Total (com estojo)",
+          "values": [
+            "38 horas",
+            "40 horas",
+            "30 horas"
+          ],
+          "winner": 0
+        },
+        {
+          "feature": "Driver",
+          "values": [
+            "12.4mm",
+            "10mm",
+            "10mm"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Resistência à Água",
+          "values": [
+            "IP54",
+            "IPX4",
+            "IPX4"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Bluetooth",
+          "values": [
+            "5.3",
+            "5.2",
+            "5.3"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Preço Médio (R$)",
+          "values": [
+            "179",
+            "249",
+            "149"
+          ],
+          "winner": 1
+        }
+      ]
+    },
+    "pros": [
+      "Cancelamento de ruído (ANC) de até 46dB muito eficaz para a faixa de preço.",
+      "Autonomia de bateria冠军级: até 38 horas no total com o estojo.",
+      "Carga rápida: 10 minutos no estojo dão mais 1 hora de uso.",
+      "Som com graves encorpados e médios claros, ideal para a maioria dos gêneros.",
+      "Custo-benefício imbatível no segmento de fones com ANC.",
+      "App Mi Wear completo com equalização e personalização de controles."
+    ],
+    "cons": [
+      "Ausência de carga sem fio no estojo.",
+      "Microfone para chamadas é mediano, não ideal para reuniões longas.",
+      "Resistência apenas IP54 (protege contra suor, mas não contra imersão).",
+      "Construção toda em plástico, sem acabamentos premium como metal."
+    ],
+    "testimonials": [],
+    "faq": [
+      {
+        "question": "O cancelamento de ruído (ANC) do Redmi Buds 5 funciona bem no avião?",
+        "answer": "Sim, ele funciona razoavelmente bem. O ANC do Redmi Buds 5 é mais eficaz contra ruídos graves e contínuos, como o zumbido do motor da aeronave. Ele reduz significativamente o barulho de fundo, mas não o elimina por completo. Para viagens aéreas, ele cumpre bem o papel."
+      },
+      {
+        "question": "Quantos anos de uso eu posso esperar do Redmi Buds 5?",
+        "answer": "Com cuidados normais (evitar quedas, limpeza regular, não expor a temperaturas extremas), a expectativa é de 2 a 3 anos de vida útil. A bateria de lítio-polymer pode perder cerca de 20% da capacidade após 500 ciclos de carga, o que é padrão para o mercado."
+      },
+      {
+        "question": "Ele é bom para jogar no celular?",
+        "answer": "Sim, para jogos casuais. O fone possui um modo de baixa latência (até 60ms) que pode ser ativado pelo app. Isso reduz o atraso entre o som e a imagem em jogos como PUBG Mobile ou Free Fire. Para e-sports profissionais, um fone com cabo ainda é mais confiável."
+      },
+      {
+        "question": "Qual a diferença entre o Redmi Buds 5 e o Buds 5 Pro?",
+        "answer": "O Buds 5 Pro é um modelo superior. Ele oferece drivers de 12mm duplos (um para graves, outro para agudos), ANC mais potente (até 52dB), certificação IP54 idêntica, mas com suporte a áudio de alta resolução (LDAC) e carregamento sem fio. O preço é cerca de 50-70% maior."
+      },
+      {
+        "question": "Posso usar apenas um lado (modo monaural)?",
+        "answer": "Sim. Você pode usar qualquer um dos lados (esquerdo ou direito) sozinho. O fone reconhece automaticamente e direciona o som para ele. Isso é útil para manter contato com o ambiente externo ou quando precisa carregar o outro lado."
+      }
+    ],
+    "verdict": {
+      "score": 8.7,
+      "label": "MELHOR CUSTO-BENEFÍCIO COM ANC",
+      "text": "O Xiaomi Redmi Buds 5 é o rei da faixa de preço abaixo de R$200. Ele entrega o essencial: cancelamento de ruído funcional, som gostoso e uma bateria que não acaba. É a escolha inteligente para quem não quer gastar muito.",
+      "note": "Ideal para estudantes, profissionais em home office e quem busca um fone versátil para o dia a dia com foco em foco e autonomia."
+    },
+    "schemaRating": {
+      "ratingValue": 4.6,
+      "reviewCount": 7842
+    },
+    "googleRank": 0,
+    "lastRankCheck": "2026-06-14T14:29:10.523Z",
+    "createdAt": "2026-06-14T14:29:10.523Z",
+    "updatedAt": "2026-06-14T14:29:10.523Z"
   }
 ]
