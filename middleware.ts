@@ -62,15 +62,12 @@ function isPublicPage(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
 
-  // Cron routes: verify CRON_SECRET in middleware (Vercel proxy strips Authorization header)
+  // Cron routes: verify CRON_SECRET via query param (Vercel strips Authorization header)
   if (isCronApiRoute(pathname)) {
     const cronSecret = process.env.CRON_SECRET
-    const authHeader = req.headers.get('authorization')
-    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
-      // Pass a custom header so the route handler knows auth was verified
-      const response = NextResponse.next({ request: req })
-      response.headers.set('x-cron-auth-verified', 'true')
-      return response
+    const token = req.nextUrl.searchParams.get('token')
+    if (cronSecret && token === cronSecret) {
+      return NextResponse.next({ request: req })
     }
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

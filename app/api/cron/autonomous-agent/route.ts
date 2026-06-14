@@ -13,30 +13,18 @@ export const maxDuration = 300;
 
 
 export async function GET(req: NextRequest) {
-  // Auth is verified by middleware (Vercel proxy strips Authorization header)
-  const cronAuthVerified = req.headers.get('x-cron-auth-verified')
-  if (!cronAuthVerified) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   return handleAutonomousCycle();
 }
 
 export async function POST(req: NextRequest) {
-  const cronAuthVerified = req.headers.get('x-cron-auth-verified')
   const authHeader = req.headers.get('authorization')
 
   let authorized = false;
   const expectedUser = process.env.ADMIN_USER;
   const expectedPwd = process.env.ADMIN_PASSWORD;
 
-  // Allow in development if no auth is sent
-  if (!cronAuthVerified && !authHeader && process.env.NODE_ENV === 'development') {
-    authorized = true;
-  }
-
-  // Middleware verified CRON_SECRET
-  if (cronAuthVerified) {
+  // Allow in development
+  if (process.env.NODE_ENV === 'development') {
     authorized = true;
   }
 
