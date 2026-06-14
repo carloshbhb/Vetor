@@ -13,35 +13,35 @@ export const maxDuration = 300;
 
 
 export async function GET(req: NextRequest) {
-  // Verify Vercel cron secret if configured (recommended for production)
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  // Auth is verified by middleware (Vercel proxy strips Authorization header)
+  const cronAuthVerified = req.headers.get('x-cron-auth-verified')
+  if (!cronAuthVerified) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   return handleAutonomousCycle();
 }
 
 export async function POST(req: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = req.headers.get('authorization');
+  const cronAuthVerified = req.headers.get('x-cron-auth-verified')
+  const authHeader = req.headers.get('authorization')
 
   let authorized = false;
   const expectedUser = process.env.ADMIN_USER;
   const expectedPwd = process.env.ADMIN_PASSWORD;
 
-  // Allow in development if no cron secret is configured and no auth is sent
-  if (!cronSecret && !authHeader && process.env.NODE_ENV === 'development') {
+  // Allow in development if no auth is sent
+  if (!cronAuthVerified && !authHeader && process.env.NODE_ENV === 'development') {
+    authorized = true;
+  }
+
+  // Middleware verified CRON_SECRET
+  if (cronAuthVerified) {
     authorized = true;
   }
 
   if (authHeader) {
-    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
-      authorized = true;
-    } else if (authHeader.startsWith('Basic ') && expectedUser && expectedPwd) {
+    if (authHeader.startsWith('Basic ') && expectedUser && expectedPwd) {
       try {
         const authValue = authHeader.split(' ')[1];
         const [user, pwd] = atob(authValue).split(':');

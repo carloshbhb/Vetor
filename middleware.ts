@@ -62,10 +62,17 @@ function isPublicPage(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
 
-  // Cron routes: bypass Supabase entirely to preserve Authorization header.
-  // Auth is verified in the route handler itself.
+  // Cron routes: verify CRON_SECRET in middleware (Vercel proxy strips Authorization header)
   if (isCronApiRoute(pathname)) {
-    return NextResponse.next({ request: req })
+    const cronSecret = process.env.CRON_SECRET
+    const authHeader = req.headers.get('authorization')
+    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+      // Pass a custom header so the route handler knows auth was verified
+      const response = NextResponse.next({ request: req })
+      response.headers.set('x-cron-auth-verified', 'true')
+      return response
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   let supabase = null
