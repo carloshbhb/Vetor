@@ -24,7 +24,7 @@ const protectedApiRoutes = [
   '/api/ml-enrich',
 ]
 
-const cronApiRoutes = ['/api/cron']
+const cronApiRoutes = ['/api/cron', '/api/serp-tracker']
 
 const publicApiRoutes: string[] = []
 

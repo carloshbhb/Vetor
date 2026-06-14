@@ -1,27 +1,27 @@
 {
   "crons": [
     {
-      "path": "/api/cron/autonomous-agent",
+      "path": "/api/cron/autonomous-agent?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/autonomous-agent",
+      "path": "/api/cron/autonomous-agent?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
       "schedule": "0 14 * * *"
     },
     {
-      "path": "/api/serp-tracker",
+      "path": "/api/serp-tracker?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
       "schedule": "0 3 * * *"
     },
     {
-      "path": "/api/serp-tracker",
+      "path": "/api/serp-tracker?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
       "schedule": "0 9 * * *"
     },
     {
-      "path": "/api/serp-tracker",
+      "path": "/api/serp-tracker?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
       "schedule": "0 15 * * *"
     },
     {
-      "path": "/api/serp-tracker",
+      "path": "/api/serp-tracker?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
       "schedule": "0 21 * * *"
     }
   ]
