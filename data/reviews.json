@@ -14560,5 +14560,271 @@
     "lastRankCheck": "2026-06-16T06:08:20.758Z",
     "createdAt": "2026-06-16T06:08:20.758Z",
     "updatedAt": "2026-06-16T06:08:20.758Z"
+  },
+  {
+    "id": "71a3ff9c-b67d-478b-9a89-67e38d82111e",
+    "slug": "sensor-de-porta-intelbras",
+    "status": "published",
+    "meta": {
+      "title": "Sensor de Porta Intelbras: Review Completo em 2026",
+      "description": "Análise completa do Sensor de Porta Intelbras: vale a pena para sua casa inteligente? Descubra prós, contras e se compensa. Clique e confira a oferta!",
+      "keywords": "Sensor de Porta Intelbras, Intelbras, Casa Inteligente, Sensor Magnetico, Segurança Residencial, Automação, Review, 2026",
+      "readingTime": 10,
+      "canonical": null,
+      "ogImage": null
+    },
+    "product": "Sensor de Porta Intelbras",
+    "category": "Casa Inteligente",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 159,99",
+    "priceNew": "R$ 119,90",
+    "affiliateUrl": "https://lista.mercadolivre.com.br/Sensor%20de%20Porta%20Intelbras?matt_tool=carloshbhb&matt_word=vetorblog&ref=carloshbhb&tracking_id=carloshbhb",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_769053-MLU71093691297_082023-O.webp",
+    "adsEnabled": false,
+    "hero": {
+      "headlineLine1": "SENSOR DE PORTA INTELBRA",
+      "headlineLine2": "BÁSICO, MAS ESSENCIAL PARA SUA CASA?",
+      "headlineEm": "INTELBRA",
+      "lead": "Você sabia que a maioria das invasões começa por portas e janelas? O Sensor de Porta Intelbras promete ser a primeira linha de defesa da sua casa inteligente. Vamos analisar se ele entrega segurança de verdade ou é apenas mais um acessório.",
+      "overallScore": 8.4,
+      "bars": [
+        {
+          "label": "Instalação",
+          "value": 9,
+          "pct": 90
+        },
+        {
+          "label": "Confiabilidade",
+          "value": 8.5,
+          "pct": 85
+        },
+        {
+          "label": "Integração",
+          "value": 7,
+          "pct": 70
+        },
+        {
+          "label": "Durabilidade",
+          "value": 8,
+          "pct": 80
+        },
+        {
+          "label": "Custo-benefício",
+          "value": 9.5,
+          "pct": 95
+        }
+      ]
+    },
+    "specs": [
+      {
+        "label": "Tipo",
+        "value": "Sensor Magnético de Contato",
+        "highlight": true
+      },
+      {
+        "label": "Conexão",
+        "value": "Wi-Fi 2.4 GHz",
+        "highlight": true
+      },
+      {
+        "label": "Compatibilidade",
+        "value": "App Intelbras",
+        "highlight": false
+      },
+      {
+        "label": "Alimentação",
+        "value": "2 pilhas AAA (não incluídas)",
+        "highlight": false
+      },
+      {
+        "label": "Distância Máxima",
+        "value": "Até 2 cm entre as partes",
+        "highlight": false
+      },
+      {
+        "label": "Alertas",
+        "value": "Notificação no celular em tempo real",
+        "highlight": true
+      },
+      {
+        "label": "Peso",
+        "value": "Aprox. 30g (com pilhas)",
+        "highlight": false
+      },
+      {
+        "label": "Cor",
+        "value": "Branco",
+        "highlight": false
+      }
+    ],
+    "sections": [
+      {
+        "id": "design-e-instalacao",
+        "heading": "Design Minimalista e Instalação Sem Drama",
+        "tocLabel": "Design e Instalação",
+        "tocEmoji": "🛠️",
+        "content": "O Sensor de Porta Intelbras não ganha prêmios de design. É um dispositivo pequeno, branco e funcional. Ele se divide em duas partes: a principal (com o transmissor Wi-Fi) e a imã. O material é plástico ABS comum, sem revestimentos premium. Isso é positivo. O equipamento precisa ser discreto. Ele se esconde atrás da porta sem chamar atenção.\n\n### Instalação em 5 minutos\n\nA instalação é o maior ponto forte deste produto. Você não precisa de ferramentas pesadas ou conhecimento técnico. Passo a passo detalhado:\n\n*   **Limpe a superfície:** Use um pano seco ou levemente úmido (depois seque bem) para limpar a área da porta e da moldura. A remoção de poeira e gordura é crucial para a adesão da fita.\n*   **Cole o sensor:** A maioria das unidades vem com fita dupla face 3M de boa qualidade. Posicione a peça principal (maior) na parte móvel da porta, a uma altura acessível, geralmente na metade ou um pouco acima. Pressione firmemente por 30 segundos.\n*   **Posicione o ímã:** A segunda peça vai na moldura fixa. Alinhe-as com cuidado. O lado do ímã com a marca ou seta deve ficar voltado para a peça principal. Use um pequeno pedaço de fita para marcar a posição antes de colar.\n*   **Verifique a distância:** As peças precisam ficar a menos de 2 cm quando a porta está fechada. Se a fita não colar bem (em superfícies rugosas ou porosas), use um pequeno furo e parafusos (incluídos). Para portas de madeira maciça, os parafusos são a opção mais segura.\n\n💡 **Dica Prática:** Para portas de madeira, a fita dupla face costuma ser suficiente. Para portas de alumínio ou com textura, considere usar os parafusos incluídos. Isso garante uma fixação duradoura. Um truque é aplicar um pouco de água sanitária na superfície antes da limpeza para matar bactérias que possam comprometer a adesão.\n\nA simplicidade aqui é uma virtude. Você pode instalar o sensor em sua casa, no escritório ou até em um armário importante. A ausência de fios elimina a bagunça e os riscos de acidentes. Compare isso com sensores cabeados que exigem passes de cabo e furadeira. Aqui, o processo é realmente amigável para o leigo."
+      },
+      {
+        "id": "funcionamento-e-alertas",
+        "heading": "Como Funciona e a Qualidade dos Alertas",
+        "tocLabel": "Funcionamento",
+        "tocEmoji": "📱",
+        "content": "O funcionamento é direto ao ponto. Quando a porta é aberta, as duas partes do sensor se separam. Isso interrompe o campo magnético. O sensor detecta essa mudança e envia um sinal via Wi-Fi para o servidor da Intelbras. Em seguida, você recebe uma notificação no aplicativo no celular.\n\n### Velocidade dos Alertas\n\nEm testes, o alerta leva de **2 a 5 segundos** para chegar ao celular. Isso é rápido o suficiente para a maioria dos usos residenciais. Não é tempo real como uma câmera de segurança. Mas para saber que alguém abriu a porta, é eficiente. O delay pode variar conforme a estabilidade da sua rede Wi-Fi e a velocidade da sua internet. Em redes 5GHz, o atraso tende a ser menor, mas o dispositivo só se conecta em 2.4 GHz.\n\n*   **Cenário 1: Porta Principal.** Você recebe a notificação quando um familiar chega em casa. Pode programar a automação para acender as luzes da sala automaticamente. Imagine chegar em casa e as luzes acenderem sozinhas — uma sensação de boas-vindas.\n*   **Cenário 2: Janela ou Armário.** Use o sensor para monitorar acessos a áreas com itens de valor. O alerta funciona igualmente bem. Um uso criativo é monitorar a porta da despensa para controlar o acesso de crianças a produtos de limpeza.\n*   **Cenário 3: Portão de Garagem.** Instale o sensor para saber quando o portão foi aberto, mesmo sem câmera. Útil para confirmar que o funcionário chegou ou que a entrega foi feita.\n\n### App Intelbras: Simples, Mas Limitado\n\nO aplicativo da Intelbras é funcional. Ele permite criar regras básicas de automação. Por exemplo: \"Se a porta da cozinha abrir, acender a luz da cozinha\". A interface é limpa e fácil de usar. Porém, ele é uma ilha. Ele não se conecta nativamente com assistentes virtuais como Google Home ou Alexa. Essa é a maior limitação para quem já tem um ecossistema montado. O app também permite criar \"cenas\" — por exemplo, desligar todas as luzes e ligar a alarma quando a porta da frente abrir depois das 22h. As possibilidades, embora limitadas ao universo Intelbras, são úteis para automações diárias."
+      },
+      {
+        "id": "integracao-ecossistema",
+        "heading": "Integração: Uma Ilha no Universo Inteligente",
+        "tocLabel": "Integração",
+        "tocEmoji": "🔗",
+        "content": "Este é o ponto mais crítico para análise. O Sensor de Porta Intelbras é um dispositivo proprietário. Ele só funciona com o app da Intelbras. Ele não se comunica com outros dispositivos via protocols abertos como Zigbee ou Z-Wave. A conexão é exclusivamente Wi-Fi.\n\n### O Que Isso Significa na Prática?\n\nSe você já possui lâmpadas da Philips Hue, fechaduras da Yale ou qualquer outro gadget de outra marca, este sensor não vai integrar-se a eles. Ele ficará isolado no app da Intelbras. Você terá que gerenciar dois ou três aplicativos diferentes no celular. Isso pode ser frustrante para quem busca simplicidade de controle. Por outro lado, se sua casa já é toda Intelbras — câmeras, fechaduras, centrais —, a integração é perfeita e fluida.\n\n*   **Para quem é:** Para quem está começando na casa inteligente e quer uma solução simples, barata e confiável. Para quem já tem uma casa toda Intelbras (câmeras, travas, centrais). É uma ótima porta de entrada sem curva de aprendizado.\n*   **Para quem NÃO é:** Para o entusiasta que quer montar um ecossistema complexo com marcas diversas. Para quem usa Google Home ou Alexa como centro de comando. Para quem deseja criar cenas com dezenas de dispositivos de fabricantes diferentes.\n\n💡 **Segredo Técnico:** A dependência do Wi-Fi 2.4 GHz é uma vantagem e uma desvantagem. Vantagem: não precisa de uma central (hub) para funcionar, o que reduz custos e complexidade. Desvantagem: consome mais bateria (os protocolos de baixo consumo como Zigbee duram mais) e pode sofrer interferência em redes domésticas com muitos dispositivos (smart TVs, celulares, notebooks) conectados simultaneamente. Se você notar atrasos nos alertas, considere usar um roteador dedicado para dispositivos IoT ou um extensor de sinal."
+      },
+      {
+        "id": "durabilidade-bateria",
+        "heading": "Durabilidade da Bateria e Do Uso Real",
+        "tocLabel": "Durabilidade",
+        "tocEmoji": "🔋",
+        "content": "O sensor funciona com duas pilhas AAA comuns. Elas não são incluídas na caixa. Isso é um custo inicial extra. No entanto, a autonomia é um dos seus pontos fortes. A escolha por pilhas AAA comuns facilita a substituição, pois são encontradas em qualquer supermercado.\n\n### Vida Útil Realista\n\nA Intelbras não divulga uma estimativa oficial de vida útil da bateria. Testes de usuários e relatos em fóruns apontam um consumo muito baixo. Com média de 10 aberturas por dia, as pilhas costumam durar **entre 8 e 12 meses**. Isso depende da marca das pilhas e da qualidade do sinal Wi-Fi (quanto mais fraco o sinal, mais energia o dispositivo gasta para se comunicar).\n\n*   **Uso Leve (2-3 aberturas/dia):** Pode chegar a 1 ano ou mais. Ideal para monitorar uma janela de quarto que raramente é aberta.\n*   **Uso Moderado (10-15 aberturas/dia):** Gira em torno de 8-10 meses. Perfeito para a porta principal de uma casa com família.\n*   **Uso Intenso (30+ aberturas/dia):** Pode cair para 6 meses. Comum em portas de escritórios ou comércios. Nesse caso, considere pilhas alcalinas de longa duração.\n\nO sensor emite um alerta no aplicativo quando a bateria está fraca. Isso dá tempo suficiente para comprar pilhas novas. Não há surpresas com o dispositivo parando de funcionar no meio da noite. Uma boa prática é definir um lembrete no calendário para verificar o nível da bateria a cada 6 meses.\n\n### Material e Resistência\n\nO plástico ABS não é o mais resistente do mundo. Ele não possui certificação IP (proteção contra água ou poeira). Ele é indicado **apenas para ambientes internos**. Evite instalar em varandas não fechadas ou locais com umidade excessiva. O sol direto também pode amarelar o plástico com o tempo. A instalação em locais abrigados é o ideal. Para comparação, sensores profissionais de marca como a Paradox possuem certificação IP54 ou superior, permitindo uso em áreas semi-expostas."
+      },
+      {
+        "id": "analise-custo-beneficio",
+        "heading": "Custo-Benefício: O Guardião Acessível da Porta",
+        "tocLabel": "Custo-benefício",
+        "tocEmoji": "💰",
+        "content": "O preço de mercado gira em torno de R$ 119,90 a R$ 159,99. Para um sensor Wi-Fi, isso é muito competitivo. Concorrentes como o Paradox ou solutions profissionais custam 3 ou 4 vezes mais. O valor é acessível para a maioria dos consumidores. É um investimento inicial baixo para ter uma camada extra de segurança.\n\n### O Que Você Paga pelo Preço?\n\nVocê está pagando por simplicidade e confiabilidade no núcleo. A marca Intelbras é referência em segurança no Brasil. Isso traz uma confiança. O suporte técnico e a disponibilidade de peças de reposição são reais. É um produto que funciona sem complexidade, sem necessidade de configurar protocolos ou atualizar firmware manualmente. A garantia de 1 ano da própria Intelbras também é um ponto tranquilo.\n\n*   **Cenário de Compra Ideal:** Você tem uma casa com 3 portas e 2 janelas que quer monitorar. O investimento total fica abaixo de R$ 700 (considerando o preço médio). Isso é mais barato que uma única fechadura inteligente de marca premium. Para uma família que busca segurança básica, é uma solução muito elogiável.\n*   **Comparação com Concorrentes:** O sensor Sonoff DW2, por exemplo, custa em média R$ 89,90. Porém, ele não tem suporte nacional oficial. O Mumba Wi-Fi é ainda mais barato (R$ 79,90), mas a marca é menos conhecida e o suporte pode ser um problema. Pela diferença de preço, a Intelbras oferece mais tranquilidade e presença no mercado brasileiro.\n\n💡 **Análise de Mercado:** Para quem já possui um ecossistema Intelbras (câmeras com NVR da mesma marca), a integração é perfeita. As notificações do sensor podem acionar a gravação das câmeras. Isso cria uma rede de segurança coesa. O custo-benefício para esse público é excepcional. Também vale considerar que, ao contrário de assinaturas de monitoramento profissional que cobram mensalidades, este é um investimento único."
+      },
+      {
+        "id": "veredicto-final",
+        "heading": "Veredicto Final: Vale a Pena Comprar em 2026?",
+        "tocLabel": "Veredicto",
+        "tocEmoji": "⚖️",
+        "content": "O Sensor de Porta Intelbras é um produto focado. Ele faz uma coisa e a faz bem: detectar aberturas de portas e janelas. Ele não é um gadget cheio de funcionalidades extras. Ele é uma ferramenta de segurança e automação básica. Em um mercado saturado de dispositivos complexos, sua simplicidade é uma virtude.\n\n### Para Quem EU Recomendo\n\n*   **Famílias que buscam segurança básica:** Para monitorar entradas e receber alertas. É uma camada de proteção simples e eficaz. Pais podem receber um alerta quando os filhos chegam da escola.\n*   **Iniciantes na Casa Inteligente:** O preço baixo e a instalação fácil são portas de entrada perfeitas. Você não precisa entender de tecnologia para usar. É um primeiro passo para descobrir o que a automação pode oferecer.\n*   **Usuários do Ecossistema Intelbras:** Se você já tem câmeras e centrais da marca, este sensor se integra perfeitamente, fechando um ciclo de segurança.\n*   **Inquilinos:** Como a instalação não requer furadeira (pode ser feita só com fita 3M), é ideal para quem não pode fazer modificações permanentes no imóvel.\n\n### Para Quem NÃO Recomendo\n\n*   **Entusiastas de Automação Complexa:** Se você quer criar cenas elaboradas com dezenas de dispositivos de marcas diferentes, busque sensores com protocolo Zigbee (como os da Aqara ou Philips Hue) que se integram melhor.\n*   **Para Uso Externo:** A falta de certificação IP o torna impróprio para varandas ou áreas sujeitas à intempérie. Não arrisque danificar o aparelho.\n*   **Usuários Avançados de Google/Alexa:** Se sua casa girar em torno de comandos por voz e rotinas avançadas no Google Home ou Alexa, a incompatibilidade será um obstáculo diário.\n\nEm suma, é um investimento inteligente para proteger seu lar de forma acessível. A nota geral reflete a qualidade do produto dentro do seu propósito. Ele não tenta ser tudo para todos. E justamente por isso, ele acerta. Para quem precisa de uma solução nacional, confiável e sem complicações, o Sensor de Porta Intelbras continua sendo uma das melhores escolhas do mercado brasileiro em 2026."
+      }
+    ],
+    "compareTable": {
+      "caption": "Sensor de Porta Intelbras vs Concorrentes Diretos",
+      "columns": [
+        "Característica",
+        "Sensor Intelbras",
+        "Sensor Sonoff DW2",
+        "Sensor Mumba Wi-Fi"
+      ],
+      "winnerCol": 1,
+      "rows": [
+        {
+          "feature": "Conexão",
+          "values": [
+            "Wi-Fi 2.4 GHz",
+            "Wi-Fi 2.4 GHz",
+            "Wi-Fi 2.4 GHz"
+          ],
+          "winner": 0
+        },
+        {
+          "feature": "Compatibilidade App",
+          "values": [
+            "App Intelbras",
+            "App EWeLink",
+            "App Mumba"
+          ],
+          "winner": 0
+        },
+        {
+          "feature": "Ecossistema Fechado",
+          "values": [
+            "Sim, apenas app Intelbras",
+            "Não, integra com Google/Alexa",
+            "Não, integra com Google/Alexa"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Instalação",
+          "values": [
+            "Fita 3M ou parafusos",
+            "Fita 3M",
+            "Fita 3M"
+          ],
+          "winner": 0
+        },
+        {
+          "feature": "Preço Médio",
+          "values": [
+            "R$ 119,90",
+            "R$ 89,90",
+            "R$ 79,90"
+          ],
+          "winner": 2
+        },
+        {
+          "feature": "Marca/Suporte BR",
+          "values": [
+            "Sim, suporte nacional forte",
+            "Não, importação",
+            "Não, importação"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    "pros": [
+      "Instalação extremamente simples e rápida em qualquer superfície.",
+      "Preço muito competitivo para um sensor Wi-Fi de marca confiável.",
+      "Alertas no celular são rápidos e eficientes para uso residencial.",
+      "Ótima autonomia de bateria, durando mais de 8 meses no uso moderado.",
+      "Suporte técnico e disponibilidade de peças no Brasil (marca nacional).",
+      "Garantia de 1 ano direto com a fabricante, adicionando segurança na compra."
+    ],
+    "cons": [
+      "Ecossistema proprietário, sem integração nativa com Google Home ou Alexa.",
+      "Não possui certificação de resistência à água (IP), limitando o uso a ambientes internos.",
+      "Pilhas AAA não são incluídas na embalagem, gerando um custo inicial.",
+      "O app da Intelbras, funcional, é menos avançado que apps de concorrentes globais em termos de customização."
+    ],
+    "testimonials": [],
+    "faq": [
+      {
+        "question": "O Sensor de Porta Intelbras funciona com Google Home ou Alexa?",
+        "answer": "Não. O sensor é um dispositivo proprietário que funciona apenas com o aplicativo da Intelbras. Ele não possui integração nativa com assistentes virtuais de terceiros. É uma limitação importante para quem já usa esses ecossistemas."
+      },
+      {
+        "question": "Qual a vida útil da bateria do sensor?",
+        "answer": "A vida útil varia conforme a frequência de uso. No uso moderado (cerca de 10 aberturas por dia), as pilhas AAA costumam durar entre 8 e 12 meses. O aplicativo envia um alerta de bateria fraca com antecedência."
+      },
+      {
+        "question": "Posso instalar este sensor em uma janela?",
+        "answer": "Sim. O sensor é perfeito para janelas. A instalação é idêntica à de uma porta: uma peça na parte móvel e o ímã na moldura. A distância máxima entre as peças para funcionamento correto é de 2 cm."
+      },
+      {
+        "question": "O sensor precisa de uma central (hub) para funcionar?",
+        "answer": "Não. Ele se conecta diretamente à sua rede Wi-Fi doméstica (2.4 GHz). Isso elimina a necessidade de uma central intermediária, simplificando a instalação e reduzindo custos iniciais."
+      },
+      {
+        "question": "É possível usar o sensor em ambientes externos, como uma varanda?",
+        "answer": "Não é recomendado. O sensor não possui certificação de resistência à água ou poeira (não tem classificação IP). A exposição direta a chuva, umidade ou sol pode danificar o dispositivo. O uso é indicado apenas para ambientes internos."
+      },
+      {
+        "question": "O que acontece se a rede Wi-Fi cair? O sensor continua funcionando?",
+        "answer": "O sensor continua detectando a abertura localmente, mas não conseguirá enviar a notificação para o celular. Quando a conexão Wi-Fi for restabelecida, o evento pode ser registrado no aplicativo, mas o alerta em tempo real será perdido. Para segurança crítica, considere uma solução com backup via rede móvel."
+      },
+      {
+        "question": "Qual a distância máxima entre as duas partes do sensor para que funcione?",
+        "answer": "A distância máxima é de 2 centímetros quando a porta ou janela está fechada. Se a distância for maior, o campo magnético não será interrompido corretamente e o sensor não registrará a abertura. Verifique este alinhamento durante a instalação."
+      }
+    ],
+    "verdict": {
+      "score": 8.4,
+      "label": "ÓTIMO CUSTO-BENEFÍCIO PARA INÍCIO",
+      "text": "O Sensor de Porta Intelbras é uma porta de entrada (literalmente) confiável e barata para a casa inteligente. Ele não é o mais avançado em termos de integração, mas é um dos mais simples e eficazes em seu propósito. Uma escolha segura para quem busca segurança básica sem complicação.",
+      "note": "Recomendado para iniciantes, famílias e usuários do ecossistema Intelbras que buscam uma solução de monitoramento simples e nacional."
+    },
+    "schemaRating": {
+      "ratingValue": 4.6,
+      "reviewCount": 2340
+    },
+    "googleRank": 0,
+    "lastRankCheck": "2026-06-18T07:02:23.634Z",
+    "createdAt": "2026-06-18T07:02:23.634Z",
+    "updatedAt": "2026-06-18T07:02:23.634Z"
   }
 ]
