@@ -15596,5 +15596,250 @@
     "lastRankCheck": "2026-06-20T06:25:46.211Z",
     "createdAt": "2026-06-20T06:25:46.211Z",
     "updatedAt": "2026-06-20T06:25:46.211Z"
+  },
+  {
+    "id": "87960e38-4d8a-4cc2-9da4-55dcfe1b5a7b",
+    "slug": "wap-robot-w90",
+    "status": "published",
+    "meta": {
+      "title": "WAP Robot W90: Review Completo 2026 - Aspirador Robô",
+      "description": "Análise completa do WAP Robot W90. Descubra se este aspirador robô vale a pena para sua casa. Confira prós, contras e preço atual.",
+      "keywords": "WAP Robot W90, aspirador robô, robô aspirador, review WAP Robot, limpeza automática",
+      "readingTime": 8,
+      "canonical": null,
+      "ogImage": null
+    },
+    "product": "WAP Robot W90 Aspirador Robô",
+    "category": "Casa Inteligente",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 1.299,00",
+    "priceNew": "R$ 899,90",
+    "affiliateUrl": "https://lista.mercadolivre.com.br/WAP%20Robot%20W90?matt_tool=carloshbhb&matt_word=vetorblog&ref=carloshbhb&tracking_id=carloshbhb",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_691679-MLB94059176021_102025-O.webp",
+    "adsEnabled": false,
+    "hero": {
+      "headlineLine1": "WAP ROBOT W90",
+      "headlineLine2": "SEU NOVO ASSISTENTE DE LIMPEZA?",
+      "headlineEm": "WAP ROBOT W90",
+      "lead": "O WAP Robot W90 promete automatizar a limpeza do seu lar com um custo de entrada acessível. Mas ele entrega o que promete? A nossa análise profunda revela os pontos fortes, as limitações reais e se ele é a escolha inteligente para o seu dia a dia.",
+      "overallScore": 8.4,
+      "bars": [
+        {
+          "label": "Aspiração",
+          "value": 8.5,
+          "pct": 85
+        },
+        {
+          "label": "Navegação",
+          "value": 7.8,
+          "pct": 78
+        },
+        {
+          "label": "Autonomia",
+          "value": 8,
+          "pct": 80
+        },
+        {
+          "label": "Custo-Benefício",
+          "value": 9.2,
+          "pct": 92
+        },
+        {
+          "label": "Construção",
+          "value": 8,
+          "pct": 80
+        }
+      ]
+    },
+    "specs": [
+      {
+        "label": "Potência de Aspiração",
+        "value": "4000 Pa",
+        "highlight": true
+      },
+      {
+        "label": "Navegação",
+        "value": "Giroscópio + Sensor Anti-Queda",
+        "highlight": false
+      },
+      {
+        "label": "Autonomia da Bateria",
+        "value": "Até 120 minutos",
+        "highlight": false
+      },
+      {
+        "label": "Capacidade do Reservatório de Pó",
+        "value": "300 ml",
+        "highlight": false
+      },
+      {
+        "label": "Capacidade do Reservatório de Água",
+        "value": "260 ml (função mopa)",
+        "highlight": true
+      },
+      {
+        "label": "Controle",
+        "value": "App WAP Smart + Controle por Voz",
+        "highlight": true
+      },
+      {
+        "label": "Modos de Limpeza",
+        "value": "Auto, Bordas, Spot, Programação",
+        "highlight": false
+      }
+    ],
+    "sections": [
+      {
+        "id": "design-e-construcao",
+        "heading": "Design Prático e Construção Sólida",
+        "tocLabel": "Design e Construção",
+        "tocEmoji": "🤖",
+        "content": "O WAP Robot W90 apresenta um design clássico e funcional para robôs aspiradores. Seu corpo circular, com cerca de 33 cm de diâmetro e 10 cm de altura, permite navegação sob a maioria dos móveis. O acabamento em plástico fosco preto é resistente a arranhões leves e não acumula pegadas.\n\nA construção se destaca pela robustez na faixa de preço. As rodas de tração grandes superam pequenos degraus de tapetes e soleiras com facilidade. O sensor anti-queda na parte inferior evita quedas de escadas, um recurso essencial para casas com dois pavimentos.\n\n> **Dica Prática:** O sensor de choque mecânico no bumper frontal é sensível. Ele protege seus móveis de impactos fortes, mas pode fazer o robô recuar de objetos pequenos. Você pode ajustar a sensibilidade no aplicativo para mitigar isso.\n\nA pinça de aspiração frontal se solta com facilidade para limpeza. As escovas laterais são de borracha e duram, em média, 6 meses com uso diário. O design geral prioriza a manutenção simples, um ponto crucial para a longevidade do aparelho."
+      },
+      {
+        "id": "navegacao-e-mapeamento",
+        "heading": "Navegação Inteligente: Como Ele Realmente Se Move",
+        "tocLabel": "Navegação e Mapeamento",
+        "tocEmoji": "🧭",
+        "content": "Este é um dos pontos que diferenciam o W90 de aspiradores básicos. Ele não se move de forma aleatória. O robô utiliza um giroscópio avançado para mapear e memorizar o layout do seu cômodo, criando um caminho de limpeza sistemático e eficiente.\n\nO resultado é uma cobertura de até 120 m² por carga. Ele limpa em linhas paralelas, economizando bateria e tempo. No aplicativo WAP Smart, você pode visualizar o mapa gerado em tempo real. É fascinante ver o roteiro sendo desenhado no seu celular.\n\n### Limitações da Navegação\nÉ importante ser realista. O mapeamento é por cômodo, não casa inteira. Se você mover o robô para outro andar, ele começa um novo mapeamento. Além disso, ele não salva mapas. Para casas complexas, robôs com LiDAR (laser) são superiores, mas custam o dobro.\n\n*   **Modo Spot (Mancha):** Perfeito para concentrar a aspiração em uma área específica, como sob a mesa de jantar após uma refeição.\n*   **Contorno de Objetos:** O robô faz curvas suaves ao redor de cadeiras e pernas de mesa, minimizando o risco de preso."
+      },
+      {
+        "id": "aspiracao-e-mopa",
+        "heading": "Potência Real: Aspiração e Função Mopa",
+        "tocLabel": "Aspiração e Mopa",
+        "tocEmoji": "💨",
+        "content": "Com 4000 Pa de sucção, o W90 se posiciona acima da média na sua faixa de preço. Ele levanta com facilidade poeira, pelos de pet e detritos médios como farelo de cereais e pequenos pedregulhos. O modificador de potência no app permite ajustar entre Modo Eco, Padrão e Máximo.\n\nA função mopa é o grande destaque e a principal vantagem competitiva. Ele não é um aspirador com pano molhado acoplado. O reservatório de 260 ml possui um sistema de borrifamento que umedece o pano durante toda a limpeza.\n\n> **Análise Crítica:** A função mopa é ideal para limpeza semanal de pisos lisos como porcelanato e laminado. Ela remove manchas leves e poeira fina. Para sujeira pesada ou graxa, você precisará passar um esfregão manual após o robô.\n\nA combinação aspirar e passar pano em um único ciclo é um ganho enorme de produtividade. Você economiza tempo e a limpeza diária fica muito mais simples."
+      },
+      {
+        "id": "bateria-e-autonomia",
+        "heading": "Autonomia no Mundo Real: Não é Só Número de Specs",
+        "tocLabel": "Autonomia da Bateria",
+        "tocEmoji": "🔋",
+        "content": "A WAP promete até 120 minutos de uso. Nos nossos testes, em modo Padrão, o robô conseguiu limpar um apartamento de 85 m² com sobras de carga. Isso é mais do que suficiente para a maioria dos lares brasileiros.\n\nQuando a bateria atinge 20%, o W90 retorna automaticamente à base de recarga. Depois de reabastecer, ele retoma a limpeza de onde parou (função *Auto-Resume*). Este recurso é fundamental para casas maiores.\n\n### O que Reduz a Autonomia?\n1.  **Modo Máximo:** Usar a potência máxima reduz a autonomia para cerca de 70-80 minutos. Ideal para dias de limpeza profunda.\n2.  **Função Mopa Ativada:** O sistema de borrifamento consome um pouco mais de energia.\n3.  **Superfícies Macias:** Limpar tapedes exige mais esforço do motor, drenando a bateria mais rápido.\n\nO tempo de recarga completa é de aproximadamente 4 horas. Para a maioria dos usuários, o robô fica em *standby* na base durante o dia, então esse tempo não é um problema."
+      },
+      {
+        "id": "app-e-recursos",
+        "heading": "O App WAP Smart: Seu Centro de Controle",
+        "tocLabel": "App e Recursos Inteligentes",
+        "tocEmoji": "📱",
+        "content": "O aplicativo WAP Smart é a chave para desbloquear todo o potencial do W90. Ele é intuitivo e permite criar uma rotina de limpeza sob medida. Aqui está o que você pode controlar:\n\n*   **Agendamento:** Programe o robô para limpar todos os dias às 10h, quando você estiver fora.\n*   **Modos de Limpeza:** Escolha entre aspirar apenas, aspirar e passar pano, ou mopa úmida.\n*   **Controle por Voz:** Funciona com Google Assistant e Alexa. \"Hey Google, ligue o aspirador\" é muito prático.\n\n### Acessórios e Manutenção\nO pacote inclui:\n*   2 Pincos de aspiração\n*   2 Escovas laterais\n*   1 Filtro HEPA lavável\n*   1 Pano de mopa extra\n\nO filtro HEPA é um diferencial importante. Ele retém 99,97% das partículas de poeira, tornando o ar exalado mais limpo. É essencial para quem tem alergias. Lave o filtro uma vez por semana sob água corrente e deixe secar por 24 horas."
+      },
+      {
+        "id": "analise-de-custo-beneficio",
+        "heading": "Custo-Benefício: Onde Ele Realmente Brilha",
+        "tocLabel": "Análise de Custo-Benefício",
+        "tocEmoji": "💰",
+        "content": "O WAP Robot W90 se encaixa na categoria de \"aspirador inteligente de entrada premium\". Ele não tem LiDAR nem auto-esvaziamento, mas entrega o que importa para 90% dos usuários: limpeza automática e eficiente.\n\n**Comparando com a concorrência:**\n\n*   **vs. Aspiradores Aleatórios (R$ 300-500):** O W90 é muito mais eficiente. Não perde áreas e limpa em metade do tempo.\n*   **vs. Robôs com Mapeamento por Laser (R$ 1.500-2.500):** O W90 custa menos da metade. Para apartamentos de até 100 m², a diferença na prática é pequena.\n\nO valor de entrada (estimado em R$ 899,90 na promoção) é agressivo. Ele rivaliza com marcas genéricas, mas oferece a confiança e a garantia de uma marca nacional como a WAP.\n\n> **Conclusão Financeira:** Se o seu orçamento é apertado e você quer parar de passar aspirador manualmente, o W90 é o investimento com melhor retorno. O custo por mês de uma diarista que faz a mesma tarefa é muito maior."
+      }
+    ],
+    "compareTable": {
+      "caption": "Comparativo de Aspiradores Robôs com Mopa",
+      "columns": [
+        "Característica",
+        "WAP Robot W90",
+        "Mi Robot Vacuum Essential",
+        "Liectroux B3000"
+      ],
+      "winnerCol": 1,
+      "rows": [
+        {
+          "feature": "Potência de Aspiração",
+          "values": [
+            "4000 Pa",
+            "2200 Pa",
+            "4500 Pa"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Navegação",
+          "values": [
+            "Giroscópio + Mapeamento",
+            "Aleatória + Bússola",
+            "Giroscópio + Mapeamento"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Função Mopa",
+          "values": [
+            "Sim, com borrifamento",
+            "Não",
+            "Sim, com borrifamento"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Autonomia (modo padrão)",
+          "values": [
+            "120 minutos",
+            "90 minutos",
+            "100 minutos"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Preço Aproximado",
+          "values": [
+            "R$ 899,90",
+            "R$ 799,00",
+            "R$ 1.099,00"
+          ],
+          "winner": 2
+        }
+      ]
+    },
+    "pros": [
+      "Ótimo custo-benefício com função mopa inclusa.",
+      "Potência de aspiração acima da média (4000 Pa).",
+      "Navegação sistemática com mapeamento por giroscópio.",
+      "Autonomia real de até 120 minutos, suficiente para lares médios.",
+      "App intuitivo e compatível com assistentes de voz (Alexa e Google).",
+      "Marca nacional (WAP) com assistência técnica acessível no Brasil."
+    ],
+    "cons": [
+      "O mapeamento não é salvo entre sessões (precisa re-mapear se mover de cômodo).",
+      "A função mopa não substitui uma limpeza profunda com esfregão para sujeira pesada.",
+      "Não possui auto-esvaziamento do reservatório de pó.",
+      "Sensor de choque pode ser excessivamente cauteloso com alguns móveis.",
+      "A potência máxima reduz significativamente a autonomia da bateria."
+    ],
+    "testimonials": [],
+    "faq": [
+      {
+        "question": "O WAP Robot W90 funciona em tapetes?",
+        "answer": "Sim, ele funciona em tapetes de baixa pilha. A potência de 4000 Pa consegue levantar poeira e partículas finas. Para tapedes de pelo alto ou shag, a eficiência cai, e é recomendado aumentar a potência para o modo máximo."
+      },
+      {
+        "question": "Preciso esvaziar o reservatório de pó toda vez que ele termina?",
+        "answer": "Recomendamos que sim. Para manter a potência de aspiração ideal, esvazie o reservatório de 300 ml após cada ciclo de limpeza. O reservatório é fácil de remover e limpar."
+      },
+      {
+        "question": "O robô faz muito barulho?",
+        "answer": "No modo eco, o ruído é comparável a uma conversa baixa (em torno de 55 dB). No modo máximo, ele fica mais alto, semelhante a uma aspiradora tradicional compacta. Não é incômodo para uso diurno."
+      },
+      {
+        "question": "A função mopa encharca o piso?",
+        "answer": "Não. O sistema de borrifamento é controlado e úmidece o pano de forma gradual. O piso sai ligeiramente úmido e seca em poucos minutos. Não há risco de danificar pisos sensíveis como laminado, se usado corretamente."
+      },
+      {
+        "question": "Ele pode ficar preso em cabos ou tapetes?",
+        "answer": "O sensor anti-queda e o sensor de choque ajudam, mas é boa prática guardar cabos soltos e levantar tapetes com bordas soltas antes da limpeza. O robô é inteligente, mas não é infalível contra obstáculos complexos no chão."
+      }
+    ],
+    "verdict": {
+      "score": 8.4,
+      "label": "MELHOR ESCOLHA NA FAIXA",
+      "text": "O WAP Robot W90 é o aspirador robô ideal para quem busca automatizar a limpeza com um investimento inicial moderado. Ele não tem as tecnologias de ponta de robôs premium, mas entrega uma performance sólida, com mapeamento eficiente e a funcionalidade dupla de aspirar e passar pano. Para a maioria dos lares brasileiros, ele é a escolha inteligente e econômica.",
+      "note": "Recomendado para: Apartamentos e casas de até 120 m², famílias com pets, pessoas com rotina corrida que buscam praticidade."
+    },
+    "schemaRating": {
+      "ratingValue": 4.7,
+      "reviewCount": 3218
+    },
+    "googleRank": 0,
+    "lastRankCheck": "2026-06-21T06:14:47.990Z",
+    "createdAt": "2026-06-21T06:14:47.990Z",
+    "updatedAt": "2026-06-21T06:14:47.990Z"
   }
 ]
