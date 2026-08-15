@@ -9,6 +9,17 @@ function slugify(text: string): string {
 
 export const revalidate = 3600;
 
+// Notify search engines that sitemap has been updated (fire-and-forget)
+async function pingSearchEngines(sitemapUrl: string) {
+  const endpoints = [
+    `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
+    `https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
+  ];
+  for (const url of endpoints) {
+    fetch(url).catch(() => {}); // best-effort, don't block
+  }
+}
+
 export async function GET() {
   const rawUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
   const baseUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
@@ -63,6 +74,9 @@ export async function GET() {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   ${staticUrls}${categoryUrls}${reviewUrls}
 </urlset>`;
+
+  // Notify search engines (fire-and-forget)
+  pingSearchEngines(`${baseUrl}/sitemap.xml`);
 
   return new Response(sitemapXml, {
     headers: {

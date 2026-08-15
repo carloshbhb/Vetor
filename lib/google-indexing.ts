@@ -141,7 +141,7 @@ export async function publishToGoogleIndexing(url: string, type: 'URL_UPDATED' |
 }
 
 /**
- * Indexa todas as páginas importantes do site
+ * Indexa todas as páginas importantes do site (reviews, categorias, estáticas)
  */
 export async function indexAllPages(): Promise<{ indexed: number; errors: number }> {
   const { getPublishedReviews } = await import('./db');
@@ -150,14 +150,34 @@ export async function indexAllPages(): Promise<{ indexed: number; errors: number
   let indexed = 0;
   let errors = 0;
 
-  const homeResult = await publishToGoogleIndexing(SITE_URL);
-  if (homeResult.success) indexed++;
-  else errors++;
+  // Helper to slugify category names (same logic as sitemap)
+  function slugify(s: string): string {
+    return s.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  }
 
-  const researchResult = await publishToGoogleIndexing(`${SITE_URL}/research`);
-  if (researchResult.success) indexed++;
-  else errors++;
+  // Static pages
+  const staticPaths = ['/', '/research', '/sobre', '/privacidade', '/termos'];
+  for (const path of staticPaths) {
+    const result = await publishToGoogleIndexing(`${SITE_URL}${path}`);
+    if (result.success) indexed++;
+    else errors++;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
 
+  // Category pages (unique)
+  const categories = Array.from(new Set(reviews.map(r => r.category || 'Geral')));
+  for (const cat of categories) {
+    const slug = slugify(cat);
+    const result = await publishToGoogleIndexing(`${SITE_URL}/categoria/${slug}`);
+    if (result.success) indexed++;
+    else errors++;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  // Review pages
   for (const review of reviews) {
     const url = `${SITE_URL}/review/${review.slug}`;
     const result = await publishToGoogleIndexing(url);

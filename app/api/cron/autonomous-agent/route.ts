@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateText } from '@/lib/ai';
 import { getAllReviews, createReview } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
+import { submitUrl } from '@/lib/indexnow';
+import { indexNewReview } from '@/lib/google-indexing';
 import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
 import { generateReview } from '@/lib/generate';
 import { logger, recordMetric, createTimer } from '@/lib/monitor';
@@ -452,6 +454,18 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     } else {
       await logger.warn('GitHub commit failed', 'autonomous-agent', { product: trendingProduct, error: gitResult.error });
     }
+
+    // 9. Submit to IndexNow + Google Indexing API (fire-and-forget, don't block)
+    const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
+    const siteUrl = _raw.startsWith('http') ? _raw : `https://${_raw}`;
+    const reviewUrl = `${siteUrl}/review/${fullReview.slug}`;
+
+    submitUrl(reviewUrl).catch(e => {
+      logger.warn('IndexNow submission failed (non-fatal)', 'autonomous-agent', { error: e.message });
+    });
+    indexNewReview(fullReview.slug).catch(e => {
+      logger.warn('Google Indexing API failed (non-fatal)', 'autonomous-agent', { error: e.message });
+    });
 
     const totalDuration = cycleTimer.stop();
     await recordMetric({

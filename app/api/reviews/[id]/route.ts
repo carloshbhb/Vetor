@@ -24,19 +24,21 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     // Sync changes to GitHub if token is present (Vercel autobuild / persistence)
-    if (process.env.GITHUB_TOKEN) {
+    const fullReview = await getReviewById(id);
+
+    // Index published reviews immediately (independent of GitHub sync)
+    if (fullReview && fullReview.status === 'published') {
+      const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
+      const siteUrl = _raw.startsWith('http') ? _raw : `https://${_raw}`;
+      const reviewUrl = `${siteUrl}/review/${fullReview.slug}`;
+      submitUrl(reviewUrl).catch(e => console.warn('[API] IndexNow failed (non-fatal):', e.message));
+      indexNewReview(fullReview.slug).catch(e => console.warn('[API] Google Indexing failed (non-fatal):', e.message));
+    }
+
+    // Sync to GitHub (separate concern)
+    if (process.env.GITHUB_TOKEN && fullReview) {
       try {
-        const fullReview = await getReviewById(id);
-        if (fullReview) {
-          await commitUpdateReviewToGitHub(id, fullReview);
-          if (fullReview.status === 'published') {
-            const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
-            const siteUrl = _raw.startsWith('http') ? _raw : `https://${_raw}`;
-            const reviewUrl = `${siteUrl}/review/${fullReview.slug}`;
-            await submitUrl(reviewUrl);
-            await indexNewReview(fullReview.slug);
-          }
-        }
+        await commitUpdateReviewToGitHub(id, fullReview);
       } catch (syncErr: any) {
         console.error('[API] GitHub sync failed (non-fatal):', syncErr.message);
       }
