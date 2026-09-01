@@ -277,6 +277,8 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
             '@context': 'https://schema.org',
             '@type': 'Product',
             name: `Review - ${reviewSlug}`,
+            image: 'https://www.vetor.blog/og-default.jpg',
+            description: `Avaliações de usuários sobre ${reviewSlug.replace(/-/g, ' ')}`,
             review: comments
               .filter((c) => c.rating)
               .map((c) => ({
@@ -306,18 +308,25 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
               price: '0',
               priceCurrency: 'BRL',
               availability: 'https://schema.org/InStock',
+              returnFees: 'https://schema.org/FreeReturn',
               hasMerchantReturnPolicy: {
                 '@type': 'MerchantReturnPolicy',
                 applicableCountry: 'BR',
                 returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
                 merchantReturnDays: 30,
                 returnMethod: 'https://schema.org/ReturnByMail',
+                returnFees: 'https://schema.org/FreeReturn',
               },
               shippingDetails: {
                 '@type': 'OfferShippingDetails',
                 shippingDestination: {
                   '@type': 'DefinedRegion',
                   addressCountry: 'BR',
+                },
+                shippingRate: {
+                  '@type': 'MonetaryAmount',
+                  value: '0',
+                  currency: 'BRL',
                 },
                 deliveryTime: {
                   '@type': 'ShippingDeliveryTime',

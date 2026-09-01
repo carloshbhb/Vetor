@@ -135,18 +135,25 @@ export function buildProductSchema(review: ReviewData) {
       priceCurrency:   'BRL',
       price:           price || '0',
       availability:    'https://schema.org/InStock',
+      returnFees:      'https://schema.org/FreeReturn',
       hasMerchantReturnPolicy: {
         '@type': 'MerchantReturnPolicy',
         applicableCountry: 'BR',
         returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
         merchantReturnDays: 30,
         returnMethod: 'https://schema.org/ReturnByMail',
+        returnFees: 'https://schema.org/FreeReturn',
       },
       shippingDetails: {
         '@type': 'OfferShippingDetails',
         shippingDestination: {
           '@type': 'DefinedRegion',
           addressCountry: 'BR',
+        },
+        shippingRate: {
+          '@type': 'MonetaryAmount',
+          value: '0',
+          currency: 'BRL',
         },
         deliveryTime: {
           '@type': 'ShippingDeliveryTime',
