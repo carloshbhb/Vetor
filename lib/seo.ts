@@ -101,6 +101,10 @@ export function buildArticleSchema(review: ReviewData) {
 }
 
 export function buildProductSchema(review: ReviewData) {
+  const price = review.priceNew
+    ? review.priceNew.replace(/[^\d,]/g, '').replace(',', '.')
+    : '0';
+
   return {
     '@context': 'https://schema.org/',
     '@type': 'Product',
@@ -112,7 +116,7 @@ export function buildProductSchema(review: ReviewData) {
       '@type': 'Review',
       reviewRating: {
         '@type':      'Rating',
-        ratingValue:  review.hero.overallScore,
+        ratingValue:  review.hero.overallScore || 0,
         bestRating:   10,
         worstRating:  1,
       },
@@ -120,17 +124,46 @@ export function buildProductSchema(review: ReviewData) {
     },
     aggregateRating: {
       '@type':       'AggregateRating',
-      ratingValue:   review.schemaRating.ratingValue,
-      reviewCount:   review.schemaRating.reviewCount,
+      ratingValue:   review.schemaRating?.ratingValue || 0,
+      reviewCount:   review.schemaRating?.reviewCount || 1,
       bestRating:    10,
       worstRating:   1,
     },
     offers: {
       '@type':         'Offer',
-      url:             review.affiliateUrl,
+      url:             review.affiliateUrl || `${SITE_URL}/review/${review.slug}`,
       priceCurrency:   'BRL',
-      price:           review.priceNew.replace(/[^\d,]/g, '').replace(',', '.'),
+      price:           price || '0',
       availability:    'https://schema.org/InStock',
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'BR',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+        merchantReturnDays: 30,
+        returnMethod: 'https://schema.org/ReturnByMail',
+      },
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingDestination: {
+          '@type': 'DefinedRegion',
+          addressCountry: 'BR',
+        },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 1,
+            maxValue: 2,
+            unitCode: 'd',
+          },
+          transitTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 3,
+            maxValue: 10,
+            unitCode: 'd',
+          },
+        },
+      },
     },
   };
 }

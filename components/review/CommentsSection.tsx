@@ -297,8 +297,45 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
                     comments.reduce((sum, c) => sum + (c.rating || 0), 0) /
                     comments.filter((c) => c.rating).length,
                   reviewCount: comments.filter((c) => c.rating).length,
+                  bestRating: 5,
+                  worstRating: 1,
                 }
               : undefined,
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'BRL',
+              availability: 'https://schema.org/InStock',
+              hasMerchantReturnPolicy: {
+                '@type': 'MerchantReturnPolicy',
+                applicableCountry: 'BR',
+                returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+                merchantReturnDays: 30,
+                returnMethod: 'https://schema.org/ReturnByMail',
+              },
+              shippingDetails: {
+                '@type': 'OfferShippingDetails',
+                shippingDestination: {
+                  '@type': 'DefinedRegion',
+                  addressCountry: 'BR',
+                },
+                deliveryTime: {
+                  '@type': 'ShippingDeliveryTime',
+                  handlingTime: {
+                    '@type': 'QuantitativeValue',
+                    minValue: 1,
+                    maxValue: 2,
+                    unitCode: 'd',
+                  },
+                  transitTime: {
+                    '@type': 'QuantitativeValue',
+                    minValue: 3,
+                    maxValue: 10,
+                    unitCode: 'd',
+                  },
+                },
+              },
+            },
           }),
         }}
       />
