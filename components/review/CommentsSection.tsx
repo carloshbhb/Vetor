@@ -279,6 +279,10 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
             name: `Review - ${reviewSlug}`,
             image: 'https://www.vetor.blog/og-default.jpg',
             description: `Avaliações de usuários sobre ${reviewSlug.replace(/-/g, ' ')}`,
+            brand: {
+              '@type': 'Brand',
+              name: reviewSlug.split('-')[0] || 'Produto',
+            },
             review: comments
               .filter((c) => c.rating)
               .map((c) => ({
@@ -292,17 +296,26 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
                 reviewBody: c.content,
                 datePublished: c.createdAt,
               })),
-            aggregateRating: comments.filter((c) => c.rating).length > 0
-              ? {
+            aggregateRating: (() => {
+              const rated = comments.filter((c) => c.rating);
+              if (rated.length > 0) {
+                return {
                   '@type': 'AggregateRating',
                   ratingValue:
-                    comments.reduce((sum, c) => sum + (c.rating || 0), 0) /
-                    comments.filter((c) => c.rating).length,
-                  reviewCount: comments.filter((c) => c.rating).length,
+                    rated.reduce((sum, c) => sum + (c.rating || 0), 0) / rated.length,
+                  reviewCount: rated.length,
                   bestRating: 5,
                   worstRating: 1,
-                }
-              : undefined,
+                };
+              }
+              return {
+                '@type': 'AggregateRating',
+                ratingValue: 0,
+                reviewCount: 0,
+                bestRating: 5,
+                worstRating: 1,
+              };
+            })(),
             offers: {
               '@type': 'Offer',
               price: '0',
