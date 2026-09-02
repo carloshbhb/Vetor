@@ -6,6 +6,7 @@ import {
   buildBreadcrumbSchema,
   buildReviewMetadata,
   buildNewsArticleSchema,
+  buildStandaloneReviewSchema,
 } from '@/lib/seo';
 import type { ReviewData } from '@/lib/types';
 
@@ -103,9 +104,10 @@ describe('SEO Schemas', () => {
 
     it('includes aggregate rating', () => {
       const schema = buildProductSchema(mockReview);
-      expect(schema.aggregateRating['@type']).toBe('AggregateRating');
-      expect(schema.aggregateRating.ratingValue).toBe(4.5);
-      expect(schema.aggregateRating.reviewCount).toBe(5000);
+      expect(schema.aggregateRating).toBeDefined();
+      expect(schema.aggregateRating!['@type']).toBe('AggregateRating');
+      expect(schema.aggregateRating!.ratingValue).toBe(4.5);
+      expect(schema.aggregateRating!.reviewCount).toBe(5000);
     });
 
     it('includes offer with BRL currency', () => {
@@ -210,6 +212,30 @@ describe('SEO Schemas', () => {
     it('includes articleSection from category', () => {
       const schema = buildNewsArticleSchema(mockReview);
       expect(schema.articleSection).toBe('Smartband');
+    });
+  });
+
+  describe('buildStandaloneReviewSchema', () => {
+    it('returns valid standalone Review schema', () => {
+      const schema = buildStandaloneReviewSchema(mockReview);
+      expect(schema['@type']).toBe('Review');
+      expect(schema.itemReviewed['@type']).toBe('Product');
+      expect(schema.itemReviewed.name).toBe(mockReview.product);
+    });
+
+    it('includes required fields for Google rich results', () => {
+      const schema = buildStandaloneReviewSchema(mockReview);
+      expect(schema.author['@type']).toBe('Person');
+      expect(schema.author.name).toBe('Henrique Vetor');
+      expect(schema.reviewRating.ratingValue).toBe(8.5);
+      expect(schema.reviewRating.bestRating).toBe(10);
+    });
+
+    it('includes reviewBody and dates', () => {
+      const schema = buildStandaloneReviewSchema(mockReview);
+      expect(schema.reviewBody).toBe(mockReview.hero.lead);
+      expect(schema.datePublished).toBe(mockReview.createdAt);
+      expect(schema.dateModified).toBe(mockReview.updatedAt);
     });
   });
 });

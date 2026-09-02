@@ -77,6 +77,14 @@ export default async function CategoryPage({ params }: { params: { slug: string 
       '@type': 'Review',
       name: r.product,
       url: `${SITE_URL}/review/${r.slug}`,
+      itemReviewed: {
+        '@type': 'Product',
+        name: r.product,
+      },
+      author: {
+        '@type': 'Person',
+        name: 'Henrique Vetor',
+      },
       reviewRating: {
         '@type': 'Rating',
         ratingValue: r.hero.overallScore,

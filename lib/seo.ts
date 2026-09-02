@@ -105,6 +105,11 @@ export function buildProductSchema(review: ReviewData) {
     ? review.priceNew.replace(/[^\d,]/g, '').replace(',', '.')
     : '0';
 
+  const hasValidSchemaRating =
+    review.schemaRating &&
+    review.schemaRating.ratingValue > 0 &&
+    review.schemaRating.reviewCount >= 10;
+
   return {
     '@context': 'https://schema.org/',
     '@type': 'Product',
@@ -114,21 +119,27 @@ export function buildProductSchema(review: ReviewData) {
     brand:       { '@type': 'Brand', name: review.product.split(' ')[0] },
     review: {
       '@type': 'Review',
+      itemReviewed: {
+        '@type': 'Product',
+        name: review.product,
+      },
       reviewRating: {
         '@type':      'Rating',
-        ratingValue:  review.hero.overallScore || 0,
+        ratingValue:  review.hero.overallScore || 1,
         bestRating:   10,
         worstRating:  1,
       },
       author: { '@type': 'Person', name: 'Henrique Vetor' },
     },
-    aggregateRating: {
-      '@type':       'AggregateRating',
-      ratingValue:   review.schemaRating?.ratingValue || 0,
-      reviewCount:   review.schemaRating?.reviewCount || 1,
-      bestRating:    10,
-      worstRating:   1,
-    },
+    ...(hasValidSchemaRating && {
+      aggregateRating: {
+        '@type':       'AggregateRating',
+        ratingValue:   review.schemaRating.ratingValue,
+        reviewCount:   review.schemaRating.reviewCount,
+        bestRating:    10,
+        worstRating:   1,
+      },
+    }),
     offers: {
       '@type':         'Offer',
       url:             review.affiliateUrl || `${SITE_URL}/review/${review.slug}`,
@@ -172,6 +183,32 @@ export function buildProductSchema(review: ReviewData) {
         },
       },
     },
+  };
+}
+
+export function buildStandaloneReviewSchema(review: ReviewData) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Review',
+    itemReviewed: {
+      '@type': 'Product',
+      name: review.product,
+      image: review.imageUrl || `${SITE_URL}/og-default.jpg`,
+      brand: { '@type': 'Brand', name: review.product.split(' ')[0] },
+    },
+    reviewRating: {
+      '@type': 'Rating',
+      ratingValue: review.hero.overallScore || 1,
+      bestRating: 10,
+      worstRating: 1,
+    },
+    author: {
+      '@type': 'Person',
+      name: 'Henrique Vetor',
+    },
+    reviewBody: review.hero.lead,
+    datePublished: review.createdAt,
+    dateModified: review.updatedAt,
   };
 }
 
