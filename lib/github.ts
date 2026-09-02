@@ -36,10 +36,28 @@ async function fetchFileFromGitHub(token: string): Promise<{ data: any[]; sha: s
     throw new Error(`GitHub GET ${FILE_PATH} failed: ${res.status} — ${errText}`);
   }
 
-  const file: GitHubFileResponse = await res.json();
-  const content = Buffer.from(file.content, 'base64').toString('utf-8');
-  const data = JSON.parse(content);
+  const file: GitHubFileResponse & { download_url?: string; encoding?: string } = await res.json();
 
+  let content: string;
+
+  if (file.encoding === 'none' || !file.content) {
+    // File too large for inline content (>1MB) — fetch via download_url
+    if (!file.download_url) {
+      throw new Error('GitHub file too large and no download_url available');
+    }
+    const dlRes = await fetch(file.download_url, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!dlRes.ok) {
+      throw new Error(`GitHub download failed: ${dlRes.status}`);
+    }
+    content = await dlRes.text();
+  } else {
+    content = Buffer.from(file.content, 'base64').toString('utf-8');
+  }
+
+  const data = JSON.parse(content);
   return { data, sha: file.sha };
 }
 

@@ -557,8 +557,8 @@ export function validateProductCategory(product: string, category: string): bool
       excludeKeywords: ['aspirador', 'geladeira', 'fone', 'headphone'],
     },
     'Notebooks': {
-      keywords: ['notebook', 'laptop', 'ultrabook', 'macbook', 'ideapad', 'nitro', 'vivobook'],
-      excludeKeywords: ['aspirador', 'geladeira', 'tablet', 'ipad', 'fone'],
+      keywords: ['notebook', 'laptop', 'ultrabook', 'macbook', 'ideapad', 'nitro', 'vivobook', 'book', 'chromebook', 'thinkpad', 'inspiron', 'envy', 'pavilion', 'surface laptop'],
+      excludeKeywords: ['aspirador', 'geladeira', 'tablet', 'ipad', 'fone', 'galaxy tab'],
     },
     'Tablets': {
       keywords: ['tablet', 'ipad', 'galaxy tab'],
