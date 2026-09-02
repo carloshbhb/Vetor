@@ -110,10 +110,10 @@ async function callOpenRouterModel(
 // ─── Generate via OpenRouter (when Gemini fails) ─────────────────────────────
 async function generateWithOpenRouter(prompt: string): Promise<{ data: any; provider: string }> {
   const models = [
-    { id: 'xiaomi/mimo-v2.5', name: 'MiMo V2.5' },
-    { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4 Flash' },
-    { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B' },
-    { id: 'google/gemma-4-31b-it:free', name: 'Gemma 4 31B' },
+    { id: 'nvidia/nemotron-3-ultra-550b-a55b:free', name: 'Nemotron 3 Ultra 550B' },
+    { id: 'nvidia/nemotron-3-super-120b-a12b:free', name: 'Nemotron 3 Super 120B' },
+    { id: 'minimax/minimax-m3:free', name: 'MiniMax M3' },
+    { id: 'nvidia/nemotron-3.5-lightning:free', name: 'Nemotron 3.5 Lightning' },
   ];
 
   for (const m of models) {
@@ -167,9 +167,9 @@ REGRAS:
 JSON CORRIGIDO:`;
 
   const models = [
-    { id: 'xiaomi/mimo-v2.5', name: 'MiMo V2.5' },
-    { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4 Flash' },
-    { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B' },
+    { id: 'nvidia/nemotron-3-ultra-550b-a55b:free', name: 'Nemotron 3 Ultra 550B' },
+    { id: 'nvidia/nemotron-3-super-120b-a12b:free', name: 'Nemotron 3 Super 120B' },
+    { id: 'minimax/minimax-m3:free', name: 'MiniMax M3' },
   ];
 
   for (const m of models) {
