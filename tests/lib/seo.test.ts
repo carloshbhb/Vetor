@@ -122,6 +122,12 @@ describe('SEO Schemas', () => {
       expect(schema.review.reviewRating.ratingValue).toBe(8.5);
       expect(schema.review.reviewRating.bestRating).toBe(10);
     });
+
+    it('links nested review to the Product via @id (no bare nested Product)', () => {
+      const schema = buildProductSchema(mockReview) as any;
+      expect(schema['@id']).toContain(mockReview.slug);
+      expect(schema.review.itemReviewed).toEqual({ '@id': schema['@id'] });
+    });
   });
 
   describe('buildFAQSchema', () => {

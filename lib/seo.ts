@@ -127,9 +127,16 @@ export function buildProductSchema(review: ReviewData) {
   const overallScore = review.hero.overallScore || 1;
   const schemaRatingCount = review.schemaRating?.reviewCount || 1;
 
+  // @id único do produto: o review aninhado referencia o mesmo nó via
+  // itemReviewed {"@id"} em vez de declarar um Product "nu" (só name).
+  // Sem isso o Google extrai o itemReviewed como 2º Product da página e
+  // o reprova com "Especifique offers, review ou aggregateRating".
+  const productId = `${SITE_URL}/review/${review.slug}#product`;
+
   return {
     '@context': 'https://schema.org/',
     '@type': 'Product',
+    '@id': productId,
     name:        review.product,
     image:       review.imageUrl || `${SITE_URL}/og-default.jpg`,
     description: review.meta.description,
@@ -137,8 +144,7 @@ export function buildProductSchema(review: ReviewData) {
     review: {
       '@type': 'Review',
       itemReviewed: {
-        '@type': 'Product',
-        name: review.product,
+        '@id': productId,
       },
       reviewRating: {
         '@type':      'Rating',
