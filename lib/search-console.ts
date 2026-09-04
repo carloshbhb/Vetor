@@ -181,7 +181,8 @@ export async function listSitemaps(): Promise<SitemapEntry[]> {
     throw new Error(`List sitemaps failed: ${data.error?.message || JSON.stringify(data)}`);
   }
 
-  return data.sitemapEntry || [];
+  // GSC API uses both sitemapEntry and sitemap keys depending on response format
+  return data.sitemapEntry || data.sitemap || [];
 }
 
 // ─── Submit Sitemap to GSC ──────────────────────────────────────────
