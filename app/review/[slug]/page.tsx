@@ -4,7 +4,7 @@ import Script from 'next/script';
 import dynamic from 'next/dynamic';
 import { getReviewBySlug, getPublishedSlugs, getPublishedReviews } from '@/lib/db';
 import { markdownToHtml } from '@/lib/markdown';
-import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema, buildNewsArticleSchema, buildStandaloneReviewSchema } from '@/lib/seo';
+import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema, buildNewsArticleSchema } from '@/lib/seo';
 import { defaultAuthor } from '@/lib/author';
 
 import Logo         from '@/components/Logo';
@@ -75,9 +75,13 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
   );
 
   // JSON-LD schemas
+  // NOTA: o review editorial vai aninhado dentro do Product
+  // (productSchema.review). Não emitir Review standalone separado:
+  // o itemReviewed Product "nu" (sem offers/review/aggregateRating)
+  // era extraído pelo Google como 2º Product inválido da mesma URL
+  // ("Especifique offers, review ou aggregateRating" duplicado).
   const articleSchema    = buildArticleSchema(review);
   const productSchema    = buildProductSchema(review);
-  const standaloneReview = buildStandaloneReviewSchema(review);
   const faqSchema        = buildFAQSchema(review);
   const breadcrumbSchema = buildBreadcrumbSchema(review);
   const newsSchema       = buildNewsArticleSchema(review);
@@ -95,7 +99,6 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
       {/* JSON-LD Schemas */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(standaloneReview) }} />
       {faqSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(newsSchema) }} />

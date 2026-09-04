@@ -67,6 +67,11 @@ export default async function CategoryPage({ params }: { params: { slug: string 
   }
 
   // Schema.org CollectionPage + BreadcrumbList
+  // NOTA: categoria é coleção de ARTIGOS (reviews editoriais), não de
+  // produtos à venda. Por isso usamos ItemList de Articles — emitir
+  // Product sem offers/review/aggregateRating aqui gerava itens
+  // inválidos no Search Console ("Especifique offers, review ou
+  // aggregateRating": Controle DualSense, Gamesir, HyperX, etc.).
   const categorySlug = params.slug;
   const collectionSchema = {
     '@context': 'https://schema.org',
@@ -82,24 +87,28 @@ export default async function CategoryPage({ params }: { params: { slug: string 
         { '@type': 'ListItem', position: 3, name: meta.title, item: `${SITE_URL}/categoria/${categorySlug}` },
       ],
     },
-    hasPart: filteredReviews.slice(0, 10).map(r => ({
-      '@type': 'Review',
-      name: r.product,
-      url: `${SITE_URL}/review/${r.slug}`,
-      itemReviewed: {
-        '@type': 'Product',
-        name: r.product,
-      },
-      author: {
-        '@type': 'Person',
-        name: 'Henrique Vetor',
-      },
-      reviewRating: {
-        '@type': 'Rating',
-        ratingValue: r.hero.overallScore,
-        bestRating: 10,
-      },
-    })),
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: filteredReviews.slice(0, 10).length,
+      itemListElement: filteredReviews.slice(0, 10).map((r, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: `${SITE_URL}/review/${r.slug}`,
+        item: {
+          '@type': 'Article',
+          headline: r.meta.title,
+          description: r.hero.lead,
+          image: r.imageUrl || `${SITE_URL}/og-default.jpg`,
+          url: `${SITE_URL}/review/${r.slug}`,
+          datePublished: r.createdAt,
+          dateModified: r.updatedAt,
+          author: {
+            '@type': 'Person',
+            name: 'Henrique Vetor',
+          },
+        },
+      })),
+    },
   };
 
   // WebPage schema

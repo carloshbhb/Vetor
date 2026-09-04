@@ -269,94 +269,14 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
         )}
       </div>
 
-      {/* UGC Schema Markup */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: `Review - ${reviewSlug}`,
-            image: 'https://www.vetor.blog/og-default.jpg',
-            description: `Avaliações de usuários sobre ${reviewSlug.replace(/-/g, ' ')}`,
-            brand: {
-              '@type': 'Brand',
-              name: reviewSlug.split('-')[0] || 'Produto',
-            },
-            review: comments
-              .filter((c) => c.rating)
-              .map((c) => ({
-                '@type': 'Review',
-                author: { '@type': 'Person', name: c.author },
-                reviewRating: {
-                  '@type': 'Rating',
-                  ratingValue: c.rating,
-                  bestRating: 5,
-                },
-                reviewBody: c.content,
-                datePublished: c.createdAt,
-              })),
-            ...(() => {
-              const rated = comments.filter((c) => c.rating);
-              if (rated.length > 0) {
-                return {
-                  aggregateRating: {
-                    '@type': 'AggregateRating',
-                    ratingValue:
-                      rated.reduce((sum, c) => sum + (c.rating || 0), 0) / rated.length,
-                    reviewCount: rated.length,
-                    bestRating: 5,
-                    worstRating: 1,
-                  },
-                };
-              }
-              return {};
-            })(),
-            offers: {
-              '@type': 'Offer',
-              price: '0',
-              priceCurrency: 'BRL',
-              availability: 'https://schema.org/InStock',
-              returnFees: 'https://schema.org/FreeReturn',
-              hasMerchantReturnPolicy: {
-                '@type': 'MerchantReturnPolicy',
-                applicableCountry: 'BR',
-                returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
-                merchantReturnDays: 30,
-                returnMethod: 'https://schema.org/ReturnByMail',
-                returnFees: 'https://schema.org/FreeReturn',
-              },
-              shippingDetails: {
-                '@type': 'OfferShippingDetails',
-                shippingDestination: {
-                  '@type': 'DefinedRegion',
-                  addressCountry: 'BR',
-                },
-                shippingRate: {
-                  '@type': 'MonetaryAmount',
-                  value: '0',
-                  currency: 'BRL',
-                },
-                deliveryTime: {
-                  '@type': 'ShippingDeliveryTime',
-                  handlingTime: {
-                    '@type': 'QuantitativeValue',
-                    minValue: 1,
-                    maxValue: 2,
-                    unitCode: 'd',
-                  },
-                  transitTime: {
-                    '@type': 'QuantitativeValue',
-                    minValue: 3,
-                    maxValue: 10,
-                    unitCode: 'd',
-                  },
-                },
-              },
-            },
-          }),
-        }}
-      />
+      {/* NOTE: nenhum JSON-LD aqui de propósito.
+        A página já emite o Product canônico (com offers/review/
+        aggregateRating) no servidor. Emitir um segundo Product
+        ("Review - slug", price 0, sem aggregateRating quando não há
+        comentários) criava entidades Product inválidas no Search
+        Console ("Especifique offers, review ou aggregateRating" +
+        avisos de review/aggregateRating ausentes). Comentários UGC
+        são apenas conteúdo de página, não schema duplicado. */}
     </div>
   );
 }

@@ -147,6 +147,8 @@ export function buildProductSchema(review: ReviewData) {
         worstRating:  1,
       },
       author: { '@type': 'Person', name: 'Henrique Vetor' },
+      reviewBody: review.hero.lead,
+      datePublished: review.createdAt,
     },
     aggregateRating: {
       '@type':       'AggregateRating',
