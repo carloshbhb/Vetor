@@ -20,6 +20,15 @@ export const metadata: Metadata = {
   },
 };
 
+const researchBreadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Início', item: SITE_URL },
+    { '@type': 'ListItem', position: 2, name: 'Pesquisa de Mercado', item: `${SITE_URL}/research` },
+  ],
+};
+
 export default async function ResearchPage() {
   const [marketInsights, priceTrends, scoreDistribution] = await Promise.all([
     getMarketInsights(),
@@ -58,6 +67,7 @@ export default async function ResearchPage() {
     <div className="bg-bg2 min-h-screen">
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(researchBreadcrumbSchema) }} />
 
       {/* Header */}
       <header className="bg-white border-b border-border shadow-sm sticky top-0 z-40">

@@ -1,24 +1,13 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Vetor Blog — Google Search Console API Integration
-// ─────────────────────────────────────────────────────────────────────────────
-// Docs: https://developers.google.com/search/apis/indexing-api/v3/quickstart
-// URL Inspection API: https://developers.google.com/search/apis/url-inspection-api/overview
-//
-// Requer variáveis de ambiente:
-//   - GOOGLE_SERVICE_ACCOUNT_EMAIL: Email da conta de serviço
-//   - GOOGLE_PRIVATE_KEY: Chave privada da conta de serviço
-//   - NEXT_PUBLIC_SITE_URL: URL do site
-
 import { JWT } from 'google-auth-library';
+import { GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY, NEXT_PUBLIC_SITE_URL } from '@/lib/env';
 
-const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
-const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
+const SITE_URL = NEXT_PUBLIC_SITE_URL.startsWith('http') ? NEXT_PUBLIC_SITE_URL : `https://${NEXT_PUBLIC_SITE_URL}`;
 
 const SEARCH_CONSOLE_API = 'https://searchconsole.googleapis.com/webmasters/v3';
 const URL_INSPECTION_API = 'https://searchconsole.googleapis.com/v1/urlInspection/index:inspect';
 
 function getPrivateKey(): string | null {
-  const rawKey = process.env.GOOGLE_PRIVATE_KEY;
+  const rawKey = GOOGLE_PRIVATE_KEY;
   if (!rawKey) return null;
 
   let key = rawKey
@@ -38,7 +27,7 @@ function getPrivateKey(): string | null {
 }
 
 async function getAccessToken(): Promise<string> {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const email = GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = getPrivateKey();
 
   if (!email || !privateKey) {
@@ -49,7 +38,7 @@ async function getAccessToken(): Promise<string> {
     email,
     key: privateKey,
     scopes: [
-      'https://www.googleapis.com/auth/webmasters.readonly',
+      'https://www.googleapis.com/auth/webmasters',
       'https://www.googleapis.com/auth/indexing',
     ],
   });
@@ -58,18 +47,18 @@ async function getAccessToken(): Promise<string> {
   return token.access_token || '';
 }
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────
 
 export interface IndexingStatus {
   url: string;
-  verdict: string; // PASS, FAIL, NEUTRAL, etc.
-  robotsTxtState: string; // ALLOWED, BLOCKED_BY_ROBOTS_TXT, etc.
-  pageFetchState: string; // SUCCESSFUL, SOFT_404, NOT_FOUND, etc.
-  indexingState: string; // INDEXED, NOT_INDEXED, etc.
+  verdict: string;
+  robotsTxtState: string;
+  pageFetchState: string;
+  indexingState: string;
   lastCrawlTime?: string;
   pageIndexState?: string;
   referringUrls?: string[];
-  crawledAs?: string; // MOBILE, DESKTOP
+  crawledAs?: string;
   verdicts?: {
     verdict: string;
     coverageState?: string;
@@ -86,7 +75,16 @@ export interface SearchConsolePage {
   position: number;
 }
 
-// ─── URL Inspection ─────────────────────────────────────────────────────────
+export interface SitemapEntry {
+  path: string;
+  status: string;
+  isActive: boolean;
+  type: string;
+  dateSubmitted: string;
+  datePublished: string;
+}
+
+// ─── URL Inspection ─────────────────────────────────────────────────
 
 export async function inspectUrl(url: string): Promise<IndexingStatus> {
   const accessToken = await getAccessToken();
@@ -126,7 +124,7 @@ export async function inspectUrl(url: string): Promise<IndexingStatus> {
   };
 }
 
-// ─── Search Analytics ───────────────────────────────────────────────────────
+// ─── Search Analytics ───────────────────────────────────────────────
 
 export async function querySearchAnalytics(
   startDate: string,
@@ -166,9 +164,9 @@ export async function querySearchAnalytics(
   }));
 }
 
-// ─── Sitemaps ───────────────────────────────────────────────────────────────
+// ─── Sitemaps ───────────────────────────────────────────────────────
 
-export async function listSitemaps(): Promise<any[]> {
+export async function listSitemaps(): Promise<SitemapEntry[]> {
   const accessToken = await getAccessToken();
 
   const response = await fetch(`${SEARCH_CONSOLE_API}/sites/${encodeURIComponent(SITE_URL)}/sitemaps`, {
@@ -186,9 +184,46 @@ export async function listSitemaps(): Promise<any[]> {
   return data.sitemapEntry || [];
 }
 
-// ─── Get all site URLs from Search Console ──────────────────────────────────
+// ─── Submit Sitemap to GSC ──────────────────────────────────────────
 
-export async function getSiteUrls(): Promise<string[]> {
+export async function submitSitemap(sitemapPath: string = 'sitemap.xml'): Promise<{ success: boolean; message: string }> {
+  const accessToken = await getAccessToken();
+
+  // Use PUT to submit (create or update) the sitemap
+  const response = await fetch(
+    `${SEARCH_CONSOLE_API}/sites/${encodeURIComponent(SITE_URL)}/sitemaps/${encodeURIComponent(sitemapPath)}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        path: sitemapPath,
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    return { success: false, message: data.error?.message || JSON.stringify(data) };
+  }
+
+  return { success: true, message: `Sitemap ${sitemapPath} submitted successfully` };
+}
+
+// ─── Ping All Sitemaps ──────────────────────────────────────────────
+
+export async function pingAllSitemaps(): Promise<{ submitted: number; errors: number }> {
+  const submitted = await submitSitemap('sitemap.xml');
+  let errors = submitted.success ? 0 : 1;
+  return { submitted: submitted.success ? 1 : 0, errors };
+}
+
+// ─── Get Site Info ──────────────────────────────────────────────────
+
+export async function getSiteInfo(): Promise<any> {
   const accessToken = await getAccessToken();
 
   const response = await fetch(`${SEARCH_CONSOLE_API}/sites/${encodeURIComponent(SITE_URL)}`, {
@@ -203,5 +238,5 @@ export async function getSiteUrls(): Promise<string[]> {
     throw new Error(`Get site info failed: ${data.error?.message || JSON.stringify(data)}`);
   }
 
-  return data.siteUrl ? [data.siteUrl] : [];
+  return data;
 }

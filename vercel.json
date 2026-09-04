@@ -9,6 +9,18 @@
       "schedule": "0 14 * * *"
     },
     {
+      "path": "/api/cron/indexing?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/indexing?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
+      "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/submit-sitemap?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
+      "schedule": "0 8 * * *"
+    },
+    {
       "path": "/api/serp-tracker?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
       "schedule": "0 3 * * *"
     },

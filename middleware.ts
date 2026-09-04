@@ -24,9 +24,12 @@ const protectedApiRoutes = [
   '/api/ml-enrich',
 ]
 
-const cronApiRoutes = ['/api/cron', '/api/serp-tracker']
+const publicApiRoutes = [
+  '/api/indexnow',
+  '/api/llms',
+]
 
-const publicApiRoutes: string[] = []
+const cronApiRoutes = ['/api/cron', '/api/serp-tracker']
 
 const publicPages = [
   '/',
@@ -38,10 +41,6 @@ const publicPages = [
   '/privacidade',
   '/termos',
 ]
-
-function isProtectedApiRoute(pathname: string): boolean {
-  return protectedApiRoutes.some(route => pathname.startsWith(route))
-}
 
 function isCronApiRoute(pathname: string): boolean {
   return cronApiRoutes.some(route => pathname.startsWith(route))
@@ -56,13 +55,18 @@ function isPublicPage(pathname: string): boolean {
     pathname.startsWith('/review/') ||
     pathname.startsWith('/categoria/') ||
     pathname.startsWith('/_next/') ||
-    pathname.startsWith('/auth/')
+    pathname.startsWith('/auth/') ||
+    pathname.startsWith('/api/indexnow') ||
+    pathname.startsWith('/api/llms')
+}
+
+function isProtectedApiRoute(pathname: string): boolean {
+  return protectedApiRoutes.some(route => pathname.startsWith(route))
 }
 
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
 
-  // Cron routes: verify CRON_SECRET via query param (Vercel strips Authorization header)
   if (isCronApiRoute(pathname)) {
     const cronSecret = process.env.CRON_SECRET
     const token = req.nextUrl.searchParams.get('token')
@@ -86,10 +90,8 @@ export async function middleware(req: NextRequest) {
   const fallbackToFile = process.env.SUPABASE_FALLBACK_TO_FILE === 'true'
   const rawSession = req.cookies.get('vetor_admin_session')?.value
 
-  // Verify the signed session cookie
   const adminSession = rawSession ? verifySession(rawSession) !== null : false
 
-  // Public routes - always allow
   const isPublicRoute = publicRoutes.some(route => {
     if (route.endsWith(':path*')) {
       return pathname.startsWith(route.replace('/:path*', ''))
@@ -129,24 +131,19 @@ export async function middleware(req: NextRequest) {
 
   const isProtectedApi = isProtectedApiRoute(pathname)
 
-  // Fallback to file mode with valid signed session cookie
   if (fallbackToFile && (isAdminRoute || isProtectedApi) && adminSession) {
     return supabaseResponse
   }
 
-  // No user authenticated
   if (!user) {
-    // Allow if valid signed admin session cookie exists for protected routes
     if (adminSession && (isProtectedApi || isAdminRoute)) {
       return supabaseResponse
     }
 
-    // API routes return 401
     if (isProtectedApi) {
       return NextResponse.json({ error: 'Auth required' }, { status: 401 })
     }
 
-    // Admin pages redirect to login
     const url = req.nextUrl.clone()
     url.pathname = '/auth/login'
     url.searchParams.set('redirect', pathname)

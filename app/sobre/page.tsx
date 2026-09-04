@@ -8,11 +8,44 @@ export const metadata: Metadata = {
   description: 'Conheça o Vetor Blog. Reviews independentes de produtos com testes reais e análises detalhadas.',
   robots: { index: true, follow: true },
   alternates: { canonical: `${SITE_URL}/sobre` },
+  openGraph: {
+    type: 'website',
+    url: `${SITE_URL}/sobre`,
+    title: 'Sobre o Vetor Blog',
+    description: 'Conheça o Vetor Blog. Reviews independentes de produtos com testes reais e análises detalhadas.',
+  },
+};
+
+const aboutSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: 'Sobre o Vetor Blog',
+  description: 'Reviews independentes de produtos com testes reais e análises detalhadas.',
+  url: `${SITE_URL}/sobre`,
+  publisher: {
+    '@type': 'Organization',
+    name: 'Vetor Blog',
+    url: SITE_URL,
+    logo: { '@type': 'ImageObject', url: `${SITE_URL}/logo.png` },
+  },
+};
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Início', item: SITE_URL },
+    { '@type': 'ListItem', position: 2, name: 'Sobre', item: `${SITE_URL}/sobre` },
+  ],
 };
 
 export default function SobrePage() {
   return (
     <div className="min-h-screen bg-white">
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+
       <div className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="font-bebas text-5xl tracking-wide text-text mb-2">Sobre o Vetor Blog</h1>
         <p className="text-text-muted text-sm mb-8">Reviews independentes com testes reais.</p>

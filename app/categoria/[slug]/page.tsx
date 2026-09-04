@@ -66,13 +66,22 @@ export default async function CategoryPage({ params }: { params: { slug: string 
     notFound();
   }
 
-  // Schema.org CollectionPage
+  // Schema.org CollectionPage + BreadcrumbList
+  const categorySlug = params.slug;
   const collectionSchema = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
     name: `${meta.title} | Vetor Blog`,
     description: meta.desc,
-    url: `${SITE_URL}/categoria/${params.slug}`,
+    url: `${SITE_URL}/categoria/${categorySlug}`,
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Início', item: SITE_URL },
+        { '@type': 'ListItem', position: 2, name: 'Reviews', item: `${SITE_URL}/` },
+        { '@type': 'ListItem', position: 3, name: meta.title, item: `${SITE_URL}/categoria/${categorySlug}` },
+      ],
+    },
     hasPart: filteredReviews.slice(0, 10).map(r => ({
       '@type': 'Review',
       name: r.product,
@@ -93,10 +102,26 @@ export default async function CategoryPage({ params }: { params: { slug: string 
     })),
   };
 
+  // WebPage schema
+  const webPageSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: `${meta.title} | Vetor Blog`,
+    description: meta.desc,
+    url: `${SITE_URL}/categoria/${categorySlug}`,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'Vetor Blog',
+      url: SITE_URL,
+    },
+    inLanguage: 'pt-BR',
+  };
+
   return (
     <div className="bg-bg2 min-h-screen">
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }} />
 
       {/* Header */}
       <header className="bg-white border-b border-border shadow-sm sticky top-0 z-40">

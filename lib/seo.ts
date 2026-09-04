@@ -1,9 +1,27 @@
 import type { ReviewData } from './types';
 import { getAuthorSchema } from './author';
+import { NEXT_PUBLIC_SITE_URL as RAW_SITE_URL } from '@/lib/env';
 
-const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
-const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
+const SITE_URL = RAW_SITE_URL.startsWith('http') ? RAW_SITE_URL : `https://${RAW_SITE_URL}`;
 const SITE_NAME = 'Vetor Blog';
+
+const categoryMetaDescriptions: Record<string, string> = {
+  'wearables-smartbands': 'Reviews de smartbands e smartwatches para saúde, fitness e estilo. Comparativos e análise de custo-benefício.',
+  'acessorios-para-games': 'Controles, headsets, cadeiras gamers e acessórios para PC e console. Testes detalhados de desempenho.',
+  'notebooks': 'Notebooks para trabalho, estudo, games e produção. Análises de processador, GPU, tela e bateria.',
+  'audio-profissional': 'Microfones, fones de ouvido, interfaces de áudio e equipamentos de estúdio para profissionais e amadores.',
+  'smartphones': 'Reviews de smartphones, celulares e acessórios. Câmera, bateria, performance e custo-benefício.',
+  'tablets': 'Reviews de tablets para trabalho, estudo e lazer. Comparativos de tela, armazenamento e autonomia.',
+  'eletroportateis': 'Liquidificadores, air fryers, aspiradores de pó e eletrodomésticos para o dia a dia.',
+  'casa-inteligente': 'Dispositivos smart home, interruptores inteligentes, lâmpadas e câmeras de segurança residencial.',
+  'cameras-de-seguranca': 'Câmeras IP, sistemas de monitoramento e alarmes. Testes de qualidade de imagem e aplicativo.',
+  'fones-de-ouvido': 'Fones de ouvido, earbuds e headsets. Análise de qualidade de som, conforto e cancelamento de ruído.',
+  'geral': 'Reviews diversos de produtos de tecnologia e eletrônicos. Análises imparciais e testes reais.',
+};
+
+export function getCategoryDescription(slug: string): string {
+  return categoryMetaDescriptions[slug] || 'Reviews de produtos de tecnologia. Análises imparciais e testes reais.';
+}
 
 // Shared slugify for category slugs
 function slugify(s: string) {

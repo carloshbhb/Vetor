@@ -10,9 +10,32 @@ export const metadata: Metadata = {
   alternates: { canonical: `${SITE_URL}/termos` },
 };
 
+const termsSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Termos de Uso',
+  description: 'Termos de uso do Vetor Blog.',
+  url: `${SITE_URL}/termos`,
+  isPartOf: { '@type': 'WebSite', name: 'Vetor Blog', url: SITE_URL },
+  inLanguage: 'pt-BR',
+};
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Início', item: SITE_URL },
+    { '@type': 'ListItem', position: 2, name: 'Termos', item: `${SITE_URL}/termos` },
+  ],
+};
+
 export default function TermosPage() {
   return (
     <div className="min-h-screen bg-white">
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(termsSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+
       <div className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="font-bebas text-5xl tracking-wide text-text mb-2">Termos de Uso</h1>
         <p className="text-text-muted text-sm mb-8">Última atualização: {new Date().toLocaleDateString('pt-BR')}</p>

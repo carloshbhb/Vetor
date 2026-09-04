@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Globe, Loader2, Send } from 'lucide-react';
+import { Globe, Loader2, Send, Zap } from 'lucide-react';
 
 interface Review {
   id: string;
@@ -30,7 +30,7 @@ export default function IndexingActions({ reviews, hasCredentials, single }: Ind
         body: JSON.stringify({ url, action: 'url' }),
       });
       const data = await res.json();
-      setResult(data.success ? 'Indexado!' : 'Erro ao indexar');
+      setResult(data.success ? 'Indexado no Google!' : 'Erro ao indexar');
     } catch {
       setResult('Erro de conexão');
     } finally {
@@ -39,23 +39,17 @@ export default function IndexingActions({ reviews, hasCredentials, single }: Ind
     }
   };
 
-  const indexReview = async (slug: string) => {
-    if (!hasCredentials) return;
-    setLoading(true);
-    setResult(null);
+  const indexViaIndexNow = async (url: string) => {
     try {
-      const res = await fetch('/api/google-indexing', {
+      const res = await fetch('/api/indexnow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug, action: 'review' }),
+        body: JSON.stringify({ urls: [url] }),
       });
       const data = await res.json();
-      setResult(data.success ? 'Indexado!' : 'Erro ao indexar');
+      setResult(prev => prev ? `${prev} | Bing IndexNow ✓` : 'Indexado no Bing!');
     } catch {
-      setResult('Erro de conexão');
-    } finally {
-      setLoading(false);
-      setTimeout(() => setResult(null), 3000);
+      setResult(prev => prev ? prev : 'Erro no IndexNow');
     }
   };
 
@@ -79,16 +73,46 @@ export default function IndexingActions({ reviews, hasCredentials, single }: Ind
     }
   };
 
+  const indexAllViaIndexNow = async () => {
+    if (!hasCredentials) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/indexnow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'all' }),
+      });
+      const data = await res.json();
+      setResult(data.success ? `${data.success} páginas notificadas no Bing!` : 'Erro no IndexNow');
+    } catch {
+      setResult('Erro de conexão');
+    } finally {
+      setLoading(false);
+      setTimeout(() => setResult(null), 5000);
+    }
+  };
+
   if (single && reviews.length === 1) {
     return (
-      <button
-        onClick={() => indexReview(reviews[0].slug)}
-        disabled={!hasCredentials || loading}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-text-2 hover:bg-bg2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-        {result || 'Indexar'}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => indexUrl(`https://vetor.blog/review/${reviews[0].slug}`)}
+          disabled={!hasCredentials || loading}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-text-2 hover:bg-bg2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+          Google
+        </button>
+        <button
+          onClick={() => indexViaIndexNow(`https://vetor.blog/review/${reviews[0].slug}`)}
+          disabled={loading}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-green-300 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Zap size={14} />
+          Bing
+        </button>
+      </div>
     );
   }
 
@@ -100,7 +124,15 @@ export default function IndexingActions({ reviews, hasCredentials, single }: Ind
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-light border border-blue-mid text-xs font-medium text-blue hover:bg-blue hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />}
-        {result || 'Indexar Todas as Páginas'}
+        Google
+      </button>
+      <button
+        onClick={indexAllViaIndexNow}
+        disabled={loading}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-light border border-green-mid text-xs font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <Zap size={14} />
+        Bing
       </button>
     </div>
   );

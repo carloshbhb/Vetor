@@ -10,9 +10,9 @@
 
 import { createSign, createPrivateKey } from 'crypto';
 import { GoogleAuth, JWT } from 'google-auth-library';
+import { GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY, NEXT_PUBLIC_SITE_URL } from '@/lib/env';
 
-const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
-const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
+const SITE_URL = NEXT_PUBLIC_SITE_URL.startsWith('http') ? NEXT_PUBLIC_SITE_URL : `https://${NEXT_PUBLIC_SITE_URL}`;
 const GOOGLE_API_URL = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
@@ -29,7 +29,7 @@ interface IndexingResponse {
 }
 
 function getPrivateKey(): string | null {
-  const rawKey = process.env.GOOGLE_PRIVATE_KEY;
+  const rawKey = GOOGLE_PRIVATE_KEY;
   if (!rawKey) return null;
 
   // Normalizar a chave
@@ -56,7 +56,7 @@ function base64url(data: Buffer | string): string {
 }
 
 async function getAccessToken(): Promise<string> {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const email = GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = getPrivateKey();
 
   if (!email || !privateKey) {

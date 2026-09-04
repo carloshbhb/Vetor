@@ -75,6 +75,21 @@ const nextConfig = {
       ],
     },
     {
+      source: '/api/indexnow',
+      headers: [
+        { key: 'Cache-Control', value: 'public, s-maxage=60, stale-while-revalidate=300' },
+        { key: 'Access-Control-Allow-Origin', value: '*' },
+        { key: 'Access-Control-Allow-Methods', value: 'GET, POST, OPTIONS' },
+      ],
+    },
+    {
+      source: '/api/llms',
+      headers: [
+        { key: 'Cache-Control', value: 'public, s-maxage=3600, stale-while-revalidate=86400' },
+        { key: 'Content-Type', value: 'text/plain' },
+      ],
+    },
+    {
       source: '/api/research',
       headers: [
         { key: 'Cache-Control', value: 'public, s-maxage=3600, stale-while-revalidate=86400' },
