@@ -422,3 +422,52 @@ export async function fetchMLProduct(
   console.warn(`[ML API] No product found for: "${idOrQuery}"`);
   return null;
 }
+
+// ─── Image guarantee ────────────────────────────────────────────────────────
+// Artigos nunca devem ser publicados sem imagem principal (SEO: image é
+// obrigatória em Product/Article e no OG). Este helper tenta variações da
+// busca (nome completo → sem último termo → sem dois últimos termos) e só
+// aceita URLs que realmente respondem.
+
+export async function isImageReachable(url: string, timeoutMs = 8000): Promise<boolean> {
+  if (!url || !/^https?:\/\//i.test(url)) return false;
+  for (const method of ['HEAD', 'GET'] as const) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      const res = await fetch(url, { method, signal: ctrl.signal });
+      clearTimeout(timer);
+      if (res.ok) return true;
+    } catch {
+      // tenta o próximo método/variação
+    }
+  }
+  return false;
+}
+
+function buildImageQueryVariants(product: string): string[] {
+  const full = (product || '').trim().replace(/\s+/g, ' ');
+  if (!full) return [];
+  const variants = [full];
+  const words = full.split(' ');
+  if (words.length > 3) variants.push(words.slice(0, -1).join(' '));
+  if (words.length > 4) variants.push(words.slice(0, -2).join(' '));
+  return Array.from(new Set(variants));
+}
+
+export async function resolveProductImage(
+  product: string,
+): Promise<{ imageUrl: string; source: string }> {
+  for (const query of buildImageQueryVariants(product)) {
+    try {
+      const ml = await fetchMLProduct(query);
+      if (ml?.imageUrl && (await isImageReachable(ml.imageUrl))) {
+        return { imageUrl: ml.imageUrl, source: ml.source };
+      }
+    } catch {
+      // tenta a próxima variação
+    }
+  }
+  console.warn(`[ML API] No reachable image found for: "${product}"`);
+  return { imageUrl: '', source: 'Not Found' };
+}

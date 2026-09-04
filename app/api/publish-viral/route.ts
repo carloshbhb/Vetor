@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createReview } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
+import { resolveProductImage, isImageReachable } from '@/lib/mercadolivre';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -34,6 +35,27 @@ export async function POST(req: NextRequest) {
 
     const slug = slugify(d.meta?.title || 'artigo-comparativo');
     const productNames = d.products?.map((p: any) => p.name).join(' vs ') || 'Comparativo';
+
+    // Garantia de imagem — artigo NUNCA é publicado sem imagem principal.
+    // A IA pode inventar URLs (prompt pede image_url), então só aceitamos
+    // URL que responde; senão buscamos a imagem real via ML, e se não
+    // houver, a publicação é bloqueada com 400.
+    let viralImageUrl: string = d.products?.[0]?.image_url || '';
+    if (viralImageUrl && !(await isImageReachable(viralImageUrl))) {
+      console.warn(`[PublishViral] AI image URL unreachable, resolving via ML: ${viralImageUrl}`);
+      viralImageUrl = '';
+    }
+    if (!viralImageUrl) {
+      const firstProduct = d.products?.[0]?.name || productNames;
+      const resolved = await resolveProductImage(firstProduct);
+      viralImageUrl = resolved.imageUrl;
+    }
+    if (!viralImageUrl) {
+      return NextResponse.json(
+        { error: `Artigo bloqueado: nenhuma imagem encontrada para "${d.products?.[0]?.name || productNames}".` },
+        { status: 400 }
+      );
+    }
 
     // Map sections to proper format with markdown content
     const sections = d.sections?.map((s: any, idx: number) => ({
@@ -99,7 +121,7 @@ export async function POST(req: NextRequest) {
       priceOld: d.products?.[0]?.old_price || '',
       priceNew: d.products?.[0]?.price || '',
       affiliateUrl: d.products?.[0]?.affiliate_url || '',
-      imageUrl: d.products?.[0]?.image_url || '',
+      imageUrl: viralImageUrl,
       adsEnabled: true,
       hero: {
         headlineLine1: d.hero?.headline_line1 || 'COMPARATIVO',

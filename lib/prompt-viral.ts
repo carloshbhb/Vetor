@@ -154,7 +154,7 @@ Retorne APENAS o JSON com esta estrutura exata:
       "price": "string",
       "old_price": "string",
       "affiliate_url": "string",
-      "image_url": "string",
+      "image_url": "deixe SEMPRE string vazia (o sistema busca a imagem real do produto automaticamente; NUNCA invente URLs de imagem)",
       "pros": ["string"],
       "cons": ["string"],
       "verdict": "string"

@@ -4,7 +4,7 @@ import { getAllReviews, createReview } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
 import { submitUrl } from '@/lib/indexnow';
 import { indexNewReview } from '@/lib/google-indexing';
-import { fetchMLProduct, buildAffiliateUrl } from '@/lib/mercadolivre';
+import { fetchMLProduct, buildAffiliateUrl, resolveProductImage, isImageReachable } from '@/lib/mercadolivre';
 import { generateReview } from '@/lib/generate';
 import { logger, recordMetric, createTimer } from '@/lib/monitor';
 import { checkErrorRate } from '@/lib/alerts';
@@ -331,6 +331,34 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     const now = new Date().toISOString();
     const reviewId = crypto.randomUUID();
 
+    // 6a. Garantia de imagem — artigo NUNCA é publicado sem imagem principal.
+    // Cadeia: ML (etapa 4) → IA → retry com variações da busca. Se nada
+    // responder, o ciclo falha aqui (sem salvar no banco, sem indexar).
+    let finalImageUrl = mlImageUrl || d.imageUrl || '';
+    if (finalImageUrl && !(await isImageReachable(finalImageUrl))) {
+      await logger.warn('Primary image unreachable, retrying with query variants', 'autonomous-agent', { product: trendingProduct, imageUrl: finalImageUrl });
+      finalImageUrl = '';
+    }
+    if (!finalImageUrl) {
+      await logger.warn('No image from ML/AI, retrying with query variants', 'autonomous-agent', { product: trendingProduct });
+      const retry = await resolveProductImage(d.product || trendingProduct);
+      finalImageUrl = retry.imageUrl;
+      if (finalImageUrl) {
+        await logger.info('Image resolved on retry', 'autonomous-agent', { product: trendingProduct, source: retry.source });
+      }
+    }
+    if (!finalImageUrl) {
+      await logger.error('Publish blocked: no reachable image found', 'autonomous-agent', new Error(`Sem imagem para "${trendingProduct}"`));
+      await recordMetric({
+        agentName: 'autonomous-agent',
+        operation: 'image_guard',
+        durationMs: 0,
+        success: false,
+        errorMessage: `Nenhuma imagem alcançável para "${trendingProduct}"`,
+      });
+      throw new Error(`Publicação bloqueada: nenhuma imagem encontrada para "${trendingProduct}". Tente outro produto.`);
+    }
+
     const fullReview = {
       id: reviewId,
       slug: slugify(d.meta?.slug || trendingProduct),
@@ -349,7 +377,7 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       priceOld: d.priceOld || d.old_price || '',
       priceNew: d.priceNew || d.price || '',
       affiliateUrl: mlAffiliateUrl,
-      imageUrl: mlImageUrl || d.imageUrl || '',
+      imageUrl: finalImageUrl,
       adsEnabled: false,
       hero: {
         headlineLine1: d.hero?.headline_line1 || trendingProduct.toUpperCase(),
