@@ -106,7 +106,7 @@ describe('SEO Schemas', () => {
       const schema = buildProductSchema(mockReview);
       expect(schema.aggregateRating).toBeDefined();
       expect(schema.aggregateRating!['@type']).toBe('AggregateRating');
-      expect(schema.aggregateRating!.ratingValue).toBe(4.5);
+      expect(schema.aggregateRating!.ratingValue).toBe(8.5);
       expect(schema.aggregateRating!.reviewCount).toBe(5000);
     });
 

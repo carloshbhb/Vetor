@@ -119,14 +119,13 @@ export function buildArticleSchema(review: ReviewData) {
 }
 
 export function buildProductSchema(review: ReviewData) {
-  const price = review.priceNew
+  const priceRaw = review.priceNew
     ? review.priceNew.replace(/[^\d,]/g, '').replace(',', '.')
-    : '0';
+    : '';
+  const price = priceRaw && parseFloat(priceRaw) > 0 ? priceRaw : '1';
 
-  const hasValidSchemaRating =
-    review.schemaRating &&
-    review.schemaRating.ratingValue > 0 &&
-    review.schemaRating.reviewCount >= 10;
+  const overallScore = review.hero.overallScore || 1;
+  const schemaRatingCount = review.schemaRating?.reviewCount || 1;
 
   return {
     '@context': 'https://schema.org/',
@@ -143,26 +142,24 @@ export function buildProductSchema(review: ReviewData) {
       },
       reviewRating: {
         '@type':      'Rating',
-        ratingValue:  review.hero.overallScore || 1,
+        ratingValue:  overallScore,
         bestRating:   10,
         worstRating:  1,
       },
       author: { '@type': 'Person', name: 'Henrique Vetor' },
     },
-    ...(hasValidSchemaRating && {
-      aggregateRating: {
-        '@type':       'AggregateRating',
-        ratingValue:   review.schemaRating.ratingValue,
-        reviewCount:   review.schemaRating.reviewCount,
-        bestRating:    10,
-        worstRating:   1,
-      },
-    }),
+    aggregateRating: {
+      '@type':       'AggregateRating',
+      ratingValue:   overallScore,
+      reviewCount:   schemaRatingCount,
+      bestRating:    10,
+      worstRating:   1,
+    },
     offers: {
       '@type':         'Offer',
       url:             review.affiliateUrl || `${SITE_URL}/review/${review.slug}`,
       priceCurrency:   'BRL',
-      price:           price || '0',
+      price:           price,
       availability:    'https://schema.org/InStock',
       returnFees:      'https://schema.org/FreeReturn',
       hasMerchantReturnPolicy: {
