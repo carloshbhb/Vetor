@@ -189,28 +189,69 @@ export async function listSitemaps(): Promise<SitemapEntry[]> {
 export async function submitSitemap(sitemapPath: string = 'sitemap.xml'): Promise<{ success: boolean; message: string }> {
   const accessToken = await getAccessToken();
 
-  // Use PUT to submit (create or update) the sitemap
+  const feedPath = sitemapPath.startsWith('http') ? sitemapPath : `${SITE_URL}/${sitemapPath}`;
+  const encodedFeedPath = encodeURIComponent(feedPath);
+
   const response = await fetch(
-    `${SEARCH_CONSOLE_API}/sites/${encodeURIComponent(SITE_URL)}/sitemaps/${encodeURIComponent(sitemapPath)}`,
+    `${SEARCH_CONSOLE_API}/sites/${encodeURIComponent(SITE_URL)}/sitemaps/${encodedFeedPath}`,
     {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({
-        path: sitemapPath,
-      }),
     }
   );
 
-  const data = await response.json();
+  if (response.status === 204) {
+    return { success: true, message: `Sitemap ${sitemapPath} submitted successfully` };
+  }
+
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     return { success: false, message: data.error?.message || JSON.stringify(data) };
   }
 
   return { success: true, message: `Sitemap ${sitemapPath} submitted successfully` };
+}
+
+// ─── Ping URL to Google Indexing API ─────────────────────
+
+export async function pingUrlToIndexing(url: string, type: 'URL_UPDATED' | 'URL_DELETED' = 'URL_UPDATED'): Promise<{ success: boolean }> {
+  const accessToken = await getAccessToken();
+
+  const response = await fetch('https://indexing.googleapis.com/v3/urlNotifications:publish', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ url, type }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    return { success: false };
+  }
+
+  return { success: true };
+}
+
+// ─── Ping Multiple URLs ──────────────────────────────────
+
+export async function pingUrlsToIndexing(urls: string[]): Promise<{ success: number; failed: number }> {
+  let success = 0;
+  let failed = 0;
+
+  for (const url of urls) {
+    const result = await pingUrlToIndexing(url);
+    if (result.success) success++;
+    else failed++;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  return { success, failed };
 }
 
 // ─── Ping All Sitemaps ──────────────────────────────────────────────
