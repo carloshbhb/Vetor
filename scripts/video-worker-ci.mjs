@@ -47,6 +47,19 @@ async function uploadToYoutube(videoPath, { title, description, tags }) {
   return { id: data.id, url: `https://youtu.be/${data.id}` };
 }
 
+async function setThumbnail(videoId, thumbPath) {
+  const oauth = new OAuth2Client(process.env.YOUTUBE_CLIENT_ID, process.env.YOUTUBE_CLIENT_SECRET, 'http://localhost');
+  oauth.setCredentials({ refresh_token: process.env.YOUTUBE_REFRESH_TOKEN });
+  const { token } = await oauth.getAccessToken();
+  const buf = readFileSync(thumbPath);
+  const res = await fetch(`https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/jpeg', 'Content-Length': String(buf.length) },
+    body: buf,
+  });
+  if (!res.ok) throw new Error(`thumbnail: ${res.status} ${await res.text()}`);
+}
+
 // 1. Garante roteiros do dia (chama o cron da Vercel — leve, só IA)
 console.log(`[1/3] Gerando fila via ${BASE}/api/cron/video-queue ...`);
 try {
@@ -72,30 +85,50 @@ for (const job of jobs) {
   try {
     await sb.from('video_jobs').update({ status: 'rendering', attempts: (job.attempts || 0) + 1 }).eq('slug', slug);
     writeFileSync(txt, script.fullNarration || '', 'utf8');
-    run(`edge-tts --voice pt-BR-AntonioNeural --file "${txt}" --write-media "${mp3}"`);
-    // imagem do review (direto do Supabase — sem endpoint extra)
+    const srt = path.join(tmp, `${slug}.srt`);
+    const thumb = path.join(tmp, `${slug}.thumb.jpg`);
+    run(`edge-tts --voice pt-BR-AntonioNeural --file "${txt}" --write-media "${mp3}" --write-subtitles "${srt}"`);
+    // imagem + link de afiliado (direto do Supabase — sem endpoint extra)
+    let affiliateUrl = '';
     try {
-      const { data: rev } = await sb.from('reviews').select('image_url').eq('slug', slug).single();
+      const { data: rev } = await sb.from('reviews').select('image_url,affiliate_url').eq('slug', slug).single();
       const imgUrl = rev?.image_url;
+      affiliateUrl = rev?.affiliate_url || '';
       if (imgUrl && !existsSync(jpg)) {
         const img = await fetch(imgUrl);
         if (img.ok) writeFileSync(jpg, Buffer.from(await img.arrayBuffer()));
       }
     } catch {}
-    const hook = String(script.scenes?.[0]?.onScreenText || script.hook || '').replace(/'/g, '').slice(0, 60);
+    // escape p/ drawtext (: , ' quebram o filtro)
+    const esc = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'").replace(/,/g, '\\,').slice(0, 60);
+    const total = script.estimatedSeconds || 50;
+    const hook = esc(script.scenes?.[0]?.onScreenText || script.hook);
+    const priceLine = esc([script.offerBadge, script.priceHighlight].filter(Boolean).join(' '));
+    const ctaLine = esc(script.finalCta);
+    const priceStart = Math.max(0, total - 7);
     const inputImg = existsSync(jpg) ? `-loop 1 -i "${jpg}"` : `-f lavfi -loop 1 -i "color=c=0x0b1220:s=1080x1920"`;
     const FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
     const fontOpt = existsSync(FONT) ? `:fontfile=${FONT}` : '';
-    const dt = hook ? `,drawtext=text='${hook}'${fontOpt}:fontcolor=white:fontsize=64:x=(w-text_w)/2:y=h*0.72:box=1:boxcolor=black@0.6:boxborderw=24` : '';
-    run(`ffmpeg -y ${inputImg} -i "${mp3}" -filter_complex "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920${dt}[v]" -map "[v]" -map 1:a -t ${script.estimatedSeconds || 50} -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "${mp4}"`);
-    // 3. Upload direto → YouTube
+    // hook (0-5s) + selo preço/CTA (últimos 7s) + legendas sincronizadas da narração
+    let vf = 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920';
+    if (hook) vf += `,drawtext=text='${hook}'${fontOpt}:fontcolor=white:fontsize=64:x=(w-text_w)/2:y=h*0.30:box=1:boxcolor=black@0.6:boxborderw=24:enable='lte(t\\,5)'`;
+    if (priceLine) vf += `,drawtext=text='${priceLine}'${fontOpt}:fontcolor=yellow:fontsize=72:x=(w-text_w)/2:y=h*0.62:box=1:boxcolor=red@0.85:boxborderw=28:enable='gte(t\\,${priceStart})'`;
+    if (ctaLine) vf += `,drawtext=text='${ctaLine}'${fontOpt}:fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h*0.72:box=1:boxcolor=black@0.6:boxborderw=20:enable='gte(t\\,${priceStart})'`;
+    if (existsSync(srt)) vf += `,subtitles='${srt}':force_style='FontName=DejaVu Sans,FontSize=20,PrimaryColour=&HFFFFFF&,OutlineColour=&H80000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=250'`;
+    run(`ffmpeg -y ${inputImg} -i "${mp3}" -filter_complex "[0:v]${vf}[v]" -map "[v]" -map 1:a -t ${total} -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "${mp4}"`);
+    // 3. Upload direto → YouTube (+ thumbnail; canal precisa ser verificado p/ thumb custom)
     console.log('[3/3] Subindo ao YouTube...');
     const siteUrl = BASE;
-    const up = await uploadToYoutube(mp4, {
-      title: script.title,
-      description: `${script.description || ''}\n\nReview completo: ${siteUrl}/review/${slug}`,
-      tags: script.tags,
-    });
+    const description =
+      `${script.description || ''}` +
+      (affiliateUrl ? `\n\n🛒 Ver oferta: ${affiliateUrl}` : '') +
+      `\n📝 Review completo: ${siteUrl}/review/${slug}`;
+    const up = await uploadToYoutube(mp4, { title: script.title, description, tags: script.tags });
+    try {
+      run(`ffmpeg -y -ss ${Math.floor(total / 2)} -i "${mp4}" -frames:v 1 -q:v 3 "${thumb}"`);
+      await setThumbnail(up.id, thumb);
+      console.log('Thumbnail aplicada.');
+    } catch (e) { console.warn('Thumbnail pulada: ' + e.message); }
     await sb.from('video_jobs').update({ status: 'published', youtube_video_id: up.id, youtube_url: up.url, error: null }).eq('slug', slug);
     console.log('Publicado → ' + up.url);
     ok++;

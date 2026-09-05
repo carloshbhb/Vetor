@@ -21,6 +21,9 @@ export interface VideoScript {
   fullNarration: string; // junção das narrações
   estimatedSeconds: number;
   cta: string;
+  priceHighlight: string; // ex: "R$ 279 (antes R$ 329)"
+  offerBadge: string; // "OFERTA" ou "" — nunca % inventado
+  finalCta: string; // frase curta de ação: "Link da oferta na descrição"
 }
 
 export function buildVideoScriptPrompt(review: ReviewData, siteUrl: string): string {
@@ -31,8 +34,8 @@ export function buildVideoScriptPrompt(review: ReviewData, siteUrl: string): str
     .map((s) => `${s.label}: ${s.value}`)
     .join(' | ');
 
-  return `Você é um roteirista de YouTube Shorts focado em reviews de produtos no Brasil.
-Gere um roteiro de vídeo vertical 9:16 de 45 A 55 SEGUNDOS (~125-140 palavras faladas em pt-BR).
+  return `Você é um roteirista de YouTube Shorts especialista em copy de VENDAS para reviews de produtos no Brasil.
+Gere um roteiro de vídeo vertical 9:16 de 45 A 55 SEGUNDOS (~125-140 palavras faladas em pt-BR) que CONVERTE clique em compra.
 
 PRODUTO: ${review.product}
 CATEGORIA: ${review.category}
@@ -46,16 +49,23 @@ VEREDITO: ${review.verdict?.text || ''}
 URL REVIEW: ${siteUrl}/review/${review.slug}
 LINK OFERTA: ${review.affiliateUrl || ''}
 
+ESTRUTURA DE VENDAS (obrigatória):
+1. Hook (0-3s): dor ou desejo + preço. Ex: "Cansado de pagar caro? Esse aqui custa R$X".
+2. Solução: 3 benefícios práticos (não specs frias — traduza specs em vantagem de uso).
+3. Prova: nota + "testado/aprovado" + 1 contra honesto (credibilidade vende).
+4. Fechamento: preço atual + CTA direto para a oferta.
+
 REGRAS:
-1. Hook nos primeiros 3s com pergunta ou afirmação forte + preço ("Vale R$X?").
-2. 5 a 6 cenas. Cada cena: narration (1-2 frases curtas) + onScreenText (máx 6 palavras, CAIXA ALTA) + durationSec (7-10s).
-3. Linguagem falada, natural, sem emoji, sem markdown, sem "cena 1:" na narração.
-4. Incluir 1 contra honesto para manter credibilidade (review sincero).
-5. CTA final: "Link da oferta + review completo na descrição".
-6. title: até 100 chars, com nome do produto + gancho + #shorts.
-7. description: 2-3 frases + URL do review + aviso de link afiliado + 3 hashtags.
-8. tags: 8-12 tags pt-BR.
-9. Soma de durationSec entre 45 e 58. fullNarration = narrações unidas com espaço.
+1. 5 a 6 cenas. Cada cena: narration (1-2 frases curtas, tom de recomendação de amigo) + onScreenText (CAIXA ALTA, máx 5 palavras, foco em BENEFÍCIO ou PREÇO) + durationSec (7-10s).
+2. Linguagem falada, natural, sem emoji, sem markdown.
+3. NUNCA invente desconto, % off, brinde ou garantia que não estão nos dados. Urgência permitida só genérica ("link na descrição").
+4. priceHighlight: "PREÇO_ATUAL (antes PREÇO_ANTIGO)" usando exatamente os preços acima; se não houver preço antigo, só o atual.
+5. offerBadge: "OFERTA" se houver preço antigo menor que... (apenas "OFERTA" ou string vazia).
+6. finalCta: frase curta de ação com a palavra "descrição" (ex: "O link da oferta tá na descrição").
+7. title: até 100 chars, produto + preço + gancho + #shorts.
+8. description: 1 frase de benefício + preço + "Link da oferta: ..." + "Review completo: ..." + "(link afiliado)" + 3 hashtags.
+9. tags: 8-12 tags pt-BR com intenção de compra ("comprar", "vale a pena", "preço", "review").
+10. Soma de durationSec entre 45 e 58. fullNarration = narrações unidas com espaço.
 
 Retorne APENAS JSON válido nesta estrutura exata:
 {
@@ -66,7 +76,10 @@ Retorne APENAS JSON válido nesta estrutura exata:
   "scenes": [{ "narration": "string", "onScreenText": "string", "durationSec": number }],
   "fullNarration": "string",
   "estimatedSeconds": number,
-  "cta": "string"
+  "cta": "string",
+  "priceHighlight": "string",
+  "offerBadge": "string",
+  "finalCta": "string"
 }`;
 }
 
@@ -152,5 +165,8 @@ export async function generateVideoScript(review: ReviewData): Promise<VideoScri
     fullNarration: String(data.fullNarration || scenes.map((s: any) => s.narration).join(' ')),
     estimatedSeconds,
     cta: String(data.cta || 'Link da oferta na descrição'),
+    priceHighlight: String(data.priceHighlight || review.priceNew || '').slice(0, 60),
+    offerBadge: String(data.offerBadge || '').slice(0, 20),
+    finalCta: String(data.finalCta || data.cta || 'O link da oferta tá na descrição'),
   };
 }

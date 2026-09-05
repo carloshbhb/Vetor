@@ -68,27 +68,35 @@ if (!existsSync(imgPath)) {
   console.log('\n[2/4] Sem imagem do review — usando fundo gerado via ffmpeg.');
 }
 
-// 3. Narração GRÁTIS via edge-tts (voz neural pt-BR, sem API key)
+// 3. Narração GRÁTIS via edge-tts (voz neural pt-BR, sem API key) + legendas .srt
 console.log('\n[3/4] Gerando narração (edge-tts, grátis)...');
 writeFileSync(path.join(tmp, `${slug}.txt`), script.fullNarration, 'utf8');
+const srtPath = path.join(tmp, `${slug}.srt`);
 try {
-  run(`edge-tts --voice pt-BR-AntonioNeural --file "${path.join(tmp, `${slug}.txt`)}" --write-media "${audioPath}"`);
+  run(`edge-tts --voice pt-BR-AntonioNeural --file "${path.join(tmp, `${slug}.txt`)}" --write-media "${audioPath}" --write-subtitles "${srtPath}"`);
 } catch {
   console.error('\nInstale o edge-tts: pip install edge-tts');
   process.exit(1);
 }
 
-// 4. Montagem GRÁTIS via ffmpeg: 1080x1920 + legenda do hook + áudio
+// 4. Montagem padrão vendas: hook + selo preço/CTA + legendas sincronizadas
 console.log('\n[4/4] Montando MP4 9:16...');
-const hook = (script.scenes?.[0]?.onScreenText || script.hook || '').replace(/'/g, '').slice(0, 60);
+const esc = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'").replace(/,/g, '\\,').slice(0, 60);
+const total = script.estimatedSeconds || 50;
+const hook = esc(script.scenes?.[0]?.onScreenText || script.hook);
+const priceLine = esc([script.offerBadge, script.priceHighlight].filter(Boolean).join(' '));
+const ctaLine = esc(script.finalCta);
+const priceStart = Math.max(0, total - 7);
 const inputImg = existsSync(imgPath) ? `-loop 1 -i "${imgPath}"` : `-f lavfi -loop 1 -i "color=c=0x0b1220:s=1080x1920"`;
 const FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
 const fontOpt = existsSync(FONT) ? `:fontfile=${FONT}` : '';
-const drawtext = hook
-  ? `,drawtext=text='${hook}'${fontOpt}:fontcolor=white:fontsize=64:x=(w-text_w)/2:y=h*0.72:box=1:boxcolor=black@0.6:boxborderw=24`
-  : '';
+let vf = 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920';
+if (hook) vf += `,drawtext=text='${hook}'${fontOpt}:fontcolor=white:fontsize=64:x=(w-text_w)/2:y=h*0.30:box=1:boxcolor=black@0.6:boxborderw=24:enable='lte(t\\,5)'`;
+if (priceLine) vf += `,drawtext=text='${priceLine}'${fontOpt}:fontcolor=yellow:fontsize=72:x=(w-text_w)/2:y=h*0.62:box=1:boxcolor=red@0.85:boxborderw=28:enable='gte(t\\,${priceStart})'`;
+if (ctaLine) vf += `,drawtext=text='${ctaLine}'${fontOpt}:fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h*0.72:box=1:boxcolor=black@0.6:boxborderw=20:enable='gte(t\\,${priceStart})'`;
+if (existsSync(srtPath)) vf += `,subtitles='${srtPath}':force_style='FontName=DejaVu Sans,FontSize=20,PrimaryColour=&HFFFFFF&,OutlineColour=&H80000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=250'`;
 run(
-  `ffmpeg -y ${inputImg} -i "${audioPath}" -filter_complex "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920${drawtext}[v]" -map "[v]" -map 1:a -t ${script.estimatedSeconds || 50} -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "${outPath}"`
+  `ffmpeg -y ${inputImg} -i "${audioPath}" -filter_complex "[0:v]${vf}[v]" -map "[v]" -map 1:a -t ${total} -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "${outPath}"`
 );
 
 console.log(`\nOK → ${outPath}`);
