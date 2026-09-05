@@ -1,0 +1,48 @@
+name: videos-diarios
+
+# 100% ONLINE e GRÁTIS (sem PC): gera até 6 Shorts/dia do backlog,
+# depois os novos do dia. Runners grátis: ~2000 min/mês (usamos ~150).
+on:
+  schedule:
+    - cron: '0 14 * * *' # 11h Brasília, após o video-queue da Vercel (13h UTC)
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Qtd de vídeos (máx 6)'
+        default: '6'
+
+jobs:
+  render-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar ffmpeg + edge-tts (grátis)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          pip install -q edge-tts
+          ffmpeg -version | head -1
+
+      - name: Instalar deps do projeto
+        run: npm ci --no-audit --no-fund
+
+      - name: Renderizar + publicar até 6 vídeos
+        env:
+          SITE_BASE: ${{ secrets.SITE_BASE }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_PRIVACY: unlisted
+          VIDEO_LIMIT: ${{ inputs.limit || '6' }}
+        run: node scripts/video-worker-ci.mjs
