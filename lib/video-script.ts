@@ -101,9 +101,9 @@ async function callAI(prompt: string): Promise<any> {
       );
       if (!res.ok) {
         const errTxt = await res.text();
-        // 403 ou 429 = quota zerada -> cai para OpenRouter automaticamente
+        // 403 ou 429 = quota zerada -> cai para Gemini/OpenRouter automaticamente
         if (res.status === 403 || res.status === 429) {
-          console.warn('[VideoScript] Veo quota zerada, fallback OpenRouter');
+          console.warn('[VideoScript] Veo quota zerada, tentando Gemini/OpenRouter');
         } else {
           console.warn('[VideoScript] Veo error: ', res.status, errTxt);
         }
@@ -117,15 +117,39 @@ async function callAI(prompt: string): Promise<any> {
           // Retorna o URI do vídeo para o worker baixar
           return { videoUri, provider: 'Veo 3.1' };
         }
-        // Se não veio vídeo, avisa e cai para fallback
-        console.warn('[VideoScript] Veo não retornou URI de vídeo');
+        // Se não veio vídeo, avisa e cai para Gemini
+        console.warn('[VideoScript] Veo não retornou URI de vídeo, tentando Gemini');
       }
     } catch (e: any) {
-      console.warn('[VideoScript] Veo falhou ou quota zerada:', e.message, '-> fallback OpenRouter');
+      console.warn('[VideoScript] Veo falhou ou quota zerada:', e.message, '-> tentando Gemini');
     }
   }
 
-  // Fallback: OpenRouter (caso quota do Veo tenha acabado)
+  // 2. Tenta Gemini (modelo padrão, usando GEMINI_API_KEY)
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey) {
+    try {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 4096, temperature: 0.8 },
+      });
+      const text = result.response.text();
+      if (!text) throw new Error('Empty Gemini response');
+      const m = text.match(/\{[\s\S]*\}/);
+      if (m) {
+        console.log('[VideoScript] Gemini gerou roteiro');
+        return JSON.parse(m[0]);
+      }
+      throw new Error('Could not parse JSON from Gemini');
+    } catch (geminiErr: any) {
+      console.warn('[VideoScript] Gemini falhou:', geminiErr.message, '-> fallback OpenRouter');
+    }
+  }
+
+  // 3. Fallback: OpenRouter (modelos free, já existentes)
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error('Configure GEMINI_API_KEY ou OPENROUTER_API_KEY');
   const models = [
