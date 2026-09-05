@@ -41,8 +41,10 @@ const outPath = path.join(os.tmpdir(), `${slug}.mp4`);
 const run = (cmd) => { console.log('> ' + cmd); execSync(cmd, { stdio: 'inherit' }); };
 
 // 1. Roteiro (usa sua API já pronta, que usa Gemini grátis / OpenRouter free)
+// Token libera o middleware em produção; em dev use CRON_SECRET do .env.local
 console.log('\n[1/4] Gerando roteiro...');
-const r = await fetch(`${base}/api/video-script`, {
+const _token = process.env.CRON_SECRET ? `?token=${process.env.CRON_SECRET}` : '';
+const r = await fetch(`${base}/api/video-script${_token}`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ slug }),

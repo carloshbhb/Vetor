@@ -31,6 +31,10 @@ const publicApiRoutes = [
 
 const cronApiRoutes = ['/api/cron', '/api/serp-tracker']
 
+// Worker de vídeos (GitHub Actions): mesma proteção por token do cron,
+// pois o runner não tem sessão de login. Uso: ?token=CRON_SECRET
+const workerApiRoutes = ['/api/video-jobs', '/api/video-publish', '/api/video-script']
+
 const publicPages = [
   '/',
   '/sitemap.xml',
@@ -74,6 +78,15 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next({ request: req })
     }
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (workerApiRoutes.some(route => pathname.startsWith(route))) {
+    const cronSecret = process.env.CRON_SECRET
+    const token = req.nextUrl.searchParams.get('token')
+    if (cronSecret && token === cronSecret) {
+      return NextResponse.next({ request: req })
+    }
+    // sem token cai no fluxo normal (login/sessão admin)
   }
 
   let supabase = null

@@ -16,8 +16,9 @@ const privacy = args.privacy || 'unlisted';
 
 const run = (cmd) => { console.log('> ' + cmd); execSync(cmd, { stdio: 'inherit' }); };
 
-// 1. Pega fila pendente
-const status = await (await fetch(`${base}/api/video-jobs`)).json();
+// 1. Pega fila pendente (token libera o middleware; em dev use CRON_SECRET do .env.local)
+const _token = process.env.CRON_SECRET ? `?token=${process.env.CRON_SECRET}` : '';
+const status = await (await fetch(`${base}/api/video-jobs${_token}`)).json();
 console.log(`Hoje: ${status.today} | Backlog: ${status.backlogRemaining} | Com vídeo: ${status.withVideo}/${status.totalReviews}`);
 const pending = (status.jobs || []).filter((j) => ['script_ready', 'ready_mp4'].includes(j.status)).slice(0, 6);
 
@@ -31,7 +32,7 @@ for (const job of pending) {
   console.log(`\n═══ ${job.slug} (${ok + 1}/${pending.length}) ═══`);
   try {
     run(`node scripts/make-shorts.mjs --slug "${job.slug}" --base "${base}"`);
-    const res = await fetch(`${base}/api/video-publish`, {
+    const res = await fetch(`${base}/api/video-publish${_token}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug: job.slug, privacy }),

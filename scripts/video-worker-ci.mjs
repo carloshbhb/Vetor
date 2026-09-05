@@ -54,7 +54,7 @@ try {
   console.log('queue:', (await q.text()).slice(0, 300));
 } catch (e) { console.warn('queue falhou (segue com pendentes):', e.message); }
 
-// 2. Busca pendentes
+// 2. Busca pendentes (com token do worker — middleware libera via ?token=CRON_SECRET)
 const { data: jobs } = await sb.from('video_jobs').select('*').in('status', ['script_ready', 'ready_mp4']).order('created_at').limit(LIMIT);
 console.log(`[2/3] Pendentes: ${jobs?.length || 0}`);
 if (!jobs?.length) { console.log('Nada a fazer.'); process.exit(0); }
