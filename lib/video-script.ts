@@ -92,28 +92,44 @@ async function callAI(prompt: string): Promise<any> {
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error('Configure GEMINI_API_KEY ou OPENROUTER_API_KEY');
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog',
-      'X-Title': 'Vetor Blog Video',
-    },
-    body: JSON.stringify({
-      model: 'meta-llama/llama-3.3-70b-instruct:free',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.8,
-      max_tokens: 4096,
-      response_format: { type: 'json_object' },
-    }),
-  });
-  if (!res.ok) throw new Error(`OpenRouter falhou: ${res.status}`);
-  const json = await res.json();
-  const content = json.choices?.[0]?.message?.content || '';
-  const m = content.match(/\{[\s\S]*\}/);
-  if (!m) throw new Error('IA não retornou JSON válido');
-  return JSON.parse(m[0]);
+  const models = [
+    'nvidia/nemotron-3-super-120b-a12b:free',
+    'minimax/minimax-m3:free',
+    'google/gemma-4-31b-it:free',
+  ];
+  let lastErr = '';
+  for (const model of models) {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog',
+        'X-Title': 'Vetor Blog Video',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.8,
+        max_tokens: 4096,
+        response_format: { type: 'json_object' },
+      }),
+    });
+    if (!res.ok) {
+      lastErr = `OpenRouter ${model}: ${res.status}`;
+      console.warn(`[VideoScript] ${lastErr}, tentando próximo...`);
+      continue;
+    }
+    const json = await res.json();
+    const content = json.choices?.[0]?.message?.content || '';
+    const m = content.match(/\{[\s\S]*\}/);
+    if (!m) {
+      lastErr = `OpenRouter ${model}: sem JSON`;
+      continue;
+    }
+    return JSON.parse(m[0]);
+  }
+  throw new Error(`OpenRouter falhou (${lastErr})`);
 }
 
 export async function generateVideoScript(review: ReviewData): Promise<VideoScript> {
