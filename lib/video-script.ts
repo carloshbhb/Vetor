@@ -84,63 +84,91 @@ Retorne APENAS JSON válido nesta estrutura exata:
 }
 
 async function callAI(prompt: string): Promise<any> {
-  // Tenta Gemini primeiro, fallback OpenRouter (mesmo padrão de lib/generate.ts)
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
+  // 1. Tenta Veo 3.1 (Google AI Studio, grátis com quota diária)
+  const googleKey = process.env.GOOGLE_API_KEY;
+  if (googleKey) {
     try {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(geminiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 4096, temperature: 0.8 },
-      });
-      const text = result.response.text();
-      const m = text.match(/\{[\s\S]*\}/);
-      if (m) return JSON.parse(m[0]);
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:generateContent?key=${googleKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 8192, temperature: 0.7 },
+          }),
+        }
+      );
+      if (!res.ok) {
+        const errTxt = await res.text();
+        // 403 ou 429 = quota zerada -> cai para OpenRouter automaticamente
+        if (res.status === 403 || res.status === 429) {
+          console.warn('[VideoScript] Veo quota zerada, fallback OpenRouter');
+        } else {
+          console.warn('[VideoScript] Veo error: ', res.status, errTxt);
+        }
+        // Não throwing: continua para o fallback
+      } else {
+        const data = await res.json();
+        // Veo retorna: { result: { asset: { uri: 'gs://...' } } }
+        const videoUri = data?.result?.asset?.uri || data?.video?.uri;
+        if (videoUri) {
+          console.log('[VideoScript] Veo gerou vídeo:', videoUri.slice(0, 80));
+          // Retorna o URI do vídeo para o worker baixar
+          return { videoUri, provider: 'Veo 3.1' };
+        }
+        // Se não veio vídeo, avisa e cai para fallback
+        console.warn('[VideoScript] Veo não retornou URI de vídeo');
+      }
     } catch (e: any) {
-      console.warn('[VideoScript] Gemini falhou, usando OpenRouter:', e.message);
+      console.warn('[VideoScript] Veo falhou ou quota zerada:', e.message, '-> fallback OpenRouter');
     }
   }
 
+  // Fallback: OpenRouter (caso quota do Veo tenha acabado)
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error('Configure GEMINI_API_KEY ou OPENROUTER_API_KEY');
   const models = [
-    'nvidia/nemotron-3-super-120b-a12b:free',
-    'minimax/minimax-m3:free',
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'nvidia/nemotron-3.5-lightning:free',
     'google/gemma-4-31b-it:free',
   ];
   let lastErr = '';
   for (const model of models) {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog',
-        'X-Title': 'Vetor Blog Video',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.8,
-        max_tokens: 4096,
-        response_format: { type: 'json_object' },
-      }),
-    });
-    if (!res.ok) {
-      lastErr = `OpenRouter ${model}: ${res.status}`;
-      console.warn(`[VideoScript] ${lastErr}, tentando próximo...`);
-      continue;
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog',
+          'X-Title': 'Vetor Blog Video',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.8,
+          max_tokens: 4096,
+          response_format: { type: 'json_object' },
+        }),
+      });
+      if (!res.ok) {
+        lastErr = `OpenRouter ${model}: ${res.status}`;
+        console.warn(`[VideoScript] ${lastErr}, tentando próximo...`);
+        continue;
+      }
+      const json = await res.json();
+      const content = json.choices?.[0]?.message?.content || '';
+      const m = content.match(/\{[\s\S]*\}/);
+      if (!m) {
+        lastErr = `OpenRouter ${model}: sem JSON`;
+        continue;
+      }
+      return JSON.parse(m[0]);
+    } catch (err: any) {
+      lastErr = err.message;
+      console.warn(`[VideoScript] OpenRouter ${model} falhou:`, err.message);
     }
-    const json = await res.json();
-    const content = json.choices?.[0]?.message?.content || '';
-    const m = content.match(/\{[\s\S]*\}/);
-    if (!m) {
-      lastErr = `OpenRouter ${model}: sem JSON`;
-      continue;
-    }
-    return JSON.parse(m[0]);
   }
   throw new Error(`OpenRouter falhou (${lastErr})`);
 }
