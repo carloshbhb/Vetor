@@ -82,8 +82,10 @@ try {
 console.log('\n[4/4] Montando MP4 9:16...');
 const hook = (script.scenes?.[0]?.onScreenText || script.hook || '').replace(/'/g, '').slice(0, 60);
 const inputImg = existsSync(imgPath) ? `-loop 1 -i "${imgPath}"` : `-f lavfi -loop 1 -i "color=c=0x0b1220:s=1080x1920"`;
+const FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
+const fontOpt = existsSync(FONT) ? `:fontfile=${FONT}` : '';
 const drawtext = hook
-  ? `,drawtext=text='${hook}':fontcolor=white:fontsize=64:x=(w-text_w)/2:y=h*0.72:box=1:boxcolor=black@0.6:boxborderw=24`
+  ? `,drawtext=text='${hook}'${fontOpt}:fontcolor=white:fontsize=64:x=(w-text_w)/2:y=h*0.72:box=1:boxcolor=black@0.6:boxborderw=24`
   : '';
 run(
   `ffmpeg -y ${inputImg} -i "${audioPath}" -filter_complex "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920${drawtext}[v]" -map "[v]" -map 1:a -t ${script.estimatedSeconds || 50} -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "${outPath}"`

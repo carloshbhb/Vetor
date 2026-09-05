@@ -84,7 +84,9 @@ for (const job of jobs) {
     } catch {}
     const hook = String(script.scenes?.[0]?.onScreenText || script.hook || '').replace(/'/g, '').slice(0, 60);
     const inputImg = existsSync(jpg) ? `-loop 1 -i "${jpg}"` : `-f lavfi -loop 1 -i "color=c=0x0b1220:s=1080x1920"`;
-    const dt = hook ? `,drawtext=text='${hook}':fontcolor=white:fontsize=64:x=(w-text_w)/2:y=h*0.72:box=1:boxcolor=black@0.6:boxborderw=24` : '';
+    const FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
+    const fontOpt = existsSync(FONT) ? `:fontfile=${FONT}` : '';
+    const dt = hook ? `,drawtext=text='${hook}'${fontOpt}:fontcolor=white:fontsize=64:x=(w-text_w)/2:y=h*0.72:box=1:boxcolor=black@0.6:boxborderw=24` : '';
     run(`ffmpeg -y ${inputImg} -i "${mp3}" -filter_complex "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920${dt}[v]" -map "[v]" -map 1:a -t ${script.estimatedSeconds || 50} -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "${mp4}"`);
     // 3. Upload direto → YouTube
     console.log('[3/3] Subindo ao YouTube...');
