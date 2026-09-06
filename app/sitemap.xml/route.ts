@@ -107,6 +107,7 @@ export async function GET() {
 </urlset>`;
 
   const allUrls = [
+    `${baseUrl}/rss.xml`,
     ...staticUrls.map(p => `${baseUrl}${p.path}`),
     ...categories.map(cat => `${baseUrl}/categoria/${slugify(cat)}`),
     ...reviews.map(r => `${baseUrl}/review/${r.slug}`),
