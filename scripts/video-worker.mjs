@@ -4,6 +4,23 @@
 //
 // Uso: node scripts/video-worker.mjs [--base http://localhost:3000] [--privacy unlisted]
 import { execSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+
+// Carrega .env.local automaticamente (não é carregado pelo Node nativamente)
+const envPath = path.join(process.cwd(), '.env.local');
+if (existsSync(envPath)) {
+  const envContent = readFileSync(envPath, 'utf8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIndex = trimmed.indexOf('=');
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed.slice(eqIndex + 1).trim().replace(/^"|"$/g, '');
+    if (!process.env[key]) process.env[key] = value;
+  }
+}
 
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, cur, i, arr) => {
