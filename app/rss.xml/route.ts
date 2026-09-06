@@ -4,14 +4,6 @@ import type { ReviewData } from '@/lib/types';
 
 export const revalidate = 3600;
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-}
-
 function formatRFC3339(dateStr: string): string {
   const d = new Date(dateStr);
   return d.toISOString();
