@@ -1,5 +1,6 @@
 import { getPublishedReviews } from '@/lib/db';
 import { NEXT_PUBLIC_SITE_URL } from '@/lib/env';
+import type { ReviewData } from '@/lib/types';
 
 export const revalidate = 3600;
 
@@ -21,7 +22,7 @@ export async function GET() {
     ? NEXT_PUBLIC_SITE_URL
     : `https://${NEXT_PUBLIC_SITE_URL}`;
 
-  let reviews;
+  let reviews: ReviewData[];
   try {
     reviews = await getPublishedReviews();
   } catch {
@@ -29,7 +30,6 @@ export async function GET() {
   }
 
   const items = reviews.map(r => {
-    const categorySlug = r.category ? slugify(r.category) : 'geral';
     return `
     <item>
       <title>${escapeXml(r.meta.title)}</title>
