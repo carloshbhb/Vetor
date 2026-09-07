@@ -192,7 +192,21 @@ for (const job of jobs) {
   const mp4 = path.join(tmp, `${slug}.mp4`);
   const audioBackup = path.join(tmp, `${slug}_audio.mp3`);
   try {
-    await sb.from('video_jobs').update({ status: 'rendering', attempts: (job.attempts || 0) + 1 }).eq('slug', slug);
+    // Claim atômico: só assume o job se ele AINDA estiver pendente.
+    // Evita 2 runners (agendado + manual) renderizando o mesmo slug ao mesmo tempo.
+    const { data: claimed } = await sb.from('video_jobs')
+      .update({ status: 'rendering', attempts: (job.attempts || 0) + 1, updated_at: new Date().toISOString() })
+      .in('status', ['script_ready', 'ready_mp4'])
+      .eq('slug', slug)
+      .select('slug');
+    if (!claimed?.length) { console.log('Job já assumido por outro runner, pulando.'); continue; }
+    // Trava anti-duplicado: se já existe vídeo no YouTube p/ este slug,
+    // não re-envia — só garante status published e pula.
+    if (job.youtube_video_id) {
+      await sb.from('video_jobs').update({ status: 'published', error: null }).eq('slug', slug);
+      console.log(`Já tem vídeo (${job.youtube_video_id}), upload pulado.`);
+      continue;
+    }
     const total = script.estimatedSeconds || 50;
     writeFileSync(txt, script.fullNarration || '', 'utf8');
     const srt = path.join(tmp, `${slug}.srt`);

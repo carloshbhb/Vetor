@@ -53,6 +53,16 @@ export async function getPublishedJobSlugs(): Promise<Set<string>> {
   return new Set((data || []).map((r: any) => r.slug));
 }
 
+// Todos os slugs que JÁ têm linha na fila (qualquer status, inclusive com vídeo
+// publicado). Regra 1 review = 1 vídeo: o cron nunca regenera esses slugs,
+// mesmo se o status voltar para script_ready por qualquer motivo.
+export async function getAllJobSlugs(): Promise<Set<string>> {
+  const sb = supabaseAdmin();
+  if (!sb) return new Set(readFallback().map((j) => j.slug));
+  const { data } = await sb.from('video_jobs').select('slug');
+  return new Set((data || []).map((r: any) => r.slug));
+}
+
 export async function getPendingJobs(limit = 20): Promise<VideoJob[]> {
   const sb = supabaseAdmin();
   if (!sb) {
@@ -84,16 +94,30 @@ export async function getJobsTodayCount(): Promise<number> {
   return count || 0;
 }
 
-export async function upsertScriptJob(job: VideoJob): Promise<void> {
+export async function upsertScriptJob(job: VideoJob, opts?: { force?: boolean }): Promise<'created' | 'skipped'> {
   const sb = supabaseAdmin();
   if (!sb) {
     const all = readFallback();
     const i = all.findIndex((j) => j.slug === job.slug);
+    const existing = i >= 0 ? all[i] : null;
+    // Trava anti-duplicado: nunca rebaixa linha que já tem vídeo publicado
+    if (existing && (existing.status === 'published' || existing.youtube_video_id) && !opts?.force) {
+      return 'skipped';
+    }
     const row = { ...job, updated_at: new Date().toISOString() } as any;
     if (i >= 0) all[i] = { ...all[i], ...row };
     else all.push({ ...row, created_at: new Date().toISOString() });
     writeFallback(all);
-    return;
+    return 'created';
+  }
+  // Trava anti-duplicado no banco antes do upsert
+  const { data: existing } = await sb
+    .from('video_jobs')
+    .select('status,youtube_video_id')
+    .eq('slug', job.slug)
+    .maybeSingle();
+  if (existing && (existing.status === 'published' || (existing as any).youtube_video_id) && !opts?.force) {
+    return 'skipped';
   }
   await sb.from('video_jobs').upsert(
     {
@@ -107,6 +131,7 @@ export async function upsertScriptJob(job: VideoJob): Promise<void> {
     },
     { onConflict: 'slug' }
   );
+  return 'created';
 }
 
 export async function markJob(slug: string, patch: Partial<VideoJob>): Promise<void> {
