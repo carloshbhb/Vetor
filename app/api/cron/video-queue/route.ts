@@ -12,9 +12,11 @@ import {
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-// GET /api/cron/video-queue?token=CRON_SECRET&limit=30
-// Gera até 30 roteiros/dia (cota YouTube). Backlog primeiro (mais antigos),
-// depois os novos. Roda leve na Vercel (só IA + banco). Render/upload fica no worker local.
+// GET /api/cron/video-queue?token=CRON_SECRET&limit=30&batch=3
+// Gera roteiros em LOTES pequenos por invocação (padrão 3) para não estourar
+// o timeout da serverless na Vercel. `limit` = teto do dia; `batch` = quantos
+// roteiros gerar NESTA chamada. Backlog primeiro (mais antigos), depois os novos.
+// Roda leve na Vercel (só IA + banco). Render/upload fica no worker.
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token');
   if (token !== process.env.CRON_SECRET) {
@@ -41,7 +43,12 @@ export async function GET(req: NextRequest) {
 
     // Backlog primeiro: mais antigos sem vídeo (reviews vem desc; invertemos)
     const backlog = [...reviews].reverse().filter((r) => !doneSlugs.has(r.slug));
-    const batch = backlog.slice(0, remaining);
+    // Lote pequeno por invocação para caber no timeout da serverless
+    const batchSize = Math.min(
+      Math.max(Number(req.nextUrl.searchParams.get('batch') || 3), 1),
+      remaining
+    );
+    const batch = backlog.slice(0, batchSize);
 
     const jobs: any[] = [];
     const errors: any[] = [];

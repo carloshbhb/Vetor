@@ -162,12 +162,19 @@ async function buildCarouselVideo(scenes, tmp, mp4, total, audioPath) {
   }
 }
 
-// 1. Garante roteiros do dia
+// 1. Garante roteiros do dia em lotes pequenos (cada chamada gera até `batch`
+// roteiros para não estourar o timeout da serverless na Vercel)
 console.log(`[1/3] Gerando fila via ${BASE}/api/cron/video-queue ...`);
-try {
-  const q = await fetch(`${BASE}/api/cron/video-queue?token=${process.env.CRON_SECRET}&limit=${LIMIT}`);
-  console.log('queue:', (await q.text()).slice(0, 300));
-} catch (e) { console.warn('queue falhou (segue com pendentes):', e.message); }
+const BATCH = Math.min(Math.max(Number(process.env.VIDEO_BATCH || 3), 1), 10);
+for (let i = 0; i < Math.ceil(LIMIT / BATCH); i++) {
+  try {
+    const q = await fetch(`${BASE}/api/cron/video-queue?token=${process.env.CRON_SECRET}&limit=${LIMIT}&batch=${BATCH}`);
+    const qtxt = await q.text();
+    console.log(`queue lote ${i + 1}:`, qtxt.slice(0, 300));
+    const parsed = JSON.parse(qtxt);
+    if (!parsed?.jobs?.length) break;
+  } catch (e) { console.warn('queue falhou (segue com pendentes):', e.message); break; }
+}
 
 // 2. Busca pendentes
 const { data: jobs } = await sb.from('video_jobs').select('*').in('status', ['script_ready', 'ready_mp4']).order('created_at').limit(LIMIT);
