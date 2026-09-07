@@ -105,11 +105,19 @@ async function postReviewComment(videoId, text) {
 
 async function downloadImage(url, dest) {
   try {
-    const img = await fetch(url);
-    if (img.ok) {
-      writeFileSync(dest, Buffer.from(await img.arrayBuffer()));
-      return true;
-    }
+    // User-Agent de browser: CDNs (ex.: Mercado Livre) bloqueiam requests sem UA
+    const img = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+        Accept: 'image/*,*/*',
+      },
+    });
+    if (!img.ok) return false;
+    const buf = Buffer.from(await img.arrayBuffer());
+    // Rejeita placeholder/página de erro (pequena demais p/ ser foto real)
+    if (buf.length < 2048) return false;
+    writeFileSync(dest, buf);
+    return true;
   } catch {}
   return false;
 }
@@ -217,7 +225,17 @@ for (const job of jobs) {
 
     // Busca imagens das cenas
     let scenes = script.scenes || [];
+    // Fallback: imagem do review (foto real do produto — sempre primeiro,
+    // pois é a única URL verificada; as das cenas vêm da IA e podem falhar)
+    let affiliateUrl = '';
+    let reviewImageUrl = '';
+    try {
+      const { data: rev } = await sb.from('reviews').select('image_url,affiliate_url').eq('slug', slug).single();
+      reviewImageUrl = rev?.image_url || '';
+      affiliateUrl = rev?.affiliate_url || '';
+    } catch {}
     let carouselImages = [];
+    if (reviewImageUrl) carouselImages.push(reviewImageUrl);
     for (const scene of scenes) {
       if (scene?.images) {
         for (const imgUrl of scene.images) {
@@ -225,14 +243,6 @@ for (const job of jobs) {
         }
       }
     }
-    // Fallback: imagem do review
-    let affiliateUrl = '';
-    try {
-      const { data: rev } = await sb.from('reviews').select('image_url,affiliate_url').eq('slug', slug).single();
-      const imgUrl = rev?.image_url;
-      affiliateUrl = rev?.affiliate_url || '';
-      if (imgUrl && carouselImages.length === 0) carouselImages.push(imgUrl);
-    } catch {}
 
     // Baixa imagens para o carousel
     const downloadedImages = [];
@@ -266,6 +276,12 @@ for (const job of jobs) {
       const FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
       const fontOpt = existsSync(FONT) ? `:fontfile=${FONT}` : '';
       let vf = 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920';
+      // Sem foto: nome do produto em destaque no centro (nunca fundo preto puro)
+      const noPhoto = downloadedImages.length === 0;
+      if (noPhoto) {
+        const productLine = esc(job.product || script.title || slug).slice(0, 40);
+        if (productLine) vf += `,drawtext=text='${productLine}'${fontOpt}:fontcolor=white:fontsize=56:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=black@0.6:boxborderw=24`;
+      }
       if (hook) vf += `,drawtext=text='${hook}'${fontOpt}:fontcolor=white:fontsize=64:x=(w-text_w)/2:y=h*0.30:box=1:boxcolor=black@0.6:boxborderw=24:enable='lte(t\\,5)'`;
       if (priceLine) vf += `,drawtext=text='${priceLine}'${fontOpt}:fontcolor=yellow:fontsize=72:x=(w-text_w)/2:y=h*0.62:box=1:boxcolor=red@0.85:boxborderw=28:enable='gte(t\\,${priceStart})'`;
       if (ctaLine) vf += `,drawtext=text='${ctaLine}'${fontOpt}:fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h*0.72:box=1:boxcolor=black@0.6:boxborderw=20:enable='gte(t\\,${priceStart})'`;
