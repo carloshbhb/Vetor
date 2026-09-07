@@ -72,7 +72,17 @@ export async function GET(req: NextRequest) {
       remaining
     );
     const batchSlugs = backlogSlugs.slice(0, batchSize);
-    const batch = await getReviewsBySlugs(batchSlugs);
+    // Filtra aqui: nao gera script para slugs que ja tao em video_jobs
+    // (o upsertScriptJob tambem filtra, mas gerar o script ja custa IA;
+    // se o upsert retornar 'skipped', o script foi gerado a mais)
+    const filteredSlugs = batchSlugs.filter((s) => !doneSlugs.has(s));
+    if (!filteredSlugs.length) {
+      return NextResponse.json(
+        { v: 'dedup-v2', db: (process.env.NEXT_PUBLIC_SUPABASE_URL || 'none').slice(-6), success: true, message: `Fila: 0 roteiros prontos (${publishedToday} já publicados hoje). Todos os ${batchSlugs.length} slugs do lote já têm vídeo.`, jobs: [], skipped: batchSlugs, errors: [], nextStep: 'Nada pendente no lote.' },
+        { headers: NO_STORE }
+      );
+    }
+    const batch = await getReviewsBySlugs(filteredSlugs);
 
     const jobs: any[] = [];
     const errors: any[] = [];
