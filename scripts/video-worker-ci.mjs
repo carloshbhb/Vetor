@@ -174,13 +174,18 @@ async function buildCarouselVideo(scenes, tmp, mp4, total, audioPath) {
 // roteiros para não estourar o timeout da serverless na Vercel)
 console.log(`[1/3] Gerando fila via ${BASE}/api/cron/video-queue ...`);
 const BATCH = Math.min(Math.max(Number(process.env.VIDEO_BATCH || 3), 1), 10);
+const seenSlugs = new Set();
 for (let i = 0; i < Math.ceil(LIMIT / BATCH); i++) {
   try {
     const q = await fetch(`${BASE}/api/cron/video-queue?token=${process.env.CRON_SECRET}&limit=${LIMIT}&batch=${BATCH}`);
     const qtxt = await q.text();
     console.log(`queue lote ${i + 1}:`, qtxt.slice(0, 300));
     const parsed = JSON.parse(qtxt);
-    if (!parsed?.jobs?.length) break;
+    const newSlugs = (parsed?.jobs || []).map((j) => j.slug).filter((s) => !seenSlugs.has(s));
+    // Para quando não vier nada novo (evita regenerar os mesmos slugs em loop
+    // e queimar cota de IA à toa)
+    if (!newSlugs.length) break;
+    newSlugs.forEach((s) => seenSlugs.add(s));
   } catch (e) { console.warn('queue falhou (segue com pendentes):', e.message); break; }
 }
 
@@ -190,6 +195,8 @@ console.log(`[2/3] Pendentes: ${jobs?.length || 0}`);
 if (!jobs?.length) { console.log('Nada a fazer.'); process.exit(0); }
 
 let ok = 0;
+let failed = 0;
+let skipped = 0;
 for (const job of jobs) {
   const slug = job.slug;
   const script = job.script || {};
@@ -207,12 +214,13 @@ for (const job of jobs) {
       .in('status', ['script_ready', 'ready_mp4'])
       .eq('slug', slug)
       .select('slug');
-    if (!claimed?.length) { console.log('Job já assumido por outro runner, pulando.'); continue; }
+    if (!claimed?.length) { console.log('Job já assumido por outro runner, pulando.'); skipped++; continue; }
     // Trava anti-duplicado: se já existe vídeo no YouTube p/ este slug,
     // não re-envia — só garante status published e pula.
     if (job.youtube_video_id) {
       await sb.from('video_jobs').update({ status: 'published', error: null }).eq('slug', slug);
       console.log(`Já tem vídeo (${job.youtube_video_id}), upload pulado.`);
+      skipped++;
       continue;
     }
     const total = script.estimatedSeconds || 50;
@@ -316,8 +324,10 @@ for (const job of jobs) {
     ok++;
   } catch (e) {
     console.error('Falhou ' + slug + ': ' + e.message);
+    failed++;
     await sb.from('video_jobs').update({ status: 'failed', error: String(e.message).slice(0, 500) }).eq('slug', slug);
   }
 }
-console.log(`\nFim: ${ok}/${jobs.length} publicados.`);
-process.exit(ok ? 0 : 1);
+console.log(`\nFim: ${ok} publicados, ${skipped} pulados, ${failed} falhas (${jobs.length} pendentes).`);
+// Exit 1 só se houve falha real; pulos (anti-duplicado) não são erro
+process.exit(failed ? 1 : 0);
