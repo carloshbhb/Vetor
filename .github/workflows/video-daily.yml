@@ -2,19 +2,30 @@ name: videos-diarios
 
 # 100% ONLINE e GRÁTIS (sem PC): gera até 30 Shorts/dia do backlog,
 # depois os novos do dia. Runners grátis: ~2000 min/mês (usamos ~150).
+# Dividido em 3 runs de ~10 vídeos cada (cabem no timeout de 60 min).
 on:
   schedule:
-    - cron: '0 14 * * *' # 11h Brasília, após o video-queue da Vercel (13h UTC)
+    - cron: '0 13 * * *'   # 10h Brasilia (manha)
+    - cron: '0 18 * * *'   # 15h Brasilia (tarde)
+    - cron: '0 23 * * *'   # 20h Brasilia (noite)
   workflow_dispatch:
     inputs:
       limit:
-        description: 'Qtd de vídeos (máx 30)'
-        default: '30'
+        description: 'Qtd de videos por run (max 10)'
+        default: '10'
+      offset:
+        description: 'Offset do dia para run manual'
+        default: '0'
+
+env:
+  VIDEO_BATCH: '3'
 
 jobs:
   render-publish:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
     steps:
       - uses: actions/checkout@v5
 
@@ -22,7 +33,7 @@ jobs:
         with:
           node-version: 24
 
-      - name: Instalar ffmpeg + edge-tts (grátis)
+      - name: Instalar ffmpeg + edge-tts (gratis)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
@@ -32,7 +43,7 @@ jobs:
       - name: Instalar deps do projeto
         run: npm ci --no-audit --no-fund
 
-      - name: Renderizar + publicar até 30 vídeos
+      - name: Renderizar + publicar ate 10 videos
         env:
           SITE_BASE: ${{ secrets.SITE_BASE }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -44,5 +55,5 @@ jobs:
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_PRIVACY: public
-          VIDEO_LIMIT: ${{ inputs.limit || '30' }}
+          VIDEO_LIMIT: ${{ inputs.limit || '10' }}
         run: node scripts/video-worker-ci.mjs
