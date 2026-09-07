@@ -6,6 +6,7 @@ import {
   getPublishedJobSlugs,
   getJobsTodayCount,
   upsertScriptJob,
+  getPendingJobs,
 } from '@/lib/video-queue';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,12 @@ export async function GET(req: NextRequest) {
     }
 
     const reviews = await getPublishedReviews();
+    // Inclui script_ready como "feito" para não regenerar os mesmos roteiros
     const doneSlugs = await getPublishedJobSlugs();
+    const pendingJobs = await getPendingJobs(limit * 2);
+    const pendingSlugs = new Set(pendingJobs.map((j) => j.slug));
+    for (const slug of pendingSlugs) doneSlugs.add(slug);
+
     // Backlog primeiro: mais antigos sem vídeo (reviews vem desc; invertemos)
     const backlog = [...reviews].reverse().filter((r) => !doneSlugs.has(r.slug));
     const batch = backlog.slice(0, remaining);
