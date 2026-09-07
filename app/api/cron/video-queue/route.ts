@@ -11,8 +11,8 @@ import {
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-// GET /api/cron/video-queue?token=CRON_SECRET&limit=6
-// Gera até 6 roteiros/dia (cota grátis YouTube). Backlog primeiro (mais antigos),
+// GET /api/cron/video-queue?token=CRON_SECRET&limit=30
+// Gera até 30 roteiros/dia (cota YouTube). Backlog primeiro (mais antigos),
 // depois os novos. Roda leve na Vercel (só IA + banco). Render/upload fica no worker local.
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token');
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
       jobs,
       errors,
       nextStep: jobs.length
-        ? 'No seu PC rode: node scripts/video-worker.mjs (renderiza + publica os script_ready, até 6/dia)'
+        ? 'No seu PC rode: node scripts/video-worker.mjs (renderiza + publica os script_ready, até 30/dia)'
         : 'Nada pendente — amanhã o cron pega os reviews novos do dia.',
     });
   } catch (e: any) {

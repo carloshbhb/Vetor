@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Vetor Blog — Fila de vídeos (6/dia grátis = cota YouTube Data API)
+// Vetor Blog — Fila de vídeos (30/dia = cota YouTube Data API)
 // Regra: backlog primeiro (reviews publicados mais antigos sem vídeo),
 // depois os reviews novos do dia. Quando zerar o backlog, o cron passa
 // a gerar só 1-2/dia (os novos do autonomous-agent).
@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const DAILY_VIDEO_LIMIT = 6;
+export const DAILY_VIDEO_LIMIT = 30;
 
 export interface VideoJob {
   id?: string;

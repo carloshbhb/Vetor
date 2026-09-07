@@ -22,8 +22,8 @@ if (existsSync(envPath)) {
 }
 
 const BASE = (process.env.SITE_BASE || 'https://www.vetor.blog').replace(/\/$/, '');
-const LIMIT = Math.min(Number(process.env.VIDEO_LIMIT || 6), 6);
-const PRIVACY = process.env.YOUTUBE_PRIVACY || 'unlisted';
+const LIMIT = Math.min(Number(process.env.VIDEO_LIMIT || 30), 30);
+const PRIVACY = process.env.YOUTUBE_PRIVACY || 'public';
 
 const run = (cmd) => { console.log('> ' + cmd); execSync(cmd, { stdio: 'inherit' }); };
 

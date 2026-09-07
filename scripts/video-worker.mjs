@@ -1,4 +1,4 @@
-// Worker LOCAL gratuito — renderiza + publica até 6 vídeos/dia.
+// Worker LOCAL gratuito — renderiza + publica até 30 vídeos/dia.
 // O cron da Vercel só gera roteiros (leve). Este worker faz o pesado:
 // edge-tts + ffmpeg + upload. Rode 1x/dia no seu PC.
 //
@@ -37,7 +37,7 @@ const run = (cmd) => { console.log('> ' + cmd); execSync(cmd, { stdio: 'inherit'
 const _token = process.env.CRON_SECRET ? `?token=${process.env.CRON_SECRET}` : '';
 const status = await (await fetch(`${base}/api/video-jobs${_token}`)).json();
 console.log(`Hoje: ${status.today} | Backlog: ${status.backlogRemaining} | Com vídeo: ${status.withVideo}/${status.totalReviews}`);
-const pending = (status.jobs || []).filter((j) => ['script_ready', 'ready_mp4'].includes(j.status)).slice(0, 6);
+const pending = (status.jobs || []).filter((j) => ['script_ready', 'ready_mp4'].includes(j.status)).slice(0, 30);
 
 if (!pending.length) {
   console.log('Nada para renderizar. Se o backlog > 0, rode primeiro o cron: /api/cron/video-queue?token=SEU_CRON_SECRET');

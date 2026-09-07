@@ -1,6 +1,6 @@
 name: videos-diarios
 
-# 100% ONLINE e GRÁTIS (sem PC): gera até 6 Shorts/dia do backlog,
+# 100% ONLINE e GRÁTIS (sem PC): gera até 30 Shorts/dia do backlog,
 # depois os novos do dia. Runners grátis: ~2000 min/mês (usamos ~150).
 on:
   schedule:
@@ -8,13 +8,13 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: 'Qtd de vídeos (máx 6)'
-        default: '6'
+        description: 'Qtd de vídeos (máx 30)'
+        default: '30'
 
 jobs:
   render-publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
 
@@ -32,7 +32,7 @@ jobs:
       - name: Instalar deps do projeto
         run: npm ci --no-audit --no-fund
 
-      - name: Renderizar + publicar até 6 vídeos
+      - name: Renderizar + publicar até 30 vídeos
         env:
           SITE_BASE: ${{ secrets.SITE_BASE }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -43,6 +43,6 @@ jobs:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          YOUTUBE_PRIVACY: unlisted
-          VIDEO_LIMIT: ${{ inputs.limit || '6' }}
+          YOUTUBE_PRIVACY: public
+          VIDEO_LIMIT: ${{ inputs.limit || '30' }}
         run: node scripts/video-worker-ci.mjs
