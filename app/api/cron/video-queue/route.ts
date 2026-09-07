@@ -60,6 +60,8 @@ export async function GET(req: NextRequest) {
     ]);
     const forceSlug = req.nextUrl.searchParams.get('force') || '';
     if (forceSlug) doneSlugs.delete(forceSlug);
+    // DEBUG temporario — remove antes do deploy de producao
+    console.error(`DEBUG doneSlugs=${doneSlugs.size} queue=${queue.length} retry=${retrySlugs.length}`);
 
     // Backlog primeiro: mais antigos sem vídeo. Retries de falhas (attempts<3)
     // vêm antes, SENÃO um job falhado nunca mais seria pego.
