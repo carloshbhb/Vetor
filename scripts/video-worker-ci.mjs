@@ -1,5 +1,5 @@
 // Worker CI 100% ONLINE (GitHub Actions, grátis, sem PC).
-// Faz tudo no runner: busca jobs script_ready → edge-tts → ffmpeg com carrossel de imagens → upload YouTube → marca published.
+// Faz tudo no runner: busca jobs script_ready → edge-tts → ffmpeg com carrossel de imagens → upload YouTube (+ thumbnail + comentário com link do review) → marca published.
 // Uso local (opcional): SITE_BASE=https://www.vetor.blog node scripts/video-worker-ci.mjs
 import { execSync } from 'node:child_process';
 import { existsSync, writeFileSync, readFileSync, mkdirSync } from 'node:fs';
@@ -70,6 +70,37 @@ async function setThumbnail(videoId, thumbPath) {
     body: buf,
   });
   if (!res.ok) throw new Error(`thumbnail: ${res.status} ${await res.text()}`);
+}
+
+async function postReviewComment(videoId, text) {
+  // Cria um comentário no vídeo com o link do review.
+  // Limitação real da API: o YouTube Data API v3 NÃO tem endpoint de "fixar"
+  // comentário — fixar só pelo YouTube Studio manual. Aqui criamos o comentário;
+  // o fixar fica como passo manual (1 clique no Studio).
+  const oauth = new OAuth2Client(process.env.YOUTUBE_CLIENT_ID, process.env.YOUTUBE_CLIENT_SECRET, 'http://localhost');
+  oauth.setCredentials({ refresh_token: process.env.YOUTUBE_REFRESH_TOKEN });
+  const { token } = await oauth.getAccessToken();
+  if (!token) throw new Error('Sem access_token YouTube');
+
+  const initRes = await fetch('https://www.googleapis.com/youtube/v3/commentThreads?part=snippet', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      snippet: {
+        videoId,
+        topLevelComment: {
+          snippet: { textOriginal: text }
+        }
+      }
+    }),
+  });
+  if (!initRes.ok) {
+    const errTxt = await initRes.text();
+    // 403 = escopo insuficiente (token sem youtube.force-ssl) ou comentários desativados
+    throw new Error(`comment create: ${initRes.status} ${errTxt.slice(0, 300)}`);
+  }
+  const commentData = await initRes.json();
+  return commentData?.id || null;
 }
 
 async function downloadImage(url, dest) {
@@ -155,6 +186,7 @@ for (const job of jobs) {
   const audioBackup = path.join(tmp, `${slug}_audio.mp3`);
   try {
     await sb.from('video_jobs').update({ status: 'rendering', attempts: (job.attempts || 0) + 1 }).eq('slug', slug);
+    const total = script.estimatedSeconds || 50;
     writeFileSync(txt, script.fullNarration || '', 'utf8');
     const srt = path.join(tmp, `${slug}.srt`);
     const thumb = path.join(tmp, `${slug}.thumb.jpg`);
@@ -195,7 +227,6 @@ for (const job of jobs) {
 
     if (hasCarousel) {
       // Cria vídeo com carrossel de imagens
-      const total = script.estimatedSeconds || 50;
       const audioPath = path.join(tmp, `audio_${slug}.mp3`);
       run(`cp "${mp3}" "${audioPath}"`);
       success = await buildCarouselVideo(scenes, tmp, mp4, total, audioPath);
@@ -204,7 +235,6 @@ for (const job of jobs) {
     if (!success) {
       // Fallback: imagem única (mesmo código antigo)
       const jpg = path.join(tmp, `${slug}.jpg`);
-      const total = script.estimatedSeconds || 50;
       const esc = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'").replace(/,/g, '\\,').slice(0, 60);
       const hook = esc(script.scenes?.[0]?.onScreenText || script.hook);
       const priceLine = esc([script.offerBadge, script.priceHighlight].filter(Boolean).join(' '));
@@ -236,6 +266,15 @@ for (const job of jobs) {
     } catch (e) { console.warn('Thumbnail pulada: ' + e.message); }
     await sb.from('video_jobs').update({ status: 'published', youtube_video_id: up.id, youtube_url: up.url, error: null }).eq('slug', slug);
     console.log('Publicado → ' + up.url);
+    // 4. Comentário com link do review (para fixar depois no YouTube Studio)
+    try {
+      const siteUrl = BASE;
+      const reviewUrl = `${siteUrl}/review/${slug}`;
+      const product = job.product || script.title || slug;
+      const commentText = `📝 Review completo do ${product} com preço atualizado e oferta aqui: ${reviewUrl}`;
+      const commentId = await postReviewComment(up.id, commentText);
+      console.log('Comentário criado → ' + (commentId || 'ok') + ' (fixe manualmente no YouTube Studio)');
+    } catch (e) { console.warn('Comentário pulado: ' + e.message); }
     ok++;
   } catch (e) {
     console.error('Falhou ' + slug + ': ' + e.message);
