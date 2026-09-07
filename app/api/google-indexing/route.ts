@@ -66,14 +66,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { url, slug, action = 'url' } = body;
+    const { url, slug, full, action = 'url' } = body;
 
     switch (action) {
       case 'all': {
-        const result = await indexAllPages();
+        // Incremental por padrão (só novas/alteradas); full=true força o site todo
+        const result = await indexAllPages({ full: full === true });
         return NextResponse.json({
           success: true,
-          action: 'index_all',
+          action: full === true ? 'index_all_full' : 'index_all_incremental',
           ...result
         });
       }

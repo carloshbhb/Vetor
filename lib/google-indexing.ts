@@ -141,14 +141,35 @@ export async function publishToGoogleIndexing(url: string, type: 'URL_UPDATED' |
 }
 
 /**
- * Indexa todas as páginas importantes do site (reviews, categorias, estáticas)
+ * Indexa SÓ o que mudou (incremental) — uso correto da API dentro da cota.
+ * - Reviews criados/atualizados nas últimas `recentHours` (padrão 30h);
+ * - Páginas estáticas + categorias só 1x/semana (segunda UTC) ou com `full=true`;
+ * - Teto de `cap` URLs por execução (padrão 150, cota diária = 200).
+ * Motivo: a API tem ~200 publishes/dia; reenviar o site inteiro 2x/dia estourava
+ * a cota no meio da 2ª execução. E a API só *notifica* — não garante indexação.
  */
-export async function indexAllPages(): Promise<{ indexed: number; errors: number }> {
-  const { getPublishedReviews } = await import('./db');
-  const reviews = await getPublishedReviews();
+export async function indexAllPages(opts?: {
+  recentHours?: number;
+  cap?: number;
+  full?: boolean;
+}): Promise<{ indexed: number; errors: number; skipped: number }> {
+  const { getPublishedReviewCards } = await import('./db');
+  const cards = await getPublishedReviewCards();
+
+  const recentHours = opts?.recentHours ?? Number(process.env.INDEXING_RECENT_HOURS || 30);
+  const cap = opts?.cap ?? Number(process.env.INDEXING_CAP || 150);
+  const full = opts?.full ?? process.env.INDEXING_FULL === 'true';
+  const isMonday = new Date().getUTCDay() === 1;
 
   let indexed = 0;
   let errors = 0;
+  const send = async (url: string) => {
+    if (indexed + errors >= cap) return;
+    const result = await publishToGoogleIndexing(url);
+    if (result.success) indexed++;
+    else errors++;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  };
 
   // Helper to slugify category names (same logic as sitemap)
   function slugify(s: string): string {
@@ -158,35 +179,34 @@ export async function indexAllPages(): Promise<{ indexed: number; errors: number
       .replace(/(^-|-$)/g, '');
   }
 
-  // Static pages
-  const staticPaths = ['/', '/research', '/sobre', '/privacidade', '/termos'];
-  for (const path of staticPaths) {
-    const result = await publishToGoogleIndexing(`${SITE_URL}${path}`);
-    if (result.success) indexed++;
-    else errors++;
-    await new Promise(resolve => setTimeout(resolve, 100));
+  const cutoff = Date.now() - recentHours * 3600_000;
+  const fresh = full
+    ? cards
+    : cards.filter(r => {
+        const created = r.createdAt ? new Date(r.createdAt).getTime() : 0;
+        const updated = r.updatedAt ? new Date(r.updatedAt).getTime() : 0;
+        return Math.max(created, updated) >= cutoff;
+      });
+
+  // Review pages (só novas/alteradas)
+  for (const review of fresh) {
+    await send(`${SITE_URL}/review/${review.slug}`);
   }
 
-  // Category pages (unique)
-  const categories = Array.from(new Set(reviews.map(r => r.category || 'Geral')));
-  for (const cat of categories) {
-    const slug = slugify(cat);
-    const result = await publishToGoogleIndexing(`${SITE_URL}/categoria/${slug}`);
-    if (result.success) indexed++;
-    else errors++;
-    await new Promise(resolve => setTimeout(resolve, 100));
+  // Estáticas + categorias: só no full ou 1x/semana (mudam raramente)
+  if (full || isMonday) {
+    const staticPaths = ['/', '/research', '/sobre', '/privacidade', '/termos'];
+    for (const path of staticPaths) {
+      await send(`${SITE_URL}${path}`);
+    }
+    const categories = Array.from(new Set(cards.map(r => r.category || 'Geral')));
+    for (const cat of categories) {
+      await send(`${SITE_URL}/categoria/${slugify(cat)}`);
+    }
   }
 
-  // Review pages
-  for (const review of reviews) {
-    const url = `${SITE_URL}/review/${review.slug}`;
-    const result = await publishToGoogleIndexing(url);
-    if (result.success) indexed++;
-    else errors++;
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
-
-  return { indexed, errors };
+  const skipped = full ? 0 : cards.length - fresh.length;
+  return { indexed, errors, skipped };
 }
 
 /**
