@@ -53,6 +53,23 @@ export async function getPublishedJobSlugs(): Promise<Set<string>> {
   return new Set((data || []).map((r: any) => r.slug));
 }
 
+// Slugs com falha e tentativas restantes (p/ retry — sem isso um job falhado
+// nunca mais é pego, pois a regra 1-review-1-video exclui slugs com linha na fila)
+export async function getFailedSlugs(maxAttempts = 3): Promise<string[]> {
+  const sb = supabaseAdmin();
+  if (!sb) {
+    return readFallback()
+      .filter((j) => j.status === 'failed' && (j.attempts || 0) < maxAttempts)
+      .map((j) => j.slug);
+  }
+  const { data } = await sb
+    .from('video_jobs')
+    .select('slug,attempts')
+    .eq('status', 'failed')
+    .lt('attempts', maxAttempts);
+  return (data || []).map((r: any) => r.slug);
+}
+
 // Todos os slugs que JÁ têm linha na fila (qualquer status, inclusive com vídeo
 // publicado). Regra 1 review = 1 vídeo: o cron nunca regenera esses slugs,
 // mesmo se o status voltar para script_ready por qualquer motivo.

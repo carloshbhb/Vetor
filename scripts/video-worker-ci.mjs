@@ -261,7 +261,8 @@ for (const job of jobs) {
       const priceLine = esc([script.offerBadge, script.priceHighlight].filter(Boolean).join(' '));
       const ctaLine = esc(script.finalCta);
       const priceStart = Math.max(0, total - 7);
-      const inputImg = downloadedImages.length > 0 ? `-loop 1 -i "${downloadedImages[0]}"` : `-f lavfi -loop 1 -i "color=c=0x0b1220:s=1080x1920"`;
+      // lavfi color é stream infinito: sem -loop (opção inválida p/ lavfi, quebra o ffmpeg)
+      const inputImg = downloadedImages.length > 0 ? `-loop 1 -i "${downloadedImages[0]}"` : `-f lavfi -i "color=c=0x0b1220:s=1080x1920:r=25"`;
       const FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
       const fontOpt = existsSync(FONT) ? `:fontfile=${FONT}` : '';
       let vf = 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920';

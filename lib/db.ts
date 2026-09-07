@@ -307,6 +307,72 @@ export async function getPublishedReviewCards(): Promise<ReviewCard[]> {
   return data.map(mapRowToReviewCard);
 }
 
+// ─── Fila de slugs ordenada (backlog mais antigo primeiro, query leve) ───────
+export interface SlugQueueItem {
+  slug: string;
+  createdAt: string;
+}
+
+export async function getPublishedSlugQueue(): Promise<SlugQueueItem[]> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    const b = await getBackup();
+    return (await b.getPublishedReviews())
+      .map((r) => ({ slug: r.slug, createdAt: r.createdAt }))
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  }
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('slug,created_at')
+    .eq('status', 'published')
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('[Database] Error fetching slug queue:', error);
+    const b = await getBackup();
+    return (await b.getPublishedReviews())
+      .map((r) => ({ slug: r.slug, createdAt: r.createdAt }))
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  }
+  return (data || []).map((row: any) => ({ slug: row.slug, createdAt: row.created_at ?? '' }));
+}
+
+// ─── Reviews completos SÓ dos slugs pedidos (o cron gera IA só do lote) ───────
+export async function getReviewsBySlugs(slugs: string[]): Promise<ReviewData[]> {
+  if (!slugs.length) return [];
+  const supabase = getSupabase();
+  if (!supabase) {
+    const b = await getBackup();
+    const all = await b.getPublishedReviews();
+    const order = new Map(slugs.map((s, i) => [s, i]));
+    return all
+      .filter((r) => order.has(r.slug))
+      .sort((a, b) => (order.get(a.slug) ?? 0) - (order.get(b.slug) ?? 0));
+  }
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('status', 'published')
+    .in('slug', slugs);
+  if (error) {
+    console.error('[Database] Error fetching reviews by slugs:', error);
+    const b = await getBackup();
+    const all = await b.getPublishedReviews();
+    const order = new Map(slugs.map((s, i) => [s, i]));
+    return all
+      .filter((r) => order.has(r.slug))
+      .sort((a, b) => (order.get(a.slug) ?? 0) - (order.get(b.slug) ?? 0));
+  }
+  const order = new Map(slugs.map((s, i) => [s, i]));
+  try {
+    return (data || [])
+      .map(mapToReviewData)
+      .sort((a, b) => (order.get(a.slug) ?? 0) - (order.get(b.slug) ?? 0));
+  } catch (mapError) {
+    console.error('[Database] Error mapping reviews by slugs:', mapError);
+    return [];
+  }
+}
+
 // ─── Fila leve p/ serp-tracker (só o necessário p/ ordenar e pesquisar) ───────
 export interface RankCheckItem {
   id: string;

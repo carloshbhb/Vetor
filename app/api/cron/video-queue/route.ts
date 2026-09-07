@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPublishedReviews } from '@/lib/db';
+import { getPublishedSlugQueue, getReviewsBySlugs } from '@/lib/db';
 import { generateVideoScript } from '@/lib/video-script';
 import {
   DAILY_VIDEO_LIMIT,
   getAllJobSlugs,
+  getFailedSlugs,
   getJobsTodayCount,
   upsertScriptJob,
 } from '@/lib/video-queue';
@@ -36,22 +37,29 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, message: `Cota do dia cheia (${publishedToday}/${limit})`, jobs: [] });
     }
 
-    const reviews = await getPublishedReviews();
-    // 1 review = 1 vídeo: exclui TODOS os slugs que já têm linha na fila
-    // (script_ready, rendering, published, failed). Assim um timeout parcial
-    // do cron nunca recria roteiro de review que já tem vídeo.
-    const doneSlugs = await getAllJobSlugs();
+    // Queries leves primeiro: fila de slugs (só slug+data) + slugs já na fila.
+    // O review COMPLETO (pesado) é buscado só para os slugs do lote — antes
+    // o cron puxava os 113 reviews inteiros e estourava o timeout da Vercel.
+    const [queue, doneSlugs, retrySlugs] = await Promise.all([
+      getPublishedSlugQueue(),
+      getAllJobSlugs(),
+      getFailedSlugs(3),
+    ]);
     const forceSlug = req.nextUrl.searchParams.get('force') || '';
     if (forceSlug) doneSlugs.delete(forceSlug);
 
-    // Backlog primeiro: mais antigos sem vídeo (reviews vem desc; invertemos)
-    const backlog = [...reviews].reverse().filter((r) => !doneSlugs.has(r.slug));
+    // Backlog primeiro: mais antigos sem vídeo. Retries de falhas (attempts<3)
+    // vêm antes, senão um job falhado nunca mais seria pego.
+    const fresh = queue.filter((q) => !doneSlugs.has(q.slug)).map((q) => q.slug);
+    const retry = retrySlugs.filter((s) => !fresh.includes(s));
+    const backlogSlugs = [...retry, ...fresh];
     // Lote pequeno por invocação para caber no timeout da serverless
     const batchSize = Math.min(
       Math.max(Number(req.nextUrl.searchParams.get('batch') || 3), 1),
       remaining
     );
-    const batch = backlog.slice(0, batchSize);
+    const batchSlugs = backlogSlugs.slice(0, batchSize);
+    const batch = await getReviewsBySlugs(batchSlugs);
 
     const jobs: any[] = [];
     const errors: any[] = [];
@@ -81,7 +89,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Fila: ${jobs.length} roteiros prontos (${publishedToday} já publicados hoje). Backlog restante: ${backlog.length - jobs.length}.`,
+      message: `Fila: ${jobs.length} roteiros prontos (${publishedToday} já publicados hoje). Backlog restante: ${backlogSlugs.length - jobs.length}.`,
       jobs,
       skipped,
       errors,
