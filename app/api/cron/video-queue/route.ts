@@ -62,19 +62,18 @@ export async function GET(req: NextRequest) {
     if (forceSlug) doneSlugs.delete(forceSlug);
 
     // Backlog primeiro: mais antigos sem vídeo. Retries de falhas (attempts<3)
-    // vêm antes, senão um job falhado nunca mais seria pego.
+    // vêm antes, SENÃO um job falhado nunca mais seria pego.
+    // Mas retry slugs que já têm vídeo publicado (status='published' no video_jobs)
+    // são excluídos de vez — não são retrys, são duplicatas de um job que já subiu.
     const fresh = queue.filter((q) => !doneSlugs.has(q.slug)).map((q) => q.slug);
-    const retry = retrySlugs.filter((s) => !fresh.includes(s));
+    const retry = retrySlugs.filter((s) => !doneSlugs.has(s));
     const backlogSlugs = [...retry, ...fresh];
     // Lote pequeno por invocação para caber no timeout da serverless
     const batchSize = Math.min(
       Math.max(Number(req.nextUrl.searchParams.get('batch') || 3), 1),
       remaining
     );
-    const batchSlugs = backlogSlugs.slice(0, batchSize);
-    // Filtra aqui: nao gera script para slugs que ja tao em video_jobs
-    // (o upsertScriptJob tambem filtra, mas gerar o script ja custa IA;
-    // se o upsert retornar 'skipped', o script foi gerado a mais)
+    const batchSlugs = backlogSlugs.slice(0, batchSize);    // se o upsert retornar 'skipped', o script foi gerado a mais)
     const filteredSlugs = batchSlugs.filter((s) => !doneSlugs.has(s));
     if (!filteredSlugs.length) {
       return NextResponse.json(
