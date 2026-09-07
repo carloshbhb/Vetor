@@ -88,6 +88,10 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
+      v: 'dedup-v2',
+      // fingerprint não-sensível do banco lido (últimos 6 chars da URL pública)
+      // p/ diagnosticar se Vercel e worker enxergam o mesmo Supabase
+      db: (process.env.NEXT_PUBLIC_SUPABASE_URL || 'none').slice(-6),
       success: true,
       message: `Fila: ${jobs.length} roteiros prontos (${publishedToday} já publicados hoje). Backlog restante: ${backlogSlugs.length - jobs.length}.`,
       jobs,
