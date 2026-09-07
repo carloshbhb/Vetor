@@ -12,6 +12,10 @@ import {
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
+// GET responde sempre fresco: sem isso o CDN da Vercel pode servir resposta
+// GET cacheada de chamada anterior (foi o que gerou "Cota (6/1)" fantasma).
+const NO_STORE = { 'Cache-Control': 'no-store, max-age=0' };
+
 // GET /api/cron/video-queue?token=CRON_SECRET&limit=30&batch=3[&force=slug]
 // Gera roteiros em LOTES pequenos por invocação (padrão 3) para não estourar
 // o timeout da serverless na Vercel. `limit` = teto do dia; `batch` = quantos
@@ -34,7 +38,16 @@ export async function GET(req: NextRequest) {
     const publishedToday = await getJobsTodayCount();
     const remaining = limit - publishedToday;
     if (remaining <= 0) {
-      return NextResponse.json({ success: true, message: `Cota do dia cheia (${publishedToday}/${limit})`, jobs: [] });
+      return NextResponse.json(
+        {
+          v: 'dedup-v2',
+          db: (process.env.NEXT_PUBLIC_SUPABASE_URL || 'none').slice(-6),
+          success: true,
+          message: `Cota do dia cheia (${publishedToday}/${limit})`,
+          jobs: [],
+        },
+        { headers: NO_STORE }
+      );
     }
 
     // Queries leves primeiro: fila de slugs (só slug+data) + slugs já na fila.
@@ -87,20 +100,23 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      v: 'dedup-v2',
-      // fingerprint não-sensível do banco lido (últimos 6 chars da URL pública)
-      // p/ diagnosticar se Vercel e worker enxergam o mesmo Supabase
-      db: (process.env.NEXT_PUBLIC_SUPABASE_URL || 'none').slice(-6),
-      success: true,
-      message: `Fila: ${jobs.length} roteiros prontos (${publishedToday} já publicados hoje). Backlog restante: ${backlogSlugs.length - jobs.length}.`,
-      jobs,
-      skipped,
-      errors,
-      nextStep: jobs.length
-        ? 'No seu PC rode: node scripts/video-worker.mjs (renderiza + publica os script_ready, até 30/dia)'
-        : 'Nada pendente — amanhã o cron pega os reviews novos do dia.',
-    });
+    return NextResponse.json(
+      {
+        v: 'dedup-v2',
+        // fingerprint não-sensível do banco lido (últimos 6 chars da URL pública)
+        // p/ diagnosticar se Vercel e worker enxergam o mesmo Supabase
+        db: (process.env.NEXT_PUBLIC_SUPABASE_URL || 'none').slice(-6),
+        success: true,
+        message: `Fila: ${jobs.length} roteiros prontos (${publishedToday} já publicados hoje). Backlog restante: ${backlogSlugs.length - jobs.length}.`,
+        jobs,
+        skipped,
+        errors,
+        nextStep: jobs.length
+          ? 'No seu PC rode: node scripts/video-worker.mjs (renderiza + publica os script_ready, até 30/dia)'
+          : 'Nada pendente — amanhã o cron pega os reviews novos do dia.',
+      },
+      { headers: NO_STORE }
+    );
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
