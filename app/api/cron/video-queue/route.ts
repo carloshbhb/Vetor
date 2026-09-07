@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     const doneSlugs = await getPublishedJobSlugs();
     const pendingJobs = await getPendingJobs(limit * 2);
     const pendingSlugs = new Set(pendingJobs.map((j) => j.slug));
-    for (const slug of pendingSlugs) doneSlugs.add(slug);
+    Array.from(pendingSlugs).forEach((slug) => doneSlugs.add(slug));
 
     // Backlog primeiro: mais antigos sem vídeo (reviews vem desc; invertemos)
     const backlog = [...reviews].reverse().filter((r) => !doneSlugs.has(r.slug));
