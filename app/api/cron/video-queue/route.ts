@@ -53,6 +53,9 @@ export async function GET(req: NextRequest) {
     // Queries leves primeiro: fila de slugs (só slug+data) + slugs já na fila.
     // O review COMPLETO (pesado) é buscado só para os slugs do lote — antes
     // o cron puxava os 113 reviews inteiros e estourava o timeout da Vercel.
+    // Queries leves primeiro: fila de slugs (só slug+data) + slugs já na fila.
+    // O review COMPLETO (pesado) é buscado só para os slugs do lote — antes
+    // o cron puxava os 113 reviews inteiros e estourava o timeout da Vercel.
     const [queue, doneSlugs, retrySlugs] = await Promise.all([
       getPublishedSlugQueue(),
       getAllJobSlugs(),
@@ -60,8 +63,6 @@ export async function GET(req: NextRequest) {
     ]);
     const forceSlug = req.nextUrl.searchParams.get('force') || '';
     if (forceSlug) doneSlugs.delete(forceSlug);
-    // DEBUG temporario — remove antes do deploy de producao
-    console.error(`DEBUG doneSlugs=${doneSlugs.size} queue=${queue.length} retry=${retrySlugs.length}`);
 
     // Backlog primeiro: mais antigos sem vídeo. Retries de falhas (attempts<3)
     // vêm antes, SENÃO um job falhado nunca mais seria pego.

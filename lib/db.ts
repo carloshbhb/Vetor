@@ -325,7 +325,8 @@ export async function getPublishedSlugQueue(): Promise<SlugQueueItem[]> {
     .from('reviews')
     .select('slug,created_at')
     .eq('status', 'published')
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .limit(1000);
   if (error) {
     console.error('[Database] Error fetching slug queue:', error);
     const b = await getBackup();

@@ -49,7 +49,7 @@ function writeFallback(jobs: VideoJob[]) {
 export async function getPublishedJobSlugs(): Promise<Set<string>> {
   const sb = supabaseAdmin();
   if (!sb) return new Set(readFallback().filter((j) => j.status === 'published').map((j) => j.slug));
-  const { data } = await sb.from('video_jobs').select('slug').eq('status', 'published');
+  const { data } = await sb.from('video_jobs').select('slug').eq('status', 'published').limit(1000);
   return new Set((data || []).map((r: any) => r.slug));
 }
 
@@ -66,17 +66,20 @@ export async function getFailedSlugs(maxAttempts = 3): Promise<string[]> {
     .from('video_jobs')
     .select('slug,attempts')
     .eq('status', 'failed')
-    .lt('attempts', maxAttempts);
+    .lt('attempts', maxAttempts)
+    .limit(1000);
   return (data || []).map((r: any) => r.slug);
 }
 
 // Todos os slugs que JÁ têm linha na fila (qualquer status, inclusive com vídeo
 // publicado). Regra 1 review = 1 vídeo: o cron nunca regenera esses slugs,
 // mesmo se o status voltar para script_ready por qualquer motivo.
+// Usa .limit(1000) p/ forçar pagination completa do Supabase (evita retorno
+// parcial de rows em funções serverless com conexão instável).
 export async function getAllJobSlugs(): Promise<Set<string>> {
   const sb = supabaseAdmin();
   if (!sb) return new Set(readFallback().map((j) => j.slug));
-  const { data } = await sb.from('video_jobs').select('slug');
+  const { data } = await sb.from('video_jobs').select('slug').limit(1000);
   return new Set((data || []).map((r: any) => r.slug));
 }
 
@@ -92,7 +95,7 @@ export async function getPendingJobs(limit = 20): Promise<VideoJob[]> {
     .select('*')
     .in('status', ['script_ready', 'rendering', 'ready_mp4'])
     .order('created_at', { ascending: true })
-    .limit(limit);
+    .limit(Math.min(limit, 1000));
   return (data || []) as VideoJob[];
 }
 
