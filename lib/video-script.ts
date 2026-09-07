@@ -86,8 +86,45 @@ Retorne APENAS JSON válido nesta estrutura exata:
 }`;
 }
 
-async function callAI(prompt: string): Promise<any> {
-  // 1. Tenta Veo 3.1 (Google AI Studio, grátis com quota diária)
+// Cache em memória da lista de modelos free (1h) p/ não hitar /models a cada roteiro
+let cachedFreeModels: { list: string[]; at: number } | null = null;
+const FALLBACK_FREE_MODELS = [
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'nvidia/nemotron-3.5-lightning:free',
+  'google/gemma-4-31b-it:free',
+];
+
+// Busca todos os modelos :free texto→texto disponíveis no OpenRouter,
+// em rodízio diário para não esgotar sempre o mesmo modelo primeiro.
+async function getOpenRouterFreeModels(apiKey: string): Promise<string[]> {
+  const now = Date.now();
+  if (cachedFreeModels && now - cachedFreeModels.at < 3600_000) return cachedFreeModels.list;
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) throw new Error(`models: ${res.status}`);
+    const json = (await res.json()) as any;
+    const all = Array.isArray(json?.data) ? json.data : [];
+    const free = all
+      .filter((m: any) => typeof m?.id === 'string' && m.id.endsWith(':free'))
+      .filter((m: any) => String(m?.architecture?.modality || '').includes('text->text'))
+      .map((m: any) => m.id as string);
+    if (!free.length) throw new Error('nenhum modelo :free texto');
+    // Rodízio pelo dia do ano: distribui o uso entre os modelos
+    const day = Math.floor(now / 86400000);
+    const rotated = [...free.slice(day % free.length), ...free.slice(0, day % free.length)];
+    // Limita a 12 tentativas p/ não estourar o tempo da serverless no pior caso
+    cachedFreeModels = { list: rotated.slice(0, 12), at: now };
+    console.log(`[VideoScript] ${free.length} modelos :free encontrados, tentando até 12`);
+    return cachedFreeModels.list;
+  } catch (e: any) {
+    console.warn('[VideoScript] Falha ao listar modelos OpenRouter, usando lista fixa:', e.message);
+    return FALLBACK_FREE_MODELS;
+  }
+}
+
+async function callAI(prompt: string): Promise<any> {  // 1. Tenta Veo 3.1 (Google AI Studio, grátis com quota diária)
   const googleKey = process.env.GOOGLE_API_KEY;
   if (googleKey) {
     try {
@@ -152,14 +189,11 @@ async function callAI(prompt: string): Promise<any> {
     }
   }
 
-  // 3. Fallback: OpenRouter (modelos free, já existentes)
+  // 3. Fallback: OpenRouter — descobre dinamicamente TODOS os modelos :free
+  // via /api/v1/models e tenta em rodízio até um responder
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error('Configure GEMINI_API_KEY ou OPENROUTER_API_KEY');
-  const models = [
-    'meta-llama/llama-3.3-70b-instruct:free',
-    'nvidia/nemotron-3.5-lightning:free',
-    'google/gemma-4-31b-it:free',
-  ];
+  const models = await getOpenRouterFreeModels(apiKey);
   let lastErr = '';
   for (const model of models) {
     try {
