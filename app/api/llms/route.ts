@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPublishedReviews } from '@/lib/db';
+import { getPublishedReviewCards } from '@/lib/db';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 const categories = [
   'Wearables / Smartbands', 'Acessórios para Games', 'Notebooks', 'Áudio Profissional',
@@ -27,9 +27,9 @@ async function buildLlmsContent() {
   const rawUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
   const SITE_URL = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
 
-  let reviews: Awaited<ReturnType<typeof getPublishedReviews>> = [];
+  let reviews: Awaited<ReturnType<typeof getPublishedReviewCards>> = [];
   try {
-    reviews = await getPublishedReviews();
+    reviews = await getPublishedReviewCards();
   } catch (e) {
     console.error('[LLMS] Error fetching reviews:', e);
   }
@@ -59,7 +59,7 @@ ${categories.map(c => `- ${c}: ${categoryDescriptions[c] || 'Reviews de produtos
 
 ## Dados de Reviews
 - Total de reviews publicados: ${reviews.length}
-- Nota média geral: ${reviews.length > 0 ? (reviews.reduce((s, r) => s + r.hero.overallScore, 0) / reviews.length).toFixed(1) : '—'}/10
+- Nota média geral: ${reviews.length > 0 ? (reviews.reduce((s, r) => s + r.overallScore, 0) / reviews.length).toFixed(1) : '—'}/10
 - Categorias ativas: ${categories.length}
 
 ## Contato

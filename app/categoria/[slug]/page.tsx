@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getPublishedReviews } from '@/lib/db';
+import { getPublishedReviewCards } from '@/lib/db';
 import Logo from '@/components/Logo';
 import type { Metadata } from 'next';
 
@@ -32,7 +32,7 @@ function slugify(text: string): string {
 }
 
 export async function generateStaticParams() {
-  const reviews = await getPublishedReviews();
+  const reviews = await getPublishedReviewCards();
   const dynamicSlugs = Array.from(new Set(reviews.map(r => slugify(r.category || 'Geral'))));
   const predefinedSlugs = Object.keys(categoryMeta);
   return Array.from(new Set([...dynamicSlugs, ...predefinedSlugs])).map(slug => ({ slug }));
@@ -56,7 +56,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function CategoryPage({ params }: { params: { slug: string } }) {
-  const reviews = await getPublishedReviews();
+  // Cards leves (só colunas de vitrine) para economizar banda do Supabase
+  const reviews = await getPublishedReviewCards();
 
   // Filtrar por slug da categoria
   const filteredReviews = reviews.filter(r => slugify(r.category || 'Geral') === params.slug);
@@ -96,8 +97,8 @@ export default async function CategoryPage({ params }: { params: { slug: string 
         url: `${SITE_URL}/review/${r.slug}`,
         item: {
           '@type': 'Article',
-          headline: r.meta.title,
-          description: r.hero.lead,
+          headline: r.metaTitle,
+          description: r.lead,
           image: r.imageUrl || `${SITE_URL}/og-default.jpg`,
           url: `${SITE_URL}/review/${r.slug}`,
           datePublished: r.createdAt,
@@ -182,7 +183,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
               <Link key={r.id} href={`/review/${r.slug}`} className="group bg-white rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 flex flex-col">
                 <div className="aspect-[4/3] bg-bg2 relative border-b border-border p-6 flex items-center justify-center">
                   <span className="absolute top-3 right-3 bg-white px-2.5 py-1 rounded-lg text-xs font-syne font-bold text-blue shadow-sm">
-                    ★ {r.hero.overallScore.toFixed(1)}
+                    ★ {r.overallScore.toFixed(1)}
                   </span>
                   {r.imageUrl && (
                     <Image src={r.imageUrl} alt={r.product} fill className="object-contain p-6" />
@@ -191,10 +192,10 @@ export default async function CategoryPage({ params }: { params: { slug: string 
                 <div className="p-5 flex flex-col flex-1">
                   <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-2">{r.category}</p>
                   <h2 className="font-syne font-bold text-lg text-text leading-tight mb-2 group-hover:text-blue transition-colors">
-                    {r.meta.title}
+                      {r.metaTitle}
                   </h2>
                   <p className="text-sm text-text-2 line-clamp-2 mb-4 flex-1">
-                    {r.hero.lead}
+                      {r.lead}
                   </p>
                   <div className="flex items-center justify-between border-t border-border pt-4">
                     <span className="text-sm font-medium text-text-muted">Ler Review</span>

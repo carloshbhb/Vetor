@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { submitUrls } from '@/lib/indexnow';
 import { indexAllPages } from '@/lib/google-indexing';
-import { getPublishedReviews } from '@/lib/db';
+import { getPublishedReviewCards } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
   const rawUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
   const SITE_URL = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
 
-  const reviews = await getPublishedReviews();
+  // Só slugs + categorias (query leve) para economizar banda
+  const reviews = await getPublishedReviewCards();
   const allUrls = [
     SITE_URL,
     `${SITE_URL}/research`,

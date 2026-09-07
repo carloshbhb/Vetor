@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Script from 'next/script';
 import dynamic from 'next/dynamic';
-import { getReviewBySlug, getPublishedSlugs, getPublishedReviews } from '@/lib/db';
+import { getReviewBySlug, getPublishedSlugs, getPublishedReviewCards } from '@/lib/db';
 import { markdownToHtml } from '@/lib/markdown';
 import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema, buildNewsArticleSchema } from '@/lib/seo';
 import { defaultAuthor } from '@/lib/author';
@@ -89,7 +89,7 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
   const { hero, specs, compareTable, pros, cons, faq, verdict, adsEnabled } = review;
 
   // Use lightweight query for related reviews instead of fetching ALL reviews
-  const allReviews = await getPublishedReviews();
+  const allReviews = await getPublishedReviewCards();
   const relatedReviews = allReviews
     .filter(r => r.slug !== review.slug && r.category === review.category)
     .slice(0, 3);
@@ -299,7 +299,7 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
                          <h3 className="font-syne font-bold text-sm text-text group-hover:text-blue transition-colors line-clamp-2 mb-2">
                            {r.product}
                          </h3>
-                         <p className="text-xs text-text-muted line-clamp-2">{r.hero.lead}</p>
+                          <p className="text-xs text-text-muted line-clamp-2">{r.lead}</p>
                        </Link>
                      ))}
                    </div>

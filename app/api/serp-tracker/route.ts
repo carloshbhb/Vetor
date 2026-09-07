@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPublishedReviews, updateReview } from '@/lib/db';
+import { getPublishedRankQueue, updateReview } from '@/lib/db';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logger, recordMetric, createTimer } from '@/lib/monitor';
 
@@ -43,7 +43,8 @@ async function trackSERPRanks() {
   const cycleTimer = createTimer();
   await logger.info('SERP tracking started', 'serp-tracker');
 
-  const published = await getPublishedReviews();
+  // Fila leve (só id/product/lastRankCheck) para economizar banda
+  const published = await getPublishedRankQueue();
   if (!published.length) {
     await logger.info('No published reviews found', 'serp-tracker');
     return { success: true, message: 'Nenhum review publicado.', groundedCount: 0, failedCount: 0, total: 0 };

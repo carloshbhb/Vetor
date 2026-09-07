@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { getPublishedReviews } from '@/lib/db';
+import { getPublishedReviewCards } from '@/lib/db';
 import { getMarketInsights } from '@/lib/research';
 import Logo from '@/components/Logo';
 import CategoryHub from '@/components/CategoryHub';
@@ -35,7 +35,8 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const reviews = await getPublishedReviews();
+  // Cards leves (só colunas de vitrine) para economizar banda do Supabase
+  const reviews = await getPublishedReviewCards();
   const insights = await getMarketInsights();
 
   // Agrupar por categoria para o hub
@@ -103,7 +104,7 @@ export default async function Home() {
                   <Link key={r.id} href={`/review/${r.slug}`} className="group bg-white rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 flex flex-col">
                     <div className="aspect-[4/3] bg-bg2 relative border-b border-border p-6 flex items-center justify-center">
                       <span className="absolute top-3 right-3 bg-white px-2.5 py-1 rounded-lg text-xs font-syne font-bold text-blue shadow-sm">
-                        ★ {r.hero.overallScore.toFixed(1)}
+                        ★ {r.overallScore.toFixed(1)}
                       </span>
                       {r.imageUrl && (
                         <Image src={r.imageUrl} alt={r.product} fill className="object-contain p-6" />
@@ -112,10 +113,10 @@ export default async function Home() {
                     <div className="p-5 flex flex-col flex-1">
                       <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-2">{r.category}</p>
                       <h2 className="font-syne font-bold text-lg text-text leading-tight mb-2 group-hover:text-blue transition-colors">
-                        {r.meta.title}
+                        {r.metaTitle}
                       </h2>
                       <p className="text-sm text-text-2 line-clamp-2 mb-4 flex-1">
-                        {r.hero.lead}
+                        {r.lead}
                       </p>
                       <div className="flex items-center justify-between border-t border-border pt-4">
                         <span className="text-sm font-medium text-text-muted">Ler Review</span>

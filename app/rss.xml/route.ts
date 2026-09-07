@@ -1,6 +1,6 @@
-import { getPublishedReviews } from '@/lib/db';
+import { getPublishedReviewCards } from '@/lib/db';
 import { NEXT_PUBLIC_SITE_URL } from '@/lib/env';
-import type { ReviewData } from '@/lib/types';
+import type { ReviewCard } from '@/lib/db';
 
 export const revalidate = 3600;
 
@@ -14,9 +14,9 @@ export async function GET() {
     ? NEXT_PUBLIC_SITE_URL
     : `https://${NEXT_PUBLIC_SITE_URL}`;
 
-  let reviews: ReviewData[];
+  let reviews: ReviewCard[];
   try {
-    reviews = await getPublishedReviews();
+    reviews = await getPublishedReviewCards();
   } catch {
     reviews = [];
   }
@@ -24,8 +24,8 @@ export async function GET() {
   const items = reviews.map(r => {
     return `
     <item>
-      <title>${escapeXml(r.meta.title)}</title>
-      <description>${escapeXml(r.meta.description)}</description>
+      <title>${escapeXml(r.metaTitle)}</title>
+      <description>${escapeXml(r.metaDescription)}</description>
       <link>${baseUrl}/review/${r.slug}</link>
       <guid>${baseUrl}/review/${r.slug}</guid>
       <pubDate>${formatRFC3339(r.updatedAt)}</pubDate>

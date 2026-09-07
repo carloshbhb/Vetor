@@ -1,4 +1,4 @@
-import { getPublishedReviews } from '@/lib/db';
+import { getPublishedReviewCards } from '@/lib/db';
 
 function slugify(text: string): string {
   return text.toLowerCase()
@@ -34,9 +34,9 @@ export async function GET() {
   const rawUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
   const baseUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
 
-  let reviews: Awaited<ReturnType<typeof getPublishedReviews>> = [];
+  let reviews: Awaited<ReturnType<typeof getPublishedReviewCards>> = [];
   try {
-    reviews = await getPublishedReviews();
+    reviews = await getPublishedReviewCards();
   } catch (e) {
     console.error('[Sitemap] Error fetching reviews:', e);
   }

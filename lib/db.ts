@@ -188,8 +188,7 @@ function mapToReviewData(row: any): ReviewData {
    };
  }
 
-function mapToReviewSummary(row: any): ReviewSummary {
-   const parseSafe = (val: any) => {
+function mapToReviewSummary(row: any): ReviewSummary {   const parseSafe = (val: any) => {
       if (val === null || val === undefined) return 0;
       const parsed = parseFloat(val);
       return isNaN(parsed) ? 0 : parsed;
@@ -223,6 +222,127 @@ function mapToReviewSummary(row: any): ReviewSummary {
      lastRankCheck: row.last_rank_check ?? null,
    };
  }
+
+// ─── Lightweight card (economia de banda: só colunas de vitrine) ─────────────
+// Um review completo (specs, sections, compare_table, faq...) tem dezenas de KB.
+// Listagens (home, categoria, sitemap, RSS, relacionados) só precisam destes campos.
+export interface ReviewCard {
+  id: string;
+  slug: string;
+  product: string;
+  category: string;
+  priceNew: string;
+  imageUrl: string;
+  overallScore: number;
+  lead: string;
+  metaTitle: string;
+  metaDescription: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const REVIEW_CARD_COLUMNS =
+  'id,slug,product,category,price_new,image_url,hero_overall_score,hero_lead,meta_title,meta_description,created_at,updated_at';
+
+function mapRowToReviewCard(row: any): ReviewCard {
+  const num = (val: any) => {
+    if (val === null || val === undefined) return 0;
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+  return {
+    id: row.id,
+    slug: row.slug ?? '',
+    product: row.product ?? '',
+    category: row.category ?? '',
+    priceNew: row.price_new ?? '',
+    imageUrl: row.image_url ?? '',
+    overallScore: num(row.hero_overall_score),
+    lead: row.hero_lead ?? '',
+    metaTitle: row.meta_title ?? '',
+    metaDescription: row.meta_description ?? '',
+    createdAt: row.created_at ?? '',
+    updatedAt: row.updated_at ?? '',
+  };
+}
+
+function mapReviewDataToCard(r: ReviewData): ReviewCard {
+  return {
+    id: r.id,
+    slug: r.slug,
+    product: r.product,
+    category: r.category,
+    priceNew: r.priceNew,
+    imageUrl: r.imageUrl,
+    overallScore: r.hero?.overallScore ?? 0,
+    lead: r.hero?.lead ?? '',
+    metaTitle: r.meta?.title ?? '',
+    metaDescription: r.meta?.description ?? '',
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  };
+}
+
+export async function getPublishedReviewCards(): Promise<ReviewCard[]> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    const b = await getBackup();
+    return (await b.getPublishedReviews()).map(mapReviewDataToCard);
+  }
+  const { data, error } = await supabase
+    .from('reviews')
+    .select(REVIEW_CARD_COLUMNS)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('[Database] Error fetching review cards:', error);
+    const b = await getBackup();
+    return (await b.getPublishedReviews()).map(mapReviewDataToCard);
+  }
+  if (!data || data.length === 0) {
+    console.warn('[Database] Supabase returned empty review cards; falling back to JSON backup.');
+    const b = await getBackup();
+    return (await b.getPublishedReviews()).map(mapReviewDataToCard);
+  }
+  return data.map(mapRowToReviewCard);
+}
+
+// ─── Fila leve p/ serp-tracker (só o necessário p/ ordenar e pesquisar) ───────
+export interface RankCheckItem {
+  id: string;
+  product: string;
+  lastRankCheck: string | null;
+}
+
+export async function getPublishedRankQueue(): Promise<RankCheckItem[]> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    const b = await getBackup();
+    return (await b.getPublishedReviews()).map((r) => ({
+      id: r.id,
+      product: r.product,
+      lastRankCheck: r.lastRankCheck ?? null,
+    }));
+  }
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('id,product,last_rank_check')
+    .eq('status', 'published');
+  if (error) {
+    console.error('[Database] Error fetching rank queue:', error);
+    const b = await getBackup();
+    return (await b.getPublishedReviews()).map((r) => ({
+      id: r.id,
+      product: r.product,
+      lastRankCheck: r.lastRankCheck ?? null,
+    }));
+  }
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    product: row.product ?? '',
+    lastRankCheck: row.last_rank_check ?? null,
+  }));
+}
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
