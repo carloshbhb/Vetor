@@ -49,8 +49,18 @@ function writeFallback(jobs: VideoJob[]) {
 export async function getPublishedJobSlugs(): Promise<Set<string>> {
   const sb = supabaseAdmin();
   if (!sb) return new Set(readFallback().filter((j) => j.status === 'published').map((j) => j.slug));
-  const { data } = await sb.from('video_jobs').select('slug').eq('status', 'published').limit(1000);
-  return new Set((data || []).map((r: any) => r.slug));
+  const all: string[] = [];
+  let from = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await sb.from('video_jobs').select('slug').eq('status', 'published').range(from, from + pageSize - 1);
+    if (error) break;
+    if (!data?.length) break;
+    for (const r of data as any[]) if (r.slug) all.push(r.slug);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return new Set(all);
 }
 
 // Slugs com falha e tentativas restantes (p/ retry — sem isso um job falhado
@@ -74,13 +84,23 @@ export async function getFailedSlugs(maxAttempts = 3): Promise<string[]> {
 // Todos os slugs que JÁ têm linha na fila (qualquer status, inclusive com vídeo
 // publicado). Regra 1 review = 1 vídeo: o cron nunca regenera esses slugs,
 // mesmo se o status voltar para script_ready por qualquer motivo.
-// Usa .limit(1000) p/ forçar pagination completa do Supabase (evita retorno
-// parcial de rows em funções serverless com conexão instável).
+// Paginação real para evitar retorno parcial em serverless (Supabase postgREST limita 1000 por página)
 export async function getAllJobSlugs(): Promise<Set<string>> {
   const sb = supabaseAdmin();
   if (!sb) return new Set(readFallback().map((j) => j.slug));
-  const { data } = await sb.from('video_jobs').select('slug').limit(1000);
-  return new Set((data || []).map((r: any) => r.slug));
+  const all: string[] = [];
+  let from = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await sb.from('video_jobs').select('slug').range(from, from + pageSize - 1);
+    if (error) { console.error('[video-queue] getAllJobSlugs error', error.message); break; }
+    if (!data?.length) break;
+    for (const r of data as any[]) if (r.slug) all.push(r.slug);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  console.log(`[video-queue] getAllJobSlugs total=${all.length}`);
+  return new Set(all);
 }
 
 export async function getPendingJobs(limit = 20): Promise<VideoJob[]> {

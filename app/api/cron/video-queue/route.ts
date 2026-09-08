@@ -61,6 +61,7 @@ export async function GET(req: NextRequest) {
       getAllJobSlugs(),
       getFailedSlugs(3),
     ]);
+    console.log(`[video-queue] queue=${queue.length} done=${doneSlugs.size} retry=${retrySlugs.length} sampleDone=${[...doneSlugs].slice(0,3).join(',')}`);
     const forceSlug = req.nextUrl.searchParams.get('force') || '';
     if (forceSlug) doneSlugs.delete(forceSlug);
 
@@ -70,6 +71,7 @@ export async function GET(req: NextRequest) {
     // são excluídos de vez — não são retrys, são duplicatas de um job que já subiu.
     const fresh = queue.filter((q) => !doneSlugs.has(q.slug)).map((q) => q.slug);
     const retry = retrySlugs.filter((s) => !doneSlugs.has(s));
+    console.log(`[video-queue] fresh=${fresh.length} backlog=${retry.length+fresh.length} nextFresh=${fresh.slice(0,2).join(',')}`);
     const backlogSlugs = [...retry, ...fresh];
     // Lote pequeno por invocação para caber no timeout da serverless
     const batchSize = Math.min(
