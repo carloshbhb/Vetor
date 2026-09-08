@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
       getAllJobSlugs(),
       getFailedSlugs(3),
     ]);
-    console.log(`[video-queue] queue=${queue.length} done=${doneSlugs.size} retry=${retrySlugs.length} sampleDone=${[...doneSlugs].slice(0,3).join(',')}`);
+    console.log(`[video-queue] queue=${queue.length} done=${doneSlugs.size} retry=${retrySlugs.length} sampleDone=${Array.from(doneSlugs).slice(0,3).join(',')}`);
     const forceSlug = req.nextUrl.searchParams.get('force') || '';
     if (forceSlug) doneSlugs.delete(forceSlug);
 
