@@ -123,8 +123,21 @@ async function downloadImage(url, dest) {
 }
 
 async function buildCarouselVideo(scenes, tmp, mp4, total, audioPath) {
-  const FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
-  const fontOpt = existsSync(FONT) ? `:fontfile=${FONT}` : '';
+  // Windows: copiar fonte para ./tmp sem ":" para evitar escaping do ffmpeg
+  let fontOpt = '';
+  try {
+    const winFont = 'C:\\Windows\\Fonts\\arialbd.ttf';
+    if (process.platform==='win32' && existsSync(winFont)) {
+      const projTmp = path.join(process.cwd(),'tmp');
+      if (!existsSync(projTmp)) mkdirSync(projTmp,{recursive:true});
+      const tmpFont = path.join(projTmp,'winfont.ttf');
+      if (!existsSync(tmpFont)) { const {copyFileSync}=await import('node:fs'); copyFileSync(winFont, tmpFont); }
+      fontOpt = `:fontfile=tmp/winfont.ttf`;
+    } else {
+      const FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
+      fontOpt = existsSync(FONT) ? `:fontfile=${FONT}` : '';
+    }
+  } catch { fontOpt=''; }
   const esc = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'").replace(/,/g, '\\,').slice(0, 60);
 
   // Baixa todas as imagens de todas as cenas
@@ -228,8 +241,8 @@ for (const job of jobs) {
     const srt = path.join(tmp, `${slug}.srt`);
     const thumb = path.join(tmp, `${slug}.thumb.jpg`);
     run(`edge-tts --voice pt-BR-AntonioNeural --file "${txt}" --write-media "${mp3}" --write-subtitles "${srt}"`);
-    // Backup do áudio para fallback
-    run(`cp "${mp3}" "${audioBackup}"`);
+    // Backup do áudio para fallback (compatível Windows)
+    { const { copyFileSync } = await import('node:fs'); copyFileSync(mp3, audioBackup); }
 
     // Busca imagens das cenas
     let scenes = script.scenes || [];
@@ -267,7 +280,7 @@ for (const job of jobs) {
     if (hasCarousel) {
       // Cria vídeo com carrossel de imagens
       const audioPath = path.join(tmp, `audio_${slug}.mp3`);
-      run(`cp "${mp3}" "${audioPath}"`);
+      { const { copyFileSync } = await import('node:fs'); copyFileSync(mp3, audioPath); }
       success = await buildCarouselVideo(scenes, tmp, mp4, total, audioPath);
     }
 
@@ -281,8 +294,20 @@ for (const job of jobs) {
       const priceStart = Math.max(0, total - 7);
       // lavfi color é stream infinito: sem -loop (opção inválida p/ lavfi, quebra o ffmpeg)
       const inputImg = downloadedImages.length > 0 ? `-loop 1 -i "${downloadedImages[0]}"` : `-f lavfi -i "color=c=0x0b1220:s=1080x1920:r=25"`;
-      const FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
-      const fontOpt = existsSync(FONT) ? `:fontfile=${FONT}` : '';
+      let fontOpt='';
+      try {
+        const winFont2='C:\\Windows\\Fonts\\arialbd.ttf';
+        if (process.platform==='win32' && existsSync(winFont2)) {
+          const projTmp2=path.join(process.cwd(),'tmp');
+          if (!existsSync(projTmp2)) mkdirSync(projTmp2,{recursive:true});
+          const tmpFont2=path.join(projTmp2,'winfont2.ttf');
+          if (!existsSync(tmpFont2)) { const {copyFileSync}=await import('node:fs'); copyFileSync(winFont2, tmpFont2); }
+          fontOpt=`:fontfile=tmp/winfont2.ttf`;
+        } else {
+          const FONT2='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
+          fontOpt=existsSync(FONT2)?`:fontfile=${FONT2}`:'';
+        }
+      } catch { fontOpt=''; }
       let vf = 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920';
       // Sem foto: nome do produto em destaque no centro (nunca fundo preto puro)
       const noPhoto = downloadedImages.length === 0;
@@ -293,7 +318,9 @@ for (const job of jobs) {
       if (hook) vf += `,drawtext=text='${hook}'${fontOpt}:fontcolor=white:fontsize=64:x=(w-text_w)/2:y=h*0.30:box=1:boxcolor=black@0.6:boxborderw=24:enable='lte(t\\,5)'`;
       if (priceLine) vf += `,drawtext=text='${priceLine}'${fontOpt}:fontcolor=yellow:fontsize=72:x=(w-text_w)/2:y=h*0.62:box=1:boxcolor=red@0.85:boxborderw=28:enable='gte(t\\,${priceStart})'`;
       if (ctaLine) vf += `,drawtext=text='${ctaLine}'${fontOpt}:fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h*0.72:box=1:boxcolor=black@0.6:boxborderw=20:enable='gte(t\\,${priceStart})'`;
-      if (existsSync(srt)) vf += `,subtitles='${srt}':force_style='FontName=DejaVu Sans,FontSize=20,PrimaryColour=&HFFFFFF&,OutlineColour=&H80000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=250'`;
+      // Windows: evitar subtitles com fontconfig que falha; usar só se ffmpeg compilar com libass e fonte disponível. Desativa temporariamente em Windows para não quebrar
+      const isWin = process.platform === 'win32';
+      if (existsSync(srt) && !isWin) { const srtEsc = srt.replace(/\\/g,'/').replace(/:/g,'\\:'); vf += `,subtitles='${srtEsc}':force_style='FontName=DejaVu Sans,FontSize=20,PrimaryColour=&HFFFFFF&,OutlineColour=&H80000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=250'`; }
       run(`ffmpeg -y ${inputImg} -i "${mp3}" -filter_complex "[0:v]${vf}[v]" -map "[v]" -map 1:a -t ${total} -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "${mp4}"`);
     }
 

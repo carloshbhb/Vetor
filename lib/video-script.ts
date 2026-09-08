@@ -189,7 +189,42 @@ async function callAI(prompt: string): Promise<any> {  // 1. Tenta Veo 3.1 (Goog
     }
   }
 
-  // 3. Fallback: OpenRouter — descobre dinamicamente TODOS os modelos :free
+  // 3. Tenta Groq (free 14.4k/dia, sem 429) antes do OpenRouter
+  const groqKey = process.env.GROQ_API_KEY;
+  if (groqKey && groqKey !== 'your-groq-api-key') {
+    const groqModels = ['openai/gpt-oss-20b', 'qwen/qwen3.6-27b', 'groq/compound-mini', 'allam-2-7b'];
+    for (const gModel of groqModels) {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: gModel,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.8,
+            max_tokens: 4096,
+            response_format: { type: 'json_object' },
+          }),
+        });
+        if (!res.ok) {
+          const txt = await res.text();
+          console.warn(`[VideoScript] Groq ${gModel}: ${res.status} ${txt.slice(0,120)}`);
+          continue;
+        }
+        const json = await res.json();
+        const content = json.choices?.[0]?.message?.content || '';
+        const m = content.match(/\{[\s\S]*\}/);
+        if (!m) continue;
+        console.log(`[VideoScript] Groq ${gModel} gerou roteiro`);
+        return JSON.parse(m[0]);
+      } catch (e: any) {
+        console.warn(`[VideoScript] Groq ${gModel} falhou:`, e.message);
+      }
+    }
+    console.warn('[VideoScript] Groq falhou em todos modelos, tentando OpenRouter');
+  }
+
+  // 4. Fallback: OpenRouter — descobre dinamicamente TODOS os modelos :free
   // via /api/v1/models e tenta em rodízio até um responder
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error('Configure GEMINI_API_KEY ou OPENROUTER_API_KEY');
