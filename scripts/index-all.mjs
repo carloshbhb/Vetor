@@ -58,6 +58,14 @@ const jwtClient = new JWT({
   scopes: ['https://www.googleapis.com/auth/indexing'],
 });
 
+// ─── CLI flags ────────────────────────────────────────────────────────────
+const args = process.argv.slice(2);
+const MODE = args.includes('--full') ? 'full' : 'recent';
+const CAP = 150; // Google Indexing API: ~200 req/dia
+const RECENT_HOURS = 30;
+
+console.log(`Mode: ${MODE} | Cap: ${CAP} | Recent window: ${RECENT_HOURS}h`);
+
 // ─── IndexNow batch submission ─────────────────────────────────────────────
 async function submitIndexNow(urls) {
   if (!INDEXNOW_KEY) {
@@ -114,7 +122,7 @@ try {
   console.log('\nToken obtained successfully!');
   console.log('Token prefix:', token.access_token?.slice(0, 20) + '...');
 
-  // Fetch all URLs from sitemap
+  // Fetch URLs from sitemap with lastmod dates
   async function getSitemapUrls() {
     const sitemapUrl = `${SITE_URL}/sitemap.xml`;
     console.log(`\nFetching sitemap: ${sitemapUrl}`);
@@ -122,10 +130,17 @@ try {
       const response = await fetch(sitemapUrl);
       const xml = await response.text();
       const urls = [];
-      const regex = /<loc>(.*?)<\/loc>/g;
-      let match;
-      while ((match = regex.exec(xml)) !== null) {
-        urls.push(match[1]);
+      // Extract <url> blocks with <loc> and optional <lastmod>
+      const urlBlocks = xml.split('<url>').slice(1);
+      for (const block of urlBlocks) {
+        const locMatch = block.match(/<loc>(.*?)<\/loc>/);
+        const lastmodMatch = block.match(/<lastmod>(.*?)<\/lastmod>/);
+        if (locMatch) {
+          urls.push({
+            url: locMatch[1],
+            lastmod: lastmodMatch ? new Date(lastmodMatch[1]).getTime() : 0,
+          });
+        }
       }
       console.log(`Found ${urls.length} URLs in sitemap`);
       return urls;
@@ -135,7 +150,28 @@ try {
     }
   }
 
-  const urls = await getSitemapUrls();
+  const allUrls = await getSitemapUrls();
+
+  // Filter based on mode
+  let urls;
+  if (MODE === 'full') {
+    urls = allUrls.map(u => u.url);
+    console.log(`\nFull mode: submitting all ${urls.length} URLs`);
+  } else {
+    // Recent mode: only URLs updated in last RECENT_HOURS, static pages always
+    const cutoff = Date.now() - RECENT_HOURS * 3600_000;
+    const staticPaths = ['/', '/research', '/sobre', '/privacidade', '/termos'];
+    const staticUrls = staticPaths.map(p => `${SITE_URL}${p}`);
+
+    const recentUrls = allUrls
+      .filter(u => u.lastmod >= cutoff || staticUrls.includes(u.url))
+      .map(u => u.url);
+
+    urls = recentUrls.slice(0, CAP);
+    const skipped = allUrls.length - recentUrls.length;
+    console.log(`\nRecent mode: ${recentUrls.length} recent (${skipped} skipped), capped at ${CAP}`);
+    console.log(`Submitting ${urls.length} URLs`);
+  }
 
   console.log(`\nSubmitting ${urls.length} URLs to Google Indexing API...\n`);
 
@@ -168,7 +204,7 @@ try {
     await new Promise(r => setTimeout(r, 300));
   }
 
-  // Submit all URLs to IndexNow as well
+  // Submit filtered URLs to IndexNow as well
   console.log('\nSubmitting to IndexNow...');
   const indexNowResult = await submitIndexNow(urls);
 
@@ -177,6 +213,7 @@ try {
   await pingSearchEngines();
 
   console.log(`\n=== Results ===`);
+  console.log(`Mode: ${MODE}`);
   console.log(`Google Indexing API: ${indexed} indexed, ${errors} errors`);
   console.log(`IndexNow: ${indexNowResult.submitted} submitted`);
 } catch (e) {
