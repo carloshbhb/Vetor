@@ -323,14 +323,14 @@ export function convertVideoScriptToRemotionData(script, review, siteUrl) {
 export function convertVideoScriptToLongFormData(script, review, siteUrl) {
   const FPS = 30;
 
-  // Long-form: 10-20 minutos = 600-1200 segundos
-  const TOTAL_DURATION = Math.max(script.estimatedSeconds || 50, 900); // Mínimo 15 min
+  // Long-form: 2 minutos = 120 segundos
+  const TOTAL_DURATION = Math.max(script.estimatedSeconds || 50, 120);
 
   const productImage = review.imageUrl || "";
 
   // Seções: hook (10s), problem_solution (extended), cta (2min)
   const hookDuration = 10;
-  const ctaDuration = 120;
+  const ctaDuration = 30;
   const psDuration = TOTAL_DURATION - hookDuration - ctaDuration;
 
   const hookFrames = hookDuration * FPS;
@@ -376,7 +376,7 @@ export function convertVideoScriptToLongFormData(script, review, siteUrl) {
   });
 
   // Adiciona mais segments para long-form
-  const extraSegments = 20;
+  const extraSegments = 5;
   for (let i = 0; i < extraSegments; i++) {
     segments.push({
       id: `extra-${i}`,

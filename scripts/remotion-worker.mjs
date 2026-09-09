@@ -2,7 +2,7 @@
 // Busca 1 job com render_engine='remotion' → edge-tts → conversor → Remotion render → YouTube
 // Uso: node scripts/remotion-worker.mjs
 import { execSync } from 'node:child_process';
-import { existsSync, writeFileSync, readFileSync, mkdirSync, copyFileSync, statSync } from 'node:fs';
+import { existsSync, writeFileSync, readFileSync, mkdirSync, copyFileSync, statSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
