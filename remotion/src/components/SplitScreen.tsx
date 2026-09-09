@@ -1,94 +1,144 @@
-import { AbsoluteFill, useCurrentFrame, interpolate, spring } from "remotion";
-import { InfographicChart } from "./InfographicChart";
+import { AbsoluteFill, Img, useCurrentFrame, interpolate, spring } from "remotion";
+import { getImageSrc } from "../utils/images";
 
 interface SplitScreenProps {
-  left: { type: string; source: string; query: string; filter: string };
-  right: { type: string; screen: string; data: { label: string; value: number; unit: string; trend: string; color: string } };
+  left: { type: string; imageUrl?: string; filter?: string };
+  right: { type: string; imageUrl?: string; filter?: string };
   palette: Record<string, string>;
+  narration?: string;
 }
 
-export const SplitScreen: React.FC<SplitScreenProps> = ({ left, right, palette }) => {
+export const SplitScreen: React.FC<SplitScreenProps> = ({ left, right, palette, narration }) => {
   const frame = useCurrentFrame();
 
-  const slideIn = spring({ frame, fps: 30, config: { stiffness: 200, damping: 20 } });
-  const leftX = interpolate(slideIn, [0, 1], [-540, 0]);
-  const rightX = interpolate(slideIn, [0, 1], [540, 0]);
+  const imageUrl = left.imageUrl || right.imageUrl;
+
+  // Ken Burns on background
+  const kenBurnsScale = interpolate(frame, [0, 180], [1.0, 1.08], {
+    extrapolateRight: "clamp",
+  });
+
+  // Product entrance
+  const productSpring = spring({
+    frame: frame - 5,
+    fps: 30,
+    config: { stiffness: 120, damping: 18 },
+  });
+  const productScale = interpolate(productSpring, [0, 1], [0.7, 1]);
+  const productOpacity = interpolate(frame, [5, 18], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+
+  // Glow pulse
+  const glowPulse = interpolate(Math.sin(frame * 0.07), [-1, 1], [0.3, 0.7]);
+
+  // Text entrance
+  const textEntrance = interpolate(frame, [15, 30], [0, 1], {
+    extrapolateRight: "clamp",
+  });
 
   return (
-    <AbsoluteFill style={{ flexDirection: "row" }}>
-      <div
+    <AbsoluteFill>
+      {/* Full-screen product image with Ken Burns */}
+      {imageUrl ? (
+        <AbsoluteFill>
+          <Img
+            src={getImageSrc(imageUrl)}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: `scale(${kenBurnsScale})`,
+              filter: "brightness(0.4) saturate(1.2) contrast(1.05)",
+            }}
+          />
+          {/* Cinematic gradient overlays */}
+          <AbsoluteFill
+            style={{
+              background: `linear-gradient(180deg, 
+                rgba(10,10,15,0.3) 0%, 
+                rgba(10,10,15,0.05) 25%, 
+                rgba(10,10,15,0.05) 55%, 
+                rgba(10,10,15,0.85) 100%)`,
+            }}
+          />
+          {/* Accent glow */}
+          <AbsoluteFill
+            style={{
+              background: `radial-gradient(ellipse at 50% 40%, ${palette.primary}${Math.round(glowPulse * 25).toString(16).padStart(2, '0')} 0%, transparent 50%)`,
+            }}
+          />
+        </AbsoluteFill>
+      ) : (
+        <AbsoluteFill
+          style={{
+            background: `linear-gradient(135deg, ${palette.dark}, ${palette.surface})`,
+          }}
+        />
+      )}
+
+      {/* Large centered product image with premium effects */}
+      <AbsoluteFill
         style={{
-          width: "50%",
-          height: "100%",
-          transform: `translateX(${leftX}px)`,
-          overflow: "hidden",
-          position: "relative",
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            background: `linear-gradient(135deg, ${palette.surface}, ${palette.dark})`,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            flexDirection: "column",
-            gap: 20,
-          }}
-        >
-          <div style={{ fontSize: 80 }}>😩</div>
-          <div
-            style={{
-              color: "#FF4757",
-              fontSize: 28,
-              fontWeight: 700,
-              textAlign: "center",
-              padding: "0 20px",
-              fontFamily: "Inter, system-ui, sans-serif",
-            }}
-          >
-            Mesa bagunçada
-          </div>
-          {left.filter === "desaturate" && (
+        {imageUrl && (
+          <div style={{ position: "relative" }}>
+            {/* Outer glow */}
             <div
               style={{
                 position: "absolute",
-                inset: 0,
-                background: "rgba(0,0,0,0.3)",
-                backdropFilter: "grayscale(1)",
+                inset: -40,
+                borderRadius: "50%",
+                background: `radial-gradient(circle, ${palette.primary}20 0%, transparent 70%)`,
+                filter: "blur(30px)",
+                opacity: glowPulse,
               }}
             />
-          )}
-        </div>
-      </div>
+            <Img
+              src={getImageSrc(imageUrl)}
+              style={{
+                width: 750,
+                height: 750,
+                objectFit: "contain",
+                transform: `scale(${productScale})`,
+                filter: `drop-shadow(0 25px 60px rgba(0,0,0,0.6)) drop-shadow(0 0 50px ${palette.primary}35)`,
+                opacity: productOpacity,
+              }}
+            />
+          </div>
+        )}
+      </AbsoluteFill>
 
-      <div
+      {/* Bottom text area with entrance animation */}
+      <AbsoluteFill
         style={{
-          width: 4,
-          height: "100%",
-          background: `linear-gradient(180deg, ${palette.primary}, ${palette.secondary})`,
-          boxShadow: `0 0 20px ${palette.primary}`,
-        }}
-      />
-
-      <div
-        style={{
-          width: "50%",
-          height: "100%",
-          transform: `translateX(${rightX}px)`,
-          display: "flex",
-          justifyContent: "center",
+          justifyContent: "flex-end",
           alignItems: "center",
-          background: palette.dark,
+          paddingBottom: 180,
         }}
       >
-        <InfographicChart
-          type="radial_progress"
-          data={right.data}
-          animated={true}
-        />
-      </div>
+        {narration && (
+          <div
+            style={{
+              color: "white",
+              fontSize: 44,
+              fontWeight: 800,
+              textAlign: "center",
+              padding: "0 60px",
+              fontFamily: "Inter, system-ui, sans-serif",
+              textShadow: `0 4px 25px rgba(0,0,0,0.8), 0 0 40px ${palette.primary}30`,
+              lineHeight: 1.3,
+              opacity: textEntrance,
+              transform: `translateY(${interpolate(textEntrance, [0, 1], [25, 0])}px)`,
+            }}
+          >
+            {narration}
+          </div>
+        )}
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };

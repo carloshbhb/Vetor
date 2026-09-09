@@ -2,7 +2,7 @@
 // Busca 1 job com render_engine='remotion' → edge-tts → conversor → Remotion render → YouTube
 // Uso: node scripts/remotion-worker.mjs
 import { execSync } from 'node:child_process';
-import { existsSync, writeFileSync, readFileSync, mkdirSync, copyFileSync } from 'node:fs';
+import { existsSync, writeFileSync, readFileSync, mkdirSync, copyFileSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -177,7 +177,7 @@ async function downloadImage(url, dest) {
 }
 
 // ── Converter ───────────────────────────────────────────────────────────────
-const { convertVideoScriptToRemotionData } = await import('./video-to-remotion-data.mjs');
+const { convertVideoScriptToRemotionData, convertVideoScriptToLongFormData } = await import('./video-to-remotion-data.mjs');
 
 // ── Main ────────────────────────────────────────────────────────────────────
 console.log('[Remotion Worker] Buscando 1 job premium...');
@@ -239,7 +239,7 @@ try {
   console.log('[1/5] Gerando áudio...');
   writeFileSync(txt, script.fullNarration || '', 'utf8');
   run(
-    `edge-tts --voice pt-BR-AntonioNeural --file "${txt}" --write-media "${mp3}" --write-subtitles "${srt}"`
+    `python -m edge_tts --voice pt-BR-AntonioNeural --file "${txt}" --write-media "${mp3}" --write-subtitles "${srt}"`
   );
 
   // ── 2. Separar áudio em seções (hook, problem_solution, cta) ──────────────
@@ -275,28 +275,98 @@ try {
   // Busca dados do review
   let reviewData = {};
   try {
-    const { data: rev } = await sb
+    const { data: rev, error: revErr } = await sb
       .from('reviews')
-      .select('image_url, affiliate_url, hero, verdict, testimonials')
+      .select('image_url, meta_og_image, affiliate_url, hero_lead, hero_overall_score, verdict_score, verdict_label, testimonials')
       .eq('slug', slug)
       .single();
-    reviewData = rev || {};
-  } catch {}
+    if (revErr) {
+      console.warn('[Remotion Worker] Review query error:', revErr.message);
+    } else {
+      reviewData = rev || {};
+    }
+  } catch (e) {
+    console.warn('[Remotion Worker] Review fetch failed:', e.message);
+  }
 
-  const remotionData = convertVideoScriptToRemotionData(
+  const isLongForm = job.format === 'horizontal';
+  const convertFn = isLongForm ? convertVideoScriptToLongFormData : convertVideoScriptToRemotionData;
+  const remotionData = convertFn(
     script,
     {
       ...reviewData,
       slug,
       product: job.product || slug,
       affiliateUrl: reviewData.affiliate_url || '',
-      imageUrl: reviewData.image_url || '',
-      hero: reviewData.hero || {},
-      verdict: reviewData.verdict || {},
+      imageUrl: reviewData.image_url || reviewData.meta_og_image || '',
+      hero: { overallScore: reviewData.hero_overall_score || 8, lead: reviewData.hero_lead || '' },
+      verdict: { score: reviewData.verdict_score || 8, label: reviewData.verdict_label || '' },
       testimonials: reviewData.testimonials || [],
     },
     BASE
   );
+  console.log(`[3/5] ${isLongForm ? 'Long-form horizontal' : 'Short-form vertical'} - ${remotionData.meta.duration}s, ${remotionData.meta.resolution.width}x${remotionData.meta.resolution.height}`);
+
+  // ── 3b. Baixar imagens para public/images/ (evita CORS/ORB no Chrome headless) ──
+  console.log('[3b/5] Baixando imagens...');
+  const imagesDir = path.join(REMOTION_DIR, 'public', 'images');
+  if (!existsSync(imagesDir)) mkdirSync(imagesDir, { recursive: true });
+
+  // Coleta todas as URLs de imagem únicas do video-data
+  const allImageUrls = new Set();
+  if (remotionData.meta.productImage) allImageUrls.add(remotionData.meta.productImage);
+  for (const section of remotionData.sections) {
+    if (section.visual?.backgroundImage) allImageUrls.add(section.visual.backgroundImage);
+    if (section.visual?.left?.imageUrl) allImageUrls.add(section.visual.left.imageUrl);
+    if (section.visual?.right?.imageUrl) allImageUrls.add(section.visual.right.imageUrl);
+    if (section.visual?.product?.imageUrl) allImageUrls.add(section.visual.product.imageUrl);
+    if (Array.isArray(section.visual?.gallery)) {
+      for (const url of section.visual.gallery) { if (url) allImageUrls.add(url); }
+    }
+    if (Array.isArray(section.segments)) {
+      for (const seg of section.segments) {
+        if (seg.visual?.left?.imageUrl) allImageUrls.add(seg.visual.left.imageUrl);
+        if (seg.visual?.right?.imageUrl) allImageUrls.add(seg.visual.right.imageUrl);
+        if (seg.visual?.product?.imageUrl) allImageUrls.add(seg.visual.product.imageUrl);
+        if (Array.isArray(seg.visual?.gallery)) {
+          for (const url of seg.visual.gallery) { if (url) allImageUrls.add(url); }
+        }
+      }
+    }
+  }
+
+  // Mapeia URL → caminho local
+  const urlToLocal = {};
+  let imgIdx = 0;
+  for (const url of allImageUrls) {
+    const ext = url.includes('.webp') ? '.webp' : url.includes('.png') ? '.png' : '.jpg';
+    const localName = `${slug}-${imgIdx++}${ext}`;
+    const localPath = path.join(imagesDir, localName);
+    const publicPath = `images/${localName}`;
+    const ok = await downloadImage(url, localPath);
+    if (ok) {
+      urlToLocal[url] = publicPath;
+      console.log(`  ✓ ${localName}`);
+    } else {
+      console.warn(`  ✗ Falhou: ${url.slice(0, 80)}`);
+    }
+  }
+
+  // Substitui URLs remotas por caminhos locais no video-data
+  const replaceUrls = (obj) => {
+    if (!obj || typeof obj !== 'object') return;
+    for (const key of Object.keys(obj)) {
+      if (typeof obj[key] === 'string' && urlToLocal[obj[key]]) {
+        obj[key] = urlToLocal[obj[key]];
+      } else if (Array.isArray(obj[key])) {
+        obj[key] = obj[key].map(item => (typeof item === 'string' && urlToLocal[item]) ? urlToLocal[item] : item);
+        obj[key].forEach(item => { if (typeof item === 'object') replaceUrls(item); });
+      } else if (typeof obj[key] === 'object') {
+        replaceUrls(obj[key]);
+      }
+    }
+  };
+  replaceUrls(remotionData);
 
   // Salvar video-data.json no diretório Remotion
   writeFileSync(
@@ -305,60 +375,41 @@ try {
     'utf8'
   );
 
-  // ── 4. Renderizar com Remotion ───────────────────────────────────────────
-  console.log('[4/5] Renderizando com Remotion...');
+  console.log(`[3/5] Review image: ${remotionData.meta.productImage ? '✓ ' + remotionData.meta.productImage.slice(0, 80) : '✗ empty'}`);
+
+// ── 4. Renderizar com Remotion ───────────────────────────────────────────
   const outDir = path.join(REMOTION_DIR, 'out');
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
   const outputPath = path.join(outDir, `${slug}.mp4`);
 
-  // Atualiza Root.tsx dinamicamente com os dados do vídeo
-  const rootContent = `import { Composition } from "remotion";
-import { ShortVideo } from "./ShortVideo";
-import videoData from "../video-data.json";
+  // Pular render se vídeo já existe
+  if (existsSync(outputPath)) {
+    const stat = statSync(outputPath);
+    console.log(`[4/5] Vídeo já existe (${(stat.size / 1024 / 1024).toFixed(1)} MB), pulando render...`);
+  } else {
+    console.log('[4/5] Renderizando com Remotion...');
+    const renderComponent = isLongForm ? 'LongVideo' : 'ShortVideo';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const RemotionComposition = Composition as any;
+    // Instalar deps do Remotion se necessário
+    if (!existsSync(path.join(REMOTION_DIR, 'node_modules'))) {
+      console.log('[Remotion Worker] Instalando dependências do Remotion...');
+      run('npm install --no-audit --no-fund', { cwd: REMOTION_DIR });
+    }
 
-export const Root: React.FC = () => {
-  const { meta } = videoData;
+    try {
+      run('npx remotion browser ensure', { cwd: REMOTION_DIR });
+    } catch (e) {
+      console.warn('[Remotion Worker] Aviso browser ensure:', e.message);
+    }
 
-  return (
-    <RemotionComposition
-      id="ShortVideo"
-      component={ShortVideo}
-      durationInFrames={meta.duration * meta.fps}
-      fps={meta.fps}
-      width={meta.resolution.width}
-      height={meta.resolution.height}
-      defaultProps={{
-        data: videoData,
-      }}
-    />
-  );
-};
-`;
-  writeFileSync(path.join(REMOTION_DIR, 'src', 'Root.tsx'), rootContent, 'utf8');
+    const propsPath = path.join(REMOTION_DIR, 'props.json');
+    writeFileSync(propsPath, JSON.stringify({ data: remotionData }), 'utf8');
 
-  // Instalar deps do Remotion se necessário
-  if (!existsSync(path.join(REMOTION_DIR, 'node_modules'))) {
-    console.log('[Remotion Worker] Instalando dependências do Remotion...');
-    run('npm install --no-audit --no-fund', { cwd: REMOTION_DIR });
-  }
+    run(`npx remotion render ${renderComponent} "${outputPath}" --props=props.json`, { cwd: REMOTION_DIR });
 
-  // Garantir que o browser está disponível
-  try {
-    run('npx remotion browser ensure', { cwd: REMOTION_DIR });
-  } catch (e) {
-    console.warn('[Remotion Worker] Aviso browser ensure:', e.message);
-  }
-
-  run(
-    `npx remotion render ShortVideo "${outputPath}" --props='${JSON.stringify({ data: remotionData })}'`,
-    { cwd: REMOTION_DIR }
-  );
-
-  if (!existsSync(outputPath)) {
-    throw new Error('Remotion render falhou: arquivo não gerado');
+    if (!existsSync(outputPath)) {
+      throw new Error('Remotion render falhou: arquivo não gerado');
+    }
   }
 
   // ── 5. Upload para YouTube ───────────────────────────────────────────────

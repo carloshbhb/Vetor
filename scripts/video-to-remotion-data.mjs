@@ -2,6 +2,24 @@
 // Usado pelo remotion-worker.mjs antes de renderizar.
 
 /**
+ * Filtra URLs de imagem quebradas (Unsplash retorna 404).
+ * Mantém apenas URLs de domínios confiáveis (ML, Supabase, etc).
+ */
+function filterValidImages(urls, fallback) {
+  const valid = (urls || []).filter(url => {
+    if (!url || typeof url !== 'string') return false;
+    // Remove URLs quebradas do Unsplash (retornam 404)
+    if (url.includes('unsplash.com')) return false;
+    // Remove URLs vazias
+    if (url.trim() === '') return false;
+    return true;
+  });
+  // Se não tem nenhuma imagem válida, usa o fallback
+  if (valid.length === 0 && fallback) return [fallback];
+  return valid;
+}
+
+/**
  * @param {object} script - VideoScript do lib/video-script.ts
  * @param {object} review - ReviewData (para imageUrl, affiliateUrl, etc)
  * @param {string} siteUrl - URL base do site
@@ -10,6 +28,10 @@
 export function convertVideoScriptToRemotionData(script, review, siteUrl) {
   const FPS = 30;
   const TOTAL_DURATION = script.estimatedSeconds || 50;
+
+  // Imagem principal do produto (fallback: review.imageUrl)
+  // Prioriza imageUrl real do ML (review.imageUrl) sobre imagens geradas pela IA
+  const productImage = review.imageUrl || "";
 
   // Divide as cenas em 3 seções: hook (3s), problem_solution (restante - 20s), cta (20s)
   const hookDuration = 3;
@@ -31,60 +53,64 @@ export function convertVideoScriptToRemotionData(script, review, siteUrl) {
     ? Math.floor(psFrames / psScenes.length)
     : psFrames;
 
-  const segments = psScenes.map((scene, i) => ({
-    id: i === 0 ? "problem" : "solution",
-    startFrame: hookFrames + i * segmentDuration,
-    endFrame: hookFrames + (i + 1) * segmentDuration,
-    narration: scene.narration || "",
-    visual: {
-      layout: i === 0 ? "split_screen" : "showcase",
-      ...(i === 0
-        ? {
-            left: {
-              type: "image",
-              source: "local",
-              query: review.product,
-              filter: "desaturate",
-            },
-            right: {
-              type: "mockup_ui",
-              screen: "productivity_chart",
-              data: {
-                label: "Produtividade",
-                value: 23,
-                unit: "%",
-                trend: "down",
-                color: "#FF4757",
+  const segments = psScenes.map((scene, i) => {
+    // Sempre inclui a imagem real do review como primeira opção
+    // Filtra URLs quebradas (Unsplash retorna 404)
+    const sceneImages = filterValidImages(
+      [productImage, ...(scene.images || [])],
+      productImage
+    ).slice(0, 3);
+
+    return {
+      id: i === 0 ? "problem" : "solution",
+      startFrame: hookFrames + i * segmentDuration,
+      endFrame: hookFrames + (i + 1) * segmentDuration,
+      narration: scene.narration || "",
+      onScreenText: scene.onScreenText || "",
+      visual: {
+        layout: i === 0 ? "split_screen" : "showcase",
+        ...(i === 0
+          ? {
+              left: {
+                type: "image",
+                imageUrl: sceneImages[0] || productImage,
+                filter: "desaturate",
               },
-            },
-          }
-        : {
-            product: {
-              type: "mockup_device",
-              device: "product",
-              rotation: true,
-              rotationSpeed: 0.5,
-            },
-            infographics: [
-              {
-                type: "radial_progress",
-                data: {
-                  label: "Nota",
-                  value: (review.hero?.overallScore || review.verdict?.score || 8) * 10,
-                  color: "#6C5CE7",
+              right: {
+                type: "image",
+                imageUrl: sceneImages[1] || sceneImages[0] || productImage,
+                filter: "none",
+              },
+            }
+          : {
+              product: {
+                type: "image",
+                imageUrl: sceneImages[0] || productImage,
+                rotation: true,
+                rotationSpeed: 0.3,
+              },
+              gallery: sceneImages,
+              infographics: [
+                {
+                  type: "radial_progress",
+                  data: {
+                    label: "Nota",
+                    value: (review.hero?.overallScore || review.verdict?.score || 8) * 10,
+                    color: "#6C5CE7",
+                  },
+                  animated: true,
                 },
-                animated: true,
-              },
-            ],
-          }),
-      captions: {
-        style: "kinetic",
-        position: "bottom",
-        fontSize: i === 0 ? 48 : 44,
-        wordByWord: true,
+              ],
+            }),
+        captions: {
+          style: "kinetic",
+          position: "bottom",
+          fontSize: i === 0 ? 48 : 44,
+          wordByWord: true,
+        },
       },
-    },
-  }));
+    };
+  });
 
   // Se não tem cenas suficientes, cria um segmento único
   if (segments.length === 0) {
@@ -93,14 +119,16 @@ export function convertVideoScriptToRemotionData(script, review, siteUrl) {
       startFrame: hookFrames,
       endFrame: hookFrames + psFrames,
       narration: script.fullNarration || "",
+      onScreenText: "",
       visual: {
         layout: "showcase",
         product: {
-          type: "mockup_device",
-          device: "product",
+          type: "image",
+          imageUrl: productImage,
           rotation: true,
-          rotationSpeed: 0.5,
+          rotationSpeed: 0.3,
         },
+        gallery: [productImage].filter(Boolean),
         infographics: [
           {
             type: "radial_progress",
@@ -137,6 +165,19 @@ export function convertVideoScriptToRemotionData(script, review, siteUrl) {
   const reviewUrl = `${siteUrl}/review/${review.slug}`;
   const affiliateUrl = review.affiliateUrl || reviewUrl;
 
+  // Imagens do hook (primeira cena ou fallback para productImage)
+  const hookScene = scenes[0] || {};
+  const hookImages = filterValidImages(
+    [productImage, ...(hookScene.images || [])],
+    productImage
+  ).slice(0, 3);
+
+  // Imagens do CTA (última cena)
+  const ctaImages = filterValidImages(
+    [productImage, ...(ctaScene?.images || [])],
+    productImage
+  ).slice(0, 3);
+
   return {
     meta: {
       title: script.title,
@@ -145,6 +186,8 @@ export function convertVideoScriptToRemotionData(script, review, siteUrl) {
       resolution: { width: 1080, height: 1920 },
       voiceId: "pt-BR-AntonioNeural",
       language: "pt-BR",
+      productImage,
+      productName: review.product || "",
       palette: {
         primary: "#6C5CE7",
         secondary: "#00CEC9",
@@ -172,6 +215,7 @@ export function convertVideoScriptToRemotionData(script, review, siteUrl) {
         type: "hook",
         narration: scenes[0]?.narration || script.hook || "",
         visual: {
+          backgroundImage: hookImages[0] || productImage,
           background: {
             type: "gradient",
             colors: ["#6C5CE7", "#0A0A0F"],
@@ -216,6 +260,7 @@ export function convertVideoScriptToRemotionData(script, review, siteUrl) {
         type: "cta",
         narration: ctaScene?.narration || script.finalCta || script.cta || "Link da oferta na descrição",
         visual: {
+          backgroundImage: ctaImages[0] || productImage,
           background: {
             type: "gradient",
             colors: ["#0A0A0F", "#1A1A2E"],
@@ -269,6 +314,115 @@ export function convertVideoScriptToRemotionData(script, review, siteUrl) {
           },
         },
       },
+    ],
+  };
+}
+
+// ── Long-Form Converter ─────────────────────────────────────────────
+// Gera video-data.json para vídeos horizontais longos (10-20 min)
+export function convertVideoScriptToLongFormData(script, review, siteUrl) {
+  const FPS = 30;
+
+  // Long-form: 10-20 minutos = 600-1200 segundos
+  const TOTAL_DURATION = Math.max(script.estimatedSeconds || 50, 900); // Mínimo 15 min
+
+  const productImage = review.imageUrl || "";
+
+  // Seções: hook (10s), problem_solution (extended), cta (2min)
+  const hookDuration = 10;
+  const ctaDuration = 120;
+  const psDuration = TOTAL_DURATION - hookDuration - ctaDuration;
+
+  const hookFrames = hookDuration * FPS;
+  const psFrames = psDuration * FPS;
+  const ctaFrames = ctaDuration * FPS;
+
+  const scenes = script.scenes || [];
+  const psScenes = scenes.slice(1, -1);
+  const ctaScene = scenes[scenes.length - 1];
+
+  // Para long-form, duplicar e estender os segments
+  const segmentDuration = psScenes.length > 0
+    ? Math.floor(psFrames / psScenes.length)
+    : psFrames;
+
+  const segments = psScenes.map((scene, i) => {
+    const sceneImages = filterValidImages(
+      [productImage, ...(scene.images || [])],
+      productImage
+    ).slice(0, 3);
+
+    return {
+      id: i === 0 ? "problem" : "solution",
+      startFrame: hookFrames + i * segmentDuration,
+      endFrame: hookFrames + (i + 1) * segmentDuration,
+      narration: scene.narration || "",
+      onScreenText: scene.onScreenText || "",
+      visual: {
+        layout: i === 0 ? "split_screen" : "showcase",
+        ...(i === 0
+          ? {
+              left: { type: "image", imageUrl: sceneImages[0] || productImage, filter: "desaturate" },
+              right: { type: "image", imageUrl: sceneImages[1] || sceneImages[0] || productImage, filter: "none" },
+            }
+          : {
+              product: { type: "image", imageUrl: sceneImages[0] || productImage, rotation: true, rotationSpeed: 0.3 },
+              gallery: sceneImages,
+              infographics: [{ type: "radial_progress", data: { label: "Nota", value: (review.hero?.overallScore || review.verdict?.score || 8) * 10, color: "#6C5CE7" }, animated: true }],
+            }),
+        captions: { style: "kinetic", position: "bottom", fontSize: i === 0 ? 48 : 44, wordByWord: true },
+      },
+    };
+  });
+
+  // Adiciona mais segments para long-form
+  const extraSegments = 20;
+  for (let i = 0; i < extraSegments; i++) {
+    segments.push({
+      id: `extra-${i}`,
+      startFrame: hookFrames + (psScenes.length + i) * segmentDuration,
+      endFrame: hookFrames + (psScenes.length + i + 1) * segmentDuration,
+      narration: "",
+      onScreenText: "",
+      visual: {
+        layout: "showcase",
+        product: { type: "image", imageUrl: productImage, rotation: true, rotationSpeed: 0.3 },
+        gallery: [productImage],
+        infographics: [{ type: "radial_progress", data: { label: "Nota", value: 80, color: "#6C5CE7" }, animated: true }],
+        captions: { style: "kinetic", position: "bottom", fontSize: 44, wordByWord: true },
+      },
+    });
+  }
+
+  const score = review.hero?.overallScore || review.verdict?.score || 8;
+  const stars = Math.min(5, Math.max(1, Math.round(score / 2)));
+  const reviewCount = review.testimonials?.length ? review.testimonials.length * 120 + 500 : 2847;
+  const urgencyStart = 50;
+  const reviewUrl = `${siteUrl}/review/${review.slug}`;
+  const affiliateUrl = review.affiliateUrl || reviewUrl;
+
+  const hookScene = scenes[0] || {};
+  const hookImages = filterValidImages([productImage, ...(hookScene.images || [])], productImage).slice(0, 3);
+  const ctaImages = filterValidImages([productImage, ...(ctaScene?.images || [])], productImage).slice(0, 3);
+
+  return {
+    meta: {
+      title: script.title,
+      duration: TOTAL_DURATION,
+      fps: FPS,
+      format: "horizontal",
+      resolution: { width: 1920, height: 1080 },
+      voiceId: "pt-BR-AntonioNeural",
+      language: "pt-BR",
+      productImage,
+      productName: review.product || "",
+      palette: { primary: "#6C5CE7", secondary: "#00CEC9", accent: "#FD79A8", dark: "#0A0A0F", surface: "#1A1A2E", text: "#FFFFFF" },
+    },
+    audio: { tts: { provider: "edge-tts", voice: "pt-BR-AntonioNeural", rate: "+10%", pitch: "+0Hz" } },
+    sections: [
+      { id: "hook", startFrame: 0, endFrame: hookFrames, duration: hookDuration, type: "hook", narration: scenes[0]?.narration || script.hook || "", visual: { backgroundImage: hookImages[0] || productImage, background: { type: "gradient", colors: ["#6C5CE7", "#0A0A0F"], angle: 135, animated: true, animationType: "pulse" }, captions: { style: "kinetic", effect: "scale_spring", fontSize: 96, fontWeight: 900, color: "#FFFFFF", position: "center", wordByWord: true, highlightColor: "#FD79A8" }, particles: { enabled: true, count: 30, type: "dots", color: "#6C5CE7", speed: 2 } } },
+      { id: "problem_solution", startFrame: hookFrames, endFrame: hookFrames + psFrames, duration: psDuration, type: "problem_solution", segments },
+      { id: "cta", startFrame: hookFrames + psFrames, endFrame: hookFrames + psFrames + ctaFrames, duration: ctaDuration, type: "cta", narration: ctaScene?.narration || script.finalCta || script.cta || "Link da oferta na descrição", visual: { backgroundImage: ctaImages[0] || productImage, background: { type: "gradient", colors: ["#0A0A0F", "#1A1A2E"], angle: 180 }, qr_code: { enabled: true, url: affiliateUrl, size: 400, errorCorrection: "H", animation: { type: "spring_bounce", delay: 15 } }, urgency: { enabled: true, text: script.priceHighlight || "OFERTA", countdown: true, startValue: urgencyStart, color: "#FD79A8", fontSize: 72, animation: "pulse" }, buy_button: { text: script.offerBadge || "COMPRAR AGORA", url: affiliateUrl, color: "#6C5CE7", textColor: "#FFFFFF", fontSize: 48, borderRadius: 50, animation: { type: "spring_bounce", stiffness: 200, damping: 10 } }, captions: { style: "kinetic", position: "top", fontSize: 60, highlightColor: "#FD79A8" }, social_proof: { stars, reviewCount, avatars: { count: 5, style: "stacked" } } } },
     ],
   };
 }

@@ -4,7 +4,7 @@ import { KineticCaption } from "./KineticCaption";
 import { Particles } from "./Particles";
 import { getImageSrc } from "../utils/images";
 
-interface HookProps {
+interface HorizontalHookProps {
   section: {
     narration: string;
     visual: {
@@ -17,7 +17,7 @@ interface HookProps {
   palette: Record<string, string>;
 }
 
-export const Hook: React.FC<HookProps> = ({ section, palette }) => {
+export const HorizontalHook: React.FC<HorizontalHookProps> = ({ section, palette }) => {
   const frame = useCurrentFrame();
   const { visual, narration } = section;
   const hasImage = !!visual.backgroundImage;
@@ -35,9 +35,9 @@ export const Hook: React.FC<HookProps> = ({ section, palette }) => {
       {hasImage ? (
         <AbsoluteFill>
           <Img src={getImageSrc(visual.backgroundImage)!} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.35) saturate(1.3) contrast(1.1)", transform: `scale(${kenBurnsScale})` }} />
-          <AbsoluteFill style={{ background: `linear-gradient(180deg, rgba(10,10,15,0.2) 0%, rgba(10,10,15,0.5) 35%, rgba(10,10,15,0.85) 70%, rgba(10,10,15,1) 100%)` }} />
-          <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 35%, ${palette.primary}${Math.round(glowPulse * 40).toString(16).padStart(2, '0')} 0%, transparent 55%)` }} />
-          <AbsoluteFill style={{ background: `linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 15%)` }} />
+          <AbsoluteFill style={{ background: `linear-gradient(90deg, rgba(10,10,15,0.2) 0%, rgba(10,10,15,0.5) 35%, rgba(10,10,15,0.85) 70%, rgba(10,10,15,1) 100%)` }} />
+          <AbsoluteFill style={{ background: `radial-gradient(ellipse at 70% 35%, ${palette.primary}${Math.round(glowPulse * 40).toString(16).padStart(2, '0')} 0%, transparent 55%)` }} />
+          <AbsoluteFill style={{ background: `linear-gradient(90deg, rgba(255,255,255,0.03) 0%, transparent 15%)` }} />
         </AbsoluteFill>
       ) : (
         <GradientBackground colors={visual.background.colors} angle={visual.background.angle} animated={visual.background.animated} />

@@ -1,4 +1,4 @@
-import { AbsoluteFill, useCurrentFrame, Sequence, interpolate } from "remotion";
+import { AbsoluteFill, useCurrentFrame, Sequence } from "remotion";
 import { SplitScreen } from "./SplitScreen";
 import { Showcase } from "./Showcase";
 import { KineticCaption } from "./KineticCaption";
@@ -8,11 +8,13 @@ interface Segment {
   startFrame: number;
   endFrame: number;
   narration: string;
+  onScreenText?: string;
   visual: {
     layout: string;
-    left?: { type: string; source: string; query: string; filter: string };
-    right?: { type: string; screen: string; data: { label: string; value: number; unit: string; trend: string; color: string } };
-    product?: { type: string; device: string; rotation: boolean; rotationSpeed: number };
+    left?: { type: string; imageUrl?: string; filter?: string };
+    right?: { type: string; imageUrl?: string; filter?: string };
+    product?: { type: string; imageUrl?: string; rotation: boolean; rotationSpeed: number };
+    gallery?: string[];
     infographics?: Array<{ type: string; data: unknown; title?: string; animated: boolean; renderEngine?: string }>;
     captions?: { style: string; position: string; fontSize: number; wordByWord?: boolean };
     transitions?: { type: string; duration?: number; interval?: number };
@@ -25,8 +27,6 @@ interface ProblemSolutionProps {
 }
 
 export const ProblemSolution: React.FC<ProblemSolutionProps> = ({ section, palette }) => {
-  const frame = useCurrentFrame();
-
   return (
     <AbsoluteFill>
       {section.segments.map((segment) => (
@@ -41,6 +41,7 @@ export const ProblemSolution: React.FC<ProblemSolutionProps> = ({ section, palet
                 left={segment.visual.left!}
                 right={segment.visual.right!}
                 palette={palette}
+                narration={segment.onScreenText || segment.narration}
               />
             )}
 
@@ -49,21 +50,9 @@ export const ProblemSolution: React.FC<ProblemSolutionProps> = ({ section, palet
                 product={segment.visual.product!}
                 infographics={segment.visual.infographics || []}
                 palette={palette}
+                narration={segment.narration}
+                onScreenText={segment.onScreenText}
               />
-            )}
-
-            {segment.visual.captions && (
-              <AbsoluteFill style={{ justifyContent: "flex-end", paddingBottom: 120 }}>
-                <KineticCaption
-                  text={segment.narration}
-                  fontSize={segment.visual.captions.fontSize}
-                  fontWeight={700}
-                  color={palette.text}
-                  highlightColor={palette.accent}
-                  wordByWord={segment.visual.captions.wordByWord || false}
-                  effect="fade_up"
-                />
-              </AbsoluteFill>
             )}
           </AbsoluteFill>
         </Sequence>

@@ -5,7 +5,10 @@
   "scripts": {
     "studio": "remotion studio",
     "render": "remotion render ShortVideo out/short.mp4",
-    "render:premium": "remotion render ShortVideo"
+    "render:premium": "remotion render ShortVideo",
+    "render:long": "remotion render LongVideo out/long.mp4",
+    "render:longform": "remotion render LongVideo",
+    "build": "remotion preload"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",

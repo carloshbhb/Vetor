@@ -1,75 +1,248 @@
-import { AbsoluteFill, useCurrentFrame, spring, interpolate } from "remotion";
+import { AbsoluteFill, Img, useCurrentFrame, spring, interpolate } from "remotion";
 import { InfographicChart } from "./InfographicChart";
+import { getImageSrc } from "../utils/images";
 
 interface ShowcaseProps {
-  product: { type: string; device: string; rotation: boolean; rotationSpeed: number };
+  product: { type: string; imageUrl?: string; rotation: boolean; rotationSpeed: number };
   infographics: Array<{ type: string; data: unknown; title?: string; animated: boolean }>;
   palette: Record<string, string>;
+  narration?: string;
+  onScreenText?: string;
 }
 
-export const Showcase: React.FC<ShowcaseProps> = ({ product, infographics, palette }) => {
+export const Showcase: React.FC<ShowcaseProps> = ({ product, infographics, palette, narration, onScreenText }) => {
   const frame = useCurrentFrame();
 
-  const floatY = interpolate(Math.sin(frame * 0.05), [-1, 1], [-10, 10]);
-  const rotation = product.rotation ? frame * product.rotationSpeed : 0;
+  const hasImage = !!product.imageUrl;
 
-  const fadeIn = spring({ frame, fps: 30, config: { stiffness: 100, damping: 20 } });
+  // Ken Burns on background
+  const kenBurnsScale = interpolate(frame, [0, 180], [1.0, 1.06], {
+    extrapolateRight: "clamp",
+  });
+
+  // Product float
+  const floatY = interpolate(Math.sin(frame * 0.04), [-1, 1], [-8, 8]);
+
+  // Product entrance
+  const productSpring = spring({
+    frame,
+    fps: 30,
+    config: { stiffness: 120, damping: 18, mass: 1.2 },
+  });
+  const productScale = interpolate(productSpring, [0, 1], [0.6, 1]);
+  const productOpacity = interpolate(frame, [0, 18], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+
+  // Glow pulse
+  const glowPulse = interpolate(Math.sin(frame * 0.06), [-1, 1], [0.3, 0.8]);
+
+  // Text entrance
+  const textEntrance = interpolate(frame, [12, 28], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+
+  // Infographic entrance
+  const infoEntrance = interpolate(frame, [25, 42], [0, 1], {
+    extrapolateRight: "clamp",
+  });
 
   return (
-    <AbsoluteFill
-      style={{
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "column",
-        gap: 40,
-      }}
-    >
-      <div
+    <AbsoluteFill>
+      {/* Full-screen product image as background with Ken Burns */}
+      {hasImage ? (
+        <AbsoluteFill>
+          <Img
+            src={getImageSrc(product.imageUrl)}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              filter: "brightness(0.3) saturate(1.3) contrast(1.1)",
+              transform: `scale(${kenBurnsScale})`,
+            }}
+          />
+          {/* Cinematic gradient overlays */}
+          <AbsoluteFill
+            style={{
+              background: `linear-gradient(180deg, 
+                rgba(10,10,15,0.45) 0%, 
+                rgba(10,10,15,0.0) 22%, 
+                rgba(10,10,15,0.0) 50%, 
+                rgba(10,10,15,0.85) 100%)`,
+            }}
+          />
+          {/* Accent glow */}
+          <AbsoluteFill
+            style={{
+              background: `radial-gradient(ellipse at 50% 38%, ${palette.primary}${Math.round(glowPulse * 25).toString(16).padStart(2, '0')} 0%, transparent 45%)`,
+            }}
+          />
+        </AbsoluteFill>
+      ) : (
+        <AbsoluteFill
+          style={{
+            background: `linear-gradient(135deg, ${palette.dark}, ${palette.surface})`,
+          }}
+        />
+      )}
+
+      {/* Large centered product image with premium effects */}
+      <AbsoluteFill
         style={{
-          width: 400,
-          height: 300,
-          background: `linear-gradient(135deg, ${palette.primary}, ${palette.secondary})`,
-          borderRadius: 20,
-          transform: `translateY(${floatY}px) rotate(${rotation}deg) scale(${fadeIn})`,
-          display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          boxShadow: `0 20px 60px ${palette.primary}40`,
-          position: "relative",
-          overflow: "hidden",
+          paddingBottom: 150,
+        }}
+      >
+        {hasImage && (
+          <div
+            style={{
+              position: "relative",
+              transform: `translateY(${floatY}px) scale(${productScale})`,
+              opacity: productOpacity,
+            }}
+          >
+            {/* Outer glow ring */}
+            <div
+              style={{
+                position: "absolute",
+                inset: -50,
+                borderRadius: "50%",
+                background: `radial-gradient(circle, ${palette.primary}25 0%, transparent 70%)`,
+                filter: "blur(35px)",
+                opacity: glowPulse,
+              }}
+            />
+            {/* Inner glow */}
+            <div
+              style={{
+                position: "absolute",
+                inset: -20,
+                background: `radial-gradient(circle, ${palette.primary}15 0%, transparent 60%)`,
+                filter: "blur(20px)",
+              }}
+            />
+            <Img
+              src={getImageSrc(product.imageUrl)}
+              style={{
+                width: 780,
+                height: 780,
+                objectFit: "contain",
+                filter: `drop-shadow(0 35px 80px rgba(0,0,0,0.7)) drop-shadow(0 0 70px ${palette.primary}40)`,
+              }}
+            />
+            {/* Animated shine */}
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: interpolate(frame % 120, [0, 120], [-200, 880]),
+                width: 140,
+                height: "100%",
+                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)",
+                transform: "skewX(-20deg)",
+                pointerEvents: "none",
+              }}
+            />
+          </div>
+        )}
+      </AbsoluteFill>
+
+      {/* On-screen text with premium styling */}
+      {onScreenText && (
+        <AbsoluteFill
+          style={{
+            justifyContent: "center",
+            alignItems: "center",
+            paddingTop: 500,
+          }}
+        >
+          <div
+            style={{
+              color: "white",
+              fontSize: 52,
+              fontWeight: 900,
+              textAlign: "center",
+              fontFamily: "Inter, system-ui, sans-serif",
+              textShadow: `0 4px 30px rgba(0,0,0,0.8), 0 0 60px ${palette.primary}40`,
+              letterSpacing: 2,
+              opacity: textEntrance,
+              transform: `translateY(${interpolate(textEntrance, [0, 1], [25, 0])}px)`,
+            }}
+          >
+            {onScreenText}
+          </div>
+        </AbsoluteFill>
+      )}
+
+      {/* Infographic - bottom area with staggered entrance */}
+      <AbsoluteFill
+        style={{
+          justifyContent: "flex-end",
+          alignItems: "center",
+          paddingBottom: 260,
         }}
       >
         <div
           style={{
-            position: "absolute",
-            inset: 8,
-            background: palette.dark,
-            borderRadius: 14,
             display: "flex",
-            flexDirection: "column",
-            padding: 20,
-            gap: 8,
+            gap: 40,
+            opacity: infoEntrance,
+            transform: `translateY(${interpolate(infoEntrance, [0, 1], [35, 0])}px)`,
           }}
         >
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#FF4757" }} />
-            <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#FFA502" }} />
-            <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#2ED573" }} />
-          </div>
-          <div style={{ flex: 1, background: "#16213E", borderRadius: 8, marginTop: 8 }} />
+          {infographics.map((info, i) => (
+            <div
+              key={i}
+              style={{
+                opacity: interpolate(frame, [28 + i * 4, 40 + i * 4], [0, 1], {
+                  extrapolateRight: "clamp",
+                  extrapolateLeft: "clamp",
+                }),
+                transform: `translateY(${interpolate(frame, [28 + i * 4, 40 + i * 4], [20, 0], {
+                  extrapolateRight: "clamp",
+                  extrapolateLeft: "clamp",
+                })}px)`,
+              }}
+            >
+              <InfographicChart
+                type={info.type}
+                data={info.data as { label: string; value: number; color: string }}
+                animated={info.animated}
+              />
+            </div>
+          ))}
         </div>
-      </div>
+      </AbsoluteFill>
 
-      <div style={{ display: "flex", gap: 40, flexWrap: "wrap", justifyContent: "center" }}>
-        {infographics.map((info, i) => (
-          <InfographicChart
-            key={i}
-            type={info.type}
-            data={info.data as { label: string; value: number; color: string }}
-            animated={info.animated}
-          />
-        ))}
-      </div>
+      {/* Narration text at very bottom */}
+      {narration && (
+        <AbsoluteFill
+          style={{
+            justifyContent: "flex-end",
+            alignItems: "center",
+            paddingBottom: 90,
+          }}
+        >
+          <div
+            style={{
+              color: "white",
+              fontSize: 38,
+              fontWeight: 700,
+              textAlign: "center",
+              padding: "0 60px",
+              fontFamily: "Inter, system-ui, sans-serif",
+              textShadow: `0 4px 25px rgba(0,0,0,0.8), 0 0 30px ${palette.primary}20`,
+              lineHeight: 1.3,
+              opacity: interpolate(frame, [32, 48], [0, 1], { extrapolateRight: "clamp" }),
+              transform: `translateY(${interpolate(frame, [32, 48], [20, 0], { extrapolateRight: "clamp" })}px)`,
+            }}
+          >
+            {narration}
+          </div>
+        </AbsoluteFill>
+      )}
     </AbsoluteFill>
   );
 };

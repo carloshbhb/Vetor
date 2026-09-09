@@ -2,6 +2,7 @@ import { AbsoluteFill, Sequence, Audio, staticFile } from "remotion";
 import { Hook } from "./components/Hook";
 import { ProblemSolution } from "./components/ProblemSolution";
 import { CTA } from "./components/CTA";
+import { FilmGrain } from "./components/FilmGrain";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySection = any;
@@ -20,6 +21,7 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: meta.palette.dark }}>
+      {/* Hook Section */}
       {hookSection && (
         <Sequence
           from={hookSection.startFrame}
@@ -30,6 +32,7 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
         </Sequence>
       )}
 
+      {/* Problem/Solution Section */}
       {psSection && (
         <Sequence
           from={psSection.startFrame}
@@ -40,6 +43,7 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
         </Sequence>
       )}
 
+      {/* CTA Section */}
       {ctaSection && (
         <Sequence
           from={ctaSection.startFrame}
@@ -49,6 +53,9 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
           <CTA section={ctaSection} palette={meta.palette} />
         </Sequence>
       )}
+
+      {/* Film Grain + Vignette Overlay - always on top */}
+      <FilmGrain intensity={0.03} vignette={true} vignetteIntensity={0.55} />
     </AbsoluteFill>
   );
 };
