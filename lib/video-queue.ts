@@ -22,6 +22,9 @@ export interface VideoJob {
   youtube_url?: string | null;
   error?: string | null;
   attempts?: number;
+  render_engine?: 'ffmpeg' | 'remotion';
+  created_at?: string;
+  updated_at?: string;
 }
 
 function supabaseAdmin() {
@@ -134,7 +137,7 @@ export async function getJobsTodayCount(): Promise<number> {
   return count || 0;
 }
 
-export async function upsertScriptJob(job: VideoJob, opts?: { force?: boolean }): Promise<'created' | 'skipped'> {
+export async function upsertScriptJob(job: VideoJob, opts?: { force?: boolean; renderEngine?: 'ffmpeg' | 'remotion' }): Promise<'created' | 'skipped'> {
   const sb = supabaseAdmin();
   if (!sb) {
     const all = readFallback();
@@ -167,6 +170,7 @@ export async function upsertScriptJob(job: VideoJob, opts?: { force?: boolean })
       status: 'script_ready',
       script: job.script,
       attempts: 0,
+      render_engine: opts?.renderEngine || 'ffmpeg',
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'slug' }
@@ -193,4 +197,88 @@ export async function getAllJobs(limit = 50): Promise<VideoJob[]> {
   if (!sb) return readFallback().slice(-limit).reverse();
   const { data } = await sb.from('video_jobs').select('*').order('updated_at', { ascending: false }).limit(limit);
   return (data || []) as VideoJob[];
+}
+
+// ── Premium (Remotion) ──────────────────────────────────────────────────────
+// Busca 1 job marcado como render_engine='remotion' e status='script_ready'
+export async function getPremiumJob(): Promise<VideoJob | null> {
+  const sb = supabaseAdmin();
+  if (!sb) {
+    const fallback = readFallback().find(
+      (j) => j.render_engine === 'remotion' && j.status === 'script_ready'
+    );
+    return fallback || null;
+  }
+  const { data } = await sb
+    .from('video_jobs')
+    .select('*')
+    .eq('render_engine', 'remotion')
+    .eq('status', 'script_ready')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (data as VideoJob) || null;
+}
+
+// Marca 1 job da fila como premium (render_engine='remotion')
+// Seleciona o job mais antigo sem vídeo publicado que ainda não foi marcado como remotion
+export async function markNextAsPremium(): Promise<string | null> {
+  const sb = supabaseAdmin();
+  if (!sb) {
+    const all = readFallback();
+    const candidate = all.find(
+      (j) => j.status === 'script_ready' && j.render_engine !== 'remotion' && !j.youtube_video_id
+    );
+    if (candidate) {
+      candidate.render_engine = 'remotion';
+      candidate.updated_at = new Date().toISOString();
+      writeFallback(all);
+      return candidate.slug;
+    }
+    return null;
+  }
+
+  // Busca 1 job script_ready que NÃO é remotion e não tem vídeo publicado
+  const { data: candidate } = await sb
+    .from('video_jobs')
+    .select('slug')
+    .eq('status', 'script_ready')
+    .neq('render_engine', 'remotion')
+    .is('youtube_video_id', null)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!candidate) return null;
+
+  await sb
+    .from('video_jobs')
+    .update({
+      render_engine: 'remotion',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('slug', candidate.slug);
+
+  return candidate.slug;
+}
+
+// Verifica se já foi gerado 1 premium hoje
+export async function getPremiumTodayCount(): Promise<number> {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const sb = supabaseAdmin();
+  if (!sb) {
+    return readFallback().filter(
+      (j: any) =>
+        j.render_engine === 'remotion' &&
+        j.updated_at &&
+        new Date(j.updated_at) >= start
+    ).length;
+  }
+  const { count } = await sb
+    .from('video_jobs')
+    .select('id', { count: 'exact', head: true })
+    .eq('render_engine', 'remotion')
+    .gte('updated_at', start.toISOString());
+  return count || 0;
 }

@@ -13,6 +13,8 @@
     "analyze": "ANALYZE=true npm run build",
     "db:migrate": "node scripts/migrate-to-supabase.js",
     "db:backup": "copy lib\\db.ts lib\\db.backup.ts && copy lib\\db.supabase.ts lib\\db.ts",
+    "remotion:render": "cd remotion && npx remotion render ShortVideo out/short.mp4",
+    "remotion:worker": "node scripts/remotion-worker.mjs",
     "prepare": "husky"
   },
   "dependencies": {

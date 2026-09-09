@@ -58,3 +58,26 @@ jobs:
           YOUTUBE_PRIVACY: public
           VIDEO_LIMIT: ${{ inputs.limit || '10' }}
         run: node scripts/video-worker-ci.mjs
+
+      # Premium: 1 vídeo/dia com Remotion (só no primeiro run)
+      - name: Instalar deps Remotion
+        if: github.event.schedule.cron == '0 13 * * *' || (github.event_name == 'workflow_dispatch')
+        working-directory: remotion
+        run: npm install --no-audit --no-fund
+
+      - name: Renderizar premium (Remotion)
+        if: github.event.schedule.cron == '0 13 * * *' || (github.event_name == 'workflow_dispatch')
+        env:
+          SITE_BASE: ${{ secrets.SITE_BASE }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_PRIVACY: public
+          NODE_OPTIONS: '--max-old-space-size=4096'
+        run: node scripts/remotion-worker.mjs

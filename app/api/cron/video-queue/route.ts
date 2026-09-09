@@ -7,6 +7,8 @@ import {
   getFailedSlugs,
   getJobsTodayCount,
   upsertScriptJob,
+  markNextAsPremium,
+  getPremiumTodayCount,
 } from '@/lib/video-queue';
 
 export const dynamic = 'force-dynamic';
@@ -116,17 +118,31 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // ── Premium (Remotion): 1 vídeo/dia ─────────────────────────────────────
+    // Uma vez por dia, marca o próximo job da fila como render_engine='remotion'
+    // O remotion-worker.mjs busca jobs com esse flag e renderiza com React/Remotion
+    let premiumInfo: { marked?: string; alreadyToday?: boolean } = {};
+    const premiumToday = await getPremiumTodayCount();
+    if (premiumToday === 0) {
+      const markedSlug = await markNextAsPremium();
+      if (markedSlug) {
+        premiumInfo = { marked: markedSlug };
+        console.log(`[video-queue] Premium marcado: ${markedSlug}`);
+      }
+    } else {
+      premiumInfo = { alreadyToday: true };
+    }
+
     return NextResponse.json(
       {
         v: 'dedup-v2',
-        // fingerprint não-sensível do banco lido (últimos 6 chars da URL pública)
-        // p/ diagnosticar se Vercel e worker enxergam o mesmo Supabase
         db: (process.env.NEXT_PUBLIC_SUPABASE_URL || 'none').slice(-6),
         success: true,
         message: `Fila: ${jobs.length} roteiros prontos (${publishedToday} já publicados hoje). Backlog restante: ${backlogSlugs.length - jobs.length}.`,
         jobs,
         skipped,
         errors,
+        premium: premiumInfo,
         nextStep: jobs.length
           ? 'No seu PC rode: node scripts/video-worker.mjs (renderiza + publica os script_ready, até 30/dia)'
           : 'Nada pendente — amanhã o cron pega os reviews novos do dia.',
