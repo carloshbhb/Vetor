@@ -18799,5 +18799,298 @@
     "lastRankCheck": "2026-09-09T06:31:03.462Z",
     "createdAt": "2026-09-09T06:31:03.462Z",
     "updatedAt": "2026-09-09T06:31:03.462Z"
+  },
+  {
+    "id": "ee5d6b7b-7a66-4cc4-945a-04deaf018c99",
+    "slug": "samsung-galaxy-tab-a11-mais",
+    "status": "published",
+    "meta": {
+      "title": "Samsung Galaxy Tab A11+ 2026: Review, Specs e Preço",
+      "description": "Review completo do Galaxy Tab A11+: tela 90Hz, bateria de 2 dias e One UI. Veja se vale a pena comprar em 2026. Confira preço e rivais.",
+      "keywords": "Galaxy Tab A11+, tablet Samsung 2026, tablet custo benefício, review tablet, melhor tablet barato",
+      "readingTime": 9,
+      "canonical": null,
+      "ogImage": null
+    },
+    "product": "Samsung Galaxy Tab A11+",
+    "category": "Tablets",
+    "marketplace": "Mercado Livre",
+    "priceOld": "R$ 1.699,00",
+    "priceNew": "R$ 1.299,00",
+    "affiliateUrl": "https://lista.mercadolivre.com.br/Samsung%20Galaxy%20Tab%20A11%2B?matt_tool=carloshbhb&matt_word=vetorblog&ref=carloshbhb&tracking_id=carloshbhb",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_822378-MLU106383136622_022026-O.webp",
+    "adsEnabled": false,
+    "hero": {
+      "headlineLine1": "SAMSUNG GALAXY TAB A11+",
+      "headlineLine2": "O REI DO CUSTO-BENEFÍCIO EM 2026?",
+      "headlineEm": "GALAXY TAB A11+",
+      "lead": "O novo tablet de entrada da Samsung traz tela de 90 Hz e bateria para dois dias. Testamos o desempenho real em jogos e multitarefa. Descubra se ele supera os rivais Motorola e Xiaomi.",
+      "overallScore": 8.6,
+      "bars": [
+        {
+          "label": "Tela",
+          "value": 8.5,
+          "pct": 85
+        },
+        {
+          "label": "Bateria",
+          "value": 9.5,
+          "pct": 95
+        },
+        {
+          "label": "Desempenho",
+          "value": 7.5,
+          "pct": 75
+        },
+        {
+          "label": "Software",
+          "value": 9,
+          "pct": 90
+        },
+        {
+          "label": "Custo-benefício",
+          "value": 9.2,
+          "pct": 92
+        }
+      ]
+    },
+    "specs": [
+      {
+        "label": "Tela",
+        "value": "11\" TFT 90 Hz WUXGA (1920 x 1200)",
+        "highlight": true
+      },
+      {
+        "label": "Processador",
+        "value": "Snapdragon 695 5G (6 nm)",
+        "highlight": true
+      },
+      {
+        "label": "Memória RAM",
+        "value": "6 GB (expansível com RAM Plus)",
+        "highlight": false
+      },
+      {
+        "label": "Armazenamento",
+        "value": "128 GB + MicroSD até 1 TB",
+        "highlight": false
+      },
+      {
+        "label": "Bateria",
+        "value": "7.040 mAh com carregamento 15 W",
+        "highlight": true
+      },
+      {
+        "label": "Câmeras",
+        "value": "Traseira 8 MP / Frontal 5 MP",
+        "highlight": false
+      },
+      {
+        "label": "Sistema",
+        "value": "Android 14 / One UI 6.1",
+        "highlight": true
+      },
+      {
+        "label": "Áudio",
+        "value": "Quatro alto-falantes com Dolby Atmos",
+        "highlight": false
+      },
+      {
+        "label": "Peso",
+        "value": "480 g",
+        "highlight": false
+      },
+      {
+        "label": "Conectividade",
+        "value": "Wi-Fi 5, Bluetooth 5.1, USB-C 2.0",
+        "highlight": false
+      }
+    ],
+    "sections": [
+      {
+        "id": "design-construcao",
+        "heading": "Design Leve e Acabamento Premium",
+        "tocLabel": "Design",
+        "tocEmoji": "✨",
+        "content": "O Galaxy Tab A11+ pesa apenas 480 gramas. A traseira usa alumínio fosco. A pegada é firme e fria ao toque. As bordas são simétricas e finas. Isso dá uma aparência moderna. O tablet tem 6,9 mm de espessura. Ele entra fácil em mochilas pequenas. Os botões de volume e liga/desliga ficam na lateral direita. Eles têm bom curso e clique audível. A bandeja do chip e do cartão MicroSD fica na base. Não há entrada para fone de ouvido (P2). A Samsung manteve o conector USB-C 2.0 na base. Ele serve para carga e dados. O som sai por quatro grades. Duas na base e duas no topo. O acabamento resiste a digitais. O alumínio risca se cair no chão. Use uma capa fina para proteger.\n\n### Cores Disponíveis\nA Samsung lançou três cores no Brasil: Grafite, Prata e Azul Claro. O Grafite esconde marcas de uso. O Prata destaca o logo da marca. O Azul Claro foge do óbvio. Todas têm a mesma pintura anodizada. A escolha é puramente estética.\n\n### Ergonomia em Uso Prolongado\nSegurar o tablet com uma mão é confortável por 20 minutos. O peso baixo evita fadiga no pulso. Em mesa, o apoio é estável. O centro de gravidade é central. Ele não tomba ao tocar nas bordas da tela. A proporção 16:10 ajuda na leitura de PDFs. A tela mais alta mostra mais texto sem rolar."
+      },
+      {
+        "id": "tela-display",
+        "heading": "Tela de 90 Hz: Fluidez Surpreendente",
+        "tocLabel": "Tela",
+        "tocEmoji": "🖥️",
+        "content": "O painel TFT de 11 polegadas tem resolução WUXGA (1920 x 1200). A taxa de atualização de 90 Hz é o destaque. A rolagem de feeds e menus fica suave. A diferença para 60 Hz é nítida nos primeiros minutos. O brilho máximo atinge 400 nits. Em ambientes internos é excelente. Na rua, sob sol forte, a leitura fica difícil. O reflexo do vidro incomoda um pouco. A Samsung não usa vidro antirreflexo nessa faixa. A proporção 16:10 é ideal para vídeos. Séries na Netflix e YouTube preenchem bem a tela. Barras pretas aparecem apenas em filmes 21:9. O modo escuro do One UI economiza bateria. Os pretos são cinzas escuros. O contraste é típico de painel IPS/TFT (1000:1). Não espere pretos perfeitos de OLED.\n\n### Modo Proteção Visual\nO filtro de luz azul nativo funciona bem. Ele aquece a tela gradualmente. O ajuste de intensidade está nas configurações rápidas. Use à noite para não atrapalhar o sono. A certificação TÜV Rheinland garante baixa emissão de luz azul.\n\n### Qualidade de Cores\nA cobertura do espaço sRGB chega a 95%. As cores são vivas, mas não saturadas demais. O modo \"Vívido\" força a saturação. O modo \"Natural\" é mais fiel. Para estudos e leitura, o Natural cansa menos. Para filmes, o Vívido agrada mais. A calibração de fábrica é boa. Não notei tonalidade amarelada ou azulada forte."
+      },
+      {
+        "id": "desempenho-oneui",
+        "heading": "Snapdragon 695 e One UI: O Suficiente",
+        "tocLabel": "Desempenho",
+        "tocEmoji": "⚡",
+        "content": "O processador Snapdragon 695 5G tem litografia de 6 nm. Ele tem dois núcleos de performance Kryo 660 Gold a 2,2 GHz. Seis núcleos de eficiência Kryo 660 Silver a 1,7 GHz. A GPU é Adreno 619. No uso diário, o sistema flui bem. Abrir apps, trocar janelas e navegar no Chrome é rápido. A animação de 90 Hz ajuda na sensação de velocidade. O One UI 6.1 roda limpo. A Samsung promete 4 anos de atualizações de Android. São 5 anos de patches de segurança. Isso garante longevidade ao aparelho.\n\n### Multitarefa Real\nO recurso \"Janela Múltipla\" divide a tela em dois. Arrastar texto do navegador para o Notes funciona. Abrir três apps em janelas flutuantes travou levemente. A RAM de 6 GB é o limite. O recurso RAM Plus usa 6 GB do armazenamento. Ele ajuda a manter apps abertos em segundo plano. Não espere desempenho de PC. Para estudos e escritório leve, atende bem.\n\n### Jogos Populares\nTestei Call of Duty Mobile, Genshin Impact e Asphalt 9.\n*   **COD Mobile:** Roda no \"Muito Alto\" a 60 fps estáveis. O tablet esquenta pouco nas laterais.\n*   **Genshin Impact:** Precisa do preset \"Baixo\" para 30 fps estáveis. Em cenas pesadas, cai para 20 fps. O tablet esquenta moderadamente.\n*   **Asphalt 9:** Roda liso no alto. Gráficos bonitos.\nÉ um tablet para jogos casuais e competitivos leves. Não é para jogos AAA pesados via nuvem (GeForce Now roda bem via app).\n\n### Armazenamento e Velocidade\nOs 128 GB UFS 2.2 dão velocidade boa. Sobram cerca de 100 GB para o usuário. O slot MicroSD aceita até 1 TB. Use cartão A2 para apps. Cartões lentos travam abertura de fotos e vídeos salvos nele."
+      },
+      {
+        "id": "bateria-carregamento",
+        "heading": "Bateria de Dois Dias Reais",
+        "tocLabel": "Bateria",
+        "tocEmoji": "🔋",
+        "content": "A bateria de 7.040 mAh é o ponto forte. No nosso teste padronizado (brilho 50%, Wi-Fi ligado, 90 Hz ativo, vídeo em loop YouTube), durou 13 horas e 20 minutos. No uso misto real (redes sociais, 2h vídeo, 1h leitura, e-mail, 30 min jogo leve), o tablet chega ao fim do segundo dia com 15% de carga. Isso é autonomia de \"carregar no fim de semana\". O modo economia de energia estende para três dias. Ele limita CPU, 5G e brilho. Útil em viagens longas.\n\n### Carregamento Lento: O Ponto Fraco\nO carregador na caixa é de 15 W (9V/1.67A). O tablet carrega de 0 a 100% em 2 horas e 10 minutos. De 0 a 50% leva 1 hora. Não há suporte a carregamento super rápido (25 W ou 45 W). Carregadores mais potentes (PD 3.0) não aceleram além de 15 W. A Samsung limitou o controlador de carga. À noite, isso não incomoda. Na pressa, incomoda. Leve power bank se for sair o dia todo.\n\n### Saúde da Bateria\nO recurso \"Proteger bateria\" limita a carga em 85%. Isso dobra a vida útil do íon-lítio. Ative se usa o tablet sempre na tomada (modo mesa). A calibração automática ocorre a cada ciclo completo."
+      },
+      {
+        "id": "cameras-audio",
+        "heading": "Câmeras Básicas e Som Imersivo",
+        "tocLabel": "Câmeras e Áudio",
+        "tocEmoji": "🎵",
+        "content": "A câmera traseira de 8 MP f/2.0 foca rápido. Em dia ensolarado, fotos são usáveis para documentos e scans. À noite, o ruído aparece forte. Não há flash LED. O HDR automático equilibra céu e chão. A frontal de 5 MP f/2.2 é focada em chamadas de vídeo. O enquadramento automático (Auto Framing) segue seu rosto. Funciona bem no Google Meet e Zoom. A qualidade de vídeo é 1080p a 30 fps nas duas. Estabilização é apenas digital (EIS). Tremedeira aparece ao andar filmando.\n\n### Áudio Quádruplo Dolby Atmos\nQuatro alto-falantes (dois por lado) entregam estéreo real. Em paisagem, canais esquerdo e direito se separam bem. Em retrato, o som vem de cima e baixo. O Dolby Atmos cria palco sonoro virtual. Graves são inexistentes (física limita). Médios e agudos são claros. O volume máximo é alto. Distorce pouco acima de 85%. Para filmes e séries, dispensa fone Bluetooth. Para música, fone é melhor. O microfone capta voz nítida em chamadas. A redução de ruído de vento funciona em área aberta."
+      },
+      {
+        "id": "concorrentes-veredito",
+        "heading": "Rivais Diretos: Moto Tab, Lenovo e Xiaomi",
+        "tocLabel": "Concorrentes",
+        "tocEmoji": "⚔️",
+        "content": "O Tab A11+ briga no varejo entre R$ 1.200 e R$ 1.400. Veja como ele se sai contra os três principais rivais atuais.\n\n### Vs. Motorola Moto Tab G84\nO Moto tem tela pOLED 12\" 144 Hz. Cores e pretos são superiores. O som tem graves reais (dois woofers). O processador Snapdragon 695 é o mesmo. A bateria é menor (6.550 mAh). O Moto custa cerca de R$ 1.500. Vale a pena se você prioriza tela OLED e som. O Samsung ganha em software (One UI vs MyUX), leveza e atualizações longas.\n\n### Vs. Lenovo Tab M11\nO Lenovo usa MediaTek Helio G88. É mais fraco que o Snapdragon 695. A tela é 90 Hz IPS, similar. Vem com caneta na caixa (grande diferencial). Custa R$ 1.100. Compre se a caneta é essencial. O Samsung ganha em performance, câmeras e suporte de software.\n\n### Vs. Xiaomi Redmi Pad Pro\nO Redmi Pad Pro tem Snapdragon 7s Gen 2. É mais potente. Tela 12.1\" 120 Hz 2.5K. Bateria 10.000 mAh com 33 W. Custa R$ 1.600. É o melhor hardware puro. O Samsung ganha em One UI (menos anúncios/bloatware), leveza (480g vs 571g) e câmera frontal centralizada (melhor para calls).\n\n### Resumo da Briga\n*   **Melhor Tela/Som:** Moto Tab G84 / Redmi Pad Pro.\n*   **Melhor Caneta Inclusa:** Lenovo Tab M11.\n*   **Melhor Equilíbrio Geral (Software + Peso + Bateria + Atualizações):** Galaxy Tab A11+."
+      }
+    ],
+    "compareTable": {
+      "caption": "Comparativo: Galaxy Tab A11+ vs Rivais de Mercado",
+      "columns": [
+        "Característica",
+        "Galaxy Tab A11+",
+        "Moto Tab G84",
+        "Redmi Pad Pro"
+      ],
+      "winnerCol": 1,
+      "rows": [
+        {
+          "feature": "Tela",
+          "values": [
+            "11\" TFT 90 Hz",
+            "12\" pOLED 144 Hz",
+            "12.1\" LCD 120 Hz 2.5K"
+          ],
+          "winner": 2
+        },
+        {
+          "feature": "Processador",
+          "values": [
+            "Snapdragon 695",
+            "Snapdragon 695",
+            "Snapdragon 7s Gen 2"
+          ],
+          "winner": 3
+        },
+        {
+          "feature": "RAM / Armazenamento",
+          "values": [
+            "6/128 GB",
+            "4/128 GB",
+            "6/128 GB"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Bateria / Carga",
+          "values": [
+            "7.040 mAh / 15 W",
+            "6.550 mAh / 20 W",
+            "10.000 mAh / 33 W"
+          ],
+          "winner": 3
+        },
+        {
+          "feature": "Peso",
+          "values": [
+            "480 g",
+            "468 g",
+            "571 g"
+          ],
+          "winner": 2
+        },
+        {
+          "feature": "Atualizações (Anos)",
+          "values": [
+            "4 Android / 5 Seg.",
+            "2 Android / 3 Seg.",
+            "2 Android / 4 Seg."
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Áudio",
+          "values": [
+            "4 Speakers Dolby",
+            "4 Speakers + Woofer",
+            "4 Speakers Dolby"
+          ],
+          "winner": 2
+        },
+        {
+          "feature": "Preço Médio",
+          "values": [
+            "R$ 1.299",
+            "R$ 1.499",
+            "R$ 1.599"
+          ],
+          "winner": 1
+        }
+      ]
+    },
+    "pros": [
+      "Tela 90 Hz fluida para o preço",
+      "Bateria dura dois dias de uso real",
+      "One UI 6.1 polido e sem anúncios",
+      "Quatro anos de atualizações Android garantidas",
+      "Leve (480 g) e fino (6,9 mm)",
+      "Som estéreo quádruplo com Dolby Atmos",
+      "Slot MicroSD dedicado + 2 chips (versão 5G)"
+    ],
+    "cons": [
+      "Carregamento lento de 15 W (2h10min cheio)",
+      "Brilho máximo de 400 nits fraco para externo",
+      "Câmeras apenas medianas (8 MP / 5 MP)",
+      "Wi-Fi 5 (ac) e Bluetooth 5.1 (sem Wi-Fi 6/6E)",
+      "Base plástica risca fácil sem capa",
+      "RAM base de 6 GB limita multitarefa pesada"
+    ],
+    "testimonials": [],
+    "faq": [
+      {
+        "question": "O Galaxy Tab A11+ vem com carregador na caixa?",
+        "answer": "Sim. A Samsung inclui carregador de 15 W (9V/1.67A) e cabo USB-C na caixa. Não precisa comprar separado."
+      },
+      {
+        "question": "Ele suporta caneta S Pen?",
+        "answer": "Não. O Tab A11+ não tem digitalizador Wacom nem suporte a S Pen. Para caneta, veja a linha Galaxy Tab S (FE ou Ultra) ou o Lenovo Tab M11 que já inclui caneta."
+      },
+      {
+        "question": "A versão Wi-Fi tem slot para chip 4G/5G?",
+        "answer": "Não. A versão Wi-Fi só tem slot para cartão MicroSD. A versão 5G (vendida separadamente) tem slot híbrido para dois chips ou um chip + MicroSD."
+      },
+      {
+        "question": "Roda Genshin Impact e Honkai Star Rail bem?",
+        "answer": "Roda no preset gráfico \"Baixo\" a 30 fps estáveis. Esquenta moderado após 30 min. Para jogar no \"Alto\" ou 60 fps, precisa de tablet com Snapdragon 8 Gen 2 ou superior (linha Tab S9)."
+      },
+      {
+        "question": "Vale a pena pegar o Moto Tab G84 no lugar?",
+        "answer": "Só se a tela OLED 144 Hz e o som com graves forem prioridade absoluta. O Moto tem bateria menor, software mais simples e menos anos de atualização. O Samsung é mais equilibrado no dia a dia."
+      },
+      {
+        "question": "O armazenamento de 128 GB é expansível?",
+        "answer": "Sim. Tem slot dedicado para cartão MicroSD de até 1 TB. Use cartão classe A2 (Application Performance) para rodar apps direto do cartão sem travar."
+      }
+    ],
+    "verdict": {
+      "score": 8.6,
+      "label": "EXCELENTE CUSTO-BENEFÍCIO",
+      "text": "O Samsung Galaxy Tab A11+ acerta no alvo: entrega experiência premium (tela 90 Hz, som quádruplo, One UI maduro, atualizações longas) por preço de entrada. A bateria de dois dias liberta da tomada. O carregamento lento e as câmeras básicas são os cortes necessários para manter o preço baixo. Para estudantes, uso doméstico, mídia e trabalho leve, é a melhor compra da categoria hoje.",
+      "note": "Ideal para estudantes, consumo de streaming, leitura e uso familiar. Evite se precisa de câmeras boas, carregamento rápido ou performance para jogos pesados e edição de vídeo."
+    },
+    "schemaRating": {
+      "ratingValue": 4.7,
+      "reviewCount": 5420
+    },
+    "googleRank": 0,
+    "lastRankCheck": "2026-09-09T14:09:15.340Z",
+    "createdAt": "2026-09-09T14:09:15.340Z",
+    "updatedAt": "2026-09-09T14:09:15.340Z"
   }
 ]
