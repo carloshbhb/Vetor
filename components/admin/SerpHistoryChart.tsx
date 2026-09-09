@@ -9,7 +9,7 @@ interface SerpHistoryChartProps {
     slug: string;
     status?: string;
     googleRank?: number | null;
-    lastRankCheck?: string;
+    lastRankCheck?: string | null;
     updatedAt: string;
   }>;
 }

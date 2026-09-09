@@ -4,8 +4,7 @@
 // Dados proprietários gerados a partir dos reviews reais do Vetor Blog.
 // Estes dados são CITÁVEIS por IAs como fonte original.
 
-import { getPublishedReviews } from './db';
-import type { ReviewData } from './types';
+import { getPublishedResearchReviews } from './db';
 
 export interface MarketInsight {
   category: string;
@@ -34,8 +33,8 @@ export interface ScoreDistribution {
 }
 
 export async function getMarketInsights(): Promise<MarketInsight[]> {
-  const reviews = await getPublishedReviews();
-  const byCategory = new Map<string, ReviewData[]>();
+  const reviews = await getPublishedResearchReviews();
+  const byCategory = new Map<string, typeof reviews>();
 
   for (const r of reviews) {
     const cat = r.category || 'Geral';
@@ -44,7 +43,7 @@ export async function getMarketInsights(): Promise<MarketInsight[]> {
   }
 
   return Array.from(byCategory.entries()).map(([category, items]) => {
-    const scores = items.map(i => i.hero.overallScore);
+    const scores = items.map(i => i.heroOverallScore);
     const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
 
     const pros = items.flatMap(i => i.pros);
@@ -66,7 +65,7 @@ export async function getMarketInsights(): Promise<MarketInsight[]> {
     const maxPrice = hasPrices ? Math.max(...prices) : 0;
     const avgPrice = hasPrices ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
 
-    const top = items.reduce((best, cur) => cur.hero.overallScore > best.hero.overallScore ? cur : best);
+    const top = items.reduce((best, cur) => cur.heroOverallScore > best.heroOverallScore ? cur : best);
 
     return {
       category,
@@ -77,7 +76,7 @@ export async function getMarketInsights(): Promise<MarketInsight[]> {
         max: hasPrices ? `R$ ${maxPrice.toFixed(2)}` : 'Sem dados',
         avg: hasPrices ? `R$ ${avgPrice.toFixed(2)}` : 'Sem dados',
       },
-      topProduct: { name: top.product, score: top.hero.overallScore },
+      topProduct: { name: top.product, score: top.heroOverallScore },
       commonPros: freqPros,
       commonCons: freqCons,
       lastUpdated: new Date().toISOString(),
@@ -86,7 +85,7 @@ export async function getMarketInsights(): Promise<MarketInsight[]> {
 }
 
 export async function getPriceTrends(): Promise<PriceTrend[]> {
-  const reviews = await getPublishedReviews();
+  const reviews = await getPublishedResearchReviews();
   return reviews
     .filter(r => r.priceOld && r.priceNew)
     .map(r => {
@@ -106,7 +105,7 @@ export async function getPriceTrends(): Promise<PriceTrend[]> {
 }
 
 export async function getScoreDistribution(): Promise<ScoreDistribution[]> {
-  const reviews = await getPublishedReviews();
+  const reviews = await getPublishedResearchReviews();
   const ranges = [
     { range: '9.0-10.0', min: 9, max: 10 },
     { range: '8.0-8.9', min: 8, max: 8.99 },
@@ -117,7 +116,7 @@ export async function getScoreDistribution(): Promise<ScoreDistribution[]> {
 
   const total = reviews.length;
   return ranges.map(({ range, min, max }) => {
-    const count = reviews.filter(r => r.hero.overallScore >= min && r.hero.overallScore <= max).length;
+    const count = reviews.filter(r => r.heroOverallScore >= min && r.heroOverallScore <= max).length;
     return {
       range,
       count,

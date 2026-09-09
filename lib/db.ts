@@ -244,6 +244,14 @@ export interface ReviewCard {
 const REVIEW_CARD_COLUMNS =
   'id,slug,product,category,price_new,image_url,hero_overall_score,hero_lead,meta_title,meta_description,created_at,updated_at';
 
+// Colunas leves para admin (dashboard + lista) — evita SELECT * em ~1.2 MB
+const ADMIN_COLUMNS =
+  'id,slug,product,category,status,price_new,ads_enabled,meta_title,hero_overall_score,google_rank,last_rank_check,updated_at';
+
+// Colunas para research/analytics — só o necessário para cálculos
+const RESEARCH_COLUMNS =
+  'product,category,slug,price_new,price_old,hero_overall_score,pros,cons';
+
 function mapRowToReviewCard(row: any): ReviewCard {
   const num = (val: any) => {
     if (val === null || val === undefined) return 0;
@@ -305,6 +313,148 @@ export async function getPublishedReviewCards(): Promise<ReviewCard[]> {
     return (await b.getPublishedReviews()).map(mapReviewDataToCard);
   }
   return data.map(mapRowToReviewCard);
+}
+
+// ─── Admin Review (colunas leves — ~10 KB por row vs ~10 KB com SELECT *) ──
+export interface AdminReview {
+  id: string;
+  slug: string;
+  product: string;
+  category: string;
+  status: string;
+  priceNew: string;
+  adsEnabled: boolean;
+  metaTitle: string;
+  heroOverallScore: number;
+  googleRank: number;
+  lastRankCheck: string | null;
+  updatedAt: string;
+}
+
+function mapRowToAdminReview(row: any): AdminReview {
+  const num = (val: any) => {
+    if (val === null || val === undefined) return 0;
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+  return {
+    id: row.id,
+    slug: row.slug ?? '',
+    product: row.product ?? '',
+    category: row.category ?? '',
+    status: row.status ?? 'draft',
+    priceNew: row.price_new ?? '',
+    adsEnabled: row.ads_enabled ?? false,
+    metaTitle: row.meta_title ?? '',
+    heroOverallScore: num(row.hero_overall_score),
+    googleRank: num(row.google_rank),
+    lastRankCheck: row.last_rank_check ?? null,
+    updatedAt: row.updated_at ?? '',
+  };
+}
+
+export async function getAdminReviews(): Promise<AdminReview[]> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    const b = await getBackup();
+    return (await b.getAllReviews()).map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      product: r.product,
+      category: r.category,
+      status: r.status,
+      priceNew: r.priceNew,
+      adsEnabled: r.adsEnabled,
+      metaTitle: r.meta?.title ?? '',
+      heroOverallScore: r.hero?.overallScore ?? 0,
+      googleRank: r.googleRank ?? 0,
+      lastRankCheck: r.lastRankCheck ?? null,
+      updatedAt: r.updatedAt,
+    }));
+  }
+  const { data, error } = await supabase
+    .from('reviews')
+    .select(ADMIN_COLUMNS)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[Database] Error fetching admin reviews:', error);
+    const b = await getBackup();
+    return (await b.getAllReviews()).map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      product: r.product,
+      category: r.category,
+      status: r.status,
+      priceNew: r.priceNew,
+      adsEnabled: r.adsEnabled,
+      metaTitle: r.meta?.title ?? '',
+      heroOverallScore: r.hero?.overallScore ?? 0,
+      googleRank: r.googleRank ?? 0,
+      lastRankCheck: r.lastRankCheck ?? null,
+      updatedAt: r.updatedAt,
+    }));
+  }
+  return (data || []).map(mapRowToAdminReview);
+}
+
+// ─── Research Review (colunas para analytics — sem sections/specs/faq) ─────
+export interface ResearchReview {
+  product: string;
+  category: string;
+  slug: string;
+  priceNew: string;
+  priceOld: string;
+  heroOverallScore: number;
+  pros: string[];
+  cons: string[];
+}
+
+export async function getPublishedResearchReviews(): Promise<ResearchReview[]> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    const b = await getBackup();
+    return (await b.getPublishedReviews()).map((r) => ({
+      product: r.product,
+      category: r.category,
+      slug: r.slug,
+      priceNew: r.priceNew,
+      priceOld: r.priceOld,
+      heroOverallScore: r.hero?.overallScore ?? 0,
+      pros: r.pros ?? [],
+      cons: r.cons ?? [],
+    }));
+  }
+  const { data, error } = await supabase
+    .from('reviews')
+    .select(RESEARCH_COLUMNS)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[Database] Error fetching research reviews:', error);
+    const b = await getBackup();
+    return (await b.getPublishedReviews()).map((r) => ({
+      product: r.product,
+      category: r.category,
+      slug: r.slug,
+      priceNew: r.priceNew,
+      priceOld: r.priceOld,
+      heroOverallScore: r.hero?.overallScore ?? 0,
+      pros: r.pros ?? [],
+      cons: r.cons ?? [],
+    }));
+  }
+  return (data || []).map((row) => ({
+    product: row.product ?? '',
+    category: row.category ?? '',
+    slug: row.slug ?? '',
+    priceNew: row.price_new ?? '',
+    priceOld: row.price_old ?? '',
+    heroOverallScore: parseFloat(row.hero_overall_score) || 0,
+    pros: row.pros ?? [],
+    cons: row.cons ?? [],
+  }));
 }
 
 // ─── Fila de slugs ordenada (backlog mais antigo primeiro, query leve) ───────

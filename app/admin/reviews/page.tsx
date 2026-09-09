@@ -1,12 +1,12 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { getAllReviews, deleteReview } from '@/lib/db';
+import { getAdminReviews, deleteReview } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { PlusCircle, Pencil, Eye, Trash2 } from 'lucide-react';
 
 export default async function ReviewsListPage() {
-  const reviews = await getAllReviews();
+  const reviews = await getAdminReviews();
 
   async function remove(id: string) {
     'use server';
@@ -47,7 +47,7 @@ export default async function ReviewsListPage() {
                 <tr key={r.id} className="border-b border-border last:border-0 hover:bg-bg2 transition-colors">
                   <td className="px-4 py-3">
                     <p className="font-semibold text-sm text-text">{r.product}</p>
-                    <p className="text-xs text-text-muted mt-0.5 max-w-[240px] truncate">{r.meta.title}</p>
+                    <p className="text-xs text-text-muted mt-0.5 max-w-[240px] truncate">{r.metaTitle}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-text-muted">{r.category}</td>
                   <td className="px-4 py-3">
@@ -76,7 +76,7 @@ export default async function ReviewsListPage() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="bg-blue-light border border-blue-mid rounded-lg text-xs font-syne font-bold px-2.5 py-1 text-blue">{r.hero.overallScore}</span>
+                    <span className="bg-blue-light border border-blue-mid rounded-lg text-xs font-syne font-bold px-2.5 py-1 text-blue">{r.heroOverallScore}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-bold ${r.adsEnabled ? 'text-green' : 'text-text-muted'}`}>

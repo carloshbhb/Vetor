@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import { PlusCircle, FileText, Star, Eye } from 'lucide-react';
-import { getAllReviews } from '@/lib/db';
+import { getAdminReviews } from '@/lib/db';
 import SerpRefreshButton from '@/components/admin/SerpRefreshButton';
 import AutonomousAgentButton from '@/components/admin/AutonomousAgentButton';
 import RealtimeIndicator from '@/components/admin/RealtimeIndicator';
@@ -11,11 +11,11 @@ import SerpHistoryChart from '@/components/admin/SerpHistoryChart';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 
 export default async function AdminDashboard() {
-  const reviews = await getAllReviews();
+  const reviews = await getAdminReviews();
   const published = reviews.filter(r => r.status === 'published');
   const drafts    = reviews.filter(r => r.status === 'draft');
   const avgScore  = published.length
-    ? (published.reduce((s, r) => s + r.hero.overallScore, 0) / published.length).toFixed(1)
+    ? (published.reduce((s, r) => s + r.heroOverallScore, 0) / published.length).toFixed(1)
     : '—';
 
   const stats = [
@@ -99,7 +99,7 @@ export default async function AdminDashboard() {
                 <tr key={r.id} className="border-b border-border last:border-0 hover:bg-bg2 transition-colors">
                   <td className="px-4 py-3">
                     <p className="font-semibold text-sm text-text">{r.product}</p>
-                    <p className="text-xs text-text-muted mt-0.5 max-w-[220px] truncate">{r.meta.title}</p>
+                    <p className="text-xs text-text-muted mt-0.5 max-w-[220px] truncate">{r.metaTitle}</p>
                   </td>
                   <td className="px-4 py-3">
                     <span className="bg-bg2 border border-border rounded-full text-xs font-medium px-2.5 py-0.5 text-text-muted">
@@ -133,7 +133,7 @@ export default async function AdminDashboard() {
                   </td>
                   <td className="px-4 py-3">
                     <span className="bg-blue-light border border-blue-mid rounded-lg text-xs font-syne font-bold px-2.5 py-1 text-blue">
-                      {r.hero.overallScore}
+                      {r.heroOverallScore}
                     </span>
                   </td>
                   <td className="px-4 py-3">
