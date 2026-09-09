@@ -35,7 +35,7 @@ export async function GET() {
     </item>`;
   }).join('\n');
 
-  const sitemapUrl = `${baseUrl}/sitemap.xml`;
+  const rssUrl = `${baseUrl}/rss.xml`;
   const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"
   xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -45,7 +45,7 @@ export async function GET() {
     <title>Vetor Blog - Reviews de Produtos</title>
     <description>Reviews imparciais de tecnologia, wearables, games e eletrônicos</description>
     <link>${baseUrl}</link>
-    <atom:link href="${sitemapUrl}" rel="self" type="application/rss+xml"/>
+    <atom:link href="${rssUrl}" rel="self" type="application/rss+xml"/>
     <language>pt-BR</language>
     <lastBuildDate>${formatRFC3339(new Date().toISOString())}</lastBuildDate>
     <image>

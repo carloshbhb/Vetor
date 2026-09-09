@@ -15,6 +15,7 @@
     "db:backup": "copy lib\\db.ts lib\\db.backup.ts && copy lib\\db.supabase.ts lib\\db.ts",
     "remotion:render": "cd remotion && npx remotion render ShortVideo out/short.mp4",
     "remotion:worker": "node scripts/remotion-worker.mjs",
+    "video:longform": "node scripts/video-longform.mjs",
     "prepare": "husky"
   },
   "dependencies": {

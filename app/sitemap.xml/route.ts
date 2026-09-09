@@ -9,26 +9,6 @@ function slugify(text: string): string {
 
 export const revalidate = 3600;
 
-async function submitToIndexNow(urls: string[]) {
-  try {
-    const { submitUrls } = await import('@/lib/indexnow');
-    await submitUrls(urls);
-  } catch (e) {
-    console.error('[Sitemap] IndexNow error:', e);
-  }
-}
-
-async function pingGscSitemap() {
-  try {
-    const { submitSitemap } = await import('@/lib/search-console');
-    const result = await submitSitemap('sitemap.xml');
-    if (result.success) {
-      console.log('[Sitemap] GSC sitemap submitted:', result.message);
-    }
-  } catch (e) {
-    console.error('[Sitemap] GSC ping error:', e);
-  }
-}
 
 export async function GET() {
   const rawUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
@@ -105,15 +85,6 @@ export async function GET() {
   </url>
   ${staticUrlXml}${categoryUrls}${reviewUrls}
 </urlset>`;
-
-  const allUrls = [
-    `${baseUrl}/rss.xml`,
-    ...staticUrls.map(p => `${baseUrl}${p.path}`),
-    ...categories.map(cat => `${baseUrl}/categoria/${slugify(cat)}`),
-    ...reviews.map(r => `${baseUrl}/review/${r.slug}`),
-  ];
-  submitToIndexNow(allUrls);
-  pingGscSitemap();
 
   return new Response(sitemapXml, {
     headers: {

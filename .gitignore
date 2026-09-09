@@ -34,6 +34,20 @@ temp_log.txt
 
 # temp files
 /tmp/
+*.tmp
+output.log
+
+# remotion generated files
+remotion/out/
+remotion/public/audio/
+remotion/public/images/
+remotion/props.json
+remotion/video-data.json
+
+# debug/one-off scripts
+scripts/_*.mjs
+scripts/_*.cjs
+gen_next.mjs
 
 # typescript
 *.tsbuildinfo

@@ -178,6 +178,7 @@ async function downloadImage(url, dest) {
 
 // ── Converter ───────────────────────────────────────────────────────────────
 const { convertVideoScriptToRemotionData, convertVideoScriptToLongFormData } = await import('./video-to-remotion-data.mjs');
+const { processLongFormJob } = await import('./video-longform.mjs');
 
 // ── Main ────────────────────────────────────────────────────────────────────
 console.log('[Remotion Worker] Buscando 1 job premium...');
@@ -242,33 +243,11 @@ try {
     `python -m edge_tts --voice pt-BR-AntonioNeural --file "${txt}" --write-media "${mp3}" --write-subtitles "${srt}"`
   );
 
-  // ── 2. Separar áudio em seções (hook, problem_solution, cta) ──────────────
-  console.log('[2/5] Separando áudio em seções...');
+  // ── 2. Preparar áudio para Remotion ────────────────────────────────────
+  console.log('[2/5] Preparando áudio...');
   const audioDir = path.join(REMOTION_DIR, 'public', 'audio');
   if (!existsSync(audioDir)) mkdirSync(audioDir, { recursive: true });
-
-  const totalDuration = script.estimatedSeconds || 50;
-  const hookDuration = 3;
-  const ctaDuration = Math.min(20, Math.floor(totalDuration * 0.4));
-  const psDuration = totalDuration - hookDuration - ctaDuration;
-
-  // Usa ffmpeg para cortar o áudio em 3 partes
-  try {
-    run(
-      `ffmpeg -y -i "${mp3}" -ss 0 -t ${hookDuration} -c copy "${path.join(audioDir, 'hook.mp3')}"`
-    );
-    run(
-      `ffmpeg -y -i "${mp3}" -ss ${hookDuration} -t ${psDuration} -c copy "${path.join(audioDir, 'problem_solution.mp3')}"`
-    );
-    run(
-      `ffmpeg -y -i "${mp3}" -ss ${hookDuration + psDuration} -t ${ctaDuration} -c copy "${path.join(audioDir, 'cta.mp3')}"`
-    );
-  } catch (e) {
-    console.warn('[Remotion Worker] Fallback: copiando áudio completo para todas seções');
-    copyFileSync(mp3, path.join(audioDir, 'hook.mp3'));
-    copyFileSync(mp3, path.join(audioDir, 'problem_solution.mp3'));
-    copyFileSync(mp3, path.join(audioDir, 'cta.mp3'));
-  }
+  copyFileSync(mp3, path.join(audioDir, 'full.mp3'));
 
   // ── 3. Converter VideoScript → video-data.json ───────────────────────────
   console.log('[3/5] Convertendo roteiro...');
@@ -405,7 +384,10 @@ try {
     const propsPath = path.join(REMOTION_DIR, 'props.json');
     writeFileSync(propsPath, JSON.stringify({ data: remotionData }), 'utf8');
 
-    run(`npx remotion render ${renderComponent} "${outputPath}" --props=props.json`, { cwd: REMOTION_DIR });
+    const renderFlags = isLongForm
+      ? '--concurrency=4 --gl=angle --codec h264 --timeout=120000'
+      : '--concurrency=2 --gl=angle --codec h264';
+    run(`npx remotion render ${renderComponent} "${outputPath}" --props=props.json ${renderFlags}`, { cwd: REMOTION_DIR });
 
     if (!existsSync(outputPath)) {
       throw new Error('Remotion render falhou: arquivo não gerado');
@@ -429,7 +411,7 @@ try {
   // Thumbnail
   try {
     run(
-      `ffmpeg -y -ss ${Math.floor(totalDuration / 2)} -i "${outputPath}" -frames:v 1 -q:v 3 "${thumb}"`
+      `ffmpeg -y -ss 00:00:10 -i "${outputPath}" -frames:v 1 -q:v 3 "${thumb}"`
     );
     await setThumbnail(up.id, thumb);
     console.log('Thumbnail aplicada.');

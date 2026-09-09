@@ -118,9 +118,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── Premium (Remotion): 1 vídeo/dia ─────────────────────────────────────
-    // Uma vez por dia, marca o próximo job da fila como render_engine='remotion'
-    // O remotion-worker.mjs busca jobs com esse flag e renderiza com React/Remotion
+    // Premium: 1 vídeo/dia. O remotion-worker.mjs delega long-form horizontal
+    // para o renderizador FFmpeg e mantém shorts no fluxo Remotion tradicional.
     let premiumInfo: { marked?: string; alreadyToday?: boolean } = {};
     const premiumToday = await getPremiumTodayCount();
     if (premiumToday === 0) {

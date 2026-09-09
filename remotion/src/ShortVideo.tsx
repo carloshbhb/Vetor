@@ -21,13 +21,14 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: meta.palette.dark }}>
+      <Audio src={staticFile("audio/full.mp3")} volume={1} />
+
       {/* Hook Section */}
       {hookSection && (
         <Sequence
           from={hookSection.startFrame}
           durationInFrames={hookSection.endFrame - hookSection.startFrame}
         >
-          <Audio src={staticFile("audio/hook.mp3")} />
           <Hook section={hookSection} palette={meta.palette} />
         </Sequence>
       )}
@@ -38,7 +39,6 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
           from={psSection.startFrame}
           durationInFrames={psSection.endFrame - psSection.startFrame}
         >
-          <Audio src={staticFile("audio/problem_solution.mp3")} />
           <ProblemSolution section={psSection} palette={meta.palette} />
         </Sequence>
       )}
@@ -49,7 +49,6 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
           from={ctaSection.startFrame}
           durationInFrames={ctaSection.endFrame - ctaSection.startFrame}
         >
-          <Audio src={staticFile("audio/cta.mp3")} />
           <CTA section={ctaSection} palette={meta.palette} />
         </Sequence>
       )}

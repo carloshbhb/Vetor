@@ -37,6 +37,10 @@ export async function submitUrl(url: string): Promise<boolean> {
 }
 
 export async function submitUrls(urls: string[]): Promise<{ success: number; failed: number }> {
+  if (!urls || urls.length === 0) {
+    return { success: 0, failed: 0 };
+  }
+
   const key = INDEXNOW_KEY;
   if (!key) {
     console.warn('IndexNow key not configured');

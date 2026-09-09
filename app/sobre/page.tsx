@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 
 const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
 const SITE_URL = _raw.startsWith('http') ? _raw : `https://${_raw}`;
@@ -41,12 +43,14 @@ const breadcrumbSchema = {
 
 export default function SobrePage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
 
-      <div className="max-w-3xl mx-auto px-6 py-16">
+      <SiteHeader />
+
+      <main className="flex-1 max-w-3xl mx-auto px-6 py-16 w-full">
         <h1 className="font-bebas text-5xl tracking-wide text-text mb-2">Sobre o Vetor Blog</h1>
         <p className="text-text-muted text-sm mb-8">Reviews independentes com testes reais.</p>
 
@@ -106,7 +110,9 @@ export default function SobrePage() {
             </ul>
           </section>
         </div>
-      </div>
+      </main>
+
+      <SiteFooter />
     </div>
   );
 }

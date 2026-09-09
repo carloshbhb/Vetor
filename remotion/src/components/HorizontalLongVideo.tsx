@@ -1,4 +1,4 @@
-import { AbsoluteFill, Sequence } from "remotion";
+import { AbsoluteFill, Sequence, Audio, staticFile } from "remotion";
 import { HorizontalHook } from "./HorizontalHook";
 import { HorizontalShowcase } from "./HorizontalShowcase";
 import { HorizontalCTA } from "./HorizontalCTA";
@@ -18,6 +18,7 @@ export const HorizontalLongVideo: React.FC<HorizontalLongVideoProps> = ({ data }
 
   return (
     <AbsoluteFill style={{ backgroundColor: meta.palette.dark }}>
+      <Audio src={staticFile("audio/full.mp3")} volume={0.9} />
       {hookSection && (
         <Sequence from={hookSection.startFrame} durationInFrames={hookSection.endFrame - hookSection.startFrame}>
           <FilmGrain intensity={0.03} vignette={true} vignetteIntensity={0.55} />

@@ -236,9 +236,10 @@ export async function generateText(options: GenerateTextOptions): Promise<string
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(geminiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+      const model = genAI.getGenerativeModel({ model: geminiModel });
 
-      console.log('[AI Client] Requesting Gemini (gemini-2.5-flash) with Search Grounding...');
+      console.log(`[AI Client] Requesting Gemini (${geminiModel}) with Search Grounding...`);
       const generationConfig: Record<string, any> = { temperature };
       if (maxOutputTokens) generationConfig.maxOutputTokens = maxOutputTokens;
       if (responseJson) generationConfig.responseMimeType = 'application/json';

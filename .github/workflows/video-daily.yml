@@ -65,6 +65,19 @@ jobs:
         working-directory: remotion
         run: npm install --no-audit --no-fund
 
+      - name: Cache Remotion browser
+        if: github.event.schedule.cron == '0 13 * * *' || (github.event_name == 'workflow_dispatch')
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/puppeteer
+          key: remotion-browser-${{ runner.os }}-${{ hashFiles('remotion/package-lock.json') }}
+          restore-keys: remotion-browser-${{ runner.os }}-
+
+      - name: Preparar Remotion browser
+        if: github.event.schedule.cron == '0 13 * * *' || (github.event_name == 'workflow_dispatch')
+        working-directory: remotion
+        run: npx remotion browser ensure || true
+
       - name: Renderizar premium (Remotion)
         if: github.event.schedule.cron == '0 13 * * *' || (github.event_name == 'workflow_dispatch')
         env:

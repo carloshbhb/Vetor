@@ -4,7 +4,7 @@ import Script from 'next/script';
 import dynamic from 'next/dynamic';
 import { getReviewBySlug, getPublishedSlugs, getPublishedReviewCards } from '@/lib/db';
 import { markdownToHtml } from '@/lib/markdown';
-import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema, buildNewsArticleSchema } from '@/lib/seo';
+import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema } from '@/lib/seo';
 import { defaultAuthor } from '@/lib/author';
 
 import Logo         from '@/components/Logo';
@@ -84,7 +84,6 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
   const productSchema    = buildProductSchema(review);
   const faqSchema        = buildFAQSchema(review);
   const breadcrumbSchema = buildBreadcrumbSchema(review);
-  const newsSchema       = buildNewsArticleSchema(review);
 
   const { hero, specs, compareTable, pros, cons, faq, verdict, adsEnabled } = review;
 
@@ -101,7 +100,6 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
       {faqSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(newsSchema) }} />
 
       {/* AdSense script (only if ads enabled) */}
       {adsEnabled && process.env.NEXT_PUBLIC_AD_CLIENT && (

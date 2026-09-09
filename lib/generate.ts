@@ -210,7 +210,8 @@ export async function generateReview(input: GenerateInput): Promise<GenerateResu
     try {
       console.log('[Generate] Pass 1: Gemini generating review...');
       const genAI = new GoogleGenerativeAI(geminiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+      const model = genAI.getGenerativeModel({ model: geminiModel });
 
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],

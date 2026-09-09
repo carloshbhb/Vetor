@@ -214,7 +214,8 @@ footer p {
   }
 
   .toc-card {
-    display: none;
+    /* Stay visible on mobile – content is collapsed via JS */
+    display: block;
   }
 
   .pros-cons {
@@ -240,5 +241,52 @@ footer p {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COLLAPSIBLE TOC TOGGLE
+═══════════════════════════════════════════════════════════ */
+.toc-toggle {
+  display: none; /* hidden on desktop */
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+}
+
+.toc-chevron {
+  transition: transform .2s ease;
+}
+
+.toc-chevron-open {
+  transform: rotate(180deg);
+}
+
+.toc-content {
+  /* Desktop: always visible, no transition */
+  max-height: none;
+  overflow: visible;
+}
+
+@media (max-width: 900px) {
+  .toc-toggle {
+    display: flex;
+  }
+
+  .toc-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .3s ease, opacity .2s ease;
+    opacity: 0;
+  }
+
+  .toc-content-open {
+    max-height: 600px;
+    opacity: 1;
   }
 }
