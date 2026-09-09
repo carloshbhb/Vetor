@@ -189,7 +189,7 @@ const BATCH = Math.min(Math.max(Number(process.env.VIDEO_BATCH || 10), 1), 10);
 const seenSlugs = new Set();
 for (let i = 0; i < Math.ceil(LIMIT / BATCH); i++) {
   try {
-    const q = await fetch(`${BASE}/api/cron/video-queue?token=${process.env.CRON_SECRET}&limit=${LIMIT}&batch=${BATCH}`);
+    const q = await fetch(`${BASE}/api/cron/video-queue?token=${process.env.CRON_SECRET}&batch=${BATCH}`);
     const qtxt = await q.text();
     console.log(`queue lote ${i + 1}:`, qtxt.slice(0, 300));
     const parsed = JSON.parse(qtxt);
