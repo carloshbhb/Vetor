@@ -23,7 +23,6 @@ export interface VideoJob {
   error?: string | null;
   attempts?: number;
   render_engine?: 'ffmpeg' | 'remotion';
-  format?: 'vertical' | 'horizontal';
   created_at?: string;
   updated_at?: string;
 }
@@ -232,7 +231,6 @@ export async function markNextAsPremium(): Promise<string | null> {
     );
     if (candidate) {
       candidate.render_engine = 'remotion';
-      candidate.format = 'horizontal';
       candidate.updated_at = new Date().toISOString();
       writeFallback(all);
       return candidate.slug;
@@ -253,11 +251,8 @@ export async function markNextAsPremium(): Promise<string | null> {
 
   if (!candidate) return null;
 
-  await sb
-    .from('video_jobs')
-    .update({
+  await sb.from('video_jobs').update({
       render_engine: 'remotion',
-      format: 'horizontal',
       updated_at: new Date().toISOString(),
     })
     .eq('slug', candidate.slug);

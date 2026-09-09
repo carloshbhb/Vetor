@@ -289,7 +289,7 @@ try {
     console.warn('[Remotion Worker] Review fetch failed:', e.message);
   }
 
-  const isLongForm = job.format === 'horizontal';
+  const isLongForm = job.render_engine === 'remotion';
   const convertFn = isLongForm ? convertVideoScriptToLongFormData : convertVideoScriptToRemotionData;
   const remotionData = convertFn(
     script,
