@@ -25,7 +25,9 @@ const NO_STORE = { 'Cache-Control': 'no-store, max-age=0' };
 // mesmo review, que gera um vídeo novo de propósito).
 // Roda leve na Vercel (só IA + banco). Render/upload fica no worker.
 export async function GET(req: NextRequest) {
-  const token = req.nextUrl.searchParams.get('token');
+  const authHeader = req.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const token = bearerToken || req.nextUrl.searchParams.get('token');
   if (token !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }

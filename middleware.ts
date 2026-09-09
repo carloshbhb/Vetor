@@ -64,7 +64,21 @@ function isPublicPage(pathname: string): boolean {
     pathname.startsWith('/api/llms')
 }
 
-function isProtectedApiRoute(pathname: string): boolean {
+function isProtectedApiRoute(pathname: string, method: string): boolean {
+  // Public exceptions for comments: reading and submitting are allowed for all visitors
+  if (pathname.startsWith('/api/comments')) {
+    if (method === 'GET' || method === 'POST') {
+      return false
+    }
+    // DELETE /api/comments/:id is protected for admin only
+    return true
+  }
+
+  // Public exceptions for telemetry: submitting errors and reporting web vitals
+  if ((pathname === '/api/web-vitals' || pathname === '/api/errors') && method === 'POST') {
+    return false
+  }
+
   return protectedApiRoutes.some(route => pathname.startsWith(route))
 }
 
@@ -73,7 +87,9 @@ export async function middleware(req: NextRequest) {
 
   if (isCronApiRoute(pathname)) {
     const cronSecret = process.env.CRON_SECRET
-    const token = req.nextUrl.searchParams.get('token')
+    const authHeader = req.headers.get('authorization')
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+    const token = bearerToken || req.nextUrl.searchParams.get('token')
     if (cronSecret && token === cronSecret) {
       return NextResponse.next({ request: req })
     }
@@ -82,7 +98,9 @@ export async function middleware(req: NextRequest) {
 
   if (workerApiRoutes.some(route => pathname.startsWith(route))) {
     const cronSecret = process.env.CRON_SECRET
-    const token = req.nextUrl.searchParams.get('token')
+    const authHeader = req.headers.get('authorization')
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+    const token = bearerToken || req.nextUrl.searchParams.get('token')
     if (cronSecret && token === cronSecret) {
       return NextResponse.next({ request: req })
     }
@@ -142,7 +160,7 @@ export async function middleware(req: NextRequest) {
     return pathname === route
   })
 
-  const isProtectedApi = isProtectedApiRoute(pathname)
+  const isProtectedApi = isProtectedApiRoute(pathname, req.method)
 
   if (fallbackToFile && (isAdminRoute || isProtectedApi) && adminSession) {
     return supabaseResponse

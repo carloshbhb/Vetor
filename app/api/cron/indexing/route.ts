@@ -8,8 +8,10 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
-  const token = req.nextUrl.searchParams.get('token');
   const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const token = bearerToken || req.nextUrl.searchParams.get('token');
 
   if (cronSecret && token !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

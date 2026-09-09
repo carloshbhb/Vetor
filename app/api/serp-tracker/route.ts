@@ -162,7 +162,9 @@ async function trackSERPRanks() {
 
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
-  const token = req.nextUrl.searchParams.get('token');
+  const authHeader = req.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const token = bearerToken || req.nextUrl.searchParams.get('token');
   if (cronSecret && token !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

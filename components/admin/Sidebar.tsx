@@ -20,6 +20,10 @@ import {
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 
+interface SidebarProps {
+  isOpen: boolean;
+}
+
 const NAV_ITEMS = [
   { href: '/admin',               label: 'Dashboard',        icon: LayoutDashboard },
   { href: '/admin/novo-review',   label: 'Novo Review',      icon: PlusCircle },
@@ -39,7 +43,7 @@ const MONITORING_ITEMS = [
   { href: '/admin/pinterest',     label: 'Pinterest',        icon: Pin },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen }: SidebarProps) {
   const pathname = usePathname();
 
   const isActive = (href: string) =>
@@ -47,8 +51,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 bottom-0 z-50 flex flex-col"
-      style={{ width: 'var(--sidebar-width)', background: '#0f1f8a' }}
+      className={`admin-sidebar ${isOpen ? 'admin-sidebar-open' : ''}`}
     >
       {/* Branding */}
       <div className="h-16 flex items-center px-6 border-b border-white/10 shrink-0">

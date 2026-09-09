@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +57,28 @@ export async function GET(req: NextRequest) {
 
     const tokenData = await tokenResponse.json();
     console.log('[ML OAuth] Token received successfully, expires in:', tokenData.expires_in, 'seconds');
+
+    // Save tokens to Supabase for automatic renewal
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (supabaseUrl && supabaseKey) {
+      try {
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+          auth: { persistSession: false },
+        });
+        const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
+        await supabase.from('ml_tokens').upsert({
+          id: 'current',
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_at: expiresAt,
+          updated_at: new Date().toISOString(),
+        });
+        console.log('[ML OAuth] Tokens saved to Supabase, expires_at:', expiresAt);
+      } catch (dbErr: any) {
+        console.error('[ML OAuth] Failed to save tokens to Supabase:', dbErr.message);
+      }
+    }
 
     return NextResponse.json({
       success: true,

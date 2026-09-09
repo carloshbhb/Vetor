@@ -1,32 +1,36 @@
 {
   "crons": [
     {
-      "path": "/api/cron/autonomous-agent?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
+      "path": "/api/cron/autonomous-agent",
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/autonomous-agent?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
+      "path": "/api/cron/autonomous-agent",
       "schedule": "0 14 * * *"
     },
     {
-      "path": "/api/cron/indexing?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
+      "path": "/api/cron/indexing",
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/cron/indexing?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
+      "path": "/api/cron/indexing",
       "schedule": "0 19 * * *"
     },
     {
-      "path": "/api/cron/submit-sitemap?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
+      "path": "/api/cron/submit-sitemap",
       "schedule": "0 8 * * *"
     },
     {
-      "path": "/api/cron/video-queue?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9&limit=30&batch=3",
+      "path": "/api/cron/video-queue?limit=30&batch=3",
       "schedule": "0 13 * * *"
     },
     {
-      "path": "/api/serp-tracker?token=65f1d1e627c4a69b00e329bced51015774a65672cff49c304e7891a101e24fd9",
+      "path": "/api/serp-tracker",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/ml-refresh",
+      "schedule": "0 */5 * * *"
     }
   ]
 }
