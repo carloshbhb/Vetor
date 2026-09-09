@@ -18,7 +18,7 @@ on:
         default: '0'
 
 env:
-  VIDEO_BATCH: '3'
+  VIDEO_BATCH: '10'
 
 jobs:
   render-publish:
