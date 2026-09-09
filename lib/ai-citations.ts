@@ -103,10 +103,11 @@ export async function getCitationStats(): Promise<CitationStats> {
         .from('ai_citations')
         .select('*', { count: 'exact', head: true });
 
-      // Get count by source
+      // Get count by source (LIMIT 1000 para evitar egress excessivo)
       const { data: sourceData } = await supabase
         .from('ai_citations')
-        .select('source');
+        .select('source')
+        .limit(1000);
 
       const bySource: Record<string, number> = {};
       if (sourceData) {
@@ -115,10 +116,11 @@ export async function getCitationStats(): Promise<CitationStats> {
         }
       }
 
-      // Get top cited pages
+      // Get top cited pages (LIMIT 1000 para evitar egress excessivo)
       const { data: pageData } = await supabase
         .from('ai_citations')
-        .select('cited_page');
+        .select('cited_page')
+        .limit(1000);
 
       const pageCounts: Record<string, number> = {};
       if (pageData) {

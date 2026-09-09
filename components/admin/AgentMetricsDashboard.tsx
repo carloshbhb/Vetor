@@ -41,8 +41,22 @@ export default function AgentMetricsDashboard() {
 
   useEffect(() => {
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 60000); // Refresh every minute
-    return () => clearInterval(interval);
+    // Polling a cada 5 minutos (não 1 minuto) para reduzir egress do Supabase
+    // Se a aba estiver aberta 24h: 288 chamadas/dia em vez de 1.440
+    const interval = setInterval(fetchMetrics, 300000);
+    
+    // Pausar polling quando aba não está visível
+    const handleVisibility = () => {
+      if (document.hidden) {
+        clearInterval(interval);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   async function fetchMetrics() {

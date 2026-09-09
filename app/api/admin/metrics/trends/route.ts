@@ -39,17 +39,18 @@ export async function GET(req: NextRequest) {
         break;
     }
 
-    // Fetch metrics for current period
+    // Fetch metrics for current period (columns otimizadas para reduzir egress)
+    const METRICS_COLUMNS = 'agent_name,operation,success,duration_ms,timestamp';
     const { data: currentMetrics } = await supabase
       .from('agent_metrics')
-      .select('*')
+      .select(METRICS_COLUMNS)
       .gte('timestamp', startTime.toISOString())
       .order('timestamp', { ascending: true });
 
     // Fetch metrics for previous period
     const { data: previousMetrics } = await supabase
       .from('agent_metrics')
-      .select('*')
+      .select(METRICS_COLUMNS)
       .gte('timestamp', previousStartTime.toISOString())
       .lt('timestamp', startTime.toISOString());
 

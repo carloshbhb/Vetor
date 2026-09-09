@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateText } from '@/lib/ai';
-import { getAllReviews, createReview } from '@/lib/db';
+import { getLightweightReviews, createReview } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
 import { submitUrl } from '@/lib/indexnow';
 import { indexNewReview } from '@/lib/google-indexing';
@@ -72,7 +72,8 @@ export async function handleAutonomousCycle(specificProduct: string = '', specif
   });
 
   try {
-    const reviews = await getAllReviews();
+    // Query ultraleve: ~5 KB em vez de ~1.2 MB (SELECT *)
+    const reviews = await getLightweightReviews();
     const existingProductNames = reviews.map(r => r.product.toLowerCase());
 
     // Static fallback list of popular tech products

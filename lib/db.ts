@@ -457,6 +457,46 @@ export async function getPublishedResearchReviews(): Promise<ResearchReview[]> {
   }));
 }
 
+// ─── Query ultraleve para autonomous-agent (só product, category, slug) ─────
+// Evita SELECT * que transfere ~1.2 MB por chamada
+export interface LightweightReview {
+  product: string;
+  category: string;
+  slug: string;
+}
+
+export async function getLightweightReviews(): Promise<LightweightReview[]> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    const b = await getBackup();
+    return (await b.getPublishedReviews()).map((r) => ({
+      product: r.product,
+      category: r.category,
+      slug: r.slug,
+    }));
+  }
+
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('product,category,slug');
+
+  if (error) {
+    console.error('[Database] Error fetching lightweight reviews:', error);
+    const b = await getBackup();
+    return (await b.getPublishedReviews()).map((r) => ({
+      product: r.product,
+      category: r.category,
+      slug: r.slug,
+    }));
+  }
+
+  return (data || []).map((row) => ({
+    product: row.product ?? '',
+    category: row.category ?? '',
+    slug: row.slug ?? '',
+  }));
+}
+
 // ─── Fila de slugs ordenada (backlog mais antigo primeiro, query leve) ───────
 export interface SlugQueueItem {
   slug: string;
