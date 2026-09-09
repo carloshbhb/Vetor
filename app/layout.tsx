@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: 'Vetor Blog | Reviews Sinceros de Produtos', template: '%s | Vetor Blog' },
   description: 'Descubra os melhores produtos do mercado com nossas análises detalhadas, prós, contras e notas rigorosas.',
-  robots: { index: true, follow: true },
+  robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
   alternates: {
     canonical: SITE_URL,
     languages: {
