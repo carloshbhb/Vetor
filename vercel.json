@@ -30,7 +30,7 @@
     },
     {
       "path": "/api/cron/ml-refresh",
-      "schedule": "0 */5 * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
