@@ -12,7 +12,7 @@ import {
 } from '@/lib/video-queue';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+export const maxDuration = 300; // Requires Vercel Pro (free plan limit: 60s)
 
 // GET responde sempre fresco: sem isso o CDN da Vercel pode servir resposta
 // GET cacheada de chamada anterior (foi o que gerou "Cota (6/1)" fantasma).

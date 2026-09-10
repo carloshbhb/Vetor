@@ -6,6 +6,32 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import type { ReviewData } from '@/lib/types';
 
+// Safely extract first JSON object from AI text (non-greedy, validates parsing)
+function extractJson(text: string): any | null {
+  // Try to find JSON by scanning for balanced braces
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== '{') continue;
+    let depth = 0;
+    for (let j = i; j < text.length; j++) {
+      if (text[j] === '{') depth++;
+      else if (text[j] === '}') depth--;
+      if (depth === 0) {
+        try {
+          return JSON.parse(text.slice(i, j + 1));
+        } catch {
+          break; // Not valid JSON, try next `{`
+        }
+      }
+    }
+  }
+  // Fallback: non-greedy regex
+  const m = text.match(/\{[\s\S]*?\}/);
+  if (m) {
+    try { return JSON.parse(m[0]); } catch {}
+  }
+  return null;
+}
+
 export interface VideoScene {
   narration: string; // fala da cena (pt-BR)
   onScreenText: string; // texto grande na tela (máx 6 palavras)
@@ -129,10 +155,10 @@ async function callAI(prompt: string): Promise<any> {  // 1. Tenta Veo 3.1 (Goog
   if (googleKey) {
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:generateContent?key=${googleKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:generateContent`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': googleKey },
           body: JSON.stringify({
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             generationConfig: { maxOutputTokens: 8192, temperature: 0.7 },
@@ -178,10 +204,10 @@ async function callAI(prompt: string): Promise<any> {  // 1. Tenta Veo 3.1 (Goog
       });
       const text = result.response.text();
       if (!text) throw new Error('Empty Gemini response');
-      const m = text.match(/\{[\s\S]*\}/);
-      if (m) {
+      const parsed = extractJson(text);
+      if (parsed) {
         console.log('[VideoScript] Gemini gerou roteiro');
-        return JSON.parse(m[0]);
+        return parsed;
       }
       throw new Error('Could not parse JSON from Gemini');
     } catch (geminiErr: any) {
@@ -213,10 +239,10 @@ async function callAI(prompt: string): Promise<any> {  // 1. Tenta Veo 3.1 (Goog
         }
         const json = await res.json();
         const content = json.choices?.[0]?.message?.content || '';
-        const m = content.match(/\{[\s\S]*\}/);
-        if (!m) continue;
+        const parsed = extractJson(content);
+        if (!parsed) continue;
         console.log(`[VideoScript] Groq ${gModel} gerou roteiro`);
-        return JSON.parse(m[0]);
+        return parsed;
       } catch (e: any) {
         console.warn(`[VideoScript] Groq ${gModel} falhou:`, e.message);
       }
@@ -255,12 +281,12 @@ async function callAI(prompt: string): Promise<any> {  // 1. Tenta Veo 3.1 (Goog
       }
       const json = await res.json();
       const content = json.choices?.[0]?.message?.content || '';
-      const m = content.match(/\{[\s\S]*\}/);
-      if (!m) {
+      const parsed = extractJson(content);
+      if (!parsed) {
         lastErr = `OpenRouter ${model}: sem JSON`;
         continue;
       }
-      return JSON.parse(m[0]);
+      return parsed;
     } catch (err: any) {
       lastErr = err.message;
       console.warn(`[VideoScript] OpenRouter ${model} falhou:`, err.message);
