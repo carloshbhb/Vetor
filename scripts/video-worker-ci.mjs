@@ -36,7 +36,7 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
   auth: { persistSession: false },
 });
 
-async function buildCarouselVideo(scenes, tmp, mp4, total, audioPath) {
+async function buildCarouselVideo(scenes, tmp, mp4, total, audioPath, srtPath) {
   // Windows: copiar fonte para ./tmp sem ":" para evitar escaping do ffmpeg
   let fontOpt = '';
   try {
@@ -72,7 +72,7 @@ async function buildCarouselVideo(scenes, tmp, mp4, total, audioPath) {
   // Cria playlist para concat
     const listFile = path.join(tmp, 'image_list.txt');
   const imgDuration = total / allImagePaths.length;
-  const listContent = allImagePaths.map((p) => `file '${p.replace(/'/g, "'\\''")}'\n duration ${imgDuration}`).join('');
+  const listContent = allImagePaths.map((p) => `file '${p.replace(/'/g, "'\\''")}'\nduration ${imgDuration}\n`).join('');
   writeFileSync(listFile, listContent);
 
   const hook = esc(scenes[0]?.onScreenText || '');
@@ -85,6 +85,12 @@ async function buildCarouselVideo(scenes, tmp, mp4, total, audioPath) {
   if (priceLine) vf += `,drawtext=text='${priceLine}'${fontOpt}:fontcolor=yellow:fontsize=72:x=(w-text_w)/2:y=h*0.62:box=1:boxcolor=red@0.85:boxborderw=28:enable='gte(t\\,${priceStart})'`;
   if (ctaLine) vf += `,drawtext=text='${ctaLine}'${fontOpt}:fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h*0.72:box=1:boxcolor=black@0.6:boxborderw=20:enable='gte(t\\,${priceStart})'`;
   vf += ',fps=25';
+
+  const isWin = process.platform === 'win32';
+  if (srtPath && existsSync(srtPath) && !isWin) {
+    const srtEsc = srtPath.replace(/\\/g, '/').replace(/:/g, '\\:');
+    vf += `,subtitles='${srtEsc}':force_style='FontName=DejaVu Sans,FontSize=20,PrimaryColour=&HFFFFFF&,OutlineColour=&H80000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=250'`;
+  }
 
   const cmd = `ffmpeg -y -f concat -safe 0 -i "${listFile}" -i "${audioPath}" -filter_complex "[0:v]${vf}[v]" -map "[v]" -map 1:a -t ${total} -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "${mp4}"`;
 
@@ -158,7 +164,14 @@ for (const job of jobs) {
     writeFileSync(txt, script.fullNarration || '', 'utf8');
     const srt = path.join(tmp, `${slug}.srt`);
     const thumb = path.join(tmp, `${slug}.thumb.jpg`);
-    run(`edge-tts --voice ${TTS_VOICE} --file "${txt}" --write-media "${mp3}" --write-subtitles "${srt}"`);
+    const jpg = path.join(tmp, `${slug}.jpg`);
+    try {
+      run(`edge-tts --voice ${TTS_VOICE} --file "${txt}" --write-media "${mp3}" --write-subtitles "${srt}"`);
+    } catch (e) {
+      console.warn('edge-tts com legendas falhou, tentando sem legendas:', e.message?.slice(0, 120));
+      run(`edge-tts --voice ${TTS_VOICE} --file "${txt}" --write-media "${mp3}"`);
+    }
+    if (!existsSync(srt)) console.warn(`[WARN] SRT não gerado para ${slug} — legendas serão omitidas`);
     // Backup do áudio para fallback (compatível Windows)
     { const { copyFileSync } = await import('node:fs'); copyFileSync(mp3, audioBackup); }
 
@@ -199,12 +212,11 @@ for (const job of jobs) {
       // Cria vídeo com carrossel de imagens
       const audioPath = path.join(tmp, `audio_${slug}.mp3`);
       { const { copyFileSync } = await import('node:fs'); copyFileSync(mp3, audioPath); }
-      success = await buildCarouselVideo(scenes, tmp, mp4, total, audioPath);
+      success = await buildCarouselVideo(scenes, tmp, mp4, total, audioPath, srt);
     }
 
     if (!success) {
       // Fallback: imagem única (mesmo código antigo)
-      const jpg = path.join(tmp, `${slug}.jpg`);
   const esc = (s) => String(s || '')
     .replace(/\\/g, '\\\\')   // FFmpeg: backslash
     .replace(/%/g, '%%')      // FFmpeg: percent (format specifier)
@@ -275,8 +287,8 @@ for (const job of jobs) {
       console.log('Comentário criado → ' + (commentId || 'ok') + ' (fixe manualmente no YouTube Studio)');
     } catch (e) { console.warn('Comentário pulado: ' + e.message); }
     // Limpa arquivos temporários deste job
-    for (const f of [txt, mp3, mp4, srt, thumb, audioBackup, jpg, listFile]) {
-      try { if (existsSync(f)) rmSync(f); } catch {}
+    for (const f of [txt, mp3, mp4, srt, thumb, audioBackup, jpg, path.join(tmp, 'image_list.txt')]) {
+      try { if (f && existsSync(f)) rmSync(f); } catch {}
     }
     // Limpa diretórios de cenas e imagens do carousel
     for (let ci = 0; ci < 20; ci++) {
