@@ -81,7 +81,15 @@ try {
 
 // 4. Montagem padrão vendas: hook + selo preço/CTA + legendas sincronizadas
 console.log('\n[4/4] Montando MP4 9:16...');
-const esc = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'").replace(/,/g, '\\,').slice(0, 60);
+const esc = (s) => String(s || '')
+  .replace(/\\/g, '\\\\')   // FFmpeg: backslash
+  .replace(/%/g, '%%')      // FFmpeg: percent (format specifier)
+  .replace(/\$/g, '\\$')    // Shell: dollar sign
+  .replace(/`/g, '\\`')     // Shell: backtick
+  .replace(/:/g, '\\:')     // FFmpeg: colon
+  .replace(/'/g, "\\'")     // FFmpeg + Shell: single quote
+  .replace(/,/g, '\\,')     // FFmpeg: comma
+  .slice(0, 60);
 const total = script.estimatedSeconds || 50;
 const hook = esc(script.scenes?.[0]?.onScreenText || script.hook);
 const priceLine = esc([script.offerBadge, script.priceHighlight].filter(Boolean).join(' '));

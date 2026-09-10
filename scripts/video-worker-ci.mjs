@@ -2,7 +2,7 @@
 // Faz tudo no runner: busca jobs script_ready → edge-tts → ffmpeg com carrossel de imagens → upload YouTube (+ thumbnail + comentário com link do review) → marca published.
 // Uso local (opcional): SITE_BASE=https://www.vetor.blog node scripts/video-worker-ci.mjs
 import { execSync } from 'node:child_process';
-import { existsSync, writeFileSync, readFileSync, mkdirSync } from 'node:fs';
+import { existsSync, writeFileSync, readFileSync, mkdirSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -26,17 +26,26 @@ const PRIVACY = process.env.YOUTUBE_PRIVACY || 'public';
 
 const run = (cmd) => { console.log('> ' + cmd); execSync(cmd, { stdio: 'inherit' }); };
 
+// Shell-safe escaping: wraps value in single quotes, escaping any inner single quotes
+const shellEscape = (s) => "'" + String(s || '').replace(/'/g, "'\\''") + "'";
+
 const { createClient } = await import('@supabase/supabase-js');
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
 
 const { OAuth2Client } = await import('google-auth-library');
-async function uploadToYoutube(videoPath, { title, description, tags }) {
-  const oauth = new OAuth2Client(process.env.YOUTUBE_CLIENT_ID, process.env.YOUTUBE_CLIENT_SECRET, 'http://localhost');
-  oauth.setCredentials({ refresh_token: process.env.YOUTUBE_REFRESH_TOKEN });
-  const { token } = await oauth.getAccessToken();
+const youtubeOAuth = new OAuth2Client(process.env.YOUTUBE_CLIENT_ID, process.env.YOUTUBE_CLIENT_SECRET, 'http://localhost');
+youtubeOAuth.setCredentials({ refresh_token: process.env.YOUTUBE_REFRESH_TOKEN });
+
+async function getYoutubeToken() {
+  const { token } = await youtubeOAuth.getAccessToken();
   if (!token) throw new Error('Sem access_token YouTube (verifique Secrets)');
+  return token;
+}
+
+async function uploadToYoutube(videoPath, { title, description, tags }) {
+  const token = await getYoutubeToken();
   const buf = readFileSync(videoPath);
   const init = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
     method: 'POST',
@@ -60,9 +69,7 @@ async function uploadToYoutube(videoPath, { title, description, tags }) {
 }
 
 async function setThumbnail(videoId, thumbPath) {
-  const oauth = new OAuth2Client(process.env.YOUTUBE_CLIENT_ID, process.env.YOUTUBE_CLIENT_SECRET, 'http://localhost');
-  oauth.setCredentials({ refresh_token: process.env.YOUTUBE_REFRESH_TOKEN });
-  const { token } = await oauth.getAccessToken();
+  const token = await getYoutubeToken();
   const buf = readFileSync(thumbPath);
   const res = await fetch(`https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}`, {
     method: 'POST',
@@ -73,14 +80,7 @@ async function setThumbnail(videoId, thumbPath) {
 }
 
 async function postReviewComment(videoId, text) {
-  // Cria um comentário no vídeo com o link do review.
-  // Limitação real da API: o YouTube Data API v3 NÃO tem endpoint de "fixar"
-  // comentário — fixar só pelo YouTube Studio manual. Aqui criamos o comentário;
-  // o fixar fica como passo manual (1 clique no Studio).
-  const oauth = new OAuth2Client(process.env.YOUTUBE_CLIENT_ID, process.env.YOUTUBE_CLIENT_SECRET, 'http://localhost');
-  oauth.setCredentials({ refresh_token: process.env.YOUTUBE_REFRESH_TOKEN });
-  const { token } = await oauth.getAccessToken();
-  if (!token) throw new Error('Sem access_token YouTube');
+  const token = await getYoutubeToken();
 
   const initRes = await fetch('https://www.googleapis.com/youtube/v3/commentThreads?part=snippet', {
     method: 'POST',
@@ -156,7 +156,7 @@ async function buildCarouselVideo(scenes, tmp, mp4, total, audioPath) {
   if (allImagePaths.length < 2) return false;
 
   // Cria playlist para concat
-  const listFile = path.join(tmp, 'image_list.txt');
+    const listFile = path.join(tmp, 'image_list.txt');
   const imgDuration = total / allImagePaths.length;
   const listContent = allImagePaths.map((p) => `file '${p.replace(/'/g, "'\\''")}'\n duration ${imgDuration}`).join('');
   writeFileSync(listFile, listContent);
@@ -291,7 +291,15 @@ for (const job of jobs) {
     if (!success) {
       // Fallback: imagem única (mesmo código antigo)
       const jpg = path.join(tmp, `${slug}.jpg`);
-      const esc = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'").replace(/,/g, '\\,').slice(0, 60);
+  const esc = (s) => String(s || '')
+    .replace(/\\/g, '\\\\')   // FFmpeg: backslash
+    .replace(/%/g, '%%')      // FFmpeg: percent (format specifier)
+    .replace(/\$/g, '\\$')    // Shell: dollar sign
+    .replace(/`/g, '\\`')     // Shell: backtick
+    .replace(/:/g, '\\:')     // FFmpeg: colon
+    .replace(/'/g, "\\'")     // FFmpeg + Shell: single quote
+    .replace(/,/g, '\\,')     // FFmpeg: comma
+    .slice(0, 60);
       const hook = esc(script.scenes?.[0]?.onScreenText || script.hook);
       const priceLine = esc([script.offerBadge, script.priceHighlight].filter(Boolean).join(' '));
       const ctaLine = esc(script.finalCta);
@@ -352,6 +360,19 @@ for (const job of jobs) {
       const commentId = await postReviewComment(up.id, commentText);
       console.log('Comentário criado → ' + (commentId || 'ok') + ' (fixe manualmente no YouTube Studio)');
     } catch (e) { console.warn('Comentário pulado: ' + e.message); }
+    // Limpa arquivos temporários deste job
+    for (const f of [txt, mp3, mp4, srt, thumb, audioBackup, jpg, listFile]) {
+      try { if (existsSync(f)) rmSync(f); } catch {}
+    }
+    // Limpa diretórios de cenas e imagens do carousel
+    for (let ci = 0; ci < 20; ci++) {
+      const sp = path.join(tmp, `scene_${ci}`);
+      try { if (existsSync(sp)) rmSync(sp, { recursive: true }); } catch {}
+    }
+    for (let ci = 0; ci < 20; ci++) {
+      const cp = path.join(tmp, `${slug}_carousel_${ci}.jpg`);
+      try { if (existsSync(cp)) rmSync(cp); } catch {}
+    }
     ok++;
   } catch (e) {
     console.error('Falhou ' + slug + ': ' + e.message);

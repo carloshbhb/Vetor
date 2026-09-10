@@ -375,25 +375,6 @@ export function convertVideoScriptToLongFormData(script, review, siteUrl) {
     };
   });
 
-  // Adiciona mais segments para long-form
-  const extraSegments = 5;
-  for (let i = 0; i < extraSegments; i++) {
-    segments.push({
-      id: `extra-${i}`,
-      startFrame: hookFrames + (psScenes.length + i) * segmentDuration,
-      endFrame: hookFrames + (psScenes.length + i + 1) * segmentDuration,
-      narration: "",
-      onScreenText: "",
-      visual: {
-        layout: "showcase",
-        product: { type: "image", imageUrl: productImage, rotation: true, rotationSpeed: 0.3 },
-        gallery: [productImage],
-        infographics: [{ type: "radial_progress", data: { label: "Nota", value: 80, color: "#6C5CE7" }, animated: true }],
-        captions: { style: "kinetic", position: "bottom", fontSize: 44, wordByWord: true },
-      },
-    });
-  }
-
   const score = review.hero?.overallScore || review.verdict?.score || 8;
   const stars = Math.min(5, Math.max(1, Math.round(score / 2)));
   const reviewCount = review.testimonials?.length ? review.testimonials.length * 120 + 500 : 2847;
