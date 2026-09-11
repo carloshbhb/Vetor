@@ -83,7 +83,7 @@ async function publishArticle(articleData: any, category: string): Promise<{ slu
   const slug = slugify(d.meta?.title || 'artigo-comparativo');
   const productNames = d.products?.map((p: any) => p.name).join(' vs ') || 'Comparativo';
 
-  // Image resolution
+  // Image resolution — resolve for ALL products
   let viralImageUrl: string = d.products?.[0]?.image_url || '';
   if (viralImageUrl && !(await isImageReachable(viralImageUrl))) {
     viralImageUrl = '';
@@ -96,6 +96,10 @@ async function publishArticle(articleData: any, category: string): Promise<{ slu
   if (!viralImageUrl) {
     return { slug, success: false, error: `Sem imagem para "${productNames}"` };
   }
+
+  // Per-product affiliate URLs (joined by |||)
+  const affiliateUrls: string[] = (d.products || []).map((p: any) => p.affiliate_url || '');
+  const combinedAffiliateUrl = affiliateUrls.filter(Boolean).join('|||') || d.products?.[0]?.affiliate_url || '';
 
   const sections = d.sections?.map((s: any, idx: number) => ({
     id: s.id || `section-${idx}`,
@@ -148,7 +152,7 @@ async function publishArticle(articleData: any, category: string): Promise<{ slu
     marketplace: 'Multi',
     priceOld: d.products?.[0]?.old_price || '',
     priceNew: d.products?.[0]?.price || '',
-    affiliateUrl: d.products?.[0]?.affiliate_url || '',
+    affiliateUrl: combinedAffiliateUrl,
     imageUrl: viralImageUrl,
     adsEnabled: true,
     hero: {

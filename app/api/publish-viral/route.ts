@@ -36,25 +36,43 @@ export async function POST(req: NextRequest) {
     const slug = slugify(d.meta?.title || 'artigo-comparativo');
     const productNames = d.products?.map((p: any) => p.name).join(' vs ') || 'Comparativo';
 
-    // Garantia de imagem — artigo NUNCA é publicado sem imagem principal.
-    // A IA pode inventar URLs (prompt pede image_url), então só aceitamos
-    // URL que responde; senão buscamos a imagem real via ML, e se não
-    // houver, a publicação é bloqueada com 400.
-    let viralImageUrl: string = d.products?.[0]?.image_url || '';
-    if (viralImageUrl && !(await isImageReachable(viralImageUrl))) {
-      console.warn(`[PublishViral] AI image URL unreachable, resolving via ML: ${viralImageUrl}`);
-      viralImageUrl = '';
+    // Resolve images for ALL products (for comparativos)
+    const productImages: string[] = [];
+    if (d.products && Array.isArray(d.products)) {
+      for (const product of d.products) {
+        let img = product.image_url || '';
+        if (img && !(await isImageReachable(img))) img = '';
+        if (!img) {
+          const resolved = await resolveProductImage(product.name);
+          img = resolved.imageUrl;
+        }
+        productImages.push(img);
+      }
     }
-    if (!viralImageUrl) {
-      const firstProduct = d.products?.[0]?.name || productNames;
-      const resolved = await resolveProductImage(firstProduct);
-      viralImageUrl = resolved.imageUrl;
+    // Use first product image as main image
+    const viralImageUrl = productImages[0] || '';
+
+    // Collect per-product affiliate URLs (joined by ||| for comparativos)
+    const affiliateUrls: string[] = [];
+    if (d.products && Array.isArray(d.products)) {
+      for (const product of d.products) {
+        affiliateUrls.push(product.affiliate_url || '');
+      }
     }
-    if (!viralImageUrl) {
-      return NextResponse.json(
-        { error: `Artigo bloqueado: nenhuma imagem encontrada para "${d.products?.[0]?.name || productNames}".` },
-        { status: 400 }
-      );
+    const combinedAffiliateUrl = affiliateUrls.filter(Boolean).join('|||') || d.products?.[0]?.affiliate_url || '';
+
+    // Collect all pros and cons from products
+    const allPros: string[] = [];
+    const allCons: string[] = [];
+    if (d.products && Array.isArray(d.products)) {
+      for (const product of d.products) {
+        if (product.pros && Array.isArray(product.pros)) {
+          allPros.push(...product.pros);
+        }
+        if (product.cons && Array.isArray(product.cons)) {
+          allCons.push(...product.cons);
+        }
+      }
     }
 
     // Map sections to proper format with markdown content
@@ -72,35 +90,18 @@ export async function POST(req: NextRequest) {
       compareTable = {
         ...compareTable,
         rows: compareTable.rows.map((row: any) => {
-          // Already in correct format
           if (row && typeof row === 'object' && !Array.isArray(row) && 'feature' in row && 'values' in row) {
             return row;
           }
-          // Array format: ["Feature", "Val1", "Val2", ...]
           if (Array.isArray(row)) {
             const feature = row[0] || '';
             const values = row.slice(1);
-            // Determine winner: use compareTable.winnerCol (1-based) or default to 1
             const winnerCol = compareTable.winnerCol && compareTable.winnerCol > 0 ? compareTable.winnerCol : 1;
             return { feature, values, winner: winnerCol };
           }
           return { feature: '', values: [], winner: 0 };
         }),
       };
-    }
-
-    // Collect all pros and cons from products
-    const allPros: string[] = [];
-    const allCons: string[] = [];
-    if (d.products && Array.isArray(d.products)) {
-      for (const product of d.products) {
-        if (product.pros && Array.isArray(product.pros)) {
-          allPros.push(...product.pros);
-        }
-        if (product.cons && Array.isArray(product.cons)) {
-          allCons.push(...product.cons);
-        }
-      }
     }
 
     const fullReview = {
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
       marketplace: 'Multi',
       priceOld: d.products?.[0]?.old_price || '',
       priceNew: d.products?.[0]?.price || '',
-      affiliateUrl: d.products?.[0]?.affiliate_url || '',
+      affiliateUrl: combinedAffiliateUrl,
       imageUrl: viralImageUrl,
       adsEnabled: true,
       hero: {

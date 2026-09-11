@@ -10,10 +10,12 @@ import { defaultAuthor } from '@/lib/author';
 import Logo         from '@/components/Logo';
 import ScoreBox    from '@/components/review/ScoreBox';
 import ArticleCTA  from '@/components/review/ArticleCTA';
+import CompareCTA  from '@/components/review/CompareCTA';
 import SidebarCTA  from '@/components/review/SidebarCTA';
 import SpecsTable  from '@/components/review/SpecsTable';
 import CompareTable from '@/components/review/CompareTable';
 import ProsConsGrid from '@/components/review/ProsConsGrid';
+import CompareProsCons from '@/components/review/CompareProsCons';
 import VerdictBox   from '@/components/review/VerdictBox';
 import ReviewTOC    from '@/components/review/ReviewTOC';
 import Link         from 'next/link';
@@ -87,6 +89,20 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
 
   const { hero, specs, compareTable, pros, cons, faq, verdict, adsEnabled } = review;
 
+  // Detect comparativo (X vs Y) from hero bars or product name
+  const isComparativo = hero.bars.length >= 2 && review.product.includes('vs');
+  const compareProducts = isComparativo ? hero.bars.map((bar, idx) => {
+    // Parse per-product affiliate URLs from ||| delimiter
+    const affiliateUrls = review.affiliateUrl ? review.affiliateUrl.split('|||') : [];
+    return {
+      name: bar.label,
+      score: bar.value,
+      priceNew: review.priceNew,
+      priceOld: review.priceOld,
+      affiliateUrl: affiliateUrls[idx] || affiliateUrls[0] || review.affiliateUrl,
+    };
+  }) : [];
+
   // Use lightweight query for related reviews instead of fetching ALL reviews
   const allReviews = await getPublishedReviewCards();
   const relatedReviews = allReviews
@@ -115,7 +131,10 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
       {/* Alert Strip (Optional) */}
       {review.priceOld && (
         <div className="alert-strip">
-          🔥 {review.product} com desconto — oferta por tempo limitado
+          {isComparativo
+            ? `⚡ ${review.product.split(' vs ')[0]} vs ${review.product.split(' vs ')[1]} — conferir ofertas!`
+            : `🔥 ${review.product} com desconto — oferta por tempo limitado`
+          }
         </div>
       )}
 
@@ -240,7 +259,10 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
                   <h2 id={sec.id}>{sec.heading}</h2>
                   <div className="prose-review" dangerouslySetInnerHTML={{ __html: sec.html }} />
                   
-                  {idx === 1 && (
+                  {idx === 1 && isComparativo && compareProducts.length >= 2 && (
+                    <CompareCTA products={compareProducts} />
+                  )}
+                  {idx === 1 && !isComparativo && (
                     <ArticleCTA
                       priceOld={review.priceOld}
                       priceNew={review.priceNew}
@@ -264,7 +286,16 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
               {(pros.length > 0 || cons.length > 0) && (
                 <>
                   <h2 id="pros-contras">Prós e Contras</h2>
-                  <ProsConsGrid pros={pros} cons={cons} />
+                  {isComparativo && compareProducts.length >= 2 ? (
+                    <CompareProsCons products={compareProducts.map((p, idx) => ({
+                      name: p.name,
+                      score: p.score,
+                      pros: pros.filter((_, i) => i % Math.ceil(pros.length / 2) === idx),
+                      cons: cons.filter((_, i) => i % Math.ceil(cons.length / 2) === idx),
+                    }))} />
+                  ) : (
+                    <ProsConsGrid pros={pros} cons={cons} />
+                  )}
                 </>
               )}
 
