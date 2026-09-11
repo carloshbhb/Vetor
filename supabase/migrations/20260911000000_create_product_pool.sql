@@ -15,22 +15,12 @@ CREATE TABLE IF NOT EXISTS product_pool (
   processed_at TIMESTAMPTZ
 );
 
--- Index for priority queries (getTopProducts)
-CREATE INDEX IF NOT EXISTS idx_product_pool_status_priority
-  ON product_pool (status, priority DESC);
+CREATE INDEX IF NOT EXISTS idx_product_pool_status_priority ON product_pool (status, priority DESC);
+CREATE INDEX IF NOT EXISTS idx_product_pool_status_processed ON product_pool (status, processed_at);
+CREATE INDEX IF NOT EXISTS idx_product_pool_product ON product_pool (product);
 
--- Index for cleanup queries (cleanPool)
-CREATE INDEX IF NOT EXISTS idx_product_pool_status_processed
-  ON product_pool (status, processed_at);
-
--- Index for dedup lookups
-CREATE INDEX IF NOT EXISTS idx_product_pool_product
-  ON product_pool (product);
-
--- Row Level Security (service role bypasses this, but good practice)
 ALTER TABLE product_pool ENABLE ROW LEVEL SECURITY;
 
--- Allow service role full access
 CREATE POLICY "Service role full access" ON product_pool
   FOR ALL
   USING (auth.role() = 'service_role');
