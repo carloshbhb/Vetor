@@ -219,8 +219,8 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
         <div
           style={{
             position: "absolute",
-            bottom: 120,
-            right: 40,
+            bottom: 160,
+            right: 60,
             opacity: qrOpacity,
             transform: `scale(${qrScale}) translateY(${qrY}px)`,
             zIndex: 100,
@@ -228,7 +228,7 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
         >
           <QRCodeAnimated
             url={affiliateUrl}
-            size={120}
+            size={180}
             delay={0}
           />
         </div>

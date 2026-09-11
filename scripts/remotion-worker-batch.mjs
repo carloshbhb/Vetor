@@ -227,6 +227,25 @@ async function renderJob(job) {
       'utf8'
     );
 
+    // ── 3c. Gerar QR code como PNG estático ──────────────────────────────
+    console.log('[3c/5] Gerando QR code...');
+    const QRCode = await import('qrcode');
+    const qrDir = path.join(REMOTION_DIR, 'public');
+    if (!existsSync(qrDir)) mkdirSync(qrDir, { recursive: true });
+    const qrPath = path.join(qrDir, 'qr.png');
+    const affiliateUrl = reviewData.affiliate_url || '';
+    if (affiliateUrl) {
+      await QRCode.toFile(qrPath, affiliateUrl, {
+        width: 400,
+        margin: 2,
+        color: { dark: '#000000', light: '#FFFFFF' },
+        errorCorrectionLevel: 'H',
+      });
+      console.log(`  QR code salvo: ${qrPath}`);
+    } else {
+      console.warn('  Sem affiliate URL, QR code não gerado');
+    }
+
     // ── 4. Renderizar com Remotion ───────────────────────────────────────
     const outDir = path.join(REMOTION_DIR, 'out');
     if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
