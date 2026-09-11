@@ -167,7 +167,6 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
           from={hookSection.startFrame}
           durationInFrames={hookSection.endFrame - hookSection.startFrame}
         >
-          <Audio src={staticFile("audio/hook.mp3")} volume={1} />
           <Hook 
             section={{
               ...hookSection,
@@ -187,7 +186,6 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
           from={psSection.startFrame}
           durationInFrames={psSection.endFrame - psSection.startFrame}
         >
-          <Audio src={staticFile("audio/problem_solution.mp3")} volume={1} />
           <ProblemSolution section={psSection} palette={meta.palette} />
         </Sequence>
       )}
@@ -198,10 +196,12 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
           from={ctaSection.startFrame}
           durationInFrames={ctaSection.endFrame - ctaSection.startFrame}
         >
-          <Audio src={staticFile("audio/cta.mp3")} volume={1} />
           <CTA section={ctaSection} palette={meta.palette} />
         </Sequence>
       )}
+
+      {/* Full audio track */}
+      <Audio src={staticFile("audio/full.mp3")} volume={1} />
 
       {/* Layer 4 — color grading: gentle contrast S-curve + brand tint wash */}
       <AbsoluteFill
