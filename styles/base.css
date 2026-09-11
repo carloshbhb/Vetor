@@ -39,11 +39,23 @@ a {
   margin-inline: auto;
 }
 
-/* CLS Prevention — heights reserved for topbar/nav */
-body>div:first-child {
-  min-height: 44px;
+/* CLS Prevention — heights reserved for layout elements */
+.sticky {
+  min-height: 64px;
 }
 
-body>nav:nth-child(2) {
-  min-height: 72px;
+.alert-strip {
+  min-height: 40px;
+}
+
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

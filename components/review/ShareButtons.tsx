@@ -1,8 +1,6 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Vetor Blog — Social Share Component
-// ─────────────────────────────────────────────────────────────────────────────
-
 'use client';
+
+import { useState } from 'react';
 
 interface ShareButtonsProps {
   url: string;
@@ -57,21 +55,28 @@ const shareLinks = [
   },
 ];
 
+const checkIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+
 export default function ShareButtons({ url, title, description: _description }: ShareButtonsProps) {
+  const [copied, setCopied] = useState(false);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(url);
-      alert('Link copiado!');
     } catch {
-      // Fallback
       const textarea = document.createElement('textarea');
       textarea.value = url;
       document.body.appendChild(textarea);
       textarea.select();
       document.execCommand('copy');
       document.body.removeChild(textarea);
-      alert('Link copiado!');
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -87,9 +92,12 @@ export default function ShareButtons({ url, title, description: _description }: 
           className={`w-8 h-8 rounded-full bg-bg2 border border-border flex items-center justify-center text-text-muted transition-all ${link.color}`}
           title={link.name}
         >
-          {link.icon}
+          {link.name === 'Copiar Link' && copied ? checkIcon : link.icon}
         </a>
       ))}
+      {copied && (
+        <span className="text-xs text-green font-medium animate-fade-in">Copiado!</span>
+      )}
     </div>
   );
 }

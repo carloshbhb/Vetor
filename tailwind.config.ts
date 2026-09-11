@@ -41,7 +41,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        bebas: ['var(--font-bebas)', 'cursive'],
+        bebas: ['var(--font-bebas)', 'sans-serif'],
         syne:  ['var(--font-syne)',  'sans-serif'],
         dm:    ['var(--font-dm)',    'sans-serif'],
         sans:  ['var(--font-dm)',    'sans-serif'],

@@ -2,9 +2,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getPublishedReviewCards } from '@/lib/db';
 import { getMarketInsights } from '@/lib/research';
-import Logo from '@/components/Logo';
+import SiteHeader from '@/components/SiteHeader';
 import CategoryHub from '@/components/CategoryHub';
 import MarketInsights from '@/components/MarketInsights';
+import SiteFooter from '@/components/SiteFooter';
 import type { Metadata } from 'next';
 
 export const revalidate = 3600;
@@ -57,17 +58,7 @@ export default async function Home() {
 
   return (
     <div className="bg-bg2 min-h-screen">
-      {/* Header */}
-      <header className="bg-white border-b border-border shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/">
-            <Logo />
-          </Link>
-          <nav className="flex items-center gap-6 text-sm font-medium text-text-muted">
-            <Link href="/" className="text-text font-bold">Reviews</Link>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Hero */}
       <section className="bg-cta-gradient py-16 px-4 mb-10">
@@ -130,6 +121,8 @@ export default async function Home() {
           </>
         )}
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getPublishedReviewCards } from '@/lib/db';
-import Logo from '@/components/Logo';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 import type { Metadata } from 'next';
 
 export const revalidate = 3600;
@@ -133,15 +134,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }} />
 
-      {/* Header */}
-      <header className="bg-white border-b border-border shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/"><Logo /></Link>
-          <nav className="flex items-center gap-6 text-sm font-medium text-text-muted">
-            <Link href="/" className="hover:text-text transition-colors">Reviews</Link>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
@@ -208,20 +201,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-text-muted mb-4">
-            <Link href="/sobre" className="hover:text-blue transition-colors">Sobre</Link>
-            <Link href="/privacidade" className="hover:text-blue transition-colors">Privacidade</Link>
-            <Link href="/termos" className="hover:text-blue transition-colors">Termos</Link>
-            <Link href="/sitemap.xml" className="hover:text-blue transition-colors">Sitemap</Link>
-          </div>
-          <p className="text-xs text-text-muted text-center">
-            Vetor.blog — Reviews sinceros para compradores inteligentes.
-          </p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

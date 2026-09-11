@@ -12,7 +12,7 @@ export default function SidebarCTA({
 }: SidebarCTAProps) {
   return (
     <div className="sidebar-cta" role="complementary" aria-label="Oferta Especial">
-      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: ".72rem", fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", opacity: .7, marginBottom: "10px" }}>
+      <div className="cta-eyebrow">
         Melhor Preço
       </div>
       {priceOld && <div className="s-price-old">De {priceOld}</div>}

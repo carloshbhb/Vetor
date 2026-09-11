@@ -2,12 +2,14 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Script from 'next/script';
 import dynamic from 'next/dynamic';
+import DOMPurify from 'dompurify';
 import { getReviewBySlug, getPublishedSlugs, getPublishedReviewCards } from '@/lib/db';
 import { markdownToHtml } from '@/lib/markdown';
 import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema } from '@/lib/seo';
 import { defaultAuthor } from '@/lib/author';
 
 import Logo         from '@/components/Logo';
+import SiteFooter   from '@/components/SiteFooter';
 import ScoreBox    from '@/components/review/ScoreBox';
 import ArticleCTA  from '@/components/review/ArticleCTA';
 import CompareCTA  from '@/components/review/CompareCTA';
@@ -20,6 +22,7 @@ import CompareProsCons from '@/components/review/CompareProsCons';
 import VerdictBox   from '@/components/review/VerdictBox';
 import ReviewTOC    from '@/components/review/ReviewTOC';
 import Link         from 'next/link';
+import SiteHeader   from '@/components/SiteHeader';
 
 // Lazy-load below-the-fold components
 const FAQAccordion = dynamic(() => import('@/components/review/FAQAccordion'));
@@ -140,16 +143,7 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
         </div>
       )}
 
-      <header className="bg-white border-b border-border shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <a href="/">
-            <Logo />
-          </a>
-          <nav className="flex items-center gap-6 text-sm font-medium text-text-muted">
-            <a href="/" className="text-text font-bold" style={{ fontFamily: 'DM Sans, sans-serif' }}>Reviews</a>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main>
         <div className="container">
@@ -266,7 +260,7 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
               {renderedSections.map((sec, idx) => (
                 <div key={sec.id}>
                   <h2 id={sec.id}>{sec.heading}</h2>
-                  <div className="prose-review" dangerouslySetInnerHTML={{ __html: sec.html }} />
+                  <div className="prose-review" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(sec.html) }} />
                   
                   {idx === 1 && !isComparativo && (
                     <ArticleCTA
@@ -437,31 +431,7 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
         </div>
       </main>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-border bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <svg width="28" height="28" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect width="36" height="36" rx="9" fill="#1428A0" />
-                <polygon points="8,10 14.5,10 18,22 21.5,10 28,10 19.5,27 16.5,27" fill="#4285F4" />
-              </svg>
-              <span className="font-syne font-bold text-text">vetor.blog</span>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-text-muted">
-              <Link href="/sobre" className="hover:text-blue transition-colors">Sobre</Link>
-              <Link href="/research" className="hover:text-blue transition-colors">Pesquisa de Mercado</Link>
-              <Link href="/privacidade" className="hover:text-blue transition-colors">Privacidade</Link>
-              <Link href="/termos" className="hover:text-blue transition-colors">Termos</Link>
-              <Link href="/sitemap.xml" className="hover:text-blue transition-colors">Sitemap</Link>
-              <a href="/llms.txt" className="hover:text-blue transition-colors">llms.txt</a>
-            </div>
-          </div>
-          <p className="text-xs text-text-muted text-center mt-4">
-            Vetor.blog participa do programa de afiliados. Os preços e condições apresentados são promocionais e podem ser alterados sem aviso prévio.
-          </p>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }

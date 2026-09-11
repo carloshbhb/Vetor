@@ -985,3 +985,134 @@ details[open] summary::after {
     height: 80px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FOCUS VISIBLE — Keyboard navigation accessibility
+═══════════════════════════════════════════════════════════ */
+.btn-white:focus-visible,
+.btn-cta:focus-visible,
+.btn-cta-outline:focus-visible,
+.compare-hero-btn:focus-visible,
+.compare-cta-btn:focus-visible,
+summary:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove outline for mouse users */
+.btn-white:focus:not(:focus-visible),
+.btn-cta:focus:not(:focus-visible),
+.btn-cta-outline:focus:not(:focus-visible),
+.compare-hero-btn:focus:not(:focus-visible),
+.compare-cta-btn:focus:not(:focus-visible),
+summary:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PROSE REVIEW — Article body typography
+═══════════════════════════════════════════════════════════ */
+.prose-review {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--text2);
+}
+
+.prose-review h2 {
+  font-family: var(--font-syne), 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: var(--text);
+  margin: 32px 0 16px;
+}
+
+.prose-review h3 {
+  font-family: var(--font-syne), 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--text);
+  margin: 24px 0 12px;
+}
+
+.prose-review p {
+  margin-bottom: 16px;
+}
+
+.prose-review ul,
+.prose-review ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.prose-review li {
+  margin-bottom: 6px;
+}
+
+.prose-review a {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-review a:hover {
+  color: var(--blue-dark);
+}
+
+.prose-review blockquote {
+  border-left: 3px solid var(--blue);
+  padding: 12px 20px;
+  margin: 20px 0;
+  background: var(--bg2);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-style: italic;
+  color: var(--text2);
+}
+
+.prose-review strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.prose-review img {
+  border-radius: var(--radius);
+  margin: 20px 0;
+}
+
+.prose-review code {
+  background: var(--bg2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: .88em;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CTA EYEBROW — Reusable label above CTAs
+═══════════════════════════════════════════════════════════ */
+.cta-eyebrow {
+  font-family: var(--font-syne), 'Syne', sans-serif;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  opacity: .7;
+  margin-bottom: 10px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VERDICT — CTA wrapper and affiliate note
+═══════════════════════════════════════════════════════════ */
+.verdict-cta-wrapper {
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+
+.verdict-affiliate-note {
+  font-size: .75rem;
+  opacity: .7;
+  margin-top: 8px;
+}

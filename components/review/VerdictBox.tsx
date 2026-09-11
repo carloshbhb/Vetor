@@ -34,7 +34,7 @@ export default function VerdictBox({
       <h3>{label}</h3>
       <p>{text}</p>
       {affiliateUrl && (
-        <div style={{ marginTop: '24px', marginBottom: '16px' }}>
+        <div className="verdict-cta-wrapper">
           <a
             href={affiliateUrl}
             className="btn-white"
@@ -43,7 +43,7 @@ export default function VerdictBox({
           >
             {isComparativo ? `Comprar ${winnerName || 'Produto'} (${priceNew || 'Oferta'}) →` : `Ver Preço de Hoje (${priceNew || 'Oferta'}) →`}
           </a>
-          <p style={{ fontSize: '.75rem', opacity: 0.7, marginTop: '8px' }}>
+          <p className="verdict-affiliate-note">
             Link de afiliado — ao comprar por aqui, você apoia o Vetor Blog sem custo adicional.
           </p>
         </div>
