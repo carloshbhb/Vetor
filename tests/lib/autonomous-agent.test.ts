@@ -55,8 +55,35 @@ describe('Autonomous Agent - Category Validation', () => {
     it('should validate Eletroportáteis correctly', () => {
       expect(validateProductCategory('Air Fryer Mondial', 'Eletroportáteis')).toBe(true);
       expect(validateProductCategory('Liquidificador Oster', 'Eletroportáteis')).toBe(true);
+      expect(validateProductCategory('Ventilador de Coluna Mondial Super Turbo', 'Eletroportáteis')).toBe(true);
       expect(validateProductCategory('Geladeira Electrolux', 'Eletroportáteis')).toBe(false);
       expect(validateProductCategory('Refrigerador Brastemp', 'Eletroportáteis')).toBe(false);
+    });
+
+    it('should validate Acessórios para Games correctly', () => {
+      expect(validateProductCategory('Controle Xbox Wireless', 'Acessórios para Games')).toBe(true);
+      expect(validateProductCategory('Cadeira Gamer ThunderX3', 'Acessórios para Games')).toBe(true);
+      expect(validateProductCategory('Teclado Mecânico Redragon Kumara', 'Acessórios para Games')).toBe(true);
+      expect(validateProductCategory('Webcam Logitech C270', 'Acessórios para Games')).toBe(true);
+      expect(validateProductCategory('Geladeira Brastemp', 'Acessórios para Games')).toBe(false);
+      expect(validateProductCategory('Amazon Echo Dot', 'Acessórios para Games')).toBe(false);
+      expect(validateProductCategory('Air Fryer Mondial', 'Acessórios para Games')).toBe(false);
+    });
+
+    it('should accept former dead fallback items (pool saturation fix)', () => {
+      // Estes itens estavam no fallback mas SEMPRE falhavam na validação,
+      // esvaziando o pool silenciosamente (zero artigos em 10/09/2026).
+      expect(validateProductCategory('Amazfit Bip 5', 'Wearables / Smartbands')).toBe(true);
+      expect(validateProductCategory('Amazfit GTS 4 Mini', 'Wearables / Smartbands')).toBe(true);
+      expect(validateProductCategory('QCY T13', 'Fones de Ouvido')).toBe(true);
+      expect(validateProductCategory('JBL Wave Flex', 'Fones de Ouvido')).toBe(true);
+      expect(validateProductCategory('Nothing Ear (2)', 'Fones de Ouvido')).toBe(true);
+      expect(validateProductCategory('Soundcore R50i', 'Fones de Ouvido')).toBe(true);
+      expect(validateProductCategory('Xiaomi Pad 6', 'Tablets')).toBe(true);
+      expect(validateProductCategory('Lenovo Tab M11', 'Tablets')).toBe(true);
+      expect(validateProductCategory('Xiaomi Pad 7', 'Tablets')).toBe(true);
+      expect(validateProductCategory('Robô Aspirador Electrolux ERB30', 'Robôs Aspiradores')).toBe(true);
+      expect(validateProductCategory('Xiaomi Watch S3', 'Wearables / Smartbands')).toBe(true);
     });
 
     it('should return true for unknown categories', () => {
