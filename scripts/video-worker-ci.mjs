@@ -217,6 +217,17 @@ for (const job of jobs) {
       continue;
     }
     const total = script.estimatedSeconds || 50;
+    // Guarda pré-TTS: payload inválido (narração vazia/curta ou sem cenas) — pula sem gastar edge-tts.
+    const nar = String(script.fullNarration || '').trim();
+    const scenesCount = Array.isArray(script.scenes) ? script.scenes.length : 0;
+    if (nar.length < 50 || !Array.isArray(script.scenes) || scenesCount === 0) {
+      const skipErr = `SKIP queue-bad-payload: fullNarration=${nar.length} scenes=${scenesCount}`;
+      const { error: skipUpdateError } = await sb.from('video_jobs').update({ status: 'failed', error: skipErr }).eq('slug', slug);
+      if (skipUpdateError) throw new Error(skipErr + ' (falha ao marcar skip: ' + skipUpdateError.message + ')');
+      console.warn(`[SKIP] ${slug}: payload inválido, TTS nem tentado (${skipErr})`);
+      failed++;
+      continue;
+    }
     writeFileSync(txt, script.fullNarration || '', 'utf8');
     const srt = path.join(tmp, `${slug}.srt`);
     const thumb = path.join(tmp, `${slug}.thumb.jpg`);

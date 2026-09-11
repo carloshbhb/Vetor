@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPublishedSlugQueue, getReviewsBySlugs } from '@/lib/db';
-import { generateVideoScript } from '@/lib/video-script';
+import { generateVideoScript, assertValidVideoScript } from '@/lib/video-script';
 import {
   DAILY_VIDEO_LIMIT,
+  bumpJobAttempts,
   getAllJobSlugs,
   getFailedSlugs,
   getJobsTodayCount,
@@ -62,7 +63,9 @@ export async function GET(req: NextRequest) {
     // o cron puxava os 113 reviews inteiros e estourava o timeout da Vercel.
     const [queue, doneSlugs, retrySlugs] = await Promise.all([
       getPublishedSlugQueue(),
-      getAllJobSlugs(),
+      // Exclui 'failed': senão retrySlugs ⊆ doneSlugs e o retry abaixo é sempre [].
+      // Failed com attempts<3 regeneram o roteiro (com o gate assertValidVideoScript).
+      getAllJobSlugs(['failed']),
       getFailedSlugs(3),
     ]);
     console.log(`[video-queue] queue=${queue.length} done=${doneSlugs.size} retry=${retrySlugs.length} sampleDone=${Array.from(doneSlugs).slice(0,3).join(',')}`);
@@ -76,7 +79,9 @@ export async function GET(req: NextRequest) {
     const fresh = queue.filter((q) => !doneSlugs.has(q.slug)).map((q) => q.slug);
     const retry = retrySlugs.filter((s) => !doneSlugs.has(s));
     console.log(`[video-queue] fresh=${fresh.length} backlog=${retry.length+fresh.length} nextFresh=${fresh.slice(0,2).join(',')}`);
-    const backlogSlugs = [...retry, ...fresh];
+    // Dedupe preservando ordem (retry primeiro): como doneSlugs exclui 'failed',
+    // um slug pode estar em retry E fresh — sem isso o roteiro seria gerado 2x.
+    const backlogSlugs = Array.from(new Set([...retry, ...fresh]));
     // Lote pequeno por invocação para caber no timeout da serverless
     const batchSize = Math.min(
       Math.max(Number(req.nextUrl.searchParams.get('batch') || 3), 1),
@@ -98,6 +103,7 @@ export async function GET(req: NextRequest) {
     for (const review of batch) {
       try {
         const script = await generateVideoScript(review);
+        assertValidVideoScript(script);
         const res = await upsertScriptJob(
           {
             review_id: review.id,
@@ -115,6 +121,11 @@ export async function GET(req: NextRequest) {
         jobs.push({ slug: review.slug, product: review.product, title: script.title });
       } catch (e: any) {
         errors.push({ slug: review.slug, error: e.message });
+        // Falha de geração/validação também consome tentativa: sem isso um review
+        // cujo LLM nunca gera roteiro válido seria retentado a cada cron (o upsert
+        // reseta attempts=0 e o worker nunca é alcançado para incrementar).
+        // Best-effort: nunca derruba o lote.
+        try { await bumpJobAttempts(review.slug, String(e.message || e).slice(0, 300)); } catch {}
       }
     }
 

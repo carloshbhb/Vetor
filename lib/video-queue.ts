@@ -88,14 +88,22 @@ export async function getFailedSlugs(maxAttempts = 3): Promise<string[]> {
 // publicado). Regra 1 review = 1 vídeo: o cron nunca regenera esses slugs,
 // mesmo se o status voltar para script_ready por qualquer motivo.
 // Paginação real para evitar retorno parcial em serverless (Supabase postgREST limita 1000 por página)
-export async function getAllJobSlugs(): Promise<Set<string>> {
+// @param excludeStatuses — status a excluir do retorno (ex: ['failed'] para
+// permitir retry de jobs falhados; ver app/api/cron/video-queue/route.ts).
+// Default [] = comportamento original (todos os status), mantendo callers existentes.
+export async function getAllJobSlugs(excludeStatuses: string[] = []): Promise<Set<string>> {
+  const excluded = new Set(excludeStatuses);
   const sb = supabaseAdmin();
-  if (!sb) return new Set(readFallback().map((j) => j.slug));
+  if (!sb) return new Set(readFallback().filter((j) => !excluded.has(j.status)).map((j) => j.slug));
   const all: string[] = [];
   let from = 0;
   const pageSize = 1000;
   while (true) {
-    const { data, error } = await sb.from('video_jobs').select('slug').range(from, from + pageSize - 1);
+    let query = sb.from('video_jobs').select('slug');
+    if (excluded.size > 0) {
+      query = query.not('status', 'in', `(${Array.from(excluded).join(',')})`);
+    }
+    const { data, error } = await query.range(from, from + pageSize - 1);
     if (error) { console.error('[video-queue] getAllJobSlugs error', error.message); break; }
     if (!data?.length) break;
     for (const r of data as any[]) if (r.slug) all.push(r.slug);
@@ -176,6 +184,29 @@ export async function upsertScriptJob(job: VideoJob, opts?: { force?: boolean; r
     { onConflict: 'slug' }
   );
   return 'created';
+}
+
+// Incrementa attempts de um job (best-effort). Usado quando a GERAÇÃO do roteiro
+// falha (gate assertValidVideoScript): nesse caminho o worker nunca é alcançado
+// para incrementar, e o upsert reseta attempts=0 — sem isso o retry seria infinito.
+export async function bumpJobAttempts(slug: string, error?: string): Promise<void> {
+  const sb = supabaseAdmin();
+  if (!sb) {
+    const all = readFallback();
+    const i = all.findIndex((j) => j.slug === slug);
+    if (i >= 0) {
+      all[i] = { ...all[i], attempts: (all[i].attempts || 0) + 1, ...(error ? { error } : {}), updated_at: new Date().toISOString() } as any;
+      writeFallback(all);
+    }
+    return;
+  }
+  const { data } = await sb.from('video_jobs').select('attempts').eq('slug', slug).maybeSingle();
+  if (!data) return;
+  await sb.from('video_jobs').update({
+    attempts: ((data as any).attempts || 0) + 1,
+    ...(error ? { error } : {}),
+    updated_at: new Date().toISOString(),
+  }).eq('slug', slug);
 }
 
 export async function markJob(slug: string, patch: Partial<VideoJob>): Promise<void> {

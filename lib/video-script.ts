@@ -295,6 +295,38 @@ async function callAI(prompt: string): Promise<any> {  // 1. Tenta Veo 3.1 (Goog
   throw new Error(`OpenRouter falhou (${lastErr})`);
 }
 
+// Gate anti-roteiro-vazio: LLM às vezes retorna JSON vazio/truncado e os
+// fallbacks acima mascaram (title/estimatedSeconds sempre parecem válidos).
+// Chamar antes de marcar script_ready — joga erro p/ errors[] em vez de
+// deixar o worker rodar edge-tts num fullNarration de 0 bytes.
+export function assertValidVideoScript(s: any): void {
+  // fullNarration precisa ter conteúdo falável (~45-55s ≈ 125-140 palavras)
+  const narration = typeof s?.fullNarration === 'string' ? s.fullNarration.trim() : '';
+  if (narration.length < 200) {
+    throw new Error(`VideoScript inválido: fullNarration curta (${narration.length} chars, mínimo 200)`);
+  }
+  // Precisa de cenas suficientes para o carrossel 9:16
+  if (!Array.isArray(s?.scenes) || s.scenes.length < 3) {
+    throw new Error(`VideoScript inválido: scenes precisa de ao menos 3 (recebido ${Array.isArray(s?.scenes) ? s.scenes.length : 'não-array'})`);
+  }
+  // Toda cena precisa de fala — sem narration o TTS gera trecho mudo
+  for (let i = 0; i < s.scenes.length; i++) {
+    const n = typeof s.scenes[i]?.narration === 'string' ? s.scenes[i].narration.trim() : '';
+    if (!n) {
+      throw new Error(`VideoScript inválido: cena ${i} sem narration`);
+    }
+  }
+  // Título é obrigatório p/ Shorts/upload
+  if (typeof s?.title !== 'string' || !s.title.trim()) {
+    throw new Error('VideoScript inválido: title vazio');
+  }
+  // Duração total precisa caber no formato Shorts (soma dos durationSec)
+  const total = s.scenes.reduce((a: number, sc: any) => a + (Number(sc?.durationSec) || 0), 0);
+  if (total < 35 || total > 70) {
+    throw new Error(`VideoScript inválido: soma durationSec fora do range (recebido ${total}s, esperado 35-70s)`);
+  }
+}
+
 export async function generateVideoScript(review: ReviewData): Promise<VideoScript> {
   const raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
   const siteUrl = raw.startsWith('http') ? raw : `https://${raw}`;
