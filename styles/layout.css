@@ -4,8 +4,8 @@
 .layout {
   display: grid;
   grid-template-columns: 1fr 300px;
-  gap: 48px;
-  padding: 48px 0 80px;
+  gap: 40px;
+  padding: 32px 0 80px;
   align-items: start;
 }
 
@@ -127,4 +127,32 @@
 .verdict-note {
   font-size: .78rem;
   opacity: .65;
+}
+
+/* ── Scroll offset for sticky header ── */
+.article-body h2[id],
+.compare-hero[id],
+[id="comparativo"],
+[id="pros-contras"],
+[id="veredicto"],
+[id="faq"],
+[id="ficha-tecnica"] {
+  scroll-margin-top: 80px;
+}
+
+/* ── Responsive layout ── */
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 24px 0 60px;
+  }
+
+  .article-body {
+    max-width: 100%;
+  }
+
+  .sidebar {
+    position: static;
+  }
 }

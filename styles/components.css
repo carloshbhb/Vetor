@@ -226,12 +226,12 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   FAQ
+   FAQ — Accordion with smooth animation
 ═══════════════════════════════════════════════════════════ */
 .faq-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   margin: 24px 0;
 }
 
@@ -241,10 +241,12 @@ details {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
 }
 
 details[open] {
   border-color: var(--blue);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, .08);
 }
 
 summary {
@@ -258,19 +260,36 @@ summary {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  transition: background .15s;
+}
+
+summary:hover {
+  background: var(--bg2);
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+summary::marker {
+  display: none;
+  content: '';
 }
 
 summary::after {
-  content: "+";
-  font-size: 1.4rem;
-  font-weight: 300;
-  color: var(--blue);
+  content: "";
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
-  line-height: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='12' y1='5' x2='12' y2='19'/%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform .25s ease;
 }
 
 details[open] summary::after {
-  content: "−";
+  transform: rotate(45deg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3C/svg%3E");
 }
 
 .faq-answer {
@@ -279,6 +298,12 @@ details[open] summary::after {
   font-size: .92rem;
   line-height: 1.7;
   border-top: 1px solid var(--border);
+  animation: faqSlideDown .2s ease;
+}
+
+@keyframes faqSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1012,6 +1037,31 @@ summary:focus:not(:focus-visible),
 a:focus:not(:focus-visible),
 button:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REVIEW CARD — Hover effects
+═══════════════════════════════════════════════════════════ */
+.review-card-link {
+  transition: transform .2s, box-shadow .2s;
+}
+
+.review-card-link:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, .1);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CATEGORY PAGE — Responsive grid
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .category-hero-card {
+    padding: 20px;
+  }
+
+  .category-hero-card .text-5xl {
+    font-size: 2.5rem;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════

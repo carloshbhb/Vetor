@@ -171,7 +171,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
             <Link href="/" className="text-blue hover:underline">Ver todos os reviews</Link>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
             {filteredReviews.map(r => (
               <Link key={r.id} href={`/review/${r.slug}`} className="group bg-white rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 flex flex-col">
                 <div className="aspect-[4/3] bg-bg2 relative border-b border-border p-6 flex items-center justify-center">

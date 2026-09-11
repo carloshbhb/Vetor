@@ -128,7 +128,7 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
             value={authorName}
             onChange={(e) => setAuthorName(e.target.value)}
             placeholder="Digite seu nome"
-            className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue focus:border-transparent"
+            className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-blue focus:border-transparent transition-colors"
             required
           />
         </div>
@@ -166,7 +166,7 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
             placeholder="Compartilhe sua experiência com o produto..."
             rows={4}
             maxLength={MAX_LENGTH}
-            className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue focus:border-transparent resize-none"
+            className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-blue focus:border-transparent resize-none transition-colors"
             required
           />
           <div className="flex justify-between mt-1">
@@ -185,7 +185,7 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
         <button
           type="submit"
           disabled={isSubmitting || !newComment.trim() || !authorName.trim()}
-          className="px-6 py-2 bg-blue text-white rounded-lg hover:bg-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-3 bg-blue text-white rounded-xl font-syne font-bold hover:bg-blue-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-blue"
         >
           {isSubmitting ? 'Enviando...' : 'Enviar Comentário'}
         </button>

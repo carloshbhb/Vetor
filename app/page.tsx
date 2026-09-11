@@ -61,14 +61,23 @@ export default async function Home() {
       <SiteHeader />
 
       {/* Hero */}
-      <section className="bg-cta-gradient py-16 px-4 mb-10">
-        <div className="max-w-4xl mx-auto text-center text-white">
-          <h1 className="font-bebas text-6xl md:text-7xl tracking-wide mb-4">
+      <section className="relative overflow-hidden py-20 px-4 mb-10">
+        <div className="absolute inset-0 bg-cta-gradient" />
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        <div className="relative max-w-4xl mx-auto text-center text-white">
+          <div className="inline-block bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-6 text-sm font-medium">
+            ★ +100 reviews publicados
+          </div>
+          <h1 className="font-bebas text-6xl md:text-7xl lg:text-8xl tracking-wide mb-4 leading-none">
             Reviews Sinceros para<br/>Compradores Inteligentes
           </h1>
-          <p className="text-white/80 text-lg max-w-2xl mx-auto">
-            Descubra os melhores produtos do mercado com nossas análises detalhadas, prós, contras e notas rigorosas.
+          <p className="text-white/80 text-lg md:text-xl max-w-2xl mx-auto mb-8">
+            Descubra os melhores produtos do mercado com análises detalhadas, prós, contras e notas rigorosas.
           </p>
+          <a href="#reviews" className="inline-flex items-center gap-2 bg-white text-navy font-syne font-bold px-8 py-3 rounded-full hover:shadow-lg transition-all hover:-translate-y-0.5">
+            Ver Reviews
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M7 17l9.2-9.2M17 17V7.8H7.8"/></svg>
+          </a>
         </div>
       </section>
 
@@ -88,7 +97,7 @@ export default async function Home() {
             <MarketInsights insights={insights} />
 
             {/* Reviews Grid */}
-            <section>
+            <section id="reviews">
               <h2 className="font-syne font-bold text-xl text-text mb-6">Últimos Reviews</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {reviews.map(r => (

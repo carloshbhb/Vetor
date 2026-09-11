@@ -81,3 +81,30 @@
   color: var(--blue);
   font-size: .78rem;
 }
+
+/* ── Mobile responsive ── */
+@media (max-width: 640px) {
+  .score-strip {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px 20px;
+    gap: 12px;
+  }
+
+  .bar-row {
+    gap: 8px;
+  }
+
+  .bar-label {
+    width: 70px;
+    font-size: .75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bar-val {
+    width: 28px;
+    font-size: .72rem;
+  }
+}
