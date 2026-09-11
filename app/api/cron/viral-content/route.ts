@@ -38,7 +38,10 @@ function slugify(s: string) {
 
 async function discoverTrendingTopics(category: string): Promise<any[]> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey) {
+    console.warn(`[ViralContent] No GEMINI_API_KEY for trend discovery`);
+    return [];
+  }
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -62,6 +65,7 @@ Responda APENAS com um array JSON válido contendo os 5 objetos.`;
 
     const response = await model.generateContent(prompt);
     const text = response.response.text();
+    console.log(`[ViralContent] Gemini response for ${category}: ${text.slice(0, 200)}`);
     const cleanJson = text.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleanJson);
     return Array.isArray(parsed) ? parsed : [];
@@ -237,19 +241,32 @@ export async function GET(req: NextRequest) {
     try {
       console.log(`[ViralContent] Discovering trends for ${category}...`);
       const trends = await discoverTrendingTopics(category);
+      console.log(`[ViralContent] Found ${trends.length} trends for ${category}`);
       if (trends.length === 0) {
-        console.log(`[ViralContent] No trends found for ${category}, skipping.`);
         continue;
       }
 
       // Pick the best trend (first one, already sorted by relevance)
       const trend = trends[0];
       const trendSlug = slugify(trend.product || '');
+      console.log(`[ViralContent] Best trend: ${trend.product} (slug: ${trendSlug})`);
 
       // Skip if already exists
       if (existingSlugs.has(trendSlug)) {
-        console.log(`[ViralContent] ${trendSlug} already exists, skipping.`);
-        continue;
+        console.log(`[ViralContent] ${trendSlug} already exists, trying next trend...`);
+        // Try next trends
+        for (let i = 1; i < Math.min(trends.length, 3); i++) {
+          const altTrend = trends[i];
+          const altSlug = slugify(altTrend.product || '');
+          if (!existingSlugs.has(altSlug)) {
+            trends[0] = altTrend;
+            break;
+          }
+        }
+        if (existingSlugs.has(slugify(trends[0].product || ''))) {
+          console.log(`[ViralContent] All trends for ${category} already exist, skipping.`);
+          continue;
+        }
       }
 
       console.log(`[ViralContent] Generating article: ${trend.product}`);
