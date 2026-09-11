@@ -7,9 +7,10 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 interface ScoreBoxProps {
   overallScore: number;
   bars: ScoreBar[];
+  compareMode?: boolean;
 }
 
-function ScoreBoxInner({ overallScore, bars }: ScoreBoxProps) {
+function ScoreBoxInner({ overallScore, bars, compareMode }: ScoreBoxProps) {
   const barsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,8 +38,11 @@ function ScoreBoxInner({ overallScore, bars }: ScoreBoxProps) {
     return filledStars + emptyStars;
   };
 
+  // In compare mode, split bars into two product groups
+  const barColors = ['var(--blue)', '#db2777'];
+
   return (
-    <div className="score-strip" role="region" aria-label="Pontuação geral">
+    <div className={`score-strip ${compareMode ? 'score-strip--compare' : ''}`} role="region" aria-label="Pontuação geral">
       <div>
         <div className="score-label">Nota Vetor Blog</div>
         <div className="score-number">{overallScore.toFixed(1)}</div>
@@ -47,17 +51,22 @@ function ScoreBoxInner({ overallScore, bars }: ScoreBoxProps) {
         </div>
       </div>
       <div className="score-bars" role="list" ref={barsRef}>
-        {bars.map(bar => (
+        {bars.map((bar, idx) => (
           <div className="bar-row" role="listitem" key={bar.label}>
             <span className="bar-label">{bar.label}</span>
             <div className="bar-track">
-              <div 
-                className="bar-fill" 
-                style={{ width: '0%' }} 
-                data-pct={bar.pct} 
+              <div
+                className={`bar-fill ${compareMode ? 'bar-fill--compare' : ''}`}
+                style={{
+                  width: '0%',
+                  background: compareMode ? barColors[idx % 2] : undefined,
+                }}
+                data-pct={bar.pct}
               />
             </div>
-            <span className="bar-val">{bar.value.toFixed(1)}</span>
+            <span className="bar-val" style={compareMode ? { color: barColors[idx % 2] } : undefined}>
+              {bar.value.toFixed(1)}
+            </span>
           </div>
         ))}
       </div>

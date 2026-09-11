@@ -4,6 +4,7 @@ interface CompareCTAProduct {
   priceNew: string;
   affiliateUrl: string;
   score?: number;
+  imageUrl?: string;
 }
 
 interface CompareCTAProps {
@@ -15,105 +16,43 @@ export default function CompareCTA({ products, eyebrow = 'Onde Comprar' }: Compa
   if (!products || products.length < 2) return null;
 
   return (
-    <div className="compare-cta" style={{
-      display: 'grid',
-      gridTemplateColumns: '1fr auto 1fr',
-      gap: '0',
-      margin: '32px 0',
-      borderRadius: '16px',
-      overflow: 'hidden',
-      border: '1px solid #e2e8f0',
-      background: '#fff',
-    }}>
-      {products.slice(0, 2).map((product, idx) => (
-        <div key={idx} style={{
-          padding: '24px',
-          textAlign: 'center',
-          background: idx === 0 ? 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' : 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
-        }}>
-          <div style={{
-            fontFamily: "'Syne', sans-serif",
-            fontSize: '.7rem',
-            fontWeight: 800,
-            letterSpacing: '.15em',
-            textTransform: 'uppercase',
-            opacity: 0.6,
-            marginBottom: '8px',
-          }}>
-            {eyebrow}
-          </div>
-          <h4 style={{
-            fontFamily: "'Syne', sans-serif",
-            fontSize: '1rem',
-            fontWeight: 700,
-            margin: '0 0 12px',
-            color: '#0f172a',
-          }}>
-            {product.name}
-          </h4>
-          {product.score && (
-            <div style={{
-              fontSize: '1.5rem',
-              fontWeight: 800,
-              color: '#2563eb',
-              marginBottom: '8px',
-            }}>
-              {product.score.toFixed(1)}<span style={{ fontSize: '.8rem', opacity: 0.6 }}>/10</span>
+    <div className="compare-cta">
+      <div className="compare-cta-eyebrow">{eyebrow}</div>
+      <div className="compare-cta-grid">
+        {products.slice(0, 2).map((product, idx) => (
+          <div key={idx} className={`compare-cta-card ${idx === 0 ? 'compare-cta-card--blue' : 'compare-cta-card--pink'}`}>
+            <div className="compare-cta-img-wrap">
+              {product.imageUrl ? (
+                <img src={product.imageUrl} alt={product.name} className="compare-cta-img" />
+              ) : (
+                <div className="compare-cta-img-placeholder">{product.name[0]}</div>
+              )}
             </div>
-          )}
-          {product.priceOld && (
-            <div style={{ fontSize: '.85rem', textDecoration: 'line-through', opacity: 0.5 }}>
-              De {product.priceOld}
-            </div>
-          )}
-          <div style={{
-            fontSize: '1.3rem',
-            fontWeight: 800,
-            color: '#16a34a',
-            marginBottom: '16px',
-          }}>
-            {product.priceNew}
+            <h4 className="compare-cta-name">{product.name}</h4>
+            {product.score && (
+              <div className="compare-cta-score">
+                <span className="compare-cta-score-num">{product.score.toFixed(1)}</span>
+                <span className="compare-cta-score-total">/10</span>
+              </div>
+            )}
+            {product.priceOld && (
+              <div className="compare-cta-price-old">De {product.priceOld}</div>
+            )}
+            <div className="compare-cta-price">{product.priceNew}</div>
+            <a
+              href={product.affiliateUrl}
+              className={`compare-cta-btn ${idx === 0 ? 'compare-cta-btn--blue' : 'compare-cta-btn--pink'}`}
+              target="_blank"
+              rel="noopener sponsored nofollow"
+            >
+              Ver Oferta →
+            </a>
+            <div className="compare-cta-badge">✓ Compra segura</div>
           </div>
-          <a
-            href={product.affiliateUrl}
-            className="btn-white"
-            target="_blank"
-            rel="noopener sponsored nofollow"
-            style={{
-              display: 'inline-block',
-              padding: '12px 24px',
-              borderRadius: '10px',
-              fontWeight: 700,
-              fontSize: '.9rem',
-              textDecoration: 'none',
-              color: '#fff',
-              background: idx === 0 ? '#2563eb' : '#db2777',
-              transition: 'transform .15s, box-shadow .15s',
-            }}
-          >
-            Ver Oferta →
-          </a>
-          <p style={{ fontSize: '.7rem', opacity: 0.5, marginTop: '8px' }}>
-            ✓ Compra segura · Frete grátis
-          </p>
+        ))}
+        <div className="compare-cta-vs">
+          <span>VS</span>
         </div>
-      ))}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '0 4px',
-        background: '#f8fafc',
-      }}>
-        <span style={{
-          fontFamily: "'Syne', sans-serif",
-          fontSize: '1.2rem',
-          fontWeight: 900,
-          color: '#94a3b8',
-          letterSpacing: '.05em',
-        }}>
-          VS
-        </span>
       </div>
     </div>
   );

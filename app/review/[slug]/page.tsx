@@ -11,6 +11,7 @@ import Logo         from '@/components/Logo';
 import ScoreBox    from '@/components/review/ScoreBox';
 import ArticleCTA  from '@/components/review/ArticleCTA';
 import CompareCTA  from '@/components/review/CompareCTA';
+import CompareHero from '@/components/review/CompareHero';
 import SidebarCTA  from '@/components/review/SidebarCTA';
 import SpecsTable  from '@/components/review/SpecsTable';
 import CompareTable from '@/components/review/CompareTable';
@@ -100,6 +101,7 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
       priceNew: review.priceNew,
       priceOld: review.priceOld,
       affiliateUrl: affiliateUrls[idx] || affiliateUrls[0] || review.affiliateUrl,
+      imageUrl: review.imageUrl || '',
     };
   }) : [];
 
@@ -162,37 +164,44 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
           </nav>
 
           {/* ── Hero ── */}
-          <header className="article-hero">
-            <div className="hero-meta">
-              <span className="meta-tag">Review</span>
-              <span className="meta-tag">{review.category || 'Geral'}</span>
-              <div className="meta-info">
-                <span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <rect x="3" y="4" width="18" height="18" rx="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                  {new Date(review.updatedAt).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </span>
-                <span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  {review.meta.readingTime} min de leitura
-                </span>
+          {isComparativo && compareProducts.length >= 2 ? (
+            <CompareHero
+              products={compareProducts}
+              headline={hero.headlineLine1}
+            />
+          ) : (
+            <header className="article-hero">
+              <div className="hero-meta">
+                <span className="meta-tag">Review</span>
+                <span className="meta-tag">{review.category || 'Geral'}</span>
+                <div className="meta-info">
+                  <span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="18" rx="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    {new Date(review.updatedAt).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                  <span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    {review.meta.readingTime} min de leitura
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <h1>
-              {renderWithHighlight(hero.headlineLine1, hero.headlineEm)}<br/>
-              {renderWithHighlight(hero.headlineLine2, hero.headlineEm)}
-            </h1>
+              <h1>
+                {renderWithHighlight(hero.headlineLine1, hero.headlineEm)}<br/>
+                {renderWithHighlight(hero.headlineLine2, hero.headlineEm)}
+              </h1>
 
-            <p className="hero-lead">{hero.lead}</p>
+              <p className="hero-lead">{hero.lead}</p>
 
-            <ScoreBox overallScore={hero.overallScore} bars={hero.bars} />
-          </header>
+              <ScoreBox overallScore={hero.overallScore} bars={hero.bars} compareMode={isComparativo} />
+            </header>
+          )}
 
             {/* ── Main Layout ── */}
           <div className="layout">
@@ -259,9 +268,6 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
                   <h2 id={sec.id}>{sec.heading}</h2>
                   <div className="prose-review" dangerouslySetInnerHTML={{ __html: sec.html }} />
                   
-                  {idx === 1 && isComparativo && compareProducts.length >= 2 && (
-                    <CompareCTA products={compareProducts} />
-                  )}
                   {idx === 1 && !isComparativo && (
                     <ArticleCTA
                       priceOld={review.priceOld}
@@ -278,7 +284,15 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
               {compareTable?.rows?.length > 0 && (
                 <>
                   <h2 id="comparativo">Comparativo</h2>
-                  <CompareTable table={compareTable} />
+                  <CompareTable
+                    table={compareTable}
+                    productImages={isComparativo ? compareProducts.map(p => p.imageUrl || '') : undefined}
+                    productNames={isComparativo ? compareProducts.map(p => p.name) : undefined}
+                  />
+                  {/* CTA after compare table for comparativos */}
+                  {isComparativo && compareProducts.length >= 2 && (
+                    <CompareCTA products={compareProducts} />
+                  )}
                 </>
               )}
 
@@ -308,6 +322,8 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
                 note={verdict.note}
                 affiliateUrl={review.affiliateUrl}
                 priceNew={review.priceNew}
+                isComparativo={isComparativo}
+                winnerName={isComparativo && compareProducts.length >= 2 ? compareProducts[0].score >= compareProducts[1].score ? compareProducts[0].name : compareProducts[1].name : undefined}
               />
 
 {/* FAQ */}
