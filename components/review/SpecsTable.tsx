@@ -1,4 +1,4 @@
-import DOMPurify from 'dompurify';
+import sanitizeHtml from 'sanitize-html';
 
 interface SpecsTableProps {
   specs: { label: string; value: string }[];
@@ -17,7 +17,7 @@ export default function SpecsTable({ specs }: SpecsTableProps) {
         {specs.map((s, i) => (
           <tr key={i}>
             <td>{s.label}</td>
-            <td dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(s.value) }} />
+            <td dangerouslySetInnerHTML={{ __html: sanitizeHtml(s.value) }} />
           </tr>
         ))}
       </tbody>

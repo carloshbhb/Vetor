@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Script from 'next/script';
 import dynamic from 'next/dynamic';
-import DOMPurify from 'dompurify';
+import sanitizeHtml from 'sanitize-html';
 import { getReviewBySlug, getPublishedSlugs, getPublishedReviewCards } from '@/lib/db';
 import { markdownToHtml } from '@/lib/markdown';
 import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema } from '@/lib/seo';
@@ -259,7 +259,7 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
               {renderedSections.map((sec, idx) => (
                 <div key={sec.id}>
                   <h2 id={sec.id}>{sec.heading}</h2>
-                  <div className="prose-review" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(sec.html) }} />
+                  <div className="prose-review" dangerouslySetInnerHTML={{ __html: sanitizeHtml(sec.html) }} />
                   
                   {idx === 1 && !isComparativo && (
                     <ArticleCTA
