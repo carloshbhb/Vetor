@@ -87,13 +87,13 @@ export async function updateProductPool(
     existingReviews.map((r) => normalizeProduct(r.product)),
   );
 
-  let existingPool: PoolProduct[] = [];
+  let existingPool: { id: string; product: string; status: string }[] = [];
   if (sb) {
     const { data } = await sb
       .from('product_pool')
-      .select('*')
+      .select('id,product,status')
       .order('priority', { ascending: false });
-    existingPool = (data || []) as PoolProduct[];
+    existingPool = (data || []) as { id: string; product: string; status: string }[];
   } else {
     existingPool = readFallback();
   }
@@ -127,18 +127,24 @@ export async function updateProductPool(
     added++;
   }
 
-  const reviewedProducts = existingPool.filter((p) => p.status === 'reviewed');
+  const reviewedIds = existingPool
+    .filter((p) => p.status === 'reviewed')
+    .map((p) => p.id);
   let removed = 0;
-  const poolAfterAdds = [...existingPool];
 
-  for (const reviewed of reviewedProducts) {
-    const idx = poolAfterAdds.findIndex(
-      (p) => normalizeProduct(p.product) === normalizeProduct(reviewed.product),
-    );
-    if (idx >= 0) {
-      poolAfterAdds.splice(idx, 1);
-      removed++;
+  if (sb) {
+    if (reviewedIds.length > 0) {
+      await sb.from('product_pool').delete().in('id', reviewedIds);
+      removed = reviewedIds.length;
     }
+  } else {
+    const all = readFallback();
+    const reviewedSet = new Set(reviewedIds);
+    const filtered = all.filter((p) => {
+      if (reviewedSet.has(p.id)) return false;
+      return true;
+    });
+    writeFallback([...filtered, ...toInsert]);
   }
 
   if (sb) {
@@ -159,16 +165,9 @@ export async function updateProductPool(
         })),
       );
     }
-    if (removed > 0) {
-      const idsToRemove = reviewedProducts.map((p) => p.id);
-      await sb.from('product_pool').delete().in('id', idsToRemove);
-    }
-  } else {
-    const final = [...poolAfterAdds, ...toInsert];
-    writeFallback(final);
   }
 
-  const poolSize = poolAfterAdds.length + toInsert.length;
+  const poolSize = existingPool.length - removed + toInsert.length;
   console.log(`[product-pool] updateProductPool: added=${added}, removed=${removed}, poolSize=${poolSize}`);
   return { added, removed, poolSize };
 }
@@ -223,7 +222,7 @@ export async function claimProduct(product: string): Promise<PoolProduct | null>
 
   const { data: existing } = await sb
     .from('product_pool')
-    .select('*')
+    .select('id,product,category,keyword_score,search_volume,seo_difficulty,trend_source,priority,added_at')
     .eq('status', 'pending')
     .order('priority', { ascending: false })
     .limit(100);
@@ -307,44 +306,43 @@ export async function markProductSkipped(
 
 export async function getPoolStats(): Promise<PoolStats> {
   const sb = supabaseAdmin();
-  let products: PoolProduct[] = [];
 
-  if (sb) {
-    const { data } = await sb.from('product_pool').select('*');
-    products = (data || []).map((row: Record<string, unknown>) => ({
-      id: row.id as string,
-      product: row.product as string,
-      category: row.category as string,
-      keywordScore: row.keyword_score as number,
-      searchVolume: row.search_volume as string | undefined,
-      seoDifficulty: row.seo_difficulty as string | undefined,
-      trendSource: row.trend_source as string | undefined,
-      priority: row.priority as number,
-      status: row.status as PoolProduct['status'],
-      addedAt: row.added_at as string,
-      processedAt: row.processed_at as string | undefined,
-    }));
-  } else {
-    products = readFallback();
+  if (!sb) {
+    const products = readFallback();
+    const total = products.length;
+    const pending = products.filter((p) => p.status === 'pending').length;
+    const processing = products.filter((p) => p.status === 'processing').length;
+    const reviewed = products.filter((p) => p.status === 'reviewed').length;
+    const skipped = products.filter((p) => p.status === 'skipped').length;
+    const byCategory: Record<string, number> = {};
+    for (const p of products) {
+      byCategory[p.category] = (byCategory[p.category] || 0) + 1;
+    }
+    const avgPriority = total > 0
+      ? Math.round((products.reduce((acc, p) => acc + p.priority, 0) / total) * 10) / 10
+      : 0;
+    return { total, pending, processing, reviewed, skipped, byCategory, avgPriority };
   }
 
-  const total = products.length;
-  const pending = products.filter((p) => p.status === 'pending').length;
-  const processing = products.filter((p) => p.status === 'processing').length;
-  const reviewed = products.filter((p) => p.status === 'reviewed').length;
-  const skipped = products.filter((p) => p.status === 'skipped').length;
+  const { data } = await sb
+    .from('product_pool')
+    .select('status,category,priority');
+
+  const rows = (data || []) as { status: string; category: string; priority: number }[];
+  const total = rows.length;
+  const pending = rows.filter((r) => r.status === 'pending').length;
+  const processing = rows.filter((r) => r.status === 'processing').length;
+  const reviewed = rows.filter((r) => r.status === 'reviewed').length;
+  const skipped = rows.filter((r) => r.status === 'skipped').length;
 
   const byCategory: Record<string, number> = {};
-  for (const p of products) {
-    byCategory[p.category] = (byCategory[p.category] || 0) + 1;
+  for (const r of rows) {
+    byCategory[r.category] = (byCategory[r.category] || 0) + 1;
   }
 
-  const avgPriority =
-    total > 0
-      ? Math.round(
-          (products.reduce((acc, p) => acc + p.priority, 0) / total) * 10,
-        ) / 10
-      : 0;
+  const avgPriority = total > 0
+    ? Math.round((rows.reduce((acc, r) => acc + r.priority, 0) / total) * 10) / 10
+    : 0;
 
   return { total, pending, processing, reviewed, skipped, byCategory, avgPriority };
 }
