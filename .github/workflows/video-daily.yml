@@ -1,19 +1,22 @@
 name: videos-diarios
 
-# 100% Remotion: 16 Shorts/dia (2 runs × 8 cada)
+# 100% Remotion: 16 Shorts/dia (4 runs × 4 cada)
 # Runners grátis: ~2000 min/mês (usamos ~640 para 16 vídeos × 40 min render cada)
+# Nota: 4 vídeos/run evita timeout de 1h no GitHub Actions
 on:
   schedule:
-    - cron: '0 13 * * *'   # 10h Brasilia (manhã) - 8 vídeos
-    - cron: '0 18 * * *'   # 15h Brasilia (tarde) - 8 vídeos
+    - cron: '0 12 * * *'   # 9h Brasilia (manhã) - 4 vídeos
+    - cron: '0 14 * * *'   # 11h Brasilia - 4 vídeos
+    - cron: '0 16 * * *'   # 13h Brasilia (tarde) - 4 vídeos
+    - cron: '0 18 * * *'   # 15h Brasilia - 4 vídeos
   workflow_dispatch:
     inputs:
       limit:
-        description: 'Qtd de vídeos por run (max 8)'
-        default: '8'
+        description: 'Qtd de vídeos por run (max 4)'
+        default: '4'
 
 env:
-  REMOTION_BATCH: '8'
+  REMOTION_BATCH: '4'
 
 jobs:
   render-publish:
@@ -53,7 +56,7 @@ jobs:
         working-directory: remotion
         run: npx remotion browser ensure || true
 
-      - name: Renderizar + publicar 8 vídeos (Remotion)
+      - name: Renderizar + publicar 4 vídeos (Remotion)
         env:
           SITE_BASE: ${{ secrets.SITE_BASE }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -66,6 +69,6 @@ jobs:
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_PRIVACY: public
-          REMOTION_BATCH: ${{ inputs.limit || '8' }}
+          REMOTION_BATCH: ${{ inputs.limit || '4' }}
           NODE_OPTIONS: '--max-old-space-size=4096'
         run: node scripts/remotion-worker-batch.mjs

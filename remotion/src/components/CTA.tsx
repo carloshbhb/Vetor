@@ -21,9 +21,10 @@ interface CTAProps {
     };
   };
   palette: Record<string, string>;
+  hideQR?: boolean;
 }
 
-export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
+export const CTA: React.FC<CTAProps> = ({ section, palette, hideQR = false }) => {
   const frame = useCurrentFrame();
   const { height } = useVideoConfig();
   const { visual, narration } = section;
@@ -216,8 +217,8 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
           </div>
         )}
 
-        {/* QR Code */}
-        {visual.qr_code.enabled && (
+        {/* QR Code — hidden when global QR is displayed */}
+        {!hideQR && visual.qr_code.enabled && (
           <div style={{ 
             marginBottom: 20,
             opacity: staggerDelay(2),

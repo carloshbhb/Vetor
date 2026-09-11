@@ -3,6 +3,7 @@ import { Hook } from "./components/Hook";
 import { ProblemSolution } from "./components/ProblemSolution";
 import { CTA } from "./components/CTA";
 import { FilmGrain } from "./components/FilmGrain";
+import { QRCodeAnimated } from "./components/QRCodeAnimated";
 import { getImageSrc } from "./utils/images";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,10 +107,23 @@ const VideoFootageLayer: React.FC<{
 
 export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
   const { sections, meta } = data;
+  const frame = useCurrentFrame();
 
   const hookSection = sections.find((s: AnySection) => s.type === "hook");
   const psSection = sections.find((s: AnySection) => s.type === "problem_solution");
   const ctaSection = sections.find((s: AnySection) => s.type === "cta");
+
+  // Get affiliate URL from CTA section
+  const affiliateUrl = ctaSection?.visual?.qr_code?.url || ctaSection?.visual?.buy_button?.url || "";
+
+  // QR code entrance animation (appears after 2 seconds)
+  const qrEntrance = interpolate(frame, [60, 75], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const qrScale = interpolate(qrEntrance, [0, 1], [0.5, 1]);
+  const qrOpacity = qrEntrance;
+  const qrY = interpolate(qrEntrance, [0, 1], [20, 0]);
 
   return (
     <AbsoluteFill style={{ backgroundColor: meta.palette.dark }}>
@@ -190,14 +204,34 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
         </Sequence>
       )}
 
-      {/* Layer 3 — Graphics: CTA Section */}
+      {/* Layer 3 — Graphics: CTA Section (without QR code, it's global now) */}
       {ctaSection && (
         <Sequence
           from={ctaSection.startFrame}
           durationInFrames={ctaSection.endFrame - ctaSection.startFrame}
         >
-          <CTA section={ctaSection} palette={meta.palette} />
+          <CTA section={ctaSection} palette={meta.palette} hideQR={true} />
         </Sequence>
+      )}
+
+      {/* Global QR Code — visible throughout the entire video */}
+      {affiliateUrl && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 120,
+            right: 40,
+            opacity: qrOpacity,
+            transform: `scale(${qrScale}) translateY(${qrY}px)`,
+            zIndex: 100,
+          }}
+        >
+          <QRCodeAnimated
+            url={affiliateUrl}
+            size={120}
+            delay={0}
+          />
+        </div>
       )}
 
       {/* Full audio track */}
