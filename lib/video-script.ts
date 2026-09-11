@@ -76,8 +76,6 @@ VEREDITO: ${review.verdict?.text || ''}
 URL REVIEW: ${siteUrl}/review/${review.slug}
 LINK OFERTA: ${review.affiliateUrl || ''}
 
-CARROSSEL DE IMAGENS: Cada cena tem 2-3 imagens (ângulos diferentes, close-ups, produto em uso, comparativo). Retorne URLs de imagens para cada cena.
-
 ESTRUTURA DE VENDAS (obrigatória):
 1. Hook (0-3s): dor ou desejo + preço. Ex: "Cansado de pagar caro? Esse aqui custa R$X".
 2. Solução: 3 benefícios práticos (não specs frias — traduza specs em vantagem de uso).
@@ -85,7 +83,7 @@ ESTRUTURA DE VENDAS (obrigatória):
 4. Fechamento: preço atual + CTA direto para a oferta.
 
 REGRAS:
-1. 5 a 6 cenas. Cada cena: narration (1-2 frases curtas, tom de recomendação de amigo) + onScreenText (CAIXA ALTA, máx 5 palavras, foco em BENEFÍCIO ou PREÇO) + durationSec (7-10s) + images (2-3 URLs de imagens com enquadramentos diferentes: close-up, ângulo lateral, produto inteiro, uso prático, comparativo).
+1. 5 a 6 cenas. Cada cena: narration (1-2 frases curtas, tom de recomendação de amigo) + onScreenText (CAIXA ALTA, máx 5 palavras, foco em BENEFÍCIO ou PREÇO) + durationSec (7-10s). NÃO inclua campo images — o worker usa a imagem real do review.
 2. Linguagem falada, natural, sem emoji, sem markdown.
 3. NUNCA invente desconto, % off, brinde ou garantia que não estão nos dados. Urgência permitida só genérica ("link na descrição").
 4. priceHighlight: "PREÇO_ATUAL (antes PREÇO_ANTIGO)" usando exatamente os preços acima; se não houver preço antigo, só o atual.
@@ -102,7 +100,7 @@ Retorne APENAS JSON válido nesta estrutura exata:
   "description": "string",
   "tags": ["string"],
   "hook": "string",
-  "scenes": [{ "narration": "string", "onScreenText": "string", "durationSec": number, "images": ["url1", "url2", "url3"] }],
+  "scenes": [{ "narration": "string", "onScreenText": "string", "durationSec": number }],
   "fullNarration": "string",
   "estimatedSeconds": number,
   "cta": "string",
@@ -333,10 +331,11 @@ export async function generateVideoScript(review: ReviewData): Promise<VideoScri
   const prompt = buildVideoScriptPrompt(review, siteUrl);
   const data = await callAI(prompt);
 
-  // Sanitização mínima
+  // Sanitização: usa SEMPRE a imagem real do review (não inventa URLs)
+  const realImage = review.imageUrl || '';
   const scenes: VideoScene[] = Array.isArray(data.scenes) ? data.scenes.slice(0, 7).map((s: any) => ({
     ...s,
-    images: Array.isArray(s.images) && s.images.length > 0 ? s.images.slice(0, 3) : [review.imageUrl].filter(Boolean),
+    images: realImage ? [realImage] : [],
   })) : [];
   const estimatedSeconds =
     scenes.reduce((a: number, s: any) => a + (Number(s.durationSec) || 8), 0) || 50;
