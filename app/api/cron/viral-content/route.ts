@@ -45,7 +45,7 @@ async function discoverTrendingTopics(category: string): Promise<any[]> {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt = `Você é o Agente de Tendências de SEO da vetor.blog. Pesquise na internet do Brasil em tempo real (2026) sobre pautas de TRÁFEGO VIRAL (Comparativos X vs Y, Listicles de "Melhores" e guias de compra) na categoria "${category}".
 Identifique as 5 melhores ideias de artigos de tráfego que atrairiam grande audiência orgânica:
