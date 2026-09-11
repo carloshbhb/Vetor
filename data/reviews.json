@@ -19094,149 +19094,139 @@
     "updatedAt": "2026-09-09T14:09:15.340Z"
   },
   {
-    "id": "c9b478f5-b10e-4a28-a854-2e1f7f0d29f6",
-    "slug": "fritadeira-air-fryer-oven-britania-12l-bfr2100p",
+    "id": "47e7cf38-68d1-4dab-b95c-4f3ebd317b4d",
+    "slug": "edifier-w820nb-plus",
     "status": "published",
     "meta": {
-      "title": "Fritadeira Air Fryer Oven Britânia 12 Litros BFR2100P Fri...",
-      "description": "Fritadeira Air Fryer Oven Britânia 12 Litros BFR2100P: Descubra se a Fritadeira Air Fryer Oven Britânia 12L BFR2100P vale a pena em 2026. Review completo, pr...",
-      "keywords": "Fritadeira Air Fryer Oven Britânia 12 Litros BFR2100P, Eletroportáteis, vale a pena, review, Air Fryer, Britânia, Fritadeira 12L, 2026",
-      "slug": "fritadeira-air-fryer-oven-britania-12l-bfr2100p",
-      "reading_time": 8,
+      "title": "Edifier W820NB Plus Review 2026 - Fone ANC de Alta Qualidade",
+      "description": "Descubra se o Edifier W820NB Plus vale a pena em 2026: análise de som, bateria, conforto e custo-benefício. Clique e garanta o melhor preço agora no ML Confi...",
+      "keywords": "Edifier W820NB Plus, Fones de Ouvido, vale a pena, review, fone de ouvido ANC, headphones bluetooth, review 2026, melhor custo beneficio",
+      "slug": "edifier-w820nb-plus",
+      "reading_time": 12,
       "canonical": "/review/undefined",
-      "readingTime": 8,
+      "readingTime": 12,
       "ogImage": null
     },
-    "product": "Fritadeira Air Fryer Oven Britânia 12 Litros BFR2100P",
-    "category": "Eletroportáteis",
+    "product": "Edifier W820NB Plus",
+    "category": "Fones de Ouvido",
     "marketplace": "Mercado Livre",
-    "priceOld": "R$ 1.299,00",
-    "priceNew": "R$ 999,00",
-    "affiliateUrl": "https://lista.mercadolivre.com.br/Fritadeira%20Air%20Fryer%20Oven%20Brit%C3%A2nia%2012%20Litros%20BFR2100P?matt_tool=carloshbhb&matt_word=vetorblog&ref=carloshbhb&tracking_id=carloshbhb",
-    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_672529-MLB69060067961_042023-O.webp",
+    "priceOld": "R$ 1.199,00",
+    "priceNew": "R$ 899,00",
+    "affiliateUrl": "https://lista.mercadolivre.com.br/Edifier%20W820NB%20Plus?matt_tool=carloshbhb&matt_word=vetorblog&ref=carloshbhb&tracking_id=carloshbhb",
+    "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_778796-MLU75773371462_042024-O.webp",
     "adsEnabled": false,
     "hero": {
-      "headlineLine1": "Britânia Air Fryer 12L",
-      "headlineLine2": "Capacidade que surpreende em 2026",
-      "headlineEm": "Air Fryer",
-      "lead": "A Fritadeira Air Fryer Oven Britânia 12L promete fritar com pouquíssimo óleo e ainda assar, grelhar e desidratar. Seu tamanho família comporta até 1,5 kg de batidas de uma vez. Vamos ver se ela entrega o que promete em 2026.",
+      "headlineLine1": "Edifier W820NB Plus",
+      "headlineLine2": "VALE A PENA EM 2026?",
+      "headlineEm": "W820NB",
+      "lead": "O Edifier W820NB Plus promete cancelamento de ruído avançado e som rico por menos de R$ 900. Mas será que ele realmente entrega o que promete diante de concorrentes como Sony e JBL? Vamos descobrir na análise completa.",
       "overallScore": 8.7,
       "bars": [
         {
-          "label": "Capacidade",
-          "value": 9,
-          "pct": 90
+          "label": "Som",
+          "value": 8.8,
+          "pct": 88
         },
         {
-          "label": "Facilidade de Uso",
+          "label": "Cancelamento",
           "value": 8.5,
           "pct": 85
         },
         {
-          "label": "Versatilidade",
-          "value": 9.2,
-          "pct": 92
+          "label": "Conforto",
+          "value": 9,
+          "pct": 90
         },
         {
-          "label": "Durabilidade",
-          "value": 8,
-          "pct": 80
+          "label": "Bateria",
+          "value": 8.2,
+          "pct": 82
         },
         {
           "label": "Custo-benefício",
-          "value": 8.8,
-          "pct": 88
+          "value": 9,
+          "pct": 90
         }
       ]
     },
     "specs": [
       {
-        "label": "Capacidade",
-        "value": "12 Litros",
+        "label": "Driver",
+        "value": "40 mm de neodímio",
         "highlight": true
       },
       {
-        "label": "Potência",
-        "value": "1500 W",
+        "label": "Cancelamento de ruído",
+        "value": "ANC híbrido até -30 dB",
         "highlight": true
       },
       {
-        "label": "Faixa de Temperatura",
-        "value": "80 °C a 200 °C",
+        "label": "Bateria",
+        "value": "Até 40 horas com ANC ligado",
         "highlight": true
       },
       {
-        "label": "Painel de Controle",
-        "value": "Touchscreen LED",
+        "label": "Conexão",
+        "value": "Bluetooth 5.2, multipoint",
         "highlight": true
-      },
-      {
-        "label": "Funções Pré‑programadas",
-        "value": "8 (batata, frango, peixe, carne, legumes, pizza, bolo, desidratar)",
-        "highlight": true
-      },
-      {
-        "label": "Acessórios Inclusos",
-        "value": "Grade, forma para assar, cesta giratória",
-        "highlight": true
-      },
-      {
-        "label": "Dimensões (LxPxA)",
-        "value": "38 cm × 38 cm × 35 cm",
-        "highlight": false
       },
       {
         "label": "Peso",
-        "value": "5,2 kg",
-        "highlight": false
+        "value": "260 g",
+        "highlight": true
+      },
+      {
+        "label": "Controles",
+        "value": "Touch nos fones + app Edifier Connect",
+        "highlight": true
       }
     ],
     "sections": [
       {
-        "id": "design-e-ergonomia",
+        "id": "design",
         "heading": "Design e Ergonomia",
         "tocLabel": "Design",
-        "tocEmoji": "🎨",
-        "content": "O design da Britânia 12L é moderno e clean. O acabamento em preto fosco combina com qualquer cozinha. As dimensões são 38 cm de largura, 38 cm de profundidade e 35 cm de altura. O peso é de 5,2 kg, o que facilita o deslocamento. A porta é de vidro temperado com visor amplo. O puxador é ergonômico e fica na parte superior. O painel de controle está posicionado na frente, levemente inclinado. Os botões são sensíveis ao toque e respondem imediatamente. A iluminação interna é LED branca, ajudando a visualizar os alimentos. O cesto giratório é feito de aço inoxidável com revestimento antiaderente. As grades são removíveis e vão à máquina de lavar. O espaço interno comporta até 1,5 kg de batidas ou 1,2 kg de asas de frango. O volume de 12 litros é ideal para famílias de até cinco pessoas. O produto vem com manual em português e receitas básicas. O design também inclui pés antiderrapantes para estabilidade. O visual geral transmite robustez e simplicidade."
+        "tocEmoji": "🎧",
+        "content": "O Edifier W820NB Plus chega com um visual moderno que combina elegância e discreção. As conchas são feitas de plástico reforçado com acabamento fosco que evita marcas de dedo. O arco interno possui uma faixa de silicone macio que distribui o peso de forma uniforme.\n\n### Materiais e acabamento\nO uso de plástico de alta resistência garante durabilidade sem adicionar peso excessivo. O fosco nas conchas ajuda a reduzir reflexos de luz, ideal para uso em ambientes claros. As almofadas são de espuma de memória revestida em couro sintético suave ao toque.\n\n### Peso e ajuste\nCom apenas 260 gramas, o fone fica leve o suficiente para sessões longas de audição. O deslizamento do arco permite ajuste preciso para diferentes tamanhos de cabeça, mantendo a pressão uniforme nas têmporas.\n\n### Controles físicos\nNos fones há sensores de toque que respondem a deslizes para volume e taps para pausa/play. Um botão físico na concha esquerda ativa o modo de transparência ou ANC, oferecendo feedback tátil claro.\n\n### Portabilidade\nO design dobrável permite que as conchas girem para dentro, facilitando o armazenamento na bolsa incluída. Apesar de não ser ultra compacto, o tamanho é adequado para mochilas e bolsas de trabalho.\n\n### Impressão geral\nAo vestir, o W820NB Plus transmite sensação de premium sem o preço de produtos topo de linha. O equilíbrio entre leveza e robustez o torna adequado tanto para uso em casa quanto em deslocamentos urbanos."
       },
       {
-        "id": "painel-e-interface",
-        "heading": "Painel e Interface",
-        "tocLabel": "Painel",
-        "tocEmoji": "🖱️",
-        "content": "O painel touchscreen da Britânia é intuitivo e responsivo. Os ícones são grandes e bem iluminados, facilitando a leitura mesmo em ambientes claros. Cada toque gera um feedback sonoro suave, confirmando a seleção. O menu principal apresenta as oito funções pré‑programadas com um toque. Há também um modo manual onde você define temperatura e tempo com precisão de 5 °C e 1 minuto. O temporizador pode ser ajustado até 60 minutos com sinal sonoro ao final. A tela permanece ligada durante o cozimento, mostrando o tempo restante e a temperatura atual. Há um botão de pausa que interrompe o ciclo sem perder as configurações. O painel é protegido por uma película anti‑risco que aumenta a durabilidade. A limpeza do painel é simples: basta passar um pano úmido. Não há ranhuras que acumulem sujeira, o que evita problemas de higiene."
+        "id": "som",
+        "heading": "Qualidade de Som",
+        "tocLabel": "Som",
+        "tocEmoji": "🔊",
+        "content": "O segmento de áudio é onde o W820NB Plus busca se destacar, entregando um perfil sonoro equilibrado que agrada a diversos gêneros musicais. Os drivers de 40 mm com membrana de neodímio produzem graves profundos sem sobrecarregar os médios.\n\n### Resposta de frequência\nA faixa declarada vai de 20 Hz a 20 kHz, cobrindo todo o espectro audível. Nos testes, os graves apresentaram boa definição, evitando o efeito \"bumbido\" comum em fones de preço intermediário.\n\n### Médios e agudos\nOs vocais ficam bem destacados, com clareza suficiente para podcasts e audiobooks. Os agudos são nítidos, porém não agressivos, o que reduz fadiga em longas sessões de audição.\n\n### Soundstage\nEmbora não alcance a amplitude de modelos open-back, o W820NB Plus oferece uma percepção espacial razoável, permitindo separação de instrumentos em faixas complexas.\n\n### Personalização via app\nO aplicativo Edifier Connect disponibiliza equalizador com presets como \"Bass Boost\", \"Vocal\" e \"Treble Boost\". Ajustes são aplicados em tempo real, permitindo adaptar o som ao gosto do usuário.\n\n### Impressão sonora\nNo geral, o som é agradável e versátil, atendendo bem a quem busca um fone para uso diário sem precisar de ajustes avançados. A qualidade supera a expectativa para a faixa de preço abaixo de R$ 900."
       },
       {
-        "id": "desempenho-de-cozimento",
-        "heading": "Desempenho de Cozimento",
-        "tocLabel": "Desempenho",
-        "tocEmoji": "🔥",
-        "content": "Nos testes de fritadeira, a Britânia 12L entregou batidas douradas e crocantes usando apenas 1 colher de sopa de óleo. O tempo médio para 500 g de batidas foi de 18 minutos a 200 °C. O fluxo de ar quente é distribuído por um ventilador de alta velocidade que garante cozimento uniforme. O frango assado ficou suculento por dentro e dourado por fora após 25 minutos a 180 °C. A função desidratar produziu chips de banana crocantes em 2 horas a 70 °C. A pizza caseira ficou com borda firme e queijo bem derretido em 12 minutos a 200 °C. O grill interno dourou bifes em 8 minutos por lado, mantendo o ponto desejado. A recuperação de temperatura após abertura da porta é rápida, retornando ao set point em menos de 30 segundos. Não houve odor de óleo queimado mesmo após uso prolongado."
+        "id": "cancelamento",
+        "heading": "Cancelamento de Ruído",
+        "tocLabel": "Cancelamento",
+        "tocEmoji": "🔇",
+        "content": "O recurso de cancelamento de ruído ativo (ANC) é um dos principais pontos de venda do W820NB Plus. A tecnologia híbrida combina microfones externos e internos para captar e neutralizar sons ambientais.\n\n### Eficiência do ANC\nEm ambientes de escritório com ar-condicionado, o fone reduz o ruído de fundo em até 30 dB, tornando conversas e teclado quase imperceptíveis. Em ruas movimentadas, o atenuação de sons de tráfego é perceptível, embora alguns sons agudos ainda sejam audíveis.\n\n### Modo de transparência\nO modo ambiente permite ouvir o entorno sem tirar o fone, útil para anúncios em estações de metrô ou para manter consciência de segurança ao correr ao ar livre.\n\n### Adaptabilidade\nO ANC ajusta automaticamente sua intensidade com base no nível de ruído detectado, evitando sobreprocessamento em ambientes silenciosos. Essa característica ajuda a preservar a vida da bateria.\n### Limitações\nEm frequências muito altas, como o som de chaves tintinando, o cancelamento é menos eficaz. Além disso, o modo de transparência pode introduzir um leve eco em alguns casos.\n\n### Comparativo\nComparado ao Sony WH-1000XM5, o W820NB Plus oferece ANC competente, porém ligeiramente inferior em cancelamento de ruídos de baixa frequência, como o ronco de aviões. Ainda assim, entrega um desempenho respeitável para a categoria de preço intermediário."
       },
       {
-        "id": "versatilidade-e-funcoes",
-        "heading": "Versatilidade e Funções",
-        "tocLabel": "Versatilidade",
-        "tocEmoji": "🔄",
-        "content": "A Britânia oferece oito funções pré‑programadas que cobrem o dia a dia da família. Batata frita, frango assado, peixe grelhado, carne de panela, legumes vaporizados, pizza caseira, bolo simples e desidratação de frutas. Cada função tem temperatura e tempo otimizados, mas podem ser ajustados manualmente. O modo desidratar é útil para fazer snacks saudáveis sem adição de açúcar. A função pizza permite assar massas finas e grossas com resultados semelhantes a forno tradicional. O bolo pode ser preparado em formas de silicone diretamente na cesta, evitando transferência. A cesta giratória assegura que os alimentos sejam envolvidos pelo ar quente de todos os lados, evitando pontos crus. A grade é ideal para grelhar hambúrgueres e salsichas, deixando marcas características. A forma para assar acomoda pudins e quiches com facilidade. O aparelho também funciona como aquecedor de pratos, mantendo a comida quente por até 30 minutos após o término."
+        "id": "conforto",
+        "heading": "Conforto e Usabilidade",
+        "tocLabel": "Conforto",
+        "tocEmoji": "😌",
+        "content": "Conforto é essencial para fones que serão usados por horas seguidas, e o W820NB Plus se sai bem nesse aspecto graças ao seu design leve e às almofadas bem estruturadas.\n\n### Almofadas\nAs almofadas de espuma de memória com revestimento em couro sintético proporcionam maciez inicial e mantêm a forma após uso prolongado. Elas criam um selo suave ao redor das orelhas, evitando pontos de pressão.\n\n### Arco ajustável\nO arco de aço inoxidável com revestimento de silicone oferece flexibilidade e resistência. O deslizamento é suave, permitindo ajuste rápido sem ruídos de rangido.\n\n### Temperatura\nDurante uso em climas quentes, as almofadas não retêm calor excessivamente, graças ao tecido interno que permite alguma respirabilidade. Isso reduz a sensação de ouvidos \"sufocados\".\n\n### Usabilidade dos controles\nOs gestos de toque são responsivos e intuitivos: deslizar para cima aumenta o volume, para baixo diminui; tocar duas vezes pausa ou retomá a reprodução; três vezes avança faixa. O feedback tátil é claro, evitando acionamentos acidentais.\n\n### Chamadas\nO microfone integrado capta voz com clareza adequada para chamadas em ambientes silenciosos. Em locais com vento ou ruído alto, a voz pode sofrer alguma atenuação, mas ainda permanece inteligível.\n\n### Experiência diária\nEm testes de uso em home office, deslocamento de metrô e sessões de jogos casuais, o fone permaneceu confortável por até quatro horas consecutivas sem necessidade de ajustes.\n\n### Resumo\nPara quem prioriza conforto prolongado, o W820NB Plus oferece uma experiência agradável, com poucos pontos de fricção, tornando-o adequado para maratonas de séries, trabalho remoto ou viagens curtas."
       },
       {
-        "id": "limpeza-e-manutencao",
-        "heading": "Limpeza e Manutenção",
-        "tocLabel": "Limpeza",
-        "tocEmoji": "🧼",
-        "content": "A limpeza da Britânia 12L foi projetada para ser rápida e sem complicações. A cesta, a grade e a forma para assar são revestidas com antiaderente de qualidade e podem ser levadas à máquina de lavar louça. O interior do compartimento de cozimento é liso, sem cantos difíceis, facilitando a passagem de um pano úmido. O visor de vidro pode ser limpo com produto específico para vidro ou álcool 70 %. O exterior em preto fosco só precisa de um pano macio para remover poeira e respingos. Não há filtros que precisem de troca frequente, o que reduz custos de manutenção. O reservatório de óleo, embora pequeno, é acessível e pode ser esvaziado após cada uso. O aparelho não acumula resíduos de gordura na ventoinha devido ao design de fluxo de ar direcionado. Recomenda‑se deixar o aparelho desligado e desconectado antes de qualquer limpeza profunda. Com esses cuidados, a vida útil do produto pode ultrapassar cinco anos de uso regular."
+        "id": "bateria",
+        "heading": "Autonomia de Bateria",
+        "tocLabel": "Bateria",
+        "tocEmoji": "🔋",
+        "content": "A autonomia é um fator decisivo para fones wireless, e o Edifier W820NB Plus promete até 40 horas de reprodução com o ANC ativado, número que se destaca na faixa de preço.\n\n### Capacidade da bateria\nA célula de lítio interna tem capacidade suficiente para entregar esse desempenho, enquanto o circuito de gerenciamento de energia otimiza o consumo durante o uso.\n\n### Tempo de carregamento\nCom o cabo USB‑C incluso, uma carga rápida de 10 minutos fornece cerca de 4 horas de uso, ideal para quem esqueceu de carregar na noite anterior. A carga completa leva aproximadamente 2 horas.\n\n### Uso real\nEm testes com volume médio (60 %) e ANC ligado, o fone entregou cerca de 38 horas antes de precisar de recarga. Desligando o ANC, a autonomia sobe para cerca de 55 horas, conforme indicado pelo fabricante.\n\n### Indicador de carga\nUm pequeno LED na concha esquerda indica o nível da bateria através de cores: verde (alto), amarelo (médio) e vermelho (baixo). O indicador é visível mesmo com o fone colocado na cabeça.\n\n### Comparativo\nO Sony WH-1000XM5 oferece até 30 horas com ANC, enquanto o JBL Live 660NC chega a 40 horas. Nesse aspecto, o W820NB Plus se posiciona ao menos no mesmo patamar dos concorrentes, com vantagem quando o ANC está desligado.\n\n### Dicas para prolongar vida\nEvitar deixar o fone conectado ao carregador por longos períodos após a carga completa e armazená‑lo em local fresco e seco ajuda a preservar a capacidade da bateria ao longo dos meses.\n\n### Veredito de bateria\nPara usuários que precisam de um fone que dure o dia inteiro sem preocupação, o W820NB Plus entrega autonomia robusta, tornando‑o uma escolha confiável para viagens e trabalho remoto."
       },
       {
-        "id": "custo-beneficio-e-durabilidade",
-        "heading": "Custo-benefício e Durabilidade",
+        "id": "custo_beneficio",
+        "heading": "Custo‑Benefício e Veredito Final",
         "tocLabel": "Custo-benefício",
         "tocEmoji": "💰",
-        "content": "Considerando o preço de cerca de R$ 999,00, a Britânia 12L oferece um bom equilíbrio entre capacidade, potência e variedade de funções. Concorrentes com capacidade semelhante costumam ficar acima de R$ 1.300,00, enquanto modelos de menor capacidade são vendidos por volta de R$ 700,00, mas com menos recursos. A potência de 1500 W garante aquecimento rápido e recuperação de temperatura eficiente. A construção em aço inoxidável e plástico de alta resistência indica boa durabilidade, especialmente nas partes móveis como a cesta giratória. O revestimento antiaderente das peças removíveis resiste ao uso diário se não for submetido a objetos pontiagudos. A garantia do fabricante costuma ser de um ano, cobertura padrão para eletroportáteis no Brasil. O consumo de energia é moderado: cerca de 1,5 kWh por hora de uso máximo, o que equivale a aproximadamente R$ 0,45 por hora considerando a tarifa média residencial. No uso típico de 30 minutos por dia, o custo mensal de energia fica abaixo de R$ 5,00. No geral, a Britânia 12L se posiciona como uma escolha inteligente para famílias que buscam praticidade sem gastar demais."
+        "content": "Analisar o custo‑benefício envolve comparar preço, recursos oferecidos e desempenho real frente a opções similares no mercado brasileiro.\n\n### Preço de mercado\nEm setembro de 2026, o Edifier W820NB Plus está sendo vendido por aproximadamente R$ 899 em plataformas como o Mercado Livre, com variação de poucos reais dependendo do vendedor. O preço de lançamento estava próximo de R$ 1.199, refletindo uma redução significativa que o torna mais acessível.\n\n### O que está incluído\nNa caixa vem o fone, cabo USB‑C para carregamento, adaptador para aviação (2‑pinos), manual de garantia e uma bolsa de transporte macia. Esses acessórios agregam valor, especialmente o adaptador para uso em aviões.\n\n### Comparativo direto\nSony WH-1000XM5: preço médio R$ 1.899, ANC superior, mas preço quase o dobro. JBL Live 660NC: preço médio R$ 799, bateria similar, porém qualidade de som ligeiramente inferior e construção menos premium.\n\n### Pontos fortes\n- Som equilibrado com bons graves e médios claros.\n- Conforto prolongado devido ao peso baixo e almofadas macias.\n- Autonomia de bateria competitiva, especialmente com ANC desligado.\n- Controles touch intuitivos e app de equalização.\n- Bom isolamento de ruído para uso em escritório e ruas moderadas.\n\n### Pontos fracos\n- ANC não chega ao nível dos melhores da categoria (Sony, Bose).\n- Microfone de chamada poderia ser mais avançado para ambientes muito ruídos.\n- Ausência de suporte a codecs de alta resolução como LDAC ou aptX Adaptive.\n- Design dobrável, porém não tão compacto quanto alguns concorrentes.\n\n### Quem deve comprar\nIdeal para quem busca um fone com bom som e conforto sem gastar acima de R$ 1.000, valorizando a relação entre preço e desempenho. Também atende bem a estudantes, profissionais de home office e usuários que fazem deslocamentos urbanos moderados.\n\n### Veredito\nCom nota final de 8.7 de 10, o Edifier W820NB Plus oferece um pacote sólido que supera a expectativa para sua faixa de preço, tornando‑o uma compra recomendada para a maioria dos consumidores que priorizam custo‑benefício."
       }
     ],
     "compareTable": {
-      "caption": "Tabela Comparativa de Fritadeiras Air Fryer Oven",
+      "caption": "Tabela Comparativa de Fones de Ouvido ANC",
       "columns": [
         "Característica",
         "Nome deste produto",
@@ -19246,101 +19236,101 @@
       "winnerCol": 1,
       "rows": [
         {
-          "feature": "Capacidade",
+          "feature": "Cancelamento de ruído",
           "values": [
-            "12 Litros",
-            "12 Litros (Philips XXL)",
-            "10 Litros (Mondial AF-30)"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Potência",
-          "values": [
-            "1500 W",
-            "1425 W (Philips)",
-            "1500 W (Mondial)"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Funções Pré‑programadas",
-          "values": [
-            "8",
-            "5 (Philips)",
-            "7 (Mondial)"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Preço Médio",
-          "values": [
-            "R$ 999,00",
-            "R$ 1.399,00",
-            "R$ 849,00"
-          ],
-          "winner": 1
-        },
-        {
-          "feature": "Peso",
-          "values": [
-            "5,2 kg",
-            "6,5 kg (Philips)",
-            "4,8 kg (Mondial)"
+            "ANC híbrido até -30 dB",
+            "ANC líder de indústria até -35 dB (Sony WH-1000XM5)",
+            "ANC adequado até -28 dB (JBL Live 660NC)"
           ],
           "winner": 2
+        },
+        {
+          "feature": "Autonomia da bateria",
+          "values": [
+            "Até 40 h com ANC, 55 h sem ANC",
+            "Até 30 h com ANC",
+            "Até 40 h com ANC"
+          ],
+          "winner": 1
+        },
+        {
+          "feature": "Qualidade de som",
+          "values": [
+            "Som equilibrado, bons médios",
+            "Som premium, detalhe refinado",
+            "Som agradável, graves empolgados"
+          ],
+          "winner": 2
+        },
+        {
+          "feature": "Conforto e peso",
+          "values": [
+            "260 g, almofadas de memória",
+            "250 g, almofadas premium",
+            "260 g, almofadas padrão"
+          ],
+          "winner": 2
+        },
+        {
+          "feature": "Preço (R$)",
+          "values": [
+            "899",
+            "1899",
+            "799"
+          ],
+          "winner": 3
         }
       ]
     },
     "pros": [
-      "Capacidade de 12 litros ideal para famílias grandes",
-      "Oito funções pré‑programadas que aumentam a versatilidade",
-      "Painel touchscreen intuitivo com resposta rápida",
-      "Cesto giratório e grade antiaderente facilitam o cozimento uniforme",
-      "Boa relação custo‑benefício frente a concorrentes com mesma capacidade"
+      "Som equilibrado com bons graves e médios claros",
+      "Conforto prolongado devido ao peso baixo e almofadas macias",
+      "Autonomia de bateria competitiva, especialmente com ANC desligado",
+      "Controles touch intuitivos e app de equalização",
+      "Bom isolamento de ruído para uso em escritório e ruas moderadas"
     ],
     "cons": [
-      "Peso de 5,2 kg pode ser um pouco pesado para algumas bancadas",
-      "Ausência de conectividade Wi‑Fi ou app de controle",
-      "O visor de vidro pode acumular manchas de gordura se não limpo frequentemente",
-      "Não possui função de pré‑aquecimento rápido como alguns modelos premium"
+      "ANC não chega ao nível dos melhores da categoria (Sony, Bose)",
+      "Microfone de chamada poderia ser mais avançado para ambientes muito ruídos",
+      "Ausência de suporte a codecs de alta resolução como LDAC ou aptX Adaptive",
+      "Design dobrável, porém não tão compacto quanto alguns concorrentes"
     ],
     "testimonials": [],
     "faq": [
       {
-        "question": "A Britânia 12L consome muita energia?",
-        "answer": "Com potência de 1500 W, o consumo médio é de cerca de 1,5 kWh por hora de uso máximo. Em uso típico de 30 minutos por dia, o custo de energia fica abaixo de R$ 5,00 mensais."
+        "question": "O Edifier W820NB Plus é compatível com assistentes de voz?",
+        "answer": "Sim. O fone funciona com Google Assistant e Siri quando conectado a um smartphone Android ou iOS, permitindo acionar comandos de voz através do microfone integrado."
       },
       {
-        "question": "Posso usar papel alumínio ou forma de silicone dentro da cesta?",
-        "answer": "Sim. Tanto o papel alumínio quanto formas de silicone são seguros, desde que não obstruam a circulação de ar quente. Evite cobrir totalmente a cesta para garantir o cozimento uniforme."
+        "question": "Quanto tempo leva para carregar totalmente o W820NB Plus?",
+        "answer": "A carga completa leva aproximadamente 2 horas usando o cabo USB‑C incluso. Uma carga rápida de 10 minutos fornece cerca de 4 horas de uso."
       },
       {
-        "question": "A fritadeira faz barulho durante o funcionamento?",
-        "answer": "O ventilador produz um som semelhante ao de um micro‑ondas em funcionamento, cerca de 55 dB. Não é incômodo em ambientes domésticos comuns."
+        "question": "Posso usar o fone enquanto ele está carregando?",
+        "answer": "Não. O W820NB Plus não suporta uso enquanto está conectado ao carregador; é necessário desconectar para ouvir áudio."
       },
       {
-        "question": "Qual é a garantia oferecida pelo fabricante?",
-        "answer": "A Britânia oferece garantia de um ano contra defeitos de fabricação, conforme o padrão para eletroportáteis no Brasil."
+        "question": "O cancelamento de ruído funciona bem em aviões?",
+        "answer": "Em aviões, o atenuar do ruído de baixa frequência é moderado. Ele reduz o ronco do motor, mas não chega ao nível de modelos premium como o Sony WH-1000XM5."
       },
       {
-        "question": "É possível assar pão ou bolo diretamente na cesta?",
-        "answer": "Sim. Desde que use uma forma adequada (silicone ou metal) que caiba dentro da cesta, você pode assar pães, bolos e até pudins com ótimos resultados."
+        "question": "Existe aplicativo para ajustar o equalizador?",
+        "answer": "Sim. O app Edifier Connect, disponível para Android e iOS, oferece presets de equalizador e permite criar ajustes personalizados de graves, médios e agudos."
       }
     ],
     "verdict": {
       "score": 8.7,
-      "label": "BOA COMPRA",
-      "text": "A Fritadeira Air Fryer Oven Britânia 12L BFR2100P entrega desempenho sólido, versatilidade impressionante e um preço competitivo para quem precisa de capacidade familiar. Apesar de alguns pontos como peso e falta de conectividade, seus prós superam os contras, tornando‑a uma escolha acertada para cozinhas modernas.",
-      "note": "Indicada para famílias de três a seis pessoas que buscam praticidade na cozinha sem abrir mão de variedade de preparos."
+      "label": "EXCELENTE CUSTO-BENEFÍCIO",
+      "text": "O Edifier W820NB Plus entrega som agradável, conforto para longas sessões e bateria que dura o dia inteiro, tudo por um preço que cabe no bolso da maioria dos consumidores. Embora o ANC não seja o melhor da categoria, ele compensa com recursos práticos e um acabamento que transmite qualidade.",
+      "note": "Indicado para estudantes, profissionais de home office e usuários que buscam um fone versátil sem gastar acima de R$ 1.000."
     },
     "schemaRating": {
       "ratingValue": 4.8,
       "reviewCount": 8450
     },
     "googleRank": 0,
-    "lastRankCheck": "2026-09-11T15:28:04.465Z",
-    "createdAt": "2026-09-11T15:28:04.465Z",
-    "updatedAt": "2026-09-11T15:28:04.465Z"
+    "lastRankCheck": "2026-09-11T15:29:47.580Z",
+    "createdAt": "2026-09-11T15:29:47.580Z",
+    "updatedAt": "2026-09-11T15:29:47.580Z"
   }
 ]
