@@ -1,5 +1,15 @@
 import { useCurrentFrame, spring, interpolate } from "remotion";
 
+// ─── Timing Source ───────────────────────────────────────────────────────────
+// When `timedWords` is provided, use frame-accurate timing from SRT/JSON.
+// Otherwise fall back to even distribution (wordsPerSecond heuristic).
+
+export interface TimedWord {
+  text: string;
+  startMs: number;
+  endMs: number;
+}
+
 interface KineticCaptionProps {
   text: string;
   fontSize: number;
@@ -8,8 +18,16 @@ interface KineticCaptionProps {
   highlightColor: string;
   wordByWord: boolean;
   effect: "scale_spring" | "fade_up" | "glow" | "bounce";
+  /** Frame-accurate word timings from SRT/JSON (optional — enables @remotion/captions mode) */
+  timedWords?: TimedWord[];
+  /** Fallback: words per second for even distribution */
   wordsPerSecond?: number;
+  /** Override font family */
+  fontFamily?: string;
 }
+
+// ─── Standard stagger delay (skill rule: 3-6 frames) ────────────────────────
+const STAGGER_FRAMES = 4;
 
 export const KineticCaption: React.FC<KineticCaptionProps> = ({
   text,
@@ -19,11 +37,33 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
   highlightColor,
   wordByWord,
   effect,
+  timedWords,
   wordsPerSecond = 4,
+  fontFamily = "Inter, system-ui, sans-serif",
 }) => {
   const frame = useCurrentFrame();
+  const fps = 30;
   const words = text.split(" ");
-  const framesPerWord = Math.round(30 / wordsPerSecond);
+
+  // ─── Build word list ─────────────────────────────────────────────────────
+  const captionWords: TimedWord[] = timedWords
+    ? timedWords.map((tw) => ({
+        text: tw.text,
+        startMs: tw.startMs,
+        endMs: tw.endMs,
+      }))
+    : words.map((w, i) => {
+        const framesPerWord = Math.round(fps / wordsPerSecond);
+        const startMs = (i * framesPerWord * 1000) / fps;
+        const endMs = ((i + 1) * framesPerWord * 1000) / fps;
+        return { text: w, startMs, endMs };
+      });
+
+  // Current word index based on frame
+  const currentTimeMs = (frame * 1000) / fps;
+  const activeIndex = captionWords.findIndex(
+    (w) => currentTimeMs >= w.startMs && currentTimeMs < w.endMs
+  );
 
   return (
     <div
@@ -37,13 +77,14 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
         maxWidth: "100%",
       }}
     >
-      {words.map((word, i) => {
-        const delay = wordByWord ? i * framesPerWord : 0;
-        const localFrame = Math.max(0, frame - delay);
+      {captionWords.map((word, i) => {
+        const wordStartFrame = Math.round((word.startMs * fps) / 1000);
+        const localFrame = Math.max(0, frame - wordStartFrame);
+        const isActive = i === activeIndex;
 
         const scaleSpring = spring({
           frame: localFrame,
-          fps: 30,
+          fps,
           config: { stiffness: 500, damping: 15 },
         });
 
@@ -62,7 +103,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
                 scale: interpolate(
                   spring({
                     frame: localFrame,
-                    fps: 30,
+                    fps,
                     config: { stiffness: 600, damping: 8, mass: 0.8 },
                   }),
                   [0, 1],
@@ -71,7 +112,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
                 translateY: interpolate(
                   spring({
                     frame: localFrame,
-                    fps: 30,
+                    fps,
                     config: { stiffness: 400, damping: 10 },
                   }),
                   [0, 1],
@@ -85,7 +126,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
                 translateY: interpolate(
                   spring({
                     frame: localFrame,
-                    fps: 30,
+                    fps,
                     config: { damping: 18, mass: 0.8, stiffness: 120 },
                   }),
                   [0, 1],
@@ -106,20 +147,18 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
         const opacity = interpolate(
           spring({
             frame: localFrame,
-            fps: 30,
+            fps,
             config: { damping: 18, mass: 0.8, stiffness: 120 },
           }),
           [0, 1],
           [0, 1]
         );
 
-        const isActive =
-          frame >= delay && frame < delay + framesPerWord * 2;
         const isHighlight = isActive && wordByWord;
 
         return (
           <span
-            key={`${word}-${i}`}
+            key={`${word.text}-${i}`}
             style={{
               display: "inline-block",
               fontSize,
@@ -130,12 +169,12 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
               textShadow: isHighlight
                 ? `0 0 30px ${highlightColor}80, 0 0 60px ${highlightColor}40, 0 4px 20px rgba(0,0,0,0.5)`
                 : "0 4px 20px rgba(0,0,0,0.5)",
-              fontFamily: "Inter, system-ui, sans-serif",
+              fontFamily,
               lineHeight: 1.2,
               transition: "color 0.1s ease",
             }}
           >
-            {word}
+            {word.text}
           </span>
         );
       })}

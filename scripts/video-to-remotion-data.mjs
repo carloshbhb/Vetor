@@ -20,6 +20,51 @@ function filterValidImages(urls, fallback) {
 }
 
 /**
+ * Generate timedWords from narration for frame-accurate caption sync.
+ * @param {string} narration - Text to split into timed words
+ * @param {number} durationSec - Duration of the scene in seconds
+ * @param {number} fps - Frames per second (default: 30)
+ * @returns {Array<{text: string, startMs: number, endMs: number}>}
+ */
+function generateTimedWords(narration, durationSec, fps = 30) {
+  const words = narration.split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 0) return [];
+
+  const totalMs = durationSec * 1000;
+  const msPerWord = totalMs / words.length;
+
+  return words.map((word, i) => ({
+    text: word,
+    startMs: Math.round(i * msPerWord),
+    endMs: Math.round((i + 1) * msPerWord),
+  }));
+}
+
+/**
+ * Generate timedWords for all sections combined.
+ * @param {Array} sections - Array of sections with narration and duration
+ * @param {number} fps - Frames per second (default: 30)
+ * @returns {Array<{text: string, startMs: number, endMs: number}>}
+ */
+function generateAllTimedWords(sections, fps = 30) {
+  const allTimedWords = [];
+  let currentTimeMs = 0;
+
+  for (const section of sections) {
+    const sectionTimedWords = generateTimedWords(section.narration || '', section.duration || 8, fps);
+    const offsetTimedWords = sectionTimedWords.map(tw => ({
+      ...tw,
+      startMs: tw.startMs + currentTimeMs,
+      endMs: tw.endMs + currentTimeMs,
+    }));
+    allTimedWords.push(...offsetTimedWords);
+    currentTimeMs += (section.duration || 8) * 1000;
+  }
+
+  return allTimedWords;
+}
+
+/**
  * @param {object} script - VideoScript do lib/video-script.ts
  * @param {object} review - ReviewData (para imageUrl, affiliateUrl, etc)
  * @param {string} siteUrl - URL base do site
@@ -178,6 +223,14 @@ export function convertVideoScriptToRemotionData(script, review, siteUrl) {
     productImage
   ).slice(0, 3);
 
+  // Generate timedWords for frame-accurate caption synchronization
+  const allSections = [
+    { narration: scenes[0]?.narration || script.hook || '', duration: hookDuration },
+    ...psScenes.map(s => ({ narration: s.narration || '', duration: psDuration / psScenes.length })),
+    { narration: ctaScene?.narration || script.finalCta || script.cta || '', duration: ctaDuration },
+  ];
+  const timedWords = generateAllTimedWords(allSections, FPS);
+
   return {
     meta: {
       title: script.title,
@@ -196,6 +249,7 @@ export function convertVideoScriptToRemotionData(script, review, siteUrl) {
         surface: "#1A1A2E",
         text: "#FFFFFF",
       },
+      timedWords,
     },
     audio: {
       tts: {

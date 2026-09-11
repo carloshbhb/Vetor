@@ -21,7 +21,7 @@
       "schedule": "0 8 * * *"
     },
     {
-      "path": "/api/cron/video-queue?limit=30&batch=3",
+      "path": "/api/cron/video-queue?limit=16&batch=3",
       "schedule": "0 13 * * *"
     },
     {

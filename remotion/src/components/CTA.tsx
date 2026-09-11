@@ -73,10 +73,11 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
   // Glow pulse
   const glowPulse = interpolate(Math.sin(frame * 0.1), [-1, 1], [0.4, 0.9]);
 
-  // Elements stagger entrance
+  // Elements stagger entrance (skill rule: 3-6 frames, using 4)
+  const STAGGER_FRAMES = 4;
   const staggerDelay = (index: number) => interpolate(
     frame,
-    [20 + index * 5, 35 + index * 5],
+    [20 + index * STAGGER_FRAMES, 35 + index * STAGGER_FRAMES],
     [0, 1],
     { extrapolateRight: "clamp", extrapolateLeft: "clamp" }
   );

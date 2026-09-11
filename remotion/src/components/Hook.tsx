@@ -7,6 +7,7 @@ import { getImageSrc } from "../utils/images";
 interface HookProps {
   section: {
     narration: string;
+    timedWords?: Array<{ text: string; startMs: number; endMs: number }>;
     visual: {
       backgroundImage?: string;
       background: { colors: string[]; angle: number; animated: boolean };
@@ -61,7 +62,16 @@ export const Hook: React.FC<HookProps> = ({ section, palette }) => {
         </AbsoluteFill>
       )}
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 160, opacity: entranceOpacity, transform: `translateY(${entranceY}px) scale(${entranceScale})` }}>
-        <KineticCaption text={narration} fontSize={visual.captions.fontSize} fontWeight={visual.captions.fontWeight} color={visual.captions.color} highlightColor={visual.captions.highlightColor} wordByWord={true} effect="glow" />
+        <KineticCaption 
+          text={narration} 
+          fontSize={visual.captions.fontSize} 
+          fontWeight={visual.captions.fontWeight} 
+          color={visual.captions.color} 
+          highlightColor={visual.captions.highlightColor} 
+          wordByWord={true} 
+          effect="glow"
+          timedWords={section.timedWords}
+        />
       </AbsoluteFill>
     </AbsoluteFill>
   );

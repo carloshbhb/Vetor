@@ -234,32 +234,109 @@ try {
     const stat = statSync(outputPath);
     console.log(`[4/5] Vídeo já existe (${(stat.size / 1024 / 1024).toFixed(1)} MB), pulando render...`);
   } else {
-    console.log('[4/5] Renderizando com Remotion...');
-    const renderComponent = isLongForm ? 'LongVideo' : 'ShortVideo';
-
-    // Instalar deps do Remotion se necessário
-    if (!existsSync(path.join(REMOTION_DIR, 'node_modules'))) {
-      console.log('[Remotion Worker] Instalando dependências do Remotion...');
-      run('npm install --no-audit --no-fund', { cwd: REMOTION_DIR });
+    // Check if Lambda is available for faster rendering
+    const useLambda = process.env.REMOTION_LAMBDA_FUNCTION && process.env.AWS_REGION;
+    
+    if (useLambda) {
+      console.log('[4/5] Renderizando via Lambda (batch)...');
+      try {
+        const { renderOnLambda } = await import('../remotion/src/utils/lambda-render.ts');
+        const result = await renderOnLambda({
+          id: slug,
+          composition: isLongForm ? 'LongVideo' : 'ShortVideo',
+          videoData: remotionData,
+          outputBucket: process.env.AWS_S3_BUCKET || 'vetor-blog-videos',
+          outputKey: `renders/${slug}.mp4`,
+        });
+        
+        if (result.success) {
+          console.log(`[4/5] Lambda render concluído em ${result.durationMs}ms`);
+          // Download from S3 to local
+          if (result.s3Url) {
+            run(`aws s3 cp "${result.s3Url}" "${outputPath}"`);
+          }
+        } else {
+          throw new Error(`Lambda render failed: ${result.error}`);
+        }
+      } catch (lambdaErr) {
+        console.warn('[4/5] Lambda falhou, fallback para local:', lambdaErr.message);
+        // Fall through to local render
+      }
     }
-
-    try {
-      run('npx remotion browser ensure', { cwd: REMOTION_DIR });
-    } catch (e) {
-      console.warn('[Remotion Worker] Aviso browser ensure:', e.message);
-    }
-
-    const propsPath = path.join(REMOTION_DIR, 'props.json');
-    writeFileSync(propsPath, JSON.stringify({ data: remotionData }), 'utf8');
-
-    const renderFlags = isLongForm
-      ? '--concurrency=4 --gl=angle --codec h264 --timeout=120000'
-      : '--concurrency=2 --gl=angle --codec h264';
-    run(`npx remotion render ${renderComponent} "${outputPath}" --props=props.json ${renderFlags}`, { cwd: REMOTION_DIR });
-
+    
+    // Local render (fallback or if Lambda not configured)
     if (!existsSync(outputPath)) {
-      throw new Error('Remotion render falhou: arquivo não gerado');
+      console.log('[4/5] Renderizando com Remotion (local)...');
+      const renderComponent = isLongForm ? 'LongVideo' : 'ShortVideo';
+
+      // Instalar deps do Remotion se necessário
+      if (!existsSync(path.join(REMOTION_DIR, 'node_modules'))) {
+        console.log('[Remotion Worker] Instalando dependências do Remotion...');
+        run('npm install --no-audit --no-fund', { cwd: REMOTION_DIR });
+      }
+
+      try {
+        run('npx remotion browser ensure', { cwd: REMOTION_DIR });
+      } catch (e) {
+        console.warn('[Remotion Worker] Aviso browser ensure:', e.message);
+      }
+
+      const propsPath = path.join(REMOTION_DIR, 'props.json');
+      writeFileSync(propsPath, JSON.stringify({ data: remotionData }), 'utf8');
+
+      const renderFlags = isLongForm
+        ? '--concurrency=4 --gl=angle --codec h264 --timeout=120000'
+        : '--concurrency=2 --gl=angle --codec h264';
+      run(`npx remotion render ${renderComponent} "${outputPath}" --props=props.json ${renderFlags}`, { cwd: REMOTION_DIR });
+
+      if (!existsSync(outputPath)) {
+        throw new Error('Remotion render falhou: arquivo não gerado');
+      }
     }
+  }
+
+  // ── 4.1 Verificação visual (extrai stills em 10%/50%/90%) ────────────────
+  console.log('[4.1/5] Verificando render...');
+  const verificationDir = path.join(REMOTION_DIR, 'out', 'verification');
+  if (!existsSync(verificationDir)) mkdirSync(verificationDir, { recursive: true });
+
+  // Extrair stills para verificação visual
+  const positions = [
+    { label: '10pct', pct: 0.1 },
+    { label: '50pct', pct: 0.5 },
+    { label: '90pct', pct: 0.9 },
+  ];
+
+  // Obter duração do vídeo
+  let videoDuration = 0;
+  try {
+    const probe = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${outputPath}"`, { encoding: 'utf-8' });
+    videoDuration = parseFloat(probe.trim());
+  } catch (e) {
+    console.warn('[Verify] Não foi possível obter duração:', e.message);
+  }
+
+  const verificationResults = [];
+  for (const { label, pct } of positions) {
+    const timestamp = videoDuration * pct;
+    const framePath = path.join(verificationDir, `${slug}_${label}.jpg`);
+    try {
+      execSync(`ffmpeg -y -ss ${timestamp} -i "${outputPath}" -frames:v 1 -update 1 -q:v 3 "${framePath}"`, { stdio: 'pipe' });
+      const size = existsSync(framePath) ? statSync(framePath).size : 0;
+      verificationResults.push({ position: `${Math.round(pct * 100)}%`, exists: size > 5000, sizeBytes: size });
+      console.log(`  ${Math.round(pct * 100)}%: ${size > 5000 ? '✓' : '✗'} (${size} bytes)`);
+    } catch (e) {
+      verificationResults.push({ position: `${Math.round(pct * 100)}%`, exists: false, sizeBytes: 0 });
+      console.log(`  ${Math.round(pct * 100)}%: ✗ (falha ao extrair)`);
+    }
+  }
+
+  // Verificar se há problemas
+  const failedFrames = verificationResults.filter(r => !r.exists || r.sizeBytes < 5000);
+  if (failedFrames.length > 0) {
+    console.warn(`[Verify] ⚠ ${failedFrames.length} frame(s) com problema (possível frame preto)`);
+  } else {
+    console.log('[Verify] ✓ Todos os frames OK');
   }
 
   // ── 5. Upload para YouTube ───────────────────────────────────────────────

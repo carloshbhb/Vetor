@@ -49,7 +49,9 @@ export const HorizontalCTA: React.FC<HorizontalCTAProps> = ({ section, palette }
   const productOpacitySpring = spring({ frame: frame - 8, fps: 30, config: { damping: 18, mass: 0.8, stiffness: 120 } });
   const productOpacity = interpolate(productOpacitySpring, [0, 1], [0, 1], clamp);
   const glowPulse = interpolate(Math.sin(frame * 0.1), [-1, 1], [0.4, 0.9]);
-  const staggerDelay = (index: number) => interpolate(frame, [20 + index * 5, 35 + index * 5], [0, 1], { extrapolateRight: "clamp", extrapolateLeft: "clamp" });
+  // Skill rule: 3-6 frames stagger, using 4
+  const STAGGER_FRAMES = 4;
+  const staggerDelay = (index: number) => interpolate(frame, [20 + index * STAGGER_FRAMES, 35 + index * STAGGER_FRAMES], [0, 1], { extrapolateRight: "clamp", extrapolateLeft: "clamp" });
 
   return (
     <AbsoluteFill>

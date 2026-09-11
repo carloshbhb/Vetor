@@ -19,7 +19,7 @@ export const maxDuration = 300; // Requires Vercel Pro (free plan limit: 60s)
 // GET cacheada de chamada anterior (foi o que gerou "Cota (6/1)" fantasma).
 const NO_STORE = { 'Cache-Control': 'no-store, max-age=0' };
 
-// GET /api/cron/video-queue?token=CRON_SECRET&limit=30&batch=3[&force=slug]
+// GET /api/cron/video-queue?token=CRON_SECRET&limit=16&batch=3[&force=slug]
 // Gera roteiros em LOTES pequenos por invocação (padrão 3) para não estourar
 // o timeout da serverless na Vercel. `limit` = teto do dia; `batch` = quantos
 // roteiros gerar NESTA chamada. Backlog primeiro (mais antigos), depois os novos.
@@ -129,8 +129,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Premium: 1 vídeo/dia. O remotion-worker.mjs delega long-form horizontal
-    // para o renderizador FFmpeg e mantém shorts no fluxo Remotion tradicional.
+    // Premium: 1 vídeo/dia (mantido para compatibilidade)
     let premiumInfo: { marked?: string; alreadyToday?: boolean } = {};
     const premiumToday = await getPremiumTodayCount();
     if (premiumToday === 0) {
@@ -154,7 +153,7 @@ export async function GET(req: NextRequest) {
         errors,
         premium: premiumInfo,
         nextStep: jobs.length
-          ? 'No seu PC rode: node scripts/video-worker.mjs (renderiza + publica os script_ready, até 30/dia)'
+          ? 'No GitHub Actions rode: remotion-worker-batch.mjs (renderiza + publica os script_ready, até 16/dia)'
           : 'Nada pendente — amanhã o cron pega os reviews novos do dia.',
       },
       { headers: NO_STORE }

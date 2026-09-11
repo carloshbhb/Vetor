@@ -39,6 +39,12 @@ export interface VideoScene {
   images?: string[]; // imagem real do review (preenchida pelo worker, não pela IA)
 }
 
+export interface TimedWord {
+  text: string;
+  startMs: number;
+  endMs: number;
+}
+
 export interface VideoScript {
   title: string; // até 100 chars (Shorts)
   description: string; // com link do review + afiliado
@@ -51,6 +57,45 @@ export interface VideoScript {
   priceHighlight: string; // ex: "R$ 279 (antes R$ 329)"
   offerBadge: string; // "OFERTA" ou "" — nunca % inventado
   finalCta: string; // frase curta de ação: "Link da oferta na descrição"
+  timedWords?: TimedWord[]; // palavras com timing frame-accurate (gerado automaticamente)
+}
+
+// ─── Generate timedWords from narration ─────────────────────────────────────
+// Distributes words evenly across the scene duration based on word count.
+// This enables frame-accurate caption synchronization in Remotion.
+
+export function generateTimedWords(narration: string, durationSec: number, fps: number = 30): TimedWord[] {
+  const words = narration.split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 0) return [];
+
+  const totalMs = durationSec * 1000;
+  const msPerWord = totalMs / words.length;
+
+  return words.map((word, i) => ({
+    text: word,
+    startMs: Math.round(i * msPerWord),
+    endMs: Math.round((i + 1) * msPerWord),
+  }));
+}
+
+// Generate timedWords for all scenes in a VideoScript
+export function generateAllTimedWords(script: VideoScript, fps: number = 30): TimedWord[] {
+  const allTimedWords: TimedWord[] = [];
+  let currentTimeMs = 0;
+
+  for (const scene of script.scenes) {
+    const sceneTimedWords = generateTimedWords(scene.narration, scene.durationSec, fps);
+    // Offset each word by the current time
+    const offsetTimedWords = sceneTimedWords.map(tw => ({
+      ...tw,
+      startMs: tw.startMs + currentTimeMs,
+      endMs: tw.endMs + currentTimeMs,
+    }));
+    allTimedWords.push(...offsetTimedWords);
+    currentTimeMs += scene.durationSec * 1000;
+  }
+
+  return allTimedWords;
 }
 
 export function buildVideoScriptPrompt(review: ReviewData, siteUrl: string): string {
@@ -352,5 +397,9 @@ export async function generateVideoScript(review: ReviewData): Promise<VideoScri
     priceHighlight: String(data.priceHighlight || review.priceNew || '').slice(0, 60),
     offerBadge: String(data.offerBadge || '').slice(0, 20),
     finalCta: String(data.finalCta || data.cta || 'O link da oferta tá na descrição'),
+    timedWords: generateAllTimedWords({
+      scenes,
+      estimatedSeconds,
+    } as VideoScript),
   };
 }
