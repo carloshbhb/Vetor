@@ -233,7 +233,6 @@ async function renderJob(job) {
     const qrDir = path.join(REMOTION_DIR, 'public');
     if (!existsSync(qrDir)) mkdirSync(qrDir, { recursive: true });
     const qrPath = path.join(qrDir, 'qr.png');
-    const affiliateUrl = reviewData.affiliate_url || '';
     if (affiliateUrl) {
       await QRCode.toFile(qrPath, affiliateUrl, {
         width: 400,
