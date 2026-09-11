@@ -31,6 +31,14 @@
     {
       "path": "/api/cron/ml-refresh",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/prospection",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/viral-scan",
+      "schedule": "0 10 * * *"
     }
   ]
 }

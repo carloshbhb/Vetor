@@ -64,7 +64,63 @@ export function runSeoChecks(data: any): SEACheckResult {
     failedChecks.push(`Veredicto com nota e texto obrigatórios`);
   }
 
+  const sections = data.sections || [];
+  const hasExperience = sections.some((s: any) =>
+    /\b(testamos|testei|durante|dias|semanas|meses|uso real|prático)\b/i.test(s.content || '')
+  );
+  if (!hasExperience) {
+    failedChecks.push('Conteúdo deve incluir sinais de experiência ("testamos por X dias", uso real)');
+  }
+
+  const hasSpecificData = sections.some((s: any) =>
+    /\b(\d+\s*(horas|dias|semanas|meses|mAh|GB|MHz|nits|dB|mm|cm|%))\b/i.test(s.content || '')
+  );
+  if (!hasSpecificData) {
+    failedChecks.push('Conteúdo deve incluir dados específicos (medidas, especificações reais)');
+  }
+
+  const cons = data.cons || [];
+  const genericCons = cons.filter((c: string) =>
+    /^(bom|ruim|regular|ok|mediano)$/i.test(c.trim())
+  );
+  if (cons.length < 3) {
+    failedChecks.push(`Mínimo 3 contras honestos (atual: ${cons.length})`);
+  }
+  if (genericCons.length > 0) {
+    failedChecks.push('Contras devem ser específicos, não genéricos ("bom", "ruim", "regular")');
+  }
+
   return { failedChecks, allPassed: failedChecks.length === 0 };
+}
+
+export function getEEATScore(data: any): { score: number; factors: string[] } {
+  let score = 0;
+  const factors: string[] = [];
+
+  const sections = data.sections || [];
+
+  if (sections.some((s: any) => /\b(testamos|testei|durante|dias|semanas|meses)\b/i.test(s.content || ''))) {
+    score += 25;
+    factors.push('Sinais de experiência presentes');
+  }
+
+  if (sections.some((s: any) => /\b(\d+\s*(horas|dias|mAh|GB|nits|dB))\b/i.test(s.content || ''))) {
+    score += 25;
+    factors.push('Dados específicos presentes');
+  }
+
+  const cons = data.cons || [];
+  if (cons.length >= 4) {
+    score += 25;
+    factors.push(`${cons.length} contras honestos`);
+  }
+
+  if (data.compareTable?.rows?.length >= 2) {
+    score += 25;
+    factors.push('Tabela comparativa com dados reais');
+  }
+
+  return { score, factors };
 }
 
 // ─── OpenRouter call helper ──────────────────────────────────────────────────

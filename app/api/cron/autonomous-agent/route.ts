@@ -1,31 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateText } from '@/lib/ai';
-import { getLightweightReviews, createReview } from '@/lib/db';
+import { discoverProduct } from '@/lib/discovery';
+import { generateReview } from '@/lib/generate';
+import { optimizeReviewSEO } from '@/lib/seo-review';
+import { createReview, getLightweightReviews } from '@/lib/db';
 import { commitNewReviewToGitHub } from '@/lib/github';
 import { submitUrl } from '@/lib/indexnow';
 import { indexNewReview } from '@/lib/google-indexing';
-import { fetchMLProduct, buildAffiliateUrl, resolveProductImage, isImageReachable } from '@/lib/mercadolivre';
-import { generateReview } from '@/lib/generate';
 import { logger, recordMetric, createTimer } from '@/lib/monitor';
 import { checkErrorRate } from '@/lib/alerts';
+
+export { validateProductCategory } from '@/lib/discovery';
 
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 300;
-
 
 export async function GET(req: NextRequest) {
   return handleAutonomousCycle();
 }
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
+  const authHeader = req.headers.get('authorization');
 
   let authorized = false;
   const expectedUser = process.env.ADMIN_USER;
   const expectedPwd = process.env.ADMIN_PASSWORD;
 
-  // Allow in development
   if (process.env.NODE_ENV === 'development') {
     authorized = true;
   }
@@ -48,7 +48,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
   }
 
-  // Parse optional body for specific product
   let specificProduct = '';
   let specificCategory = '';
   try {
@@ -63,7 +62,6 @@ export async function POST(req: NextRequest) {
 }
 
 export async function handleAutonomousCycle(specificProduct: string = '', specificCategory: string = '') {
-  const startTime = Date.now();
   const cycleTimer = createTimer();
 
   await logger.info('Autonomous cycle started', 'autonomous-agent', {
@@ -72,404 +70,92 @@ export async function handleAutonomousCycle(specificProduct: string = '', specif
   });
 
   try {
-    // Query ultraleve: ~5 KB em vez de ~1.2 MB (SELECT *)
-    const reviews = await getLightweightReviews();
-    const existingProductNames = reviews.map(r => r.product.toLowerCase());
+    const discovery = await discoverProduct({ specificProduct, specificCategory });
+    await logger.info('Product discovered', 'autonomous-agent', {
+      product: discovery.product,
+      category: discovery.category,
+      source: discovery.source,
+    });
 
-    // Static fallback list of popular tech products
-    // NOTA: todo item precisa passar em validateProductCategory() da sua
-    // categoria, senão é descartado em silêncio (foi o que esvaziou o pool:
-    // ex. "Amazfit Bip 5" não continha nenhuma keyword de Wearables).
-    const fallbackProducts: { [key: string]: string[] } = {
-      'Wearables / Smartbands': [
-        'Xiaomi Mi Band 9', 'Xiaomi Redmi Watch 5', 'Huawei Band 9',
-        'Samsung Galaxy Watch 7', 'Apple Watch SE 2024', 'Amazfit Bip 5',
-        'Samsung Galaxy Fit 3', 'Huawei Watch GT 4',
-        'Xiaomi Watch S3', 'Amazfit Active Edge Smartwatch',
-        'Samsung Galaxy Watch 6', 'Apple Watch Series 9',
-        'Huawei Watch Fit 3', 'Xiaomi Smart Band 8 Pro',
-        'Amazfit Band 7', 'Amazfit GTS 4 Mini',
-      ],
-      'Acessórios para Games': [
-        'PlayStation DualSense Edge', 'Nintendo Switch Pro Controller',
-        'Teclado Mecânico Keychron K2', 'Controle Gamesir G7 SE',
-        'Headset HyperX Cloud III', 'Mouse Logitech G305',
-        'Cadeira Gamer DT3sports', 'Webcam Logitech C920',
-        'Monitor Gamer LG UltraGear 27', 'Teclado Mecânico Redragon Kumara',
-        'Mouse Gamer Razer DeathAdder', 'Headset Gamer JBL Quantum 100',
-        'Controle Xbox Wireless', 'Cadeira Gamer ThunderX3',
-        'Mousepad Gamer HyperX Fury S', 'Webcam Logitech C270',
-      ],
-      'Fones de Ouvido': [
-        'Sony WF-1000XM5', 'JBL Wave Flex', 'AirPods Pro 2',
-        'QCY T13', 'Samsung Galaxy Buds FE', 'JBL Tune Buds',
-        'Nothing Ear (2)', 'Edifier NeoBuds Pro 2',
-        'Sony WH-1000XM5', 'JBL Tune 770NC',
-        'Edifier W820NB', 'QCY HT05',
-        'Samsung Galaxy Buds 3 Pro', 'Soundcore R50i',
-        'Xiaomi Redmi Buds 5', 'JBL Endurance Race',
-      ],
-      'Robôs Aspiradores': [
-        'Robô Aspirador Xiaomi S20', 'Robô Aspirador Kabum Smart 700',
-        'Robô Aspirador Eufy G10', 'Robô Aspirador Dreame D10s',
-        'Robô Aspirador ILIFE V5s Pro', 'Robô Aspirador Robot L10s',
-        'Robô Aspirador Xiaomi X20', 'Robô Aspirador Dreame L10s Ultra',
-        'Robô Aspirador Eufy X8 Pro', 'Robô Aspirador Wap Robot W300',
-        'Robô Aspirador Electrolux ERB30', 'Robô Aspirador Mondial RB-01',
-      ],
-      'Casa Inteligente': [
-        'Amazon Echo Dot 5ª Geração', 'Lâmpada Inteligente Philips Hue',
-        'Fechadura Eletrônica Intelbras FR 101', 'Tomada Inteligente TP-Link Kasa',
-        'Alexa Echo Pop', 'Sensor de Porta Intelbras',
-        'Amazon Echo Show 5', 'Tomada Inteligente Intelbras EWS 101',
-        'Sensor de Presença Intelbras ESP 360', 'Interruptor Inteligente Sonoff TX',
-        'Lâmpada Inteligente Elgin Smart', 'Sensor de Porta e Janela Intelbras',
-        'Alexa Echo Studio', 'Smart Plug Positivo Casa Inteligente',
-      ],
-      'Notebooks': [
-        'Acer Nitro V 15', 'Lenovo IdeaPad 3i', 'Samsung Galaxy Book 4',
-        'Dell Inspiron 15', 'ASUS VivoBook 15', 'HP 15-dy',
-        'MacBook Air M3', 'Lenovo ThinkPad E14',
-        'Notebook Acer Aspire 5 A515', 'MacBook Pro M3 14',
-        'Notebook Dell G15 5530', 'Notebook Asus TUF Gaming F15',
-        'Samsung Galaxy Book 5 360', 'Notebook HP Victus 15',
-        'Chromebook Acer Spin 311', 'Notebook Lenovo Legion Slim 5',
-      ],
-      'Tablets': [
-        'Samsung Galaxy Tab S9 FE', 'iPad 10ª Geração', 'Xiaomi Pad 6',
-        'Samsung Galaxy Tab A9', 'Lenovo Tab M11', 'iPad Air M2',
-        'iPad 11ª Geração A16', 'Samsung Galaxy Tab S10 FE',
-        'Xiaomi Pad 7', 'iPad Air 11 M3',
-        'Samsung Galaxy Tab A9 Plus', 'Lenovo Tab P12',
-        'Tablet Positivo Vision Tab 10', 'Samsung Galaxy Tab S6 Lite',
-      ],
-      'Câmeras de Segurança': [
-        'Intelbras iM3', 'TP-Link Tapo C200', 'Xiaomi Mi Camera 2K',
-        'Intelbras iD2', 'Ezviz C6C', 'Hikvision DS-2CD1043G0E-I',
-        'Câmera Intelbras iM4', 'Câmera TP-Link Tapo C510W',
-        'Câmera Ezviz H6c', 'Câmera de Segurança Intelbras iM7',
-        'Kit Câmeras Intelbras 4CH', 'Câmera Xiaomi Outdoor CW300',
-      ],
-      'Eletroportáteis': [
-        'Air Fryer Mondial Grand Family 5L', 'Air Fryer Oven Philco 12 Litros',
-        'Liquidificador Philips Série 5000', 'Liquidificador Mondial Turbo Power',
-        'Cafeteira Espresso Nespresso Essenza Mini', 'Cafeteira Filtrada Electrolux Efficient',
-        'Torradeira Elétrica Oster', 'Batedeira Planetária Arno SX80',
-        'Aspirador de Pó Vertical Philco Ciclone', 'Ventilador de Coluna Mondial Super Turbo',
-      ],
-    };
+    const existingReviews = await getLightweightReviews();
+    const existingSlugs = existingReviews.map(r => r.slug);
+    const existingCategories = Array.from(new Set(existingReviews.map(r => r.category).filter(Boolean)));
 
-    // Combine all categories for retry
-    const allCategories = Array.from(new Set([...Object.keys(fallbackProducts), ...reviews.map(r => r.category).filter(Boolean)]));
-
-    // Try up to 12 times, skipping fully-reviewed categories
-    // (10/09/2026: 10 tentativas esgotaram — IA repetia produtos já publicados
-    //  e o ciclo morria sem artigo. Exclusion list + rejeitados da sessão
-    //  evitam a repetição.)
-    let trendingProduct = '';
-    let targetCategory = '';
-    let attempts = 0;
-    const maxAttempts = 12;
-    const triedCategories = new Set<string>();
-    // Nomes já sugeridos e rejeitados NESTA execução (não repete no próximo prompt)
-    const rejectedThisRun: string[] = [];
-    // Todos os produtos já publicados → exclusion list no prompt (cap p/ tamanho)
-    const exclusionList = reviews
-      .map((r) => r.product)
-      .filter(Boolean)
-      .slice(0, 250)
-      .join('; ');
-
-    // If specific product provided, use it directly
-    if (specificProduct) {
-      trendingProduct = specificProduct;
-      targetCategory = specificCategory || 'Casa Inteligente';
-      console.log(`[Autonomous Agent] Using specific product: ${trendingProduct} (${targetCategory})`);
-    }
-
-    while (attempts < maxAttempts && !trendingProduct) {
-      attempts++;
-
-      // Filter out categories where all products already exist
-      const availableCategories = allCategories.filter(cat => {
-        if (triedCategories.has(cat)) return false;
-        const options = fallbackProducts[cat];
-        if (!options) return true;
-        const available = options.filter(p => !existingProductNames.some(ep => ep.includes(p.toLowerCase()) || p.toLowerCase().includes(ep)));
-        return available.length > 0;
-      });
-
-      if (availableCategories.length === 0) {
-        console.log('[Autonomous Agent] All fallback categories fully reviewed. Stopping.');
-        break;
-      }
-
-      targetCategory = availableCategories[Math.floor(Math.random() * availableCategories.length)];
-      triedCategories.add(targetCategory);
-      console.log(`[Autonomous Agent] Niche selected (attempt ${attempts}): ${targetCategory}`);
-
-      // 2. Discover trending product
-      const discoveryTimer = createTimer();
-      try {
-        await logger.info('Discovering trending product', 'autonomous-agent', { category: targetCategory });
-        const trendPrompt = `Você é o Agente de Descoberta de Tráfego do vetor.blog.
-Na categoria "${targetCategory}", qual é o produto mais popular e com maior demanda no Brasil em ${new Date().getFullYear()}?
-Pense em produtos que estão em alta, com muitas avaliações positivas e boa relação custo-benefício.
-
-IMPORTANTE: O produto DEVE ser da categoria "${targetCategory}". 
-- Se a categoria é "Robôs Aspiradores", retorne apenas robôs aspiradores.
-- Se a categoria é "Fones de Ouvido", retorne apenas fones de ouvido.
-- Se a categoria é "Casa Inteligente", retorne apenas dispositivos de casa inteligente.
-- Se a categoria é "Wearables / Smartbands", retorne apenas smartbands ou relógios inteligentes.
-- Se a categoria é "Eletroportáteis", retorne apenas eletroportáteis (air fryer, liquidificador, cafeteira, torradeira, batedeira, ventilador).
-- Se a categoria é "Acessórios para Games", retorne apenas acessórios gamers (controles, teclados, mouses, headsets, monitores gamer, cadeiras gamer, webcams).
-- NÃO retorne produtos de outras categorias (ex: geladeiras, aspiradores de pó, eletrodomésticos grandes).
-
-PROIBIDO repetir qualquer produto desta lista de já publicados (nem variações de nome):
-${exclusionList}${rejectedThisRun.length ? `\nTambém proibidos (rejeitados nesta sessão): ${rejectedThisRun.join('; ')}` : ''}
-
-Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou "Samsung Galaxy Fit 3"), sem pontuação, sem aspas e sem explicações.`;
-
-        const text = await generateText({
-          prompt: trendPrompt,
-        });
-        trendingProduct = text.trim().replace(/['\"""]/g, '');
-        await logger.info('Product discovered', 'autonomous-agent', { product: trendingProduct, category: targetCategory });
-
-        // Verify search result isn't already reviewed
-        if (reviews.some(r => r.product.toLowerCase().includes(trendingProduct.toLowerCase()))) {
-          await logger.warn('Product already reviewed, skipping', 'autonomous-agent', { product: trendingProduct });
-          rejectedThisRun.push(trendingProduct);
-          trendingProduct = '';
-        }
-
-        await recordMetric({
-          agentName: 'autonomous-agent',
-          operation: 'discover_product',
-          durationMs: discoveryTimer.stop(),
-          success: true,
-        });
-      } catch (searchError: any) {
-        await logger.error('Product discovery failed', 'autonomous-agent', searchError, { category: targetCategory });
-        await recordMetric({
-          agentName: 'autonomous-agent',
-          operation: 'discover_product',
-          durationMs: discoveryTimer.stop(),
-          success: false,
-          errorMessage: searchError?.message,
-        });
-      }
-
-      // Fall back to static list if search didn't produce a valid new product
-      if (!trendingProduct) {
-        const options = fallbackProducts[targetCategory] || ['Xiaomi Mi Band 9'];
-        const available = options.filter(p => !existingProductNames.some(ep => ep.includes(p.toLowerCase()) || p.toLowerCase().includes(ep)));
-        if (available.length === 0) {
-          console.log(`[Autonomous Agent] All products in "${targetCategory}" already reviewed. Trying another category.`);
-          trendingProduct = '';
-          continue;
-        }
-        trendingProduct = available[Math.floor(Math.random() * available.length)];
-      }
-
-      // Sanitize product name
-      if (!trendingProduct || trendingProduct.length > 80 || trendingProduct.includes('\n')) {
-        trendingProduct = '';
-        continue;
-      }
-
-      // Validate product matches category
-      if (!validateProductCategory(trendingProduct, targetCategory)) {
-        console.log(`[Autonomous Agent] ⚠️ VALIDATION FAILED: Product "${trendingProduct}" doesn't match category "${targetCategory}". Category mismatch detected. Trying fallback.`);
-        rejectedThisRun.push(trendingProduct);
-        trendingProduct = '';
-        continue;
-      } else {
-        console.log(`[Autonomous Agent] ✅ Product "${trendingProduct}" validated for category "${targetCategory}"`);
-      }
-
-      // 3. Final duplicate check (skip if specific product requested)
-      if (!specificProduct) {
-        const exists = reviews.find(
-          (r) =>
-            r.product.toLowerCase().includes(trendingProduct.toLowerCase()) ||
-            r.slug === slugify(trendingProduct)
-        );
-        if (exists) {
-          console.log(`[Autonomous Agent] Review for "${trendingProduct}" already exists. Trying another category.`);
-          rejectedThisRun.push(trendingProduct);
-          trendingProduct = '';
-        }
-      }
-    }
-
-    if (!trendingProduct) {
-      return NextResponse.json({
-        success: false,
-        message: `Não foi possível encontrar um produto novo após ${maxAttempts} tentativas.`,
-      });
-    }
-
-    console.log(`[Autonomous Agent] Trending product found: ${trendingProduct}`);
-
-    // 4. Enrich product data from Mercado Livre API
-    let mlImageUrl = '';
-    let mlPrice = '';
-    let mlPriceOld = '';
-    let mlAffiliateUrl = buildAffiliateUrl(`https://lista.mercadolivre.com.br/${encodeURIComponent(trendingProduct)}`);
-
-    const mlTimer = createTimer();
-    try {
-      await logger.info('Fetching ML product data', 'autonomous-agent', { product: trendingProduct });
-      const mlData = await fetchMLProduct(trendingProduct);
-      if (mlData) {
-        mlImageUrl = mlData.imageUrl || '';
-        mlPrice = mlData.price || '';
-        mlPriceOld = mlData.priceOld || '';
-        mlAffiliateUrl = mlData.affiliateUrl || mlAffiliateUrl;
-        await logger.info('ML enrichment success', 'autonomous-agent', { 
-          product: trendingProduct, 
-          hasImage: !!mlImageUrl, 
-          price: mlPrice,
-          source: mlData.source,
-        });
-      } else {
-        await logger.warn('ML API returned no data', 'autonomous-agent', { product: trendingProduct });
-      }
-      await recordMetric({
-        agentName: 'autonomous-agent',
-        operation: 'ml_enrichment',
-        durationMs: mlTimer.stop(),
-        success: true,
-      });
-    } catch (mlErr: any) {
-      await logger.warn('ML API fetch failed (non-fatal)', 'autonomous-agent', { product: trendingProduct, error: mlErr.message });
-      await recordMetric({
-        agentName: 'autonomous-agent',
-        operation: 'ml_enrichment',
-        durationMs: mlTimer.stop(),
-        success: false,
-        errorMessage: mlErr.message,
-      });
-    }
-
-    // 5. Generate the review using the same flow as "Preencher com IA" button
-    const generationTimer = createTimer();
-    await logger.info('Generating review content', 'autonomous-agent', { product: trendingProduct, category: targetCategory });
     const generateResult = await generateReview({
-      product: trendingProduct,
-      category: targetCategory,
-      price: mlPrice || undefined,
-      old_price: mlPriceOld || undefined,
-      affiliate_url: mlAffiliateUrl,
-      image_url: mlImageUrl || undefined,
-      marketplace: 'Mercado Livre',
+      product: discovery.product,
+      category: discovery.category,
+      price: discovery.price || undefined,
+      old_price: discovery.priceOld || undefined,
+      affiliate_url: discovery.affiliateUrl,
+      image_url: discovery.imageUrl || undefined,
+      marketplace: discovery.marketplace,
       specs: 'Preencher',
       competitors: 'Concorrentes',
       tone: 'misto',
       site_name: 'Vetor Blog',
-      site_url: 'https://www.vetor.blog',
+      site_url: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog',
       author: 'Vetor Blog',
+      existingCategories,
     });
 
-    const d = generateResult.data;
-    await recordMetric({
-      agentName: 'autonomous-agent',
-      operation: 'generate_review',
-      durationMs: generationTimer.stop(),
-      success: true,
-      provider: generateResult.provider,
-    });
-    await logger.info('Review generation completed', 'autonomous-agent', {
-      product: trendingProduct,
-      provider: generateResult.provider,
-      seoPassed: generateResult.seo.passed,
-    });
+    const seoOutput = optimizeReviewSEO(generateResult.data, existingSlugs);
 
-    // 6. Build full review object from generated data
-    const now = new Date().toISOString();
     const reviewId = crypto.randomUUID();
-
-    // 6a. Garantia de imagem — artigo NUNCA é publicado sem imagem principal.
-    // Cadeia: ML (etapa 4) → IA → retry com variações da busca. Se nada
-    // responder, o ciclo falha aqui (sem salvar no banco, sem indexar).
-    let finalImageUrl = mlImageUrl || d.imageUrl || '';
-    if (finalImageUrl && !(await isImageReachable(finalImageUrl))) {
-      await logger.warn('Primary image unreachable, retrying with query variants', 'autonomous-agent', { product: trendingProduct, imageUrl: finalImageUrl });
-      finalImageUrl = '';
-    }
-    if (!finalImageUrl) {
-      await logger.warn('No image from ML/AI, retrying with query variants', 'autonomous-agent', { product: trendingProduct });
-      const retry = await resolveProductImage(d.product || trendingProduct);
-      finalImageUrl = retry.imageUrl;
-      if (finalImageUrl) {
-        await logger.info('Image resolved on retry', 'autonomous-agent', { product: trendingProduct, source: retry.source });
-      }
-    }
-    if (!finalImageUrl) {
-      await logger.error('Publish blocked: no reachable image found', 'autonomous-agent', new Error(`Sem imagem para "${trendingProduct}"`));
-      await recordMetric({
-        agentName: 'autonomous-agent',
-        operation: 'image_guard',
-        durationMs: 0,
-        success: false,
-        errorMessage: `Nenhuma imagem alcançável para "${trendingProduct}"`,
-      });
-      throw new Error(`Publicação bloqueada: nenhuma imagem encontrada para "${trendingProduct}". Tente outro produto.`);
-    }
-
+    const now = new Date().toISOString();
     const fullReview = {
       id: reviewId,
-      slug: slugify(d.meta?.slug || trendingProduct),
+      slug: generateResult.data.meta?.slug || slugify(discovery.product),
       status: 'published' as const,
       meta: {
-        title: d.meta?.title || `Review ${trendingProduct}: Vale a Pena?`,
-        description: d.meta?.description || `Análise completa do ${trendingProduct}.`,
-        keywords: d.meta?.keywords || trendingProduct,
-        readingTime: d.meta?.reading_time || 8,
-        canonical: d.meta?.canonical || null,
-        ogImage: d.meta?.og_image || null,
+        ...generateResult.data.meta,
+        ...seoOutput.meta,
+        readingTime: generateResult.data.meta?.reading_time || 8,
+        canonical: seoOutput.meta.canonical,
+        ogImage: generateResult.data.meta?.og_image || null,
       },
-      product: d.product || trendingProduct,
-      category: d.category || targetCategory,
-      marketplace: d.marketplace || 'Mercado Livre',
-      priceOld: d.priceOld || d.old_price || '',
-      priceNew: d.priceNew || d.price || '',
-      affiliateUrl: mlAffiliateUrl,
-      imageUrl: finalImageUrl,
+      product: generateResult.data.product || discovery.product,
+      category: generateResult.data.category || discovery.category,
+      marketplace: generateResult.data.marketplace || discovery.marketplace,
+      priceOld: generateResult.data.priceOld || generateResult.data.old_price || discovery.priceOld,
+      priceNew: generateResult.data.priceNew || generateResult.data.price || discovery.price,
+      affiliateUrl: discovery.affiliateUrl,
+      imageUrl: discovery.imageUrl,
       adsEnabled: false,
       hero: {
-        headlineLine1: d.hero?.headline_line1 || trendingProduct.toUpperCase(),
-        headlineLine2: d.hero?.headline_line2 || 'VALE A PENA COMPRAR?',
-        headlineEm: d.hero?.headline_em || trendingProduct,
-        lead: d.hero?.lead || `Análise completa do ${trendingProduct}.`,
-        overallScore: d.hero?.overall_score || 8.5,
-        bars: d.hero?.bars?.map((b: any) => ({ label: b.label, value: b.value, pct: b.pct ?? b.value * 10 })) || [],
+        headlineLine1: generateResult.data.hero?.headline_line1 || discovery.product.toUpperCase(),
+        headlineLine2: generateResult.data.hero?.headline_line2 || 'VALE A PENA COMPRAR?',
+        headlineEm: generateResult.data.hero?.headline_em || discovery.product,
+        lead: generateResult.data.hero?.lead || `Análise completa do ${discovery.product}.`,
+        overallScore: generateResult.data.hero?.overall_score || 8.5,
+        bars: generateResult.data.hero?.bars?.map((b: any) => ({ label: b.label, value: b.value, pct: b.pct ?? b.value * 10 })) || [],
       },
-      specs: d.specs || [],
-      sections: d.sections?.map((s: any) => ({
-        id: s.id, heading: s.heading,
-        tocLabel: s.toc_label, tocEmoji: s.toc_emoji, content: s.content,
+      specs: generateResult.data.specs || [],
+      sections: generateResult.data.sections?.map((s: any) => ({
+        id: s.id,
+        heading: s.heading,
+        tocLabel: s.toc_label,
+        tocEmoji: s.toc_emoji,
+        content: s.content,
       })) || [],
-      compareTable: d.compare ? {
-        caption: d.compare.caption,
-        columns: d.compare.columns,
-        winnerCol: d.compare.winner_col,
-        rows: d.compare.rows,
+      compareTable: generateResult.data.compare ? {
+        caption: generateResult.data.compare.caption,
+        columns: generateResult.data.compare.columns,
+        winnerCol: generateResult.data.compare.winner_col,
+        rows: generateResult.data.compare.rows,
       } : { caption: '', columns: [], winnerCol: 1, rows: [] },
-      pros: d.pros || [],
-      cons: d.cons || [],
+      pros: generateResult.data.pros || [],
+      cons: generateResult.data.cons || [],
       testimonials: [],
-      faq: d.faq || [],
+      faq: generateResult.data.faq || [],
       verdict: {
-        score: d.verdict?.score || 8.5,
-        label: d.verdict?.label || 'BOM CUSTO-BENEFÍCIO',
-        text: d.verdict?.text || `O ${trendingProduct} é uma excelente compra.`,
-        note: d.verdict?.note || 'Boa relação custo-benefício.',
+        score: generateResult.data.verdict?.score || 8.5,
+        label: generateResult.data.verdict?.label || 'BOM CUSTO-BENEFÍCIO',
+        text: generateResult.data.verdict?.text || `O ${discovery.product} é uma excelente compra.`,
+        note: generateResult.data.verdict?.note || 'Boa relação custo-benefício.',
       },
       schemaRating: {
-        ratingValue: d.schemas?.aggregate_rating?.rating_value || 4.5,
-        reviewCount: d.schemas?.aggregate_rating?.review_count || 5000,
+        ratingValue: generateResult.data.schemas?.aggregate_rating?.rating_value || 4.5,
+        reviewCount: generateResult.data.schemas?.aggregate_rating?.review_count || 5000,
       },
       googleRank: 0,
       lastRankCheck: now,
@@ -477,7 +163,6 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       updatedAt: now,
     };
 
-    // 7. Save to database using createReview from db.ts (handles Supabase + file fallback)
     const dbTimer = createTimer();
     try {
       await createReview({
@@ -511,7 +196,10 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
         durationMs: dbTimer.stop(),
         success: true,
       });
-      await logger.info('Review saved to database', 'autonomous-agent', { product: trendingProduct, reviewId });
+      await logger.info('Review saved to database', 'autonomous-agent', {
+        product: discovery.product,
+        reviewId,
+      });
     } catch (dbError: unknown) {
       const message = dbError instanceof Error ? dbError.message : 'Unknown DB error';
       await logger.error('Database insert failed', 'autonomous-agent', new Error(message));
@@ -525,7 +213,6 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
       throw new Error(`Database insert failed: ${message}`);
     }
 
-    // 8. Commit to GitHub → triggers Vercel redeploy with persistent data
     const gitTimer = createTimer();
     const gitResult = await commitNewReviewToGitHub(fullReview);
     await recordMetric({
@@ -537,72 +224,68 @@ Responda EXCLUSIVAMENTE com o nome exato desse produto (ex: "Sony WH-1000XM5" ou
     });
 
     if (gitResult.success) {
-      await logger.info('GitHub commit successful', 'autonomous-agent', { product: trendingProduct });
+      await logger.info('GitHub commit successful', 'autonomous-agent', {
+        product: discovery.product,
+      });
     } else {
-      await logger.warn('GitHub commit failed', 'autonomous-agent', { product: trendingProduct, error: gitResult.error });
+      await logger.warn('GitHub commit failed', 'autonomous-agent', {
+        product: discovery.product,
+        error: gitResult.error,
+      });
     }
 
-    // 9. Submit to IndexNow + Google Indexing API (fire-and-forget, don't block)
-    const _raw = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
-    const siteUrl = _raw.startsWith('http') ? _raw : `https://${_raw}`;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
     const reviewUrl = `${siteUrl}/review/${fullReview.slug}`;
+    submitUrl(reviewUrl).catch(() => {});
+    indexNewReview(fullReview.slug).catch(() => {});
 
-    submitUrl(reviewUrl).catch(e => {
-      logger.warn('IndexNow submission failed (non-fatal)', 'autonomous-agent', { error: e.message });
-    });
-    indexNewReview(fullReview.slug).catch(e => {
-      logger.warn('Google Indexing API failed (non-fatal)', 'autonomous-agent', { error: e.message });
-    });
-
-    const totalDuration = cycleTimer.stop();
+    const elapsedMs = cycleTimer.stop();
     await recordMetric({
       agentName: 'autonomous-agent',
       operation: 'full_cycle',
-      durationMs: totalDuration,
+      durationMs: elapsedMs,
       success: true,
       provider: generateResult.provider,
     });
 
     await logger.info('Autonomous cycle completed', 'autonomous-agent', {
-      product: trendingProduct,
-      category: targetCategory,
+      product: discovery.product,
+      category: discovery.category,
       provider: generateResult.provider,
       seoPassed: generateResult.seo.passed,
       githubPersisted: gitResult.success,
-      durationMs: totalDuration,
+      elapsedSeconds: Math.round(elapsedMs / 1000),
     });
 
-    // Check error rate and trigger alert if needed
-    await checkErrorRate('autonomous-agent');
+    checkErrorRate('autonomous-agent').catch(() => {});
 
     return NextResponse.json({
       success: true,
-      category: targetCategory,
-      product: trendingProduct,
+      category: discovery.category,
+      product: discovery.product,
       slug: fullReview.slug,
       provider: generateResult.provider,
       seoPassed: generateResult.seo.passed,
       githubPersisted: gitResult.success,
-      elapsedSeconds: (totalDuration / 1000).toFixed(1),
-      message: `Artigo "${trendingProduct}" gerado e publicado autonomamente.`,
+      elapsedSeconds: Math.round(elapsedMs / 1000),
+      message: `Artigo "${discovery.product}" gerado e publicado autonomamente.`,
     });
   } catch (error: any) {
-    const totalDuration = cycleTimer.stop();
-    await logger.critical('Autonomous cycle failed', 'autonomous-agent', error, {
+    const elapsedMs = cycleTimer.stop();
+    await logger.error('Autonomous cycle failed', 'autonomous-agent', error, {
       product: specificProduct || 'auto',
       category: specificCategory || 'auto',
-      durationMs: totalDuration,
+      durationMs: elapsedMs,
     });
     await recordMetric({
       agentName: 'autonomous-agent',
       operation: 'full_cycle',
-      durationMs: totalDuration,
+      durationMs: elapsedMs,
       success: false,
       errorMessage: error.message,
     });
 
-    // Check error rate after failure
-    await checkErrorRate('autonomous-agent');
+    checkErrorRate('autonomous-agent').catch(() => {});
 
     return NextResponse.json(
       { error: 'Erro no agente autônomo: ' + error.message },
@@ -620,70 +303,4 @@ function slugify(s: string) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .replace(/-+/g, '-');
-}
-
-export function validateProductCategory(product: string, category: string): boolean {
-  const productLower = product.toLowerCase();
-  
-  // Category-specific validation rules
-  const categoryRules: Record<string, { keywords: string[]; excludeKeywords: string[] }> = {
-    'Robôs Aspiradores': {
-      keywords: ['aspirador', 'robô', 'robo', 'robot', 'vacuum', 'cleaner', 'robo'],
-      excludeKeywords: ['geladeira', 'refrigerador', 'freezer', 'air fryer', 'liquidificador'],
-    },
-    'Fones de Ouvido': {
-      keywords: ['fone', 'headphone', 'earphone', 'earbuds', 'airpods', 'buds', 'xm5', 'wh-1000', 'wf-1000', 'jbl', 'qcy', 'tws', 'edifier', 'soundcore', 'tune', 'wave', 'nothing'],
-      excludeKeywords: ['aspirador', 'geladeira', 'tv', 'monitor', 'teclado', 'mouse', 'watch', 'band'],
-    },
-    'Casa Inteligente': {
-      keywords: ['inteligente', 'smart', 'alexa', 'echo', 'google home', 'sensor', 'tomada', 'lâmpada', 'lampada'],
-      excludeKeywords: ['aspirador', 'geladeira', 'cooktop', 'fogão', 'fogao'],
-    },
-    'Wearables / Smartbands': {
-      keywords: ['watch', 'band', 'smartband', 'smartwatch', 'amazfit', 'pulseira', 'relógio', 'relogio', 'fitbit', 'galaxy fit', 'mi band'],
-      excludeKeywords: ['aspirador', 'geladeira', 'fone', 'headphone'],
-    },
-    'Notebooks': {
-      keywords: ['notebook', 'laptop', 'ultrabook', 'macbook', 'ideapad', 'nitro', 'vivobook', 'book', 'chromebook', 'thinkpad', 'inspiron', 'envy', 'pavilion', 'surface laptop'],
-      excludeKeywords: ['aspirador', 'geladeira', 'tablet', 'ipad', 'fone', 'galaxy tab'],
-    },
-    'Tablets': {
-      keywords: ['tablet', 'tab', 'pad', 'ipad', 'galaxy tab'],
-      excludeKeywords: ['aspirador', 'geladeira', 'notebook', 'macbook', 'laptop', 'fone'],
-    },
-    'Câmeras de Segurança': {
-      keywords: ['câmera', 'camera', 'cctv', 'segurança', 'seguranca', 'ip camera', 'tapo', 'im3', 'id2'],
-      excludeKeywords: ['aspirador', 'geladeira', 'fone', 'watch', 'band'],
-    },
-    'Eletroportáteis': {
-      keywords: ['air fryer', 'liquidificador', 'aspirador', 'cafeteira', 'torradeira', 'batedeira', 'ar fryer', 'ventilador'],
-      excludeKeywords: ['geladeira', 'refrigerador', 'freezer', 'cooktop', 'fogão', 'fogao', 'lava-louças'],
-    },
-    'Acessórios para Games': {
-      keywords: ['gamer', 'game', 'gaming', 'playstation', 'xbox', 'nintendo', 'switch', 'dualsense', 'controle', 'controller', 'teclado', 'keyboard', 'mouse', 'headset', 'cadeira', 'webcam', 'monitor', 'mousepad', 'joystick'],
-      excludeKeywords: ['aspirador', 'geladeira', 'air fryer', 'liquidificador', 'cafeteira', 'lâmpada', 'lampada', 'echo', 'alexa', 'watch', 'mi band', 'galaxy fit', 'tapo', 'intelbras im'],
-    },
-  };
-
-  const rules = categoryRules[category];
-  if (!rules) {
-    // If no specific rules for category, allow by default
-    return true;
-  }
-
-  // Check if product contains exclude keywords
-  const hasExcludedKeyword = rules.excludeKeywords.some(keyword => 
-    productLower.includes(keyword.toLowerCase())
-  );
-  
-  if (hasExcludedKeyword) {
-    return false;
-  }
-
-  // Check if product contains at least one category keyword
-  const hasCategoryKeyword = rules.keywords.some(keyword => 
-    productLower.includes(keyword.toLowerCase())
-  );
-  
-  return hasCategoryKeyword;
 }

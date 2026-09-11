@@ -23,6 +23,12 @@ export interface VideoJob {
   error?: string | null;
   attempts?: number;
   render_engine?: 'ffmpeg' | 'remotion';
+  packagingStatus?: 'pending' | 'packaged' | 'failed';
+  viralScore?: number;
+  ctrEstimate?: number;
+  hookScore?: number;
+  retentionScore?: number;
+  source?: 'backlog' | 'fresh' | 'viral' | 'manual';
   created_at?: string;
   updated_at?: string;
 }
@@ -170,19 +176,23 @@ export async function upsertScriptJob(job: VideoJob, opts?: { force?: boolean; r
   if (existing && (existing.status === 'published' || (existing as any).youtube_video_id) && !opts?.force) {
     return 'skipped';
   }
-  await sb.from('video_jobs').upsert(
-    {
-      review_id: job.review_id,
-      slug: job.slug,
-      product: job.product,
-      status: 'script_ready',
-      script: job.script,
-      attempts: 0,
-      render_engine: opts?.renderEngine || 'ffmpeg',
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'slug' }
-  );
+  const row: Record<string, any> = {
+    review_id: job.review_id,
+    slug: job.slug,
+    product: job.product,
+    status: 'script_ready',
+    script: job.script,
+    attempts: 0,
+    render_engine: opts?.renderEngine || 'ffmpeg',
+    updated_at: new Date().toISOString(),
+  };
+  if (job.packagingStatus != null) row.packagingStatus = job.packagingStatus;
+  if (job.viralScore != null) row.viralScore = job.viralScore;
+  if (job.ctrEstimate != null) row.ctrEstimate = job.ctrEstimate;
+  if (job.hookScore != null) row.hookScore = job.hookScore;
+  if (job.retentionScore != null) row.retentionScore = job.retentionScore;
+  if (job.source != null) row.source = job.source;
+  await sb.from('video_jobs').upsert(row, { onConflict: 'slug' });
   return 'created';
 }
 
@@ -310,4 +320,65 @@ export async function getPremiumTodayCount(): Promise<number> {
     .eq('render_engine', 'remotion')
     .gte('updated_at', start.toISOString());
   return count || 0;
+}
+
+export async function getViralJobs(limit?: number): Promise<VideoJob[]> {
+  const effectiveLimit = limit ?? 20;
+  const sb = supabaseAdmin();
+  if (!sb) {
+    return readFallback()
+      .filter((j) => j.source === 'viral' && j.status === 'script_ready')
+      .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
+      .slice(0, effectiveLimit);
+  }
+  const { data } = await sb
+    .from('video_jobs')
+    .select('*')
+    .eq('source', 'viral')
+    .eq('status', 'script_ready')
+    .order('viralScore', { ascending: false })
+    .limit(Math.min(effectiveLimit, 1000));
+  return (data || []) as VideoJob[];
+}
+
+export async function getPackagingStats(): Promise<{
+  total: number;
+  pending: number;
+  packaged: number;
+  failed: number;
+  avgViralScore: number;
+  avgCtrEstimate: number;
+}> {
+  const sb = supabaseAdmin();
+  if (!sb) {
+    const all = readFallback();
+    const total = all.length;
+    const pending = all.filter((j) => j.packagingStatus === 'pending').length;
+    const packaged = all.filter((j) => j.packagingStatus === 'packaged').length;
+    const failed = all.filter((j) => j.packagingStatus === 'failed').length;
+    const withViral = all.filter((j) => j.viralScore != null);
+    const avgViralScore = withViral.length
+      ? withViral.reduce((s, j) => s + (j.viralScore ?? 0), 0) / withViral.length
+      : 0;
+    const withCtr = all.filter((j) => j.ctrEstimate != null);
+    const avgCtrEstimate = withCtr.length
+      ? withCtr.reduce((s, j) => s + (j.ctrEstimate ?? 0), 0) / withCtr.length
+      : 0;
+    return { total, pending, packaged, failed, avgViralScore, avgCtrEstimate };
+  }
+  const { data: rows } = await sb.from('video_jobs').select('packagingStatus,viralScore,ctrEstimate');
+  const all = (rows || []) as VideoJob[];
+  const total = all.length;
+  const pending = all.filter((j) => j.packagingStatus === 'pending').length;
+  const packaged = all.filter((j) => j.packagingStatus === 'packaged').length;
+  const failed = all.filter((j) => j.packagingStatus === 'failed').length;
+  const withViral = all.filter((j) => j.viralScore != null);
+  const avgViralScore = withViral.length
+    ? withViral.reduce((s, j) => s + (j.viralScore ?? 0), 0) / withViral.length
+    : 0;
+  const withCtr = all.filter((j) => j.ctrEstimate != null);
+  const avgCtrEstimate = withCtr.length
+    ? withCtr.reduce((s, j) => s + (j.ctrEstimate ?? 0), 0) / withCtr.length
+    : 0;
+  return { total, pending, packaged, failed, avgViralScore, avgCtrEstimate };
 }
