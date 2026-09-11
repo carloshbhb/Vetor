@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
+import ThemeToggle from './ThemeToggle';
 
 export default function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -20,6 +21,8 @@ export default function SiteHeader() {
           <Link href="/research" className="hover:text-text transition-colors">Pesquisa</Link>
           <Link href="/sobre" className="hover:text-text transition-colors">Sobre</Link>
         </nav>
+
+        <ThemeToggle />
 
         {/* Mobile hamburger */}
         <button

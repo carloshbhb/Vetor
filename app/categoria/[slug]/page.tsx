@@ -136,30 +136,23 @@ export default async function CategoryPage({ params }: { params: { slug: string 
 
       <SiteHeader />
 
-      {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-        <nav className="flex items-center gap-2 text-xs text-text-muted">
-          <Link href="/" className="hover:text-blue transition-colors">Home</Link>
-          <span>›</span>
-          <Link href="/" className="hover:text-blue transition-colors">Reviews</Link>
-          <span>›</span>
-          <span className="text-text font-medium">{meta.title}</span>
-        </nav>
-      </div>
-
       {/* Hero da Categoria */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 mb-10">
-        <div className="bg-white rounded-2xl border border-border p-8">
-          <div className="flex items-center gap-4">
-            <span className="text-5xl">{meta.icon}</span>
-            <div>
-              <h1 className="font-syne font-bold text-3xl text-text">{meta.title}</h1>
-              <p className="text-text-muted mt-2">{meta.desc}</p>
-              <p className="text-xs text-blue mt-3 font-medium">
-                {filteredReviews.length} review{filteredReviews.length !== 1 ? 's' : ''} publicado{filteredReviews.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-          </div>
+      <section className="relative overflow-hidden py-12 px-4 mb-8">
+        <div className="absolute inset-0 bg-cta-gradient" />
+        <div className="relative max-w-4xl mx-auto text-center text-white">
+          {/* Breadcrumb */}
+          <nav aria-label="Breadcrumb" className="mb-4">
+            <ol className="flex items-center justify-center gap-2 text-sm text-white/60">
+              <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+              <li aria-hidden="true">/</li>
+              <li className="text-white font-medium">{meta.icon} {meta.title}</li>
+            </ol>
+          </nav>
+          <h1 className="font-bebas text-5xl md:text-6xl tracking-wide mb-3">{meta.icon} {meta.title}</h1>
+          <p className="text-white/80 text-base max-w-xl mx-auto">{meta.desc}</p>
+          <p className="text-sm text-white/70 mt-3 font-medium">
+            {filteredReviews.length} review{filteredReviews.length !== 1 ? 's' : ''} publicado{filteredReviews.length !== 1 ? 's' : ''}
+          </p>
         </div>
       </section>
 

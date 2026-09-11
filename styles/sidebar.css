@@ -307,3 +307,19 @@ footer p {
     opacity: 1;
   }
 }
+
+/* ── TOC Progress Bar ── */
+.toc-progress-track {
+  height: 3px;
+  background: var(--border);
+  border-radius: 3px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.toc-progress-bar {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 3px;
+  transition: width .15s ease;
+}

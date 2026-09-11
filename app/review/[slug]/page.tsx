@@ -8,24 +8,24 @@ import { markdownToHtml } from '@/lib/markdown';
 import { buildReviewMetadata, buildArticleSchema, buildProductSchema, buildFAQSchema, buildBreadcrumbSchema } from '@/lib/seo';
 import { defaultAuthor } from '@/lib/author';
 
-import Logo         from '@/components/Logo';
 import SiteFooter   from '@/components/SiteFooter';
 import ScoreBox    from '@/components/review/ScoreBox';
-import ArticleCTA  from '@/components/review/ArticleCTA';
 import CompareCTA  from '@/components/review/CompareCTA';
 import CompareHero from '@/components/review/CompareHero';
 import SidebarCTA  from '@/components/review/SidebarCTA';
 import SpecsTable  from '@/components/review/SpecsTable';
 import CompareTable from '@/components/review/CompareTable';
-import ProsConsGrid from '@/components/review/ProsConsGrid';
-import CompareProsCons from '@/components/review/CompareProsCons';
 import VerdictBox   from '@/components/review/VerdictBox';
 import ReviewTOC    from '@/components/review/ReviewTOC';
 import Link         from 'next/link';
 import SiteHeader   from '@/components/SiteHeader';
 
 // Lazy-load below-the-fold components
+const ArticleCTA = dynamic(() => import('@/components/review/ArticleCTA'));
+const ProsConsGrid = dynamic(() => import('@/components/review/ProsConsGrid'));
+const CompareProsCons = dynamic(() => import('@/components/review/CompareProsCons'));
 const FAQAccordion = dynamic(() => import('@/components/review/FAQAccordion'));
+const MobileCTABar = dynamic(() => import('@/components/review/MobileCTABar'));
 const AdSlot = dynamic(() => import('@/components/review/AdSlot'), { ssr: false });
 const ShareButtons = dynamic(() => import('@/components/review/ShareButtons'));
 const CommentsSection = dynamic(() => import('@/components/review/CommentsSection'), { ssr: false });
@@ -428,7 +428,8 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
 
           </div>
         </div>
-      </main>
+      <MobileCTABar affiliateUrl={review.affiliateUrl} product={review.product} />
+    </main>
 
       <SiteFooter />
     </>

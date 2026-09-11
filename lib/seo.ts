@@ -81,6 +81,7 @@ export function buildReviewMetadata(review: ReviewData) {
       title:       meta.title,
       description: meta.description,
       siteName:    SITE_NAME,
+      locale:      'pt_BR',
       images:      [{ url: ogImage, width: 1200, height: 630, alt: meta.title }],
       publishedTime: review.createdAt,
       modifiedTime: review.updatedAt,
@@ -166,6 +167,7 @@ export function buildProductSchema(review: ReviewData) {
     offers: {
       '@type':         'Offer',
       url:             review.affiliateUrl || `${SITE_URL}/review/${review.slug}`,
+      name:            review.product,
       priceCurrency:   'BRL',
       price:           price,
       availability:    'https://schema.org/InStock',
@@ -262,6 +264,20 @@ export function buildBreadcrumbSchema(review: ReviewData) {
       { '@type': 'ListItem', position: 2, name: review.category || 'Geral', item: `${SITE_URL}/categoria/${categorySlug}` },
       { '@type': 'ListItem', position: 3, name: review.product, item: `${SITE_URL}/review/${review.slug}` },
     ],
+  };
+}
+
+export function buildWebSiteSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: SITE_NAME,
+    url: SITE_URL,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${SITE_URL}/research?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
   };
 }
 

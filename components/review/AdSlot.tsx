@@ -7,15 +7,18 @@ export default function AdSlot({
   format = 'auto',
   className = '',
   lazy = true,
+  sidebar = false,
 }: {
   slot?: string;
   format?: string;
   className?: string;
   lazy?: boolean;
+  sidebar?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [error, setError] = useState(false);
   const client = process.env.NEXT_PUBLIC_AD_CLIENT;
   const adSlot  = process.env.NEXT_PUBLIC_AD_SLOT || slot;
 
@@ -32,15 +35,14 @@ export default function AdSlot({
         }
       },
       {
-        rootMargin: '200px', // Start loading 200px before visible
+        rootMargin: sidebar ? '400px' : '200px',
         threshold: 0,
       }
     );
 
     observer.observe(ref.current);
-
     return () => observer.disconnect();
-  }, [lazy, hasLoaded]);
+  }, [lazy, hasLoaded, sidebar]);
 
   // Load AdSense when visible
   useEffect(() => {
@@ -49,10 +51,14 @@ export default function AdSlot({
     try {
       // @ts-ignore
       (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch {}
+    } catch {
+      setError(true);
+    }
   }, [isVisible, client]);
 
-  if (!client) return null;
+  if (!client || error) return null;
+
+  const height = sidebar ? '600px' : format === 'rectangle' ? '250px' : '90px';
 
   return (
     <div ref={ref} className={`overflow-hidden ${className}`}>
@@ -67,10 +73,9 @@ export default function AdSlot({
           data-full-width-responsive="true"
         />
       ) : (
-        /* Placeholder while loading */
         <div 
           className="bg-bg2 animate-pulse rounded-lg"
-          style={{ minHeight: format === 'rectangle' ? '250px' : '90px' }}
+          style={{ minHeight: height }}
           aria-hidden="true"
         />
       )}

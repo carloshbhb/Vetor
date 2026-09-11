@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import { Bebas_Neue, Syne, DM_Sans } from 'next/font/google';
+import ThemeProvider from '@/components/ThemeProvider';
 import './globals.css';
 import '@/styles/tokens.css';
 import '@/styles/base.css';
@@ -100,6 +101,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       </head>
       <body>
+        <ThemeProvider>
         {/* Microsoft Clarity - deferred loading */}
         <Script id="clarity-analytics" strategy="afterInteractive">
           {`(function(c,l,a,r,i,t,y){
@@ -182,6 +184,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Analytics />
         <WebVitalsReporter />
         {children}
+        </ThemeProvider>
       </body>
     </html>
   );

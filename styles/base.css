@@ -59,3 +59,108 @@ a {
     scroll-behavior: auto !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   DARK MODE
+═══════════════════════════════════════════════════════════ */
+.dark {
+  --bg: #0f172a;
+  --bg2: #1e293b;
+  --bg3: #334155;
+  --text: #f1f5f9;
+  --text2: #cbd5e1;
+  --muted: #94a3b8;
+  --border: #334155;
+  --border-hover: #475569;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.4);
+  --shadow-lg: 0 12px 30px rgba(0,0,0,.5);
+  --blue-light: rgba(37, 99, 235, .15);
+  --green-bg: rgba(34, 197, 94, .1);
+  --red-bg: rgba(239, 68, 68, .1);
+}
+
+.dark body {
+  background: #0f172a;
+  color: #f1f5f9;
+}
+
+.dark .bg-white { background: #1e293b; }
+.dark .bg-bg2 { background: #1e293b; }
+.dark .border-border { border-color: #334155; }
+.dark .text-text { color: #f1f5f9; }
+.dark .text-text-muted { color: #94a3b8; }
+.dark .text-navy { color: #e2e8f0; }
+.dark .bg-navy { background: #1e293b; }
+.dark .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+
+.dark .sidebar-cta {
+  background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+}
+
+.dark .verdict-box {
+  background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+}
+
+.dark .prose-review p strong { color: #93c5fd; }
+
+.dark .details { background: #1e293b; }
+.dark details summary:hover { background: #334155; }
+
+.dark .review-card,
+.dark .toc-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .highlight-box {
+  background: rgba(37, 99, 235, .1);
+  border-left-color: #60a5fa;
+}
+
+.dark .highlight-box p { color: #93c5fd; }
+
+.dark .score-strip {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .bar-track { background: #334155; }
+.dark .bar-fill { background: #60a5fa; }
+.dark .bar-val { color: #60a5fa; }
+.dark .score-number { color: #60a5fa; }
+
+.dark .comment-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .ficha-table { background: #1e293b; }
+.dark .ficha-table tr { border-color: #334155; }
+.dark .ficha-table td:first-child { color: #94a3b8; }
+.dark .ficha-table td:last-child { color: #f1f5f9; }
+
+.dark .btn-cta { background: #1e293b; color: #e2e8f0; }
+.dark .btn-cta:hover { background: #334155; }
+
+.dark .related-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .hero-headline { color: #f1f5f9; }
+.dark .hero-lead { color: #cbd5e1; }
+
+.dark .compare-product-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .compare-table { background: #1e293b; }
+.dark .compare-table th { background: #334155; color: #f1f5f9; }
+.dark .compare-table td { border-color: #334155; color: #cbd5e1; }
+
+.dark .share-btn { background: #334155; color: #e2e8f0; }
+.dark .share-btn:hover { background: #475569; }
+
+.dark .toast-success { background: #166534; }

@@ -1178,3 +1178,121 @@ button:focus:not(:focus-visible) {
     min-height: 44px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MICRO-INTERACTIONS
+═══════════════════════════════════════════════════════════ */
+
+/* ── Card hover lift ── */
+.review-card-link {
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.review-card-link:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, .08);
+}
+
+/* ── CTA pulse on hover ── */
+.sidebar-cta .btn-cta:hover {
+  animation: ctaPulse 1.5s ease infinite;
+}
+
+@keyframes ctaPulse {
+  0%, 100% { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+  50% { box-shadow: 0 4px 20px rgba(37, 99, 235, .3); }
+}
+
+/* ── Score number count-up feel ── */
+.score-number {
+  transition: color .3s ease;
+}
+
+.score-number:hover {
+  color: #2563eb;
+}
+
+/* ── FAQ accordion border glow ── */
+details[open] {
+  box-shadow: 0 0 0 1px var(--blue), 0 4px 16px rgba(37, 99, 235, .06);
+}
+
+/* ── Share button scale ── */
+.share-btn {
+  transition: transform .15s ease, background .15s ease, color .15s ease;
+}
+
+.share-btn:hover {
+  transform: scale(1.08);
+}
+
+.share-btn:active {
+  transform: scale(0.95);
+}
+
+/* ── Link underline animation ── */
+.article-body a,
+.toc-list a {
+  position: relative;
+}
+
+.article-body a::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--blue);
+  transition: width .2s ease;
+}
+
+.article-body a:hover::after {
+  width: 100%;
+}
+
+/* ── Toast animation ── */
+.toast-success {
+  animation: toastIn .3s ease, toastOut .3s ease 2.7s;
+}
+
+@keyframes toastIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ── Smooth image loading ── */
+.review-card img,
+.ficha-tecnica-table img {
+  transition: opacity .3s ease;
+}
+
+.review-card img[loading="lazy"],
+.ficha-tecnica-table img[loading="lazy"] {
+  opacity: 0;
+}
+
+.review-card img[loading="lazy"].loaded,
+.ficha-tecnica-table img[loading="lazy"].loaded {
+  opacity: 1;
+}
+
+/* ── Verdict score glow ── */
+.verdict-score {
+  text-shadow: 0 0 40px rgba(255, 255, 255, .2);
+}
+
+/* ── Category card hover ── */
+.category-hub-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+}
+
+.category-hub-card {
+  transition: transform .2s ease, box-shadow .2s ease;
+}

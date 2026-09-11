@@ -14,6 +14,7 @@ interface ReviewTOCProps {
 export default function ReviewTOC({ sections, hasSpecs, hasCompare, hasProsCons, hasFAQ }: ReviewTOCProps) {
   const [showToc, setShowToc] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 900px)');
@@ -46,8 +47,20 @@ export default function ReviewTOC({ sections, hasSpecs, hasCompare, hasProsCons,
     return () => io.disconnect();
   }, [sections]);
 
+  useEffect(() => {
+    const onScroll = () => {
+      const docH = document.documentElement.scrollHeight - window.innerHeight;
+      if (docH > 0) setProgress(Math.min(100, (window.scrollY / docH) * 100));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
     <div className="toc-card" role="navigation" aria-label="Sumário do artigo">
+      <div className="toc-progress-track" aria-hidden="true">
+        <div className="toc-progress-bar" style={{ width: `${progress}%` }} />
+      </div>
       <button
         type="button"
         className="toc-toggle"
