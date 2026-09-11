@@ -6,7 +6,7 @@ import { commitNewReviewToGitHub } from '@/lib/github';
 import { resolveProductImage, isImageReachable } from '@/lib/mercadolivre';
 import { submitUrl } from '@/lib/indexnow';
 import { indexNewReview } from '@/lib/google-indexing';
-import { logger, recordMetric, createTimer } from '@/lib/monitor';
+import { recordMetric, createTimer } from '@/lib/monitor';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -201,7 +201,7 @@ async function publishArticle(articleData: any, category: string): Promise<{ slu
     lastRankCheck: fullReview.lastRankCheck,
   });
 
-  const gitResult = await commitNewReviewToGitHub(fullReview);
+  await commitNewReviewToGitHub(fullReview);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
   submitUrl(`${siteUrl}/review/${fullReview.slug}`).catch(() => {});
   indexNewReview(fullReview.slug).catch(() => {});
@@ -260,7 +260,7 @@ export async function GET(req: NextRequest) {
         category,
         products: [trend.product, ...(trends.slice(1, 3).map(t => t.product))],
         type: trend.product.includes('vs') || trend.product.includes('Comparativo') ? 'comparativo' : 'top5',
-        affiliate_urls: [],
+        affiliate_urls: {} as Record<string, string>,
         site_name: 'Vetor Blog',
         site_url: siteUrl,
       });
