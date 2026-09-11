@@ -142,11 +142,11 @@ export async function publishToGoogleIndexing(url: string, type: 'URL_UPDATED' |
 
 /**
  * Indexa SÓ o que mudou (incremental) — uso correto da API dentro da cota.
- * - Reviews criados/atualizados nas últimas `recentHours` (padrão 30h);
+ * - Reviews criados/atualizados nas últimas `recentHours` (padrão 8h);
  * - Páginas estáticas + categorias só 1x/semana (segunda UTC) ou com `full=true`;
- * - Teto de `cap` URLs por execução (padrão 150, cota diária = 200).
- * Motivo: a API tem ~200 publishes/dia; reenviar o site inteiro 2x/dia estourava
- * a cota no meio da 2ª execução. E a API só *notifica* — não garante indexação.
+ * - Teto de `cap` URLs por execução (padrão 90, cota diária = 200).
+ * Motivo: a API tem ~200 publishes/dia; 2 runs × 90 = 180, sobra margem para
+ * autonomous-agent (2 publishes/dia). recentHours=8 evita overlap entre runs.
  */
 export async function indexAllPages(opts?: {
   recentHours?: number;
@@ -156,8 +156,8 @@ export async function indexAllPages(opts?: {
   const { getPublishedReviewCards } = await import('./db');
   const cards = await getPublishedReviewCards();
 
-  const recentHours = opts?.recentHours ?? Number(process.env.INDEXING_RECENT_HOURS || 30);
-  const cap = opts?.cap ?? Number(process.env.INDEXING_CAP || 150);
+  const recentHours = opts?.recentHours ?? Number(process.env.INDEXING_RECENT_HOURS || 8);
+  const cap = opts?.cap ?? Number(process.env.INDEXING_CAP || 90);
   const full = opts?.full ?? process.env.INDEXING_FULL === 'true';
   const isMonday = new Date().getUTCDay() === 1;
 

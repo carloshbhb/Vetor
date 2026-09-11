@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
 
   // Só reviews recentes (últimas 30h) + estáticas (1x/semana)
   const reviews = await getPublishedReviewCards();
-  const recentHours = Number(process.env.INDEXING_RECENT_HOURS || 30);
-  const cap = Number(process.env.INDEXING_CAP || 150);
+  const recentHours = Number(process.env.INDEXING_RECENT_HOURS || 8);
+  const cap = Number(process.env.INDEXING_CAP || 90);
   const cutoff = Date.now() - recentHours * 3600_000;
   const isMonday = new Date().getUTCDay() === 1;
 
