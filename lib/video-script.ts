@@ -36,7 +36,7 @@ export interface VideoScene {
   narration: string; // fala da cena (pt-BR)
   onScreenText: string; // texto grande na tela (máx 6 palavras)
   durationSec: number;
-  images?: string[]; // URLs das imagens para carrossel (2-3 por cena)
+  images?: string[]; // imagem real do review (preenchida pelo worker, não pela IA)
 }
 
 export interface VideoScript {
