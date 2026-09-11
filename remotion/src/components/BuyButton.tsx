@@ -27,7 +27,12 @@ export const BuyButton: React.FC<BuyButtonProps> = ({
     config: { stiffness, damping },
   });
 
-  const scale = interpolate(bounceSpring, [0, 1], [0, 1]);
+  const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+
+  // Entrance: one spring clock driving opacity + translateY + scale (never a lone fade/scale).
+  const scale = interpolate(bounceSpring, [0, 1], [0, 1], clamp);
+  const opacity = interpolate(bounceSpring, [0, 1], [0, 1], clamp);
+  const rise = interpolate(bounceSpring, [0, 1], [24, 0], clamp);
 
   const pulse = interpolate(Math.sin(frame * 0.12), [-1, 1], [1, 1.05]);
 
@@ -36,7 +41,8 @@ export const BuyButton: React.FC<BuyButtonProps> = ({
   return (
     <div
       style={{
-        transform: `scale(${scale * pulse})`,
+        transform: `translateY(${rise}px) scale(${scale * pulse})`,
+        opacity,
         background: color,
         padding: "24px 60px",
         borderRadius,

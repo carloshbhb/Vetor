@@ -1,5 +1,6 @@
-import { AbsoluteFill, Img, useCurrentFrame, spring, interpolate } from "remotion";
+import { AbsoluteFill, Img, useCurrentFrame, spring, interpolate, Easing } from "remotion";
 import { InfographicChart } from "./InfographicChart";
+import { KineticCaption } from "./KineticCaption";
 import { getImageSrc } from "../utils/images";
 
 interface ShowcaseProps {
@@ -15,8 +16,11 @@ export const Showcase: React.FC<ShowcaseProps> = ({ product, infographics, palet
 
   const hasImage = !!product.imageUrl;
 
-  // Ken Burns on background
-  const kenBurnsScale = interpolate(frame, [0, 180], [1.0, 1.06], {
+  // Ken Burns on background still: slow zoom + lateral drift.
+  const kenBurnsScale = interpolate(frame, [0, 180], [1.0, 1.1], {
+    extrapolateRight: "clamp",
+  });
+  const kenBurnsX = interpolate(frame, [0, 180], [-10, 10], {
     extrapolateRight: "clamp",
   });
 
@@ -29,7 +33,12 @@ export const Showcase: React.FC<ShowcaseProps> = ({ product, infographics, palet
     fps: 30,
     config: { stiffness: 120, damping: 18, mass: 1.2 },
   });
+  const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
   const productScale = interpolate(productSpring, [0, 1], [0.6, 1]);
+  const productRise = interpolate(productSpring, [0, 1], [60, 0], clamp);
+  const productZoom = interpolate(frame, [0, 180], [1, 1.05], {
+    extrapolateRight: "clamp",
+  });
   const productOpacity = interpolate(frame, [0, 18], [0, 1], {
     extrapolateRight: "clamp",
   });
@@ -37,14 +46,16 @@ export const Showcase: React.FC<ShowcaseProps> = ({ product, infographics, palet
   // Glow pulse
   const glowPulse = interpolate(Math.sin(frame * 0.06), [-1, 1], [0.3, 0.8]);
 
-  // Text entrance
+  // Text entrance (eased — never raw linear).
   const textEntrance = interpolate(frame, [12, 28], [0, 1], {
     extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
   });
 
-  // Infographic entrance
+  // Infographic entrance (eased — never raw linear).
   const infoEntrance = interpolate(frame, [25, 42], [0, 1], {
     extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
   });
 
   return (
@@ -59,7 +70,7 @@ export const Showcase: React.FC<ShowcaseProps> = ({ product, infographics, palet
               height: "100%",
               objectFit: "cover",
               filter: "brightness(0.3) saturate(1.3) contrast(1.1)",
-              transform: `scale(${kenBurnsScale})`,
+              transform: `scale(${kenBurnsScale}) translateX(${kenBurnsX}px)`,
             }}
           />
           {/* Cinematic gradient overlays */}
@@ -99,7 +110,7 @@ export const Showcase: React.FC<ShowcaseProps> = ({ product, infographics, palet
           <div
             style={{
               position: "relative",
-              transform: `translateY(${floatY}px) scale(${productScale})`,
+              transform: `translateY(${floatY + productRise}px) scale(${productScale * productZoom})`,
               opacity: productOpacity,
             }}
           >
@@ -168,7 +179,7 @@ export const Showcase: React.FC<ShowcaseProps> = ({ product, infographics, palet
               textShadow: `0 4px 30px rgba(0,0,0,0.8), 0 0 60px ${palette.primary}40`,
               letterSpacing: 2,
               opacity: textEntrance,
-              transform: `translateY(${interpolate(textEntrance, [0, 1], [25, 0])}px)`,
+              transform: `translateY(${interpolate(textEntrance, [0, 1], [25, 0])}px) scale(${interpolate(textEntrance, [0, 1], [0.92, 1])})`,
             }}
           >
             {onScreenText}
@@ -189,21 +200,24 @@ export const Showcase: React.FC<ShowcaseProps> = ({ product, infographics, palet
             display: "flex",
             gap: 40,
             opacity: infoEntrance,
-            transform: `translateY(${interpolate(infoEntrance, [0, 1], [35, 0])}px)`,
+            transform: `translateY(${interpolate(infoEntrance, [0, 1], [35, 0])}px) scale(${interpolate(infoEntrance, [0, 1], [0.94, 1])})`,
           }}
         >
-          {infographics.map((info, i) => (
+          {infographics.map((info, i) => {
+            const itemSpring = spring({
+              frame: frame - 28 - i * 4,
+              fps: 30,
+              config: { damping: 18, mass: 0.8, stiffness: 120 },
+            });
+            const itemOpacity = interpolate(itemSpring, [0, 1], [0, 1], clamp);
+            const itemY = interpolate(itemSpring, [0, 1], [20, 0], clamp);
+            const itemScale = interpolate(itemSpring, [0, 1], [0.94, 1], clamp);
+            return (
             <div
               key={i}
               style={{
-                opacity: interpolate(frame, [28 + i * 4, 40 + i * 4], [0, 1], {
-                  extrapolateRight: "clamp",
-                  extrapolateLeft: "clamp",
-                }),
-                transform: `translateY(${interpolate(frame, [28 + i * 4, 40 + i * 4], [20, 0], {
-                  extrapolateRight: "clamp",
-                  extrapolateLeft: "clamp",
-                })}px)`,
+                opacity: itemOpacity,
+                transform: `translateY(${itemY}px) scale(${itemScale})`,
               }}
             >
               <InfographicChart
@@ -212,11 +226,12 @@ export const Showcase: React.FC<ShowcaseProps> = ({ product, infographics, palet
                 animated={info.animated}
               />
             </div>
-          ))}
+          );
+          })}
         </div>
       </AbsoluteFill>
 
-      {/* Narration text at very bottom */}
+      {/* Narration caption at very bottom — kinetic word-by-word */}
       {narration && (
         <AbsoluteFill
           style={{
@@ -225,22 +240,15 @@ export const Showcase: React.FC<ShowcaseProps> = ({ product, infographics, palet
             paddingBottom: 90,
           }}
         >
-          <div
-            style={{
-              color: "white",
-              fontSize: 38,
-              fontWeight: 700,
-              textAlign: "center",
-              padding: "0 60px",
-              fontFamily: "Inter, system-ui, sans-serif",
-              textShadow: `0 4px 25px rgba(0,0,0,0.8), 0 0 30px ${palette.primary}20`,
-              lineHeight: 1.3,
-              opacity: interpolate(frame, [32, 48], [0, 1], { extrapolateRight: "clamp" }),
-              transform: `translateY(${interpolate(frame, [32, 48], [20, 0], { extrapolateRight: "clamp" })}px)`,
-            }}
-          >
-            {narration}
-          </div>
+          <KineticCaption
+            text={narration}
+            fontSize={38}
+            fontWeight={700}
+            color="#FFFFFF"
+            highlightColor={palette.primary}
+            wordByWord={true}
+            effect="fade_up"
+          />
         </AbsoluteFill>
       )}
     </AbsoluteFill>

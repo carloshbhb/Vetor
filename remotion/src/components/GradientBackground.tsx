@@ -1,4 +1,4 @@
-import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
+import { AbsoluteFill, useCurrentFrame, interpolate, Easing } from "remotion";
 
 interface GradientBackgroundProps {
   colors: string[];
@@ -14,7 +14,7 @@ export const GradientBackground: React.FC<GradientBackgroundProps> = ({
   const frame = useCurrentFrame();
 
   const dynamicAngle = animated
-    ? angle + interpolate(frame, [0, 90], [0, 30], { extrapolateRight: "extend" })
+    ? angle + interpolate(frame, [0, 90], [0, 30], { extrapolateRight: "extend", easing: Easing.out(Easing.sin) })
     : angle;
 
   const pulse = animated

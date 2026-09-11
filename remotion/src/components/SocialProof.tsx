@@ -13,7 +13,18 @@ export const SocialProof: React.FC<SocialProofProps> = ({
 }) => {
   const frame = useCurrentFrame();
 
-  const fadeIn = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" });
+  // Entrance: one spring clock driving opacity + translateY + scale (never a lone fade).
+  const entrance = spring({
+    frame,
+    fps: 30,
+    config: { stiffness: 140, damping: 19 },
+  });
+  const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+  const entranceOpacity = interpolate(entrance, [0, 1], [0, 1], clamp);
+  const entranceY = interpolate(entrance, [0, 1], [24, 0], clamp);
+  const entranceScale = interpolate(entrance, [0, 1], [0.94, 1], clamp);
+
+  const idleY = frame > 30 ? Math.sin(frame * 0.03) * 1.2 : 0;
 
   return (
     <div
@@ -22,17 +33,20 @@ export const SocialProof: React.FC<SocialProofProps> = ({
         flexDirection: "column",
         alignItems: "center",
         gap: 12,
-        opacity: fadeIn,
+        opacity: entranceOpacity,
+        transform: `translateY(${entranceY + idleY}px) scale(${entranceScale})`,
       }}
     >
       <div style={{ display: "flex", paddingLeft: 10 }}>
         {Array.from({ length: avatarCount }, (_, i) => {
           const slideIn = spring({
-            frame: frame - i * 3,
+            frame: frame - i * 4,
             fps: 30,
             config: { stiffness: 200, damping: 15 },
           });
-          const x = interpolate(slideIn, [0, 1], [-20, 0]);
+          const x = interpolate(slideIn, [0, 1], [-20, 0], clamp);
+          const avatarScale = interpolate(slideIn, [0, 1], [0.6, 1], clamp);
+          const avatarOpacity = interpolate(slideIn, [0, 1], [0, 1], clamp);
 
           return (
             <div
@@ -44,7 +58,8 @@ export const SocialProof: React.FC<SocialProofProps> = ({
                 background: `hsl(${i * 60 + 260}, 70%, 60%)`,
                 border: "3px solid #0A0A0F",
                 marginLeft: i > 0 ? -12 : 0,
-                transform: `translateX(${x}px)`,
+                transform: `translateX(${x}px) scale(${avatarScale})`,
+                opacity: avatarOpacity,
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
@@ -58,11 +73,34 @@ export const SocialProof: React.FC<SocialProofProps> = ({
       </div>
 
       <div style={{ display: "flex", gap: 4 }}>
-        {Array.from({ length: stars }, (_, i) => (
-          <span key={i} style={{ fontSize: 24, color: "#FFD700" }}>
-            ★
-          </span>
-        ))}
+        {Array.from({ length: stars }, (_, i) => {
+          const starSpring = spring({
+            frame: frame - 10 - i * 4,
+            fps: 30,
+            config: { stiffness: 300, damping: 12 },
+          });
+          const starScale = interpolate(starSpring, [0, 1], [0, 1], clamp);
+          const starOpacity = interpolate(
+            frame,
+            [10 + i * 4, 15 + i * 4],
+            [0, 1],
+            clamp
+          );
+          return (
+            <span
+              key={i}
+              style={{
+                fontSize: 24,
+                color: "#FFD700",
+                display: "inline-block",
+                opacity: starOpacity,
+                transform: `scale(${starScale})`,
+              }}
+            >
+              ★
+            </span>
+          );
+        })}
       </div>
 
       <div

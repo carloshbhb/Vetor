@@ -1,4 +1,4 @@
-import { AbsoluteFill, Img, useCurrentFrame, interpolate, spring } from "remotion";
+import { AbsoluteFill, Img, useCurrentFrame, useVideoConfig, interpolate, spring } from "remotion";
 import { GradientBackground } from "./GradientBackground";
 import { KineticCaption } from "./KineticCaption";
 import { QRCodeAnimated } from "./QRCodeAnimated";
@@ -25,17 +25,32 @@ interface CTAProps {
 
 export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
   const frame = useCurrentFrame();
+  const { height } = useVideoConfig();
   const { visual, narration } = section;
+
+  // Scale-to-fit: the CTA stack is designed for 1080x1920; when rendered at a
+  // shorter height (e.g. landscape payload), shrink uniformly about the top so
+  // QR / button / social proof stay inside safe margins. Neutral (=1) at 1920+.
+  const fit = Math.min(1, height / 1920);
 
   const hasImage = !!visual.backgroundImage;
 
-  // Entrance animations
-  const entranceProgress = interpolate(frame, [0, 20], [0, 1], {
-    extrapolateRight: "clamp",
+  // Entrance: one spring clock driving opacity + translateY + scale.
+  const entranceSpring = spring({
+    frame,
+    fps: 30,
+    config: { stiffness: 140, damping: 19 },
   });
+  const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+  const entranceOpacity = interpolate(entranceSpring, [0, 1], [0, 1], clamp);
+  const entranceY = interpolate(entranceSpring, [0, 1], [30, 0], clamp);
+  const entranceScale = interpolate(entranceSpring, [0, 1], [0.94, 1], clamp);
 
   // Ken Burns for background
   const kenBurnsScale = interpolate(frame, [0, 180], [1.05, 1.15], {
+    extrapolateRight: "clamp",
+  });
+  const kenBurnsX = interpolate(frame, [0, 180], [-10, 10], {
     extrapolateRight: "clamp",
   });
 
@@ -46,9 +61,14 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
     config: { stiffness: 150, damping: 20, mass: 1.1 },
   });
   const productScale = interpolate(productSpring, [0, 1], [0.5, 1]);
-  const productOpacity = interpolate(frame, [8, 22], [0, 1], {
+  const productRise = interpolate(productSpring, [0, 1], [60, 0], clamp);
+  // Idle micro-movement on the hero + slow Ken Burns zoom (no frozen photos).
+  const floatY = interpolate(Math.sin(frame * 0.05), [-1, 1], [-7, 7]);
+  const productZoom = interpolate(frame, [8, 188], [1, 1.05], {
     extrapolateRight: "clamp",
   });
+  const productOpacitySpring = spring({ frame: frame - 8, fps: 30, config: { damping: 18, mass: 0.8, stiffness: 120 } });
+  const productOpacity = interpolate(productOpacitySpring, [0, 1], [0, 1], clamp);
 
   // Glow pulse
   const glowPulse = interpolate(Math.sin(frame * 0.1), [-1, 1], [0.4, 0.9]);
@@ -73,7 +93,7 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
               height: "100%",
               objectFit: "cover",
               filter: "blur(30px) brightness(0.2) saturate(0.5)",
-              transform: `scale(${kenBurnsScale})`,
+              transform: `scale(${kenBurnsScale}) translateX(${kenBurnsX}px)`,
             }}
           />
           <AbsoluteFill
@@ -95,10 +115,12 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
         <GradientBackground colors={visual.background.colors} angle={visual.background.angle} animated={false} />
       )}
 
-      {/* Main content container */}
+      {/* Main content container — fit scaler + spring entrance (opacity + rise + scale) */}
+      <AbsoluteFill style={{ transform: `scale(${fit})`, transformOrigin: "top center" }}>
       <AbsoluteFill
         style={{
-          opacity: entranceProgress,
+          opacity: entranceOpacity,
+          transform: `translateY(${entranceY}px) scale(${entranceScale})`,
           flexDirection: "column",
           justifyContent: "flex-start",
           alignItems: "center",
@@ -109,7 +131,6 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
         <div
           style={{
             marginBottom: 30,
-            transform: `translateY(${interpolate(entranceProgress, [0, 1], [30, 0])}px)`,
           }}
         >
           <KineticCaption
@@ -130,7 +151,7 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
               position: "relative",
               marginBottom: 25,
               opacity: staggerDelay(0),
-              transform: `scale(${productScale})`,
+              transform: `translateY(${floatY + interpolate(staggerDelay(0), [0, 1], [40, 0])}px) scale(${productScale * productZoom})`,
             }}
           >
             {/* Outer glow ring */}
@@ -183,7 +204,7 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
           <div style={{ 
             marginBottom: 25,
             opacity: staggerDelay(1),
-            transform: `translateY(${interpolate(staggerDelay(1), [0, 1], [20, 0])}px)`,
+            transform: `translateY(${interpolate(staggerDelay(1), [0, 1], [20, 0])}px) scale(${interpolate(staggerDelay(1), [0, 1], [0.9, 1])})`,
           }}>
             <UrgencyCounter
               text={visual.urgency.text}
@@ -199,7 +220,7 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
           <div style={{ 
             marginBottom: 20,
             opacity: staggerDelay(2),
-            transform: `scale(${interpolate(staggerDelay(2), [0, 1], [0.8, 1])})`,
+            transform: `translateY(${interpolate(staggerDelay(2), [0, 1], [20, 0])}px) scale(${interpolate(staggerDelay(2), [0, 1], [0.8, 1])})`,
           }}>
             <QRCodeAnimated
               url={visual.qr_code.url}
@@ -213,7 +234,7 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
         <div style={{ 
           marginBottom: 25,
           opacity: staggerDelay(3),
-          transform: `scale(${interpolate(staggerDelay(3), [0, 1], [0.7, 1])})`,
+          transform: `translateY(${interpolate(staggerDelay(3), [0, 1], [20, 0])}px) scale(${interpolate(staggerDelay(3), [0, 1], [0.7, 1])})`,
         }}>
           <BuyButton
             text={visual.buy_button.text}
@@ -229,6 +250,7 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
         {/* Social Proof */}
         <div style={{
           opacity: staggerDelay(4),
+          transform: `translateY(${interpolate(staggerDelay(4), [0, 1], [16, 0])}px) scale(${interpolate(staggerDelay(4), [0, 1], [0.92, 1])})`,
         }}>
           <SocialProof
             stars={visual.social_proof.stars}
@@ -236,6 +258,7 @@ export const CTA: React.FC<CTAProps> = ({ section, palette }) => {
             avatarCount={visual.social_proof.avatars.count}
           />
         </div>
+      </AbsoluteFill>
       </AbsoluteFill>
     </AbsoluteFill>
   );

@@ -21,14 +21,13 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: meta.palette.dark }}>
-      <Audio src={staticFile("audio/full.mp3")} volume={1} />
-
       {/* Hook Section */}
       {hookSection && (
         <Sequence
           from={hookSection.startFrame}
           durationInFrames={hookSection.endFrame - hookSection.startFrame}
         >
+          <Audio src={staticFile("audio/hook.mp3")} volume={1} />
           <Hook section={hookSection} palette={meta.palette} />
         </Sequence>
       )}
@@ -39,6 +38,7 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
           from={psSection.startFrame}
           durationInFrames={psSection.endFrame - psSection.startFrame}
         >
+          <Audio src={staticFile("audio/problem_solution.mp3")} volume={1} />
           <ProblemSolution section={psSection} palette={meta.palette} />
         </Sequence>
       )}
@@ -49,11 +49,25 @@ export const ShortVideo: React.FC<ShortVideoProps> = ({ data }) => {
           from={ctaSection.startFrame}
           durationInFrames={ctaSection.endFrame - ctaSection.startFrame}
         >
+          <Audio src={staticFile("audio/cta.mp3")} volume={1} />
           <CTA section={ctaSection} palette={meta.palette} />
         </Sequence>
       )}
 
-      {/* Film Grain + Vignette Overlay - always on top */}
+      {/* Layer 4 — color grading: gentle contrast S-curve + brand tint wash */}
+      <AbsoluteFill
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 22%, transparent 78%, rgba(0,0,0,0.22) 100%)",
+        }}
+      />
+      <AbsoluteFill
+        style={{
+          background: `linear-gradient(135deg, ${meta.palette.primary}0D 0%, transparent 40%, rgba(0,0,20,0.12) 100%)`,
+        }}
+      />
+
+      {/* Layer 5 — film grain + vignette overlay, always on top */}
       <FilmGrain intensity={0.03} vignette={true} vignetteIntensity={0.55} />
     </AbsoluteFill>
   );

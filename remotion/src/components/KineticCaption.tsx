@@ -52,7 +52,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
             case "glow":
               return {
                 scale: interpolate(scaleSpring, [0, 1], [0.6, 1]),
-                translateY: 0,
+                translateY: interpolate(scaleSpring, [0, 1], [14, 0]),
                 glow: interpolate(localFrame, [0, 10], [0, 1], {
                   extrapolateRight: "clamp",
                 }),
@@ -82,24 +82,36 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
             case "fade_up":
               return {
                 scale: interpolate(scaleSpring, [0, 1], [0.9, 1]),
-                translateY: interpolate(localFrame, [0, 10], [35, 0], {
-                  extrapolateRight: "clamp",
-                }),
+                translateY: interpolate(
+                  spring({
+                    frame: localFrame,
+                    fps: 30,
+                    config: { damping: 18, mass: 0.8, stiffness: 120 },
+                  }),
+                  [0, 1],
+                  [35, 0]
+                ),
                 glow: 0,
               };
             default:
               return {
                 scale: interpolate(scaleSpring, [0, 1], [0.3, 1]),
-                translateY: 0,
+                translateY: interpolate(scaleSpring, [0, 1], [14, 0]),
                 glow: 0,
               };
           }
         };
 
         const { scale, translateY, glow } = getEffect();
-        const opacity = interpolate(localFrame, [0, 5], [0, 1], {
-          extrapolateRight: "clamp",
-        });
+        const opacity = interpolate(
+          spring({
+            frame: localFrame,
+            fps: 30,
+            config: { damping: 18, mass: 0.8, stiffness: 120 },
+          }),
+          [0, 1],
+          [0, 1]
+        );
 
         const isActive =
           frame >= delay && frame < delay + framesPerWord * 2;

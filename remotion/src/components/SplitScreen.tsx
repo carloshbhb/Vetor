@@ -1,4 +1,5 @@
 import { AbsoluteFill, Img, useCurrentFrame, interpolate, spring } from "remotion";
+import { KineticCaption } from "./KineticCaption";
 import { getImageSrc } from "../utils/images";
 
 interface SplitScreenProps {
@@ -13,29 +14,34 @@ export const SplitScreen: React.FC<SplitScreenProps> = ({ left, right, palette, 
 
   const imageUrl = left.imageUrl || right.imageUrl;
 
-  // Ken Burns on background
-  const kenBurnsScale = interpolate(frame, [0, 180], [1.0, 1.08], {
+  // Ken Burns on background still: slow zoom + lateral drift.
+  const kenBurnsScale = interpolate(frame, [0, 180], [1.0, 1.12], {
+    extrapolateRight: "clamp",
+  });
+  const kenBurnsX = interpolate(frame, [0, 180], [-10, 10], {
     extrapolateRight: "clamp",
   });
 
-  // Product entrance
+  // Product entrance: one spring clock driving opacity + translateY + scale.
   const productSpring = spring({
     frame: frame - 5,
     fps: 30,
     config: { stiffness: 120, damping: 18 },
   });
+  const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
   const productScale = interpolate(productSpring, [0, 1], [0.7, 1]);
+  const productRise = interpolate(productSpring, [0, 1], [50, 0], clamp);
+  // Idle micro-movement: sine breathing on the hero + slow Ken Burns zoom.
+  const floatY = interpolate(Math.sin(frame * 0.05), [-1, 1], [-8, 8]);
+  const productZoom = interpolate(frame, [5, 185], [1, 1.05], {
+    extrapolateRight: "clamp",
+  });
   const productOpacity = interpolate(frame, [5, 18], [0, 1], {
     extrapolateRight: "clamp",
   });
 
   // Glow pulse
   const glowPulse = interpolate(Math.sin(frame * 0.07), [-1, 1], [0.3, 0.7]);
-
-  // Text entrance
-  const textEntrance = interpolate(frame, [15, 30], [0, 1], {
-    extrapolateRight: "clamp",
-  });
 
   return (
     <AbsoluteFill>
@@ -48,7 +54,7 @@ export const SplitScreen: React.FC<SplitScreenProps> = ({ left, right, palette, 
               width: "100%",
               height: "100%",
               objectFit: "cover",
-              transform: `scale(${kenBurnsScale})`,
+              transform: `scale(${kenBurnsScale}) translateX(${kenBurnsX}px)`,
               filter: "brightness(0.4) saturate(1.2) contrast(1.05)",
             }}
           />
@@ -103,7 +109,7 @@ export const SplitScreen: React.FC<SplitScreenProps> = ({ left, right, palette, 
                 width: 750,
                 height: 750,
                 objectFit: "contain",
-                transform: `scale(${productScale})`,
+                transform: `translateY(${floatY + productRise}px) scale(${productScale * productZoom})`,
                 filter: `drop-shadow(0 25px 60px rgba(0,0,0,0.6)) drop-shadow(0 0 50px ${palette.primary}35)`,
                 opacity: productOpacity,
               }}
@@ -112,7 +118,7 @@ export const SplitScreen: React.FC<SplitScreenProps> = ({ left, right, palette, 
         )}
       </AbsoluteFill>
 
-      {/* Bottom text area with entrance animation */}
+      {/* Bottom caption area — frame-synced kinetic word-by-word captions */}
       <AbsoluteFill
         style={{
           justifyContent: "flex-end",
@@ -121,22 +127,15 @@ export const SplitScreen: React.FC<SplitScreenProps> = ({ left, right, palette, 
         }}
       >
         {narration && (
-          <div
-            style={{
-              color: "white",
-              fontSize: 44,
-              fontWeight: 800,
-              textAlign: "center",
-              padding: "0 60px",
-              fontFamily: "Inter, system-ui, sans-serif",
-              textShadow: `0 4px 25px rgba(0,0,0,0.8), 0 0 40px ${palette.primary}30`,
-              lineHeight: 1.3,
-              opacity: textEntrance,
-              transform: `translateY(${interpolate(textEntrance, [0, 1], [25, 0])}px)`,
-            }}
-          >
-            {narration}
-          </div>
+          <KineticCaption
+            text={narration}
+            fontSize={44}
+            fontWeight={800}
+            color="#FFFFFF"
+            highlightColor={palette.primary}
+            wordByWord={true}
+            effect="fade_up"
+          />
         )}
       </AbsoluteFill>
     </AbsoluteFill>

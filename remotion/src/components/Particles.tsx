@@ -1,4 +1,4 @@
-import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
+import { AbsoluteFill, useCurrentFrame, interpolate, Easing } from "remotion";
 
 interface ParticlesProps {
   count: number;
@@ -16,8 +16,11 @@ export const Particles: React.FC<ParticlesProps> = ({ count, color, speed }) => 
     const animDelay = (seed % 30);
 
     const progress = ((frame * speed * 0.5 + animDelay) % 120) / 120;
-    const yOffset = interpolate(progress, [0, 1], [110, -10]);
-    const opacity = interpolate(progress, [0, 0.1, 0.9, 1], [0, 0.6, 0.6, 0]);
+    const easedProgress = interpolate(progress, [0, 1], [0, 1], {
+      easing: Easing.inOut(Easing.sin),
+    });
+    const yOffset = interpolate(easedProgress, [0, 1], [110, -10]);
+    const opacity = interpolate(easedProgress, [0, 0.1, 0.9, 1], [0, 0.6, 0.6, 0]);
 
     return (
       <div

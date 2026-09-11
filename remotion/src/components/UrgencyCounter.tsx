@@ -15,6 +15,17 @@ export const UrgencyCounter: React.FC<UrgencyCounterProps> = ({
 }) => {
   const frame = useCurrentFrame();
 
+  // Entrance: one spring clock driving opacity + translateY + scale.
+  const entrance = spring({
+    frame,
+    fps: 30,
+    config: { stiffness: 140, damping: 19 },
+  });
+  const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+  const entranceOpacity = interpolate(entrance, [0, 1], [0, 1], clamp);
+  const entranceY = interpolate(entrance, [0, 1], [28, 0], clamp);
+  const entranceScale = interpolate(entrance, [0, 1], [0.92, 1], clamp);
+
   const pulse = interpolate(Math.sin(frame * 0.15), [-1, 1], [1, 1.08]);
 
   const countdown = Math.max(1, startValue - Math.floor(frame / 20));
@@ -32,7 +43,8 @@ export const UrgencyCounter: React.FC<UrgencyCounterProps> = ({
         flexDirection: "column",
         alignItems: "center",
         gap: 12,
-        transform: `scale(${pulse})`,
+        opacity: entranceOpacity,
+        transform: `translateY(${entranceY}px) scale(${entranceScale * pulse})`,
       }}
     >
       <div

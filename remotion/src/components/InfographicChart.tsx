@@ -25,9 +25,11 @@ export const InfographicChart: React.FC<InfographicChartProps> = ({
     const circumference = 2 * Math.PI * 80;
     const strokeDashoffset = circumference * (1 - progress);
 
+    const idleY = frame > 30 ? Math.sin(frame * 0.03) * 1.5 : 0;
+
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-        <svg width="200" height="200" viewBox="0 0 200 200">
+        <svg width="200" height="200" viewBox="0 0 200 200" style={{ transform: `translateY(${idleY}px)` }}>
           <circle
             cx="100"
             cy="100"

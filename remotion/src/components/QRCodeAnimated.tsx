@@ -16,15 +16,29 @@ export const QRCodeAnimated: React.FC<QRCodeAnimatedProps> = ({ url, size, delay
     config: { stiffness: 200, damping: 10 },
   });
 
-  const scale = interpolate(scaleSpring, [0, 1], [0, 1]);
-  const opacity = interpolate(localFrame, [0, 5], [0, 1], { extrapolateRight: "clamp" });
+  const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+
+  // Entrance: one spring clock driving opacity + translateY + scale.
+  const scale = interpolate(scaleSpring, [0, 1], [0, 1], clamp);
+  const opacity = interpolate(
+    spring({
+      frame: localFrame,
+      fps: 30,
+      config: { damping: 18, mass: 0.8, stiffness: 120 },
+    }),
+    [0, 1],
+    [0, 1]
+  );
+  const rise = interpolate(scaleSpring, [0, 1], [28, 0], clamp);
+  // Idle micro-movement: gentle sine breathing so the QR never sits frozen.
+  const breathe = interpolate(Math.sin(frame * 0.06), [-1, 1], [-5, 5]);
 
   const qrModules = generateQRPattern(url, 21);
 
   return (
     <div
       style={{
-        transform: `scale(${scale})`,
+        transform: `translateY(${rise + breathe}px) scale(${scale})`,
         opacity,
         display: "flex",
         flexDirection: "column",
