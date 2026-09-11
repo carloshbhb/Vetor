@@ -141,6 +141,15 @@ async function renderJob(job) {
       console.warn('[3/5] Review fetch failed:', e.message);
     }
 
+    // Skip jobs without meli.la affiliate URL
+    const affiliateUrl = reviewData.affiliate_url || '';
+    if (!affiliateUrl || !affiliateUrl.includes('meli')) {
+      const skipErr = `SKIP no-meli-url: affiliate_url=${affiliateUrl || 'empty'}`;
+      await sb.from('video_jobs').update({ status: 'failed', error: skipErr }).eq('slug', slug);
+      console.warn(`[SKIP] ${slug}: ${skipErr}`);
+      return 'failed';
+    }
+
     const isLongForm = script.estimatedSeconds > 60;
     const convertFn = isLongForm ? convertVideoScriptToLongFormData : convertVideoScriptToRemotionData;
     const remotionData = convertFn(
@@ -263,10 +272,9 @@ async function renderJob(job) {
 
     // ── 5. Upload para YouTube ───────────────────────────────────────────
     console.log('[5/5] Subindo ao YouTube...');
-    const affiliateUrl = reviewData.affiliate_url || `${BASE}/review/${slug}`;
     const description =
       `${script.description || ''}` +
-      (affiliateUrl ? `\n\n🛒 Ver oferta: ${affiliateUrl}` : '') +
+      `\n\n🛒 Ver oferta: ${affiliateUrl}` +
       `\n📝 Review completo: ${BASE}/review/${slug}`;
 
     const up = await uploadToYoutube(outputPath, {
