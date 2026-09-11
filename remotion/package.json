@@ -17,6 +17,7 @@
     "@remotion/lambda": "^4.0.523",
     "@remotion/renderer": "^4.0.0",
     "@remotion/transitions": "^4.0.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "remotion": "^4.0.0"

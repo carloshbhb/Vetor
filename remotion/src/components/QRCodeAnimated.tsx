@@ -1,4 +1,5 @@
-import { useCurrentFrame, spring, interpolate } from "remotion";
+import { useCurrentFrame, spring, interpolate, staticFile } from "remotion";
+import { useState, useEffect } from "react";
 
 interface QRCodeAnimatedProps {
   url: string;
@@ -9,6 +10,24 @@ interface QRCodeAnimatedProps {
 export const QRCodeAnimated: React.FC<QRCodeAnimatedProps> = ({ url, size, delay }) => {
   const frame = useCurrentFrame();
   const localFrame = Math.max(0, frame - delay);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Generate QR code as data URL
+    import("qrcode").then((QRCode) => {
+      QRCode.toDataURL(url, {
+        width: size,
+        margin: 2,
+        color: {
+          dark: "#0A0A0F",
+          light: "#FFFFFF",
+        },
+        errorCorrectionLevel: "H",
+      }).then((dataUrl) => {
+        setQrDataUrl(dataUrl);
+      });
+    });
+  }, [url, size]);
 
   const scaleSpring = spring({
     frame: localFrame,
@@ -33,8 +52,6 @@ export const QRCodeAnimated: React.FC<QRCodeAnimatedProps> = ({ url, size, delay
   // Idle micro-movement: gentle sine breathing so the QR never sits frozen.
   const breathe = interpolate(Math.sin(frame * 0.06), [-1, 1], [-5, 5]);
 
-  const qrModules = generateQRPattern(url, 21);
-
   return (
     <div
       style={{
@@ -54,24 +71,30 @@ export const QRCodeAnimated: React.FC<QRCodeAnimatedProps> = ({ url, size, delay
           borderRadius: 16,
           padding: 16,
           boxShadow: "0 10px 40px rgba(108, 92, 231, 0.4)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        <svg viewBox={`0 0 ${qrModules.length} ${qrModules.length}`} width="100%" height="100%">
-          {qrModules.map((row, y) =>
-            row.map((cell, x) =>
-              cell ? (
-                <rect
-                  key={`${x}-${y}`}
-                  x={x}
-                  y={y}
-                  width={1}
-                  height={1}
-                  fill="#0A0A0F"
-                />
-              ) : null
-            )
-          )}
-        </svg>
+        {qrDataUrl ? (
+          <img
+            src={qrDataUrl}
+            style={{
+              width: size - 32,
+              height: size - 32,
+            }}
+          />
+        ) : (
+          // Loading placeholder
+          <div
+            style={{
+              width: size - 32,
+              height: size - 32,
+              background: "#f0f0f0",
+              borderRadius: 8,
+            }}
+          />
+        )}
       </div>
       <div
         style={{
@@ -85,46 +108,3 @@ export const QRCodeAnimated: React.FC<QRCodeAnimatedProps> = ({ url, size, delay
     </div>
   );
 };
-
-function generateQRPattern(_data: string, size: number): boolean[][] {
-  const grid: boolean[][] = Array.from({ length: size }, () =>
-    Array.from({ length: size }, () => false)
-  );
-
-  const drawFinder = (startX: number, startY: number) => {
-    for (let y = 0; y < 7; y++) {
-      for (let x = 0; x < 7; x++) {
-        if (
-          y === 0 || y === 6 || x === 0 || x === 6 ||
-          (y >= 2 && y <= 4 && x >= 2 && x <= 4)
-        ) {
-          grid[startY + y][startX + x] = true;
-        }
-      }
-    }
-  };
-
-  drawFinder(0, 0);
-  drawFinder(size - 7, 0);
-  drawFinder(0, size - 7);
-
-  for (let i = 8; i < size - 8; i++) {
-    if (i % 2 === 0) grid[6][i] = true;
-    grid[i][6] = true;
-  }
-
-  let hash = 0;
-  for (let i = 0; i < _data.length; i++) {
-    hash = (hash * 31 + _data.charCodeAt(i)) | 0;
-  }
-
-  for (let y = 9; y < size - 9; y++) {
-    for (let x = 9; x < size - 9; x++) {
-      if (((hash * (x + y + 1)) & 0xFF) > 140) {
-        grid[y][x] = true;
-      }
-    }
-  }
-
-  return grid;
-}
