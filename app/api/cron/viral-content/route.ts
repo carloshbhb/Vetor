@@ -273,14 +273,35 @@ export async function GET(req: NextRequest) {
       const genTimer = createTimer();
 
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
-      const genResult = await generateViralArticle({
-        category,
-        products: [trend.product, ...(trends.slice(1, 3).map(t => t.product))],
-        type: trend.product.includes('vs') || trend.product.includes('Comparativo') ? 'comparativo' : 'top5',
-        affiliate_urls: {} as Record<string, string>,
-        site_name: 'Vetor Blog',
-        site_url: siteUrl,
-      });
+      let genResult = null;
+      let lastError = null;
+
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          genResult = await generateViralArticle({
+            category,
+            products: [trend.product, ...(trends.slice(1, 3).map(t => t.product))],
+            type: trend.product.includes('vs') || trend.product.includes('Comparativo') ? 'comparativo' : 'top5',
+            affiliate_urls: {} as Record<string, string>,
+            site_name: 'Vetor Blog',
+            site_url: siteUrl,
+          });
+          break;
+        } catch (err: any) {
+          lastError = err;
+          console.warn(`[ViralContent] Generation attempt ${attempt}/3 failed: ${err.message}`);
+          if (attempt < 3) {
+            console.log(`[ViralContent] Waiting 30s before retry...`);
+            await new Promise(r => setTimeout(r, 30000));
+          }
+        }
+      }
+
+      if (!genResult) {
+        errors.push({ category, product: trend.product, error: lastError?.message || 'Generation failed' });
+        console.warn(`[ViralContent] All generation attempts failed for ${trend.product}`);
+        continue;
+      }
 
       await recordMetric({
         agentName: 'viral-content',
