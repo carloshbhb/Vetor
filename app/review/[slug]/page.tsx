@@ -228,7 +228,6 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
               <ShareButtons
                 url={`${SITE_URL}/review/${review.slug}`}
                 title={review.meta.title}
-                description={review.meta.description}
               />
             </div>
 

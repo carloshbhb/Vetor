@@ -44,7 +44,7 @@ export default function ReviewTOC({ sections, hasSpecs, hasCompare, hasProsCons,
 
     headings.forEach((h) => io.observe(h));
     return () => io.disconnect();
-  }, [sections, showToc]);
+  }, [sections]);
 
   return (
     <div className="toc-card" role="navigation" aria-label="Sumário do artigo">

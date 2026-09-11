@@ -1116,3 +1116,15 @@ button:focus:not(:focus-visible) {
   opacity: .7;
   margin-top: 8px;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   TOUCH TARGETS — Minimum 44x44px for mobile accessibility
+═══════════════════════════════════════════════════════════ */
+@media (pointer: coarse) {
+  .share-btn,
+  .toc-toggle,
+  nav a {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

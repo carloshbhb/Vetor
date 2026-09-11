@@ -69,7 +69,7 @@ export default function AdSlot({
       ) : (
         /* Placeholder while loading */
         <div 
-          className="bg-gray-100 animate-pulse rounded-lg"
+          className="bg-bg2 animate-pulse rounded-lg"
           style={{ minHeight: format === 'rectangle' ? '250px' : '90px' }}
           aria-hidden="true"
         />

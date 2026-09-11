@@ -148,7 +148,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
       </div>
 
       {/* Hero da Categoria */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 mb-10">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 mb-10">
         <div className="bg-white rounded-2xl border border-border p-8">
           <div className="flex items-center gap-4">
             <span className="text-5xl">{meta.icon}</span>

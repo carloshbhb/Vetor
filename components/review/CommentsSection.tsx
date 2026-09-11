@@ -144,6 +144,8 @@ export default function CommentsSection({ reviewId, reviewSlug }: CommentsSectio
                 type="button"
                 onClick={() => setRating(star === rating ? 0 : star)}
                 className="text-2xl transition-colors"
+                aria-label={`Avaliar com ${star} estrela${star > 1 ? 's' : ''}`}
+                aria-pressed={star <= rating}
               >
                 {star <= rating ? '⭐' : '☆'}
               </button>
