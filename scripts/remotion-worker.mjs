@@ -107,9 +107,17 @@ try {
   // ── 1. Gerar áudio com edge-tts ──────────────────────────────────────────
   console.log('[1/5] Gerando áudio...');
   writeFileSync(txt, script.fullNarration || '', 'utf8');
-  run(
-    `python -m edge_tts --voice ${TTS_VOICE} --file "${txt}" --write-media "${mp3}" --write-subtitles "${srt}"`
-  );
+  try {
+    run(
+      `edge-tts --voice ${TTS_VOICE} --file "${txt}" --write-media "${mp3}" --write-subtitles "${srt}"`
+    );
+  } catch (e) {
+    console.warn('edge-tts com legendas falhou, tentando python -m edge_tts:', e.message?.slice(0, 120));
+    run(
+      `python -m edge_tts --voice ${TTS_VOICE} --file "${txt}" --write-media "${mp3}" --write-subtitles "${srt}"`
+    );
+  }
+  if (!existsSync(mp3)) throw new Error(`TTS falhou: ${slug}.mp3 ausente`);
 
   // ── 2. Preparar áudio para Remotion ────────────────────────────────────
   console.log('[2/5] Preparando áudio...');
@@ -136,7 +144,7 @@ try {
     console.warn('[Remotion Worker] Review fetch failed:', e.message);
   }
 
-  const isLongForm = job.render_engine === 'remotion';
+  const isLongForm = (script.estimatedSeconds || 0) > 60;
   const convertFn = isLongForm ? convertVideoScriptToLongFormData : convertVideoScriptToRemotionData;
   const remotionData = convertFn(
     script,
@@ -223,6 +231,25 @@ try {
   );
 
   console.log(`[3/5] Review image: ${remotionData.meta.productImage ? '✓ ' + remotionData.meta.productImage.slice(0, 80) : '✗ empty'}`);
+
+  // ── 3c. Gerar QR code como PNG estático (obrigatório p/ ShortVideo/LongVideo) ──
+  console.log('[3c/5] Gerando QR code...');
+  const QRCode = await import('qrcode');
+  const qrDir = path.join(REMOTION_DIR, 'public');
+  if (!existsSync(qrDir)) mkdirSync(qrDir, { recursive: true });
+  const qrPath = path.join(qrDir, 'qr.png');
+  const qrTarget = reviewData.affiliate_url || `${BASE}/review/${slug}`;
+  if (qrTarget) {
+    await QRCode.toFile(qrPath, qrTarget, {
+      width: 400,
+      margin: 2,
+      color: { dark: '#000000', light: '#FFFFFF' },
+      errorCorrectionLevel: 'H',
+    });
+    console.log(`  QR code salvo: ${qrPath}`);
+  } else {
+    console.warn('  Sem URL, QR code não gerado');
+  }
 
 // ── 4. Renderizar com Remotion ───────────────────────────────────────────
   const outDir = path.join(REMOTION_DIR, 'out');

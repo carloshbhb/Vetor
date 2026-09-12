@@ -186,11 +186,11 @@ export async function upsertScriptJob(job: VideoJob, opts?: { force?: boolean; r
     render_engine: opts?.renderEngine || 'remotion',
     updated_at: new Date().toISOString(),
   };
-  if (job.packagingStatus != null) row.packagingStatus = job.packagingStatus;
-  if (job.viralScore != null) row.viralScore = job.viralScore;
-  if (job.ctrEstimate != null) row.ctrEstimate = job.ctrEstimate;
-  if (job.hookScore != null) row.hookScore = job.hookScore;
-  if (job.retentionScore != null) row.retentionScore = job.retentionScore;
+  if (job.packagingStatus != null) row.packaging_status = job.packagingStatus;
+  if (job.viralScore != null) row.viral_score = job.viralScore;
+  if (job.ctrEstimate != null) row.ctr_estimate = job.ctrEstimate;
+  if (job.hookScore != null) row.hook_score = job.hookScore;
+  if (job.retentionScore != null) row.retention_score = job.retentionScore;
   if (job.source != null) row.source = job.source;
   await sb.from('video_jobs').upsert(row, { onConflict: 'slug' });
   return 'created';

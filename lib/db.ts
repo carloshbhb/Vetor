@@ -244,6 +244,10 @@ export interface ReviewCard {
 const REVIEW_CARD_COLUMNS =
   'id,slug,product,category,price_new,image_url,hero_overall_score,hero_lead,meta_title,meta_description,created_at,updated_at';
 
+// Colunas exatas usadas por mapToReviewSummary — evita SELECT * (egress)
+const SUMMARY_COLUMNS =
+  'id,slug,status,product,category,meta_title,meta_description,meta_keywords,meta_reading_time,meta_canonical,meta_og_image,hero_headline_line1,hero_headline_line2,hero_headline_em,hero_lead,hero_overall_score,hero_bars,ads_enabled,created_at,updated_at,google_rank,last_rank_check';
+
 // Colunas leves para admin (dashboard + lista) — evita SELECT * em ~1.2 MB
 const ADMIN_COLUMNS =
   'id,slug,product,category,status,price_new,ads_enabled,meta_title,hero_overall_score,google_rank,last_rank_check,updated_at';
@@ -296,6 +300,11 @@ export async function getPublishedReviewCards(): Promise<ReviewCard[]> {
   if (!supabase) {
     const b = await getBackup();
     return (await b.getPublishedReviews()).map(mapReviewDataToCard);
+  }
+  // Via RPC leve (SQL) quando a function existir; fallback p/ SELECT de colunas
+  const rpcRes = await supabase.rpc('get_review_cards');
+  if (!rpcRes.error && Array.isArray(rpcRes.data)) {
+    return rpcRes.data.map(mapRowToReviewCard);
   }
   const { data, error } = await supabase
     .from('reviews')
@@ -644,15 +653,27 @@ export async function getReviewSummaries(): Promise<ReviewSummary[]> {
   if (!supabase) { const b = await getBackup(); return b.getReviewSummaries(); }
   const { data, error } = await supabase
     .from('reviews')
-    .select('*')
+    .select(SUMMARY_COLUMNS)
     .order('created_at', { ascending: false });
 
   if (error) {
     console.error('[Database] Error fetching review summaries:', error);
-    return [];
+    const b = await getBackup();
+    return b.getReviewSummaries();
   }
 
-  return data.map(mapToReviewSummary);
+  if (!data || data.length === 0) {
+    const b = await getBackup();
+    return b.getReviewSummaries();
+  }
+
+  try {
+    return data.map(mapToReviewSummary);
+  } catch (mapError) {
+    console.error('[Database] Error mapping review summaries:', mapError);
+    const b = await getBackup();
+    return b.getReviewSummaries();
+  }
 }
 
 export async function getPublishedReviews(): Promise<ReviewData[]> {
@@ -793,7 +814,10 @@ export async function createReview(data: Omit<ReviewData, 'id' | 'createdAt' | '
 
   if (error) {
     console.error('[Database] Error creating review:', error);
-    throw new Error(`Failed to create review: ${error.message}`);
+    // Fallback to backup on Supabase write failure so publicações (reviews/artigos
+    // virais) não morrem quando o banco está indisponível/restrito (ex.: cota de egress).
+    const b = await getBackup();
+    return b.createReview(data);
   }
 
   return inserted.id;

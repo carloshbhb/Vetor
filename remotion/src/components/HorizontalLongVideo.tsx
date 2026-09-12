@@ -18,7 +18,7 @@ export const HorizontalLongVideo: React.FC<HorizontalLongVideoProps> = ({ data }
 
   return (
     <AbsoluteFill style={{ backgroundColor: meta.palette.dark }}>
-      <Audio src={staticFile("audio/hook.mp3")} volume={0.9} />
+      <Audio src={staticFile("audio/full.mp3")} volume={1} />
       {hookSection && (
         <Sequence from={hookSection.startFrame} durationInFrames={hookSection.endFrame - hookSection.startFrame}>
           <HorizontalHook section={hookSection} palette={meta.palette} />
@@ -26,7 +26,6 @@ export const HorizontalLongVideo: React.FC<HorizontalLongVideoProps> = ({ data }
       )}
       {psSection && (
         <Sequence from={psSection.startFrame} durationInFrames={psSection.endFrame - psSection.startFrame}>
-          <Audio src={staticFile("audio/problem_solution.mp3")} volume={0.9} />
           {psSection.segments.map((segment: any, i: number) => (
             <Sequence
               key={segment.id}
@@ -61,7 +60,6 @@ export const HorizontalLongVideo: React.FC<HorizontalLongVideoProps> = ({ data }
       )}
       {ctaSection && (
         <Sequence from={ctaSection.startFrame} durationInFrames={ctaSection.endFrame - ctaSection.startFrame}>
-          <Audio src={staticFile("audio/cta.mp3")} volume={0.9} />
           <HorizontalCTA section={ctaSection} palette={meta.palette} />
         </Sequence>
       )}

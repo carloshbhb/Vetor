@@ -141,9 +141,13 @@ async function renderJob(job) {
       console.warn('[3/5] Review fetch failed:', e.message);
     }
 
-    // Skip jobs without meli.la affiliate URL
+    // Skip jobs sem URL de afiliado relevante (Mercado Livre em qualquer formato)
     const affiliateUrl = reviewData.affiliate_url || '';
-    if (!affiliateUrl || !affiliateUrl.includes('meli')) {
+    const isMeliUrl =
+      affiliateUrl.includes('meli.la') ||
+      affiliateUrl.includes('mercadolivre') ||
+      affiliateUrl.includes('mercadolibre');
+    if (!affiliateUrl || !isMeliUrl) {
       const skipErr = `SKIP no-meli-url: affiliate_url=${affiliateUrl || 'empty'}`;
       await sb.from('video_jobs').update({ status: 'failed', error: skipErr }).eq('slug', slug);
       console.warn(`[SKIP] ${slug}: ${skipErr}`);

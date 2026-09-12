@@ -2,6 +2,26 @@ const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
+// ─── Load .env.local (Node does not read .env automatically) ─────────────────
+const envCandidates = ['.env.local', '.env'];
+for (const envFile of envCandidates) {
+  const envPath = path.join(process.cwd(), envFile);
+  if (fs.existsSync(envPath)) {
+    const content = fs.readFileSync(envPath, 'utf8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) continue;
+      const key = trimmed.slice(0, eq).trim();
+      const value = trimmed.slice(eq + 1).trim().replace(/^"|"$/g, '');
+      if (!process.env[key]) process.env[key] = value;
+    }
+    console.log(`Loaded env from ${envFile}`);
+    break;
+  }
+}
+
 // ─── Configuration ───────────────────────────────────────────────────────────
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -49,6 +69,7 @@ function transformReviewForSupabase(review) {
     pros: review.pros || [],
     cons: review.cons || [],
     testimonials: review.testimonials || [],
+    faq: review.faq || [],
     verdict_score: review.verdict?.score || 0,
     verdict_label: review.verdict?.label || '',
     verdict_text: review.verdict?.text || '',
