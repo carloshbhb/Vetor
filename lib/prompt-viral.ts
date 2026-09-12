@@ -40,17 +40,21 @@ ESTRUTURA OBRIGATÓRIA DO ARTIGO (SEGUIR RIGOROSAMENTE)
    - lead: Parágrafo introdutório de 2-3 frases com hook forte
    - overall_score: Nota média geral (0-10)
 
-3. BARRAS DE AVALIAÇÃO (bars):
-   - Cada barra deve representar um critério importante da categoria
-   - Exemplos para Wearables: "Custo-Benefício", "Bateria", "Sensor", "Design"
-   - Cada barra: { label, value (0-10), pct (value*10) }
+3. BARRAS DE AVALIAÇÃO (hero.bars):
+    - CADA barra representa UM PRODUTO sendo comparado (NÃO um critério!)
+    - Deve haver exatamente o MESMO número de barras que produtos na tabela comparativa
+    - Cada barra: { label: "Nome do Produto", value: number (0-10), pct: number, imageUrl: "" }
+    - imageUrl: DEIXE SEMPRE string vazia (o sistema busca a imagem real do produto automaticamente via Mercado Livre; NUNCA invente URLs de imagem)
+    - A order das barras deve corresponder EXATAMENTE à order de compareTable.columns
+    - Exemplo para "X vs Y": bars=[{label:"X",value:8,pct:80,imageUrl:""},{label:"Y",value:7,pct:70,imageUrl:""}]
 
-4. TABELA COMPARATIVA (compareTable):
-   - caption: "Comparativo [Categoria] ${year}"
-   - columns: ["Característica", "Produto 1", "Produto 2", "Produto 3"]
-   - winnerCol: Índice da coluna do vencedor (1-based)
-   - rows: Mínimo 8 linhas com especificações reais
-   - Exemplos de rows: ["Preço", "Tela", "Processador", "Bateria", "Câmera", "RAM", "Armazenamento", "Conectividade"]
+5. TABELA COMPARATIVA (compareTable):
+    - caption: "Comparativo [Categoria] ${year}"
+    - columns: ["Característica", "Nome do Produto 1", "Nome do Produto 2", ...]
+    - O número de colunas (incluindo "Característica") deve ser EXATAMENTE 1 + número de barras em hero.bars
+    - winnerCol: Índice da coluna do vencedor (1-based)
+    - rows: Mínimo 8 linhas com especificações reais
+    - Exemplos de rows: ["Preço", "Tela", "Processador", "Bateria", "Câmera", "RAM", "Armazenamento", "Conectividade"]
 
 5. SEÇÕES COMPARATIVAS (sections) - Mínimo 5 seções:
    - "Qual o Melhor para Cada Perfil?" (básico, intermediário, premium)
@@ -78,12 +82,16 @@ ESTRUTURA OBRIGATÓRIA DO ARTIGO (SEGUIR RIGOROSAMENTE)
    - Incluir palavras-chave naturalmente
 
 10. VEREDICTO (verdict):
-    - score: Nota geral (0-10)
-    - label: "MELHOR CUSTO-BENEFÍCIO" / "MELHOR ESCOLHA" / "RECOMENDADO"
-    - text: Parágrafo explicativo com recomendação final
-    - note: Resumo em 1 linha
+     - score: Nota geral (0-10)
+     - label: "MELHOR CUSTO-BENEFÍCIO" / "MELHOR ESCOLHA" / "RECOMENDADO"
+     - text: Parágrafo explicativo com recomendação final (MÁXIMO 3 frases — NÃO escreva TL;DR)
+     - note: Resumo em 1 linha
 
-11. SCHEMAS JSON-LD:
+11. REGRA DE OURO — PROIBIDO:
+     - NÃO inclua seção "TL;DR", "Resumo Rápido", "Resumo Executivo" ou qualquer outro resumo no artigo
+     - NÃO repita informações do hero no início do artigo
+     - Cada seção deve ter conteúdo ÚNICO e substancial (mínimo 150 palavras em HTML)
+     - As seções são renderizadas em ordem — garanta que o fluxo seja lógico e progressivo
     - Schema.org Product para cada produto
     - Schema.org ComparisonTable
     - Schema.org FAQPage
@@ -145,7 +153,7 @@ Retorne APENAS o JSON com esta estrutura exata:
     "headline_em": "string",
     "lead": "string",
     "overall_score": number,
-    "bars": [{ "label": "string", "value": number, "pct": number }]
+    "bars": [{ "label": "Nome do Produto", "value": number, "pct": number, "imageUrl": "" }]
   },
   "products": [
     {

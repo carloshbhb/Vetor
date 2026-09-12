@@ -81,25 +81,36 @@ async function publishArticle(articleData: any, category: string): Promise<{ slu
   const d = articleData;
 
   const slug = slugify(d.meta?.title || 'artigo-comparativo');
-  const productNames = d.products?.map((p: any) => p.name).join(' vs ') || 'Comparativo';
-
-  // Image resolution — resolve for ALL products
-  let viralImageUrl: string = d.products?.[0]?.image_url || '';
-  if (viralImageUrl && !(await isImageReachable(viralImageUrl))) {
-    viralImageUrl = '';
+  const productNameList: string[] = d.products?.map((p: any) => p.name) || [];
+  const productNames = productNameList.join(' vs ') || 'Comparativo';
+  const resolvedImages: string[] = [];
+  for (const pname of productNameList) {
+    let imgUrl = pname ? await resolveProductImage(pname) : { imageUrl: '' };
+    if (!imgUrl.imageUrl) {
+      imgUrl = d.products?.[0] ? await resolveProductImage(d.products[0].name) : { imageUrl: '' };
+    }
+    resolvedImages.push(imgUrl.imageUrl);
   }
-  if (!viralImageUrl) {
-    const firstProduct = d.products?.[0]?.name || productNames;
-    const resolved = await resolveProductImage(firstProduct);
-    viralImageUrl = resolved.imageUrl;
-  }
-  if (!viralImageUrl) {
-    return { slug, success: false, error: `Sem imagem para "${productNames}"` };
+  const mainImageUrl = resolvedImages[0] || '';
+  if (!mainImageUrl) {
+    return { slug, success: false, error: `Sem imagem para "${productNameList.join(', ')}"` };
   }
 
   // Per-product affiliate URLs (joined by |||)
   const affiliateUrls: string[] = (d.products || []).map((p: any) => p.affiliate_url || '');
   const combinedAffiliateUrl = affiliateUrls.filter(Boolean).join('|||') || d.products?.[0]?.affiliate_url || '';
+
+  // Build hero bars with per-product image URLs
+  const heroBars = (d.hero?.bars || []).map((bar: any, idx: number) => ({
+    label: bar.label || productNameList[idx] || '',
+    value: bar.value || 8,
+    pct: bar.pct ?? (bar.value || 8) * 10,
+    imageUrl: resolvedImages[idx] || '',
+  }));
+  // Ensure we have at least one bar per product
+  for (let i = heroBars.length; i < productNameList.length; i++) {
+    heroBars.push({ label: productNameList[i], value: 8, pct: 80, imageUrl: resolvedImages[i] || '' });
+  }
 
   const sections = d.sections?.map((s: any, idx: number) => ({
     id: s.id || `section-${idx}`,
@@ -153,7 +164,7 @@ async function publishArticle(articleData: any, category: string): Promise<{ slu
     priceOld: d.products?.[0]?.old_price || '',
     priceNew: d.products?.[0]?.price || '',
     affiliateUrl: combinedAffiliateUrl,
-    imageUrl: viralImageUrl,
+    imageUrl: mainImageUrl,
     adsEnabled: true,
     hero: {
       headlineLine1: d.hero?.headline_line1 || 'COMPARATIVO',
@@ -161,7 +172,7 @@ async function publishArticle(articleData: any, category: string): Promise<{ slu
       headlineEm: d.hero?.headline_em || productNames,
       lead: d.hero?.lead || '',
       overallScore: d.hero?.overall_score || 8.5,
-      bars: d.hero?.bars?.map((b: any) => ({ label: b.label, value: b.value, pct: b.pct ?? b.value * 10 })) || [],
+      bars: heroBars,
     },
     specs: d.specs || [],
     sections,

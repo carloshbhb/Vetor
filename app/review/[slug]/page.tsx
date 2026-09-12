@@ -95,16 +95,17 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
 
   // Detect comparativo (X vs Y) from hero bars or product name
   const isComparativo = hero.bars.length >= 2 && review.product.includes('vs');
-  const compareProducts = isComparativo ? hero.bars.map((bar, idx) => {
-    // Parse per-product affiliate URLs from ||| delimiter
+  const heroBars = (hero.bars || []).map((bar: any, idx: number) => ({ ...bar, imageUrl: bar.imageUrl || '' }));
+  const compareProducts = isComparativo ? heroBars.map((bar: any, idx: number) => {
     const affiliateUrls = review.affiliateUrl ? review.affiliateUrl.split('|||') : [];
+    const colName = compareTable?.columns?.[idx + 1] || bar.label;
     return {
-      name: bar.label,
+      name: colName,
       score: bar.value,
       priceNew: review.priceNew,
       priceOld: review.priceOld,
       affiliateUrl: affiliateUrls[idx] || affiliateUrls[0] || review.affiliateUrl,
-      imageUrl: review.imageUrl || '',
+      imageUrl: bar.imageUrl || review.imageUrl || '',
     };
   }) : [];
 
@@ -200,29 +201,6 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
             {/* ── Main Layout ── */}
           <div className="layout">
             
-            {/* ── TL;DR (Resumo Rápido para IAs) ── */}
-            <div className="mb-8 p-5 bg-blue/5 rounded-xl border border-blue/20">
-              <h2 className="font-syne font-bold text-sm text-blue mb-3 uppercase tracking-wider">Resumo Rápido (TL;DR)</h2>
-              <p className="text-sm text-text leading-relaxed mb-4">{verdict.text}</p>
-              <div className="flex flex-wrap gap-2">
-                {pros.slice(0, 3).map((pro, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                    {pro}
-                  </span>
-                ))}
-                {cons.slice(0, 2).map((con, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 text-xs bg-red-50 text-red-700 px-2 py-1 rounded-full">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    {con}
-                  </span>
-                ))}
-              </div>
-              <p className="text-xs text-text-muted mt-3">
-                Nota geral: <span className="font-bold text-blue">{verdict.score}/10</span> — {verdict.label}
-              </p>
-            </div>
-
             {/* Share Buttons */}
             <div className="mb-6">
               <ShareButtons
@@ -235,7 +213,7 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
             <article className="article-body" itemScope itemType="https://schema.org/Article">
               
               {/* Image if any */}
-              {review.imageUrl && (
+              {review.imageUrl && !isComparativo && (
                 <div style={{ marginBottom: '40px', textAlign: 'center', backgroundColor: '#f8fafc', padding: '24px', borderRadius: '18px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(15, 23, 42, .06)' }}>
                   <Image src={review.imageUrl} alt={review.product} width={800} height={600} priority className="rounded-xl object-contain" style={{ maxHeight: '400px', width: 'auto', margin: '0 auto' }} />
                 </div>
