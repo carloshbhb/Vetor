@@ -66,7 +66,104 @@ async function generateWithOpenRouter(prompt: string): Promise<{ data: any; prov
     }
   }
 
+  // Modelos fixos esgotados (ex.: removidos do tier free) → tenta Groq
+  try {
+    return await generateWithGroq(prompt);
+  } catch (err: any) {
+    console.warn('[ViralArticle] Groq fallback failed:', err.message);
+  }
+
+  // Último recurso: descobre dinamicamente os modelos :free atuais e tenta em rodízio
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (apiKey) {
+    const dynamic = await getOpenRouterFreeModels(apiKey);
+    for (const modelId of dynamic) {
+      if (models.some((m) => m.id === modelId)) continue; // já tentados acima
+      try {
+        const text = await callOpenRouterModel(prompt, modelId, modelId, 0.7, 8192);
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) continue;
+        const parsed = JSON.parse(jsonMatch[0]);
+        console.log(`[ViralArticle] ${modelId} generation succeeded (dynamic)`);
+        return { data: parsed, provider: modelId };
+      } catch (err: any) {
+        console.warn(`[ViralArticle] ${modelId} failed:`, String(err.message || err).slice(0, 120));
+        continue;
+      }
+    }
+  }
+
   throw new Error('Todos os modelos de IA estão temporariamente indisponíveis.');
+}
+
+// Groq (tier free generoso) — mesmo padrão do lib/video-script.ts
+async function generateWithGroq(prompt: string): Promise<{ data: any; provider: string }> {
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey || groqKey === 'your-groq-api-key') throw new Error('GROQ_API_KEY not set');
+  const groqModels = ['openai/gpt-oss-20b', 'qwen/qwen3.6-27b', 'groq/compound-mini', 'allam-2-7b'];
+  for (const gModel of groqModels) {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: gModel,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 8192,
+          response_format: { type: 'json_object' },
+        }),
+      });
+      if (!res.ok) {
+        console.warn(`[ViralArticle] Groq ${gModel}: ${res.status}`);
+        continue;
+      }
+      const json = await res.json();
+      const content = json.choices?.[0]?.message?.content || '';
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) continue;
+      const parsed = JSON.parse(jsonMatch[0]);
+      console.log(`[ViralArticle] Groq ${gModel} generation succeeded`);
+      return { data: parsed, provider: `Groq ${gModel}` };
+    } catch (e: any) {
+      console.warn(`[ViralArticle] Groq ${gModel} failed:`, String(e.message || e).slice(0, 120));
+    }
+  }
+  throw new Error('Groq falhou em todos os modelos');
+}
+
+// Cache em memória da lista de modelos free (1h)
+let cachedFreeModels: { list: string[]; at: number } | null = null;
+const FALLBACK_FREE_MODELS = [
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'nvidia/nemotron-3.5-lightning:free',
+  'google/gemma-4-31b-it:free',
+];
+
+async function getOpenRouterFreeModels(apiKey: string): Promise<string[]> {
+  const now = Date.now();
+  if (cachedFreeModels && now - cachedFreeModels.at < 3600_000) return cachedFreeModels.list;
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) throw new Error(`models: ${res.status}`);
+    const json = (await res.json()) as any;
+    const all = Array.isArray(json?.data) ? json.data : [];
+    const free = all
+      .filter((m: any) => typeof m?.id === 'string' && m.id.endsWith(':free'))
+      .filter((m: any) => String(m?.architecture?.modality || '').includes('text->text'))
+      .map((m: any) => m.id as string);
+    if (!free.length) throw new Error('nenhum modelo :free texto');
+    const day = Math.floor(now / 86400000);
+    const rotated = [...free.slice(day % free.length), ...free.slice(0, day % free.length)];
+    cachedFreeModels = { list: rotated.slice(0, 12), at: now };
+    console.log(`[ViralArticle] ${free.length} modelos :free encontrados, tentando até 12`);
+    return cachedFreeModels.list;
+  } catch (e: any) {
+    console.warn('[ViralArticle] Falha ao listar modelos OpenRouter, usando lista fixa:', e.message);
+    return FALLBACK_FREE_MODELS;
+  }
 }
 
 export async function generateViralArticle(input: ViralArticleInput): Promise<ViralArticleResult> {

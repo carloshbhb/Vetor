@@ -41,6 +41,7 @@ output.log
 remotion/out/
 remotion/public/audio/
 remotion/public/images/
+remotion/public/qr.png
 remotion/props.json
 remotion/video-data.json
 
