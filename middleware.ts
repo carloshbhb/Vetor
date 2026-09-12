@@ -27,6 +27,7 @@ const protectedApiRoutes = [
 const publicApiRoutes = [
   '/api/indexnow',
   '/api/llms',
+  '/api/auth/login',
 ]
 
 const cronApiRoutes = ['/api/cron', '/api/serp-tracker']
