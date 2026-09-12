@@ -19,7 +19,7 @@ interface GitHubFileResponse {
  * Fetches the current reviews.json from the GitHub repository.
  * Returns the parsed array and the file's SHA (required for updates).
  */
-async function fetchFileFromGitHub(token: string): Promise<{ data: any[]; sha: string }> {
+export async function fetchFileFromGitHub(token: string): Promise<{ data: any[]; sha: string }> {
   const res = await fetch(
     `https://api.github.com/repos/${GITHUB_REPO}/contents/${FILE_PATH}?ref=${BRANCH}`,
     {
@@ -65,7 +65,7 @@ async function fetchFileFromGitHub(token: string): Promise<{ data: any[]; sha: s
  * Commits an updated reviews array back to the GitHub repository.
  * This triggers a Vercel auto-redeploy with the new data.
  */
-async function commitFileToGitHub(
+export async function commitFileToGitHub(
   token: string,
   reviews: any[],
   sha: string,

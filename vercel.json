@@ -47,6 +47,10 @@
     {
       "path": "/api/cron/viral-scan",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/restore-legacy",
+      "schedule": "0 5 * * *"
     }
   ]
 }

@@ -115,7 +115,7 @@ function parseJsonArray(val: any): any[] {
   return [];
 }
 
-function mapToReviewData(row: any): ReviewData {
+export function mapToReviewData(row: any): ReviewData {
    const parseSafe = (val: any) => {
       if (val === null || val === undefined) return 0;
       const parsed = parseFloat(val);
