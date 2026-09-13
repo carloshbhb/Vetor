@@ -1,0 +1,42 @@
+name: Generate Content
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate content
+        run: npx tsx tmp/generate-8-articles.ts
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.REPO_OWNER_TOKEN }}
+          GITHUB_REPO: carloshbhb/Vetor
+          INDEXNOW_API_KEY: ${{ secrets.INDEXNOW_API_KEY }}
+          INDEXNOW_LOCATION_ID: ${{ secrets.INDEXNOW_LOCATION_ID }}
+          GOOGLE_INDEXING_API_KEY: ${{ secrets.GOOGLE_INDEXING_API_KEY }}
+          SITE_URL: ${{ secrets.SITE_URL }}

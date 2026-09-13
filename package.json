@@ -1,0 +1,39 @@
+{
+  "name": "vetor-blog",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "generate": "tsx tmp/generate-8-articles.ts",
+    "generate-videos": "tsx tmp/generate-videos.ts",
+    "setup": "bash scripts/setup.sh",
+    "setup:github": "bash scripts/setup-github-secrets.sh",
+    "setup:vercel": "bash scripts/setup-vercel-env.sh",
+    "setup:supabase": "bash scripts/setup-supabase.sh"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "@tailwindcss/postcss": "^4.3.0",
+    "autoprefixer": "^10.5.0",
+    "axios": "^1.20.0",
+    "dotenv": "^17.4.2",
+    "next": "^15.0.0",
+    "openai": "^7.15.0",
+    "postcss": "^8.5.14",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.3.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "eslint": "^10.10.0",
+    "eslint-config-next": "^16.3.5",
+    "tsx": "^4.23.13",
+    "typescript": "^5.0.0"
+  }
+}
