@@ -199,8 +199,7 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
           )}
 
             {/* ── Main Layout ── */}
-          <div className="layout">
-            
+
             {/* Share Buttons */}
             <div className="mb-6">
               <ShareButtons
@@ -208,6 +207,8 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
                 title={review.meta.title}
               />
             </div>
+
+          <div className="layout">
 
             {/* ── Article Body ── */}
             <article className="article-body" itemScope itemType="https://schema.org/Article">
