@@ -18,7 +18,7 @@ on:
     - cron: '0 */6 * * *'
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   PYTHON_VERSION: '3.11'
 
 jobs:
@@ -58,42 +58,22 @@ jobs:
         working-directory: ./video
         run: npm ci
 
-      - name: Install root dependencies (for Supabase)
-        run: npm ci
-
       - name: Fetch pending videos from Supabase
         id: fetch-videos
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          node -e "
-          const { createClient } = require('@supabase/supabase-js');
-          const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-          
-          let query = supabase
-            .from('video_queue')
-            .select('*')
-            .eq('status', 'pending')
-            .order('created_at', { ascending: true })
-            .limit(3);
-          
-          const videoId = '${{ github.event.inputs.video_id }}';
-          const processAll = '${{ github.event.inputs.process_all_pending }}' === 'true';
-          
-          if (videoId && !processAll) {
-            query = supabase.from('video_queue').select('*').eq('id', videoId).eq('status', 'pending');
-          }
-          
-          query.then(({ data, error }) => {
-            if (error) throw error;
-            console.log('VIDEOS_JSON=' + JSON.stringify(data || []));
-            console.log('COUNT=' + (data?.length || 0));
-          });
-          " >> $GITHUB_OUTPUT
+          RESULT=$(curl -s -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+               -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+               "$SUPABASE_URL/rest/v1/video_queue?status=eq.pending&order=created_at.asc&limit=3&select=*")
+          echo "VIDEOS_JSON=$RESULT" >> $GITHUB_OUTPUT
+          echo "COUNT=$(echo $RESULT | jq length)" >> $GITHUB_OUTPUT
+          echo "Found $COUNT pending videos"
 
       - name: Process each video
         if: steps.fetch-videos.outputs.COUNT != '0'
+        working-directory: ./video
         run: |
           VIDEOS='${{ steps.fetch-videos.outputs.VIDEOS_JSON }}'
           echo "$VIDEOS" | jq -c '.[]' | while read -r video; do
@@ -101,20 +81,18 @@ jobs:
             echo "Processing video: $VIDEO_ID"
             
             # Update status to processing
-            node -e "
-            const { createClient } = require('@supabase/supabase-js');
-            const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-            supabase.from('video_queue').update({ status: 'processing', started_at: new Date().toISOString() }).eq('id', '$VIDEO_ID').then(() => console.log('Status updated to processing'));
-            "
+            curl -s -X PATCH -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"status\":\"processing\",\"started_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
+              "$SUPABASE_URL/rest/v1/video_queue?id=eq.$VIDEO_ID"
             
             # Run the video processing script
-            node scripts/process-video.js "$VIDEO_ID" "$video" || {
+            npx tsx scripts/process-video.js "$VIDEO_ID" "$video" || {
               echo "Failed to process video $VIDEO_ID"
-              node -e "
-              const { createClient } = require('@supabase/supabase-js');
-              const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-              supabase.from('video_queue').update({ status: 'failed', error_message: 'Processing failed', updated_at: new Date().toISOString() }).eq('id', '$VIDEO_ID');
-              "
+              curl -s -X PATCH -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                -H "Content-Type: application/json" \
+                -d '{"status":"failed","error_message":"Processing failed"}' \
+                "$SUPABASE_URL/rest/v1/video_queue?id=eq.$VIDEO_ID"
               continue
             }
             
