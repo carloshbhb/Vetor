@@ -46,13 +46,13 @@ export default function ComparisonTable({ headers, rows }: ComparisonTableProps)
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-[var(--surface2)]">
-            <th className="text-left px-4 py-3 font-semibold text-[var(--text)] border-b-2 border-white/8 sticky left-0 bg-[var(--surface2)] z-10">
+            <th className="text-left px-4 py-3 font-semibold text-[var(--text)] border-b-2 border-border sticky left-0 bg-[var(--surface2)] z-10">
               Produto
             </th>
             {headers.map((header, i) => (
               <th
                 key={i}
-                className="text-left px-4 py-3 font-semibold text-[var(--text)] border-b-2 border-white/8 cursor-pointer hover:text-[var(--blue)] transition-colors select-none whitespace-nowrap"
+                className="text-left px-4 py-3 font-semibold text-[var(--text)] border-b-2 border-border cursor-pointer hover:text-[var(--amber)] transition-colors select-none whitespace-nowrap"
                 onClick={() => handleSort(i)}
               >
                 <span className="flex items-center gap-1.5">
@@ -79,7 +79,7 @@ export default function ComparisonTable({ headers, rows }: ComparisonTableProps)
           {sortedRows.map((row, rowIdx) => (
             <tr
               key={rowIdx}
-              className={`border-b border-white/5 transition-colors ${
+              className={`border-b border-border transition-colors ${
                 row.highlight ? "bg-[var(--blue)]/5" : "hover:bg-[var(--surface)]"
               }`}
             >

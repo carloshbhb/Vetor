@@ -20,7 +20,7 @@ export default function AdminViralPage() {
     if (!confirm(`Tem certeza que deseja excluir o artigo "${slug}"?`)) return;
     setDeleting(slug);
     try {
-      await fetch(`/api/admin/viral/${slug}`, { method: "DELETE" });
+      await fetch(`/api/admin/viral?slug=${encodeURIComponent(slug)}`, { method: "DELETE" });
       setArticles((prev) => prev.filter((a) => a.slug !== slug));
     } catch {
       alert("Erro ao excluir artigo.");
@@ -40,50 +40,36 @@ export default function AdminViralPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Artigos Virais</h1>
-        <span className="text-sm text-[var(--muted)]">
-          {articles.length} artigos
-        </span>
+        <h1 className="font-display text-3xl">Artigos Virais</h1>
+        <span className="text-sm text-[var(--muted)]">{articles.length} artigos</span>
       </div>
 
-      <div className="bg-[var(--surface)] border border-white/8 rounded-xl overflow-hidden">
+      <div className="bg-[var(--surface)] border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/8">
-                <th className="text-left px-4 py-3 font-semibold text-[var(--text)]">
-                  Título
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-[var(--text)]">
-                  Categoria
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-[var(--text)]">
-                  Produtos
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-[var(--text)]">
-                  Publicado
-                </th>
-                <th className="text-right px-4 py-3 font-semibold text-[var(--text)]">
-                  Ações
-                </th>
+              <tr className="border-b border-border">
+                <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">Título</th>
+                <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">Categoria</th>
+                <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">Produtos</th>
+                <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">Publicado</th>
+                <th className="text-right px-4 py-3 font-heading font-bold text-[var(--text)]">Ações</th>
               </tr>
             </thead>
             <tbody>
               {articles.map((article) => (
                 <tr
                   key={article.slug}
-                  className="border-b border-white/5 hover:bg-[var(--surface2)] transition-colors"
+                  className="border-b border-border hover:bg-[var(--surface2)] transition-colors"
                 >
+                  <td className="px-4 py-3 text-[var(--text)]">{article.title}</td>
                   <td className="px-4 py-3">
-                    <span className="text-[var(--text)]">{article.title}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="bg-[var(--surface3)] text-xs text-[var(--muted)] px-2 py-0.5 rounded-full">
+                    <span className="bg-[var(--surface2)] text-xs text-[var(--muted)] px-2 py-0.5 rounded-full">
                       {article.category}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-[var(--muted)]">
-                    {article.products?.length || 0} produtos
+                    {article.products?.length || 0}
                   </td>
                   <td className="px-4 py-3 text-[var(--muted)] text-xs">
                     {article.published_at

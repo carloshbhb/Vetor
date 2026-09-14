@@ -1,5 +1,7 @@
+import Image from "next/image";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import ScoreBadge from '@/components/ScoreBadge';
 import { fetchAllViralArticles } from '@/lib/data';
 
@@ -10,79 +12,57 @@ export default async function ComparativosPage() {
     <>
       <Navbar />
       <main className="container">
-        <h1 style={{ margin: '60px 0', fontSize: '48px' }}>Comparativos</h1>
+        <Breadcrumbs items={[{ label: 'Início', href: '/' }, { label: 'Comparativos' }]} />
+        <div className="pt-4 pb-16">
+          <p className="font-heading text-sm font-bold text-[var(--amber)] mb-2 tracking-wider uppercase">
+            Comparativos
+          </p>
+          <h1 className="font-display leading-none mb-4" style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)' }}>
+            COMPARATIVOS
+          </h1>
+          <p className="text-[var(--muted)] font-light text-lg max-w-xl">
+            Veja qual produto leva vantagem em cada categoria.
+          </p>
+        </div>
 
         {articles.length === 0 ? (
-          <p style={{ color: 'var(--muted)', fontSize: '18px' }}>
-            Nenhum comparativo disponível no momento.
-          </p>
+          <div className="text-center py-20">
+            <p className="text-[var(--muted)] text-lg">Nenhum comparativo disponível no momento.</p>
+          </div>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: '24px',
-            }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 pb-16">
             {articles.map((article) => (
               <a
                 key={article.slug}
                 href={`/comparativos/${article.slug}`}
-                style={{
-                  background: 'var(--surface)',
-                  borderRadius: '20px',
-                  overflow: 'hidden',
-                  display: 'block',
-                }}
+                className="group bg-[var(--surface)] border border-border rounded-2xl overflow-hidden transition-all hover:border-[var(--amber)]/30 hover:-translate-y-1 block"
               >
                 {article.hero?.imageUrl && (
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '200px',
-                      background: `url(${article.hero.imageUrl}) center/cover no-repeat`,
-                    }}
-                  />
+                  <div className="relative h-[200px] overflow-hidden">
+                    <Image
+                      src={article.hero.imageUrl}
+                      alt={article.title}
+                      fill
+                      className="object-cover transition-transform duration-400 group-hover:scale-105"
+                    />
+                  </div>
                 )}
-                <div style={{ padding: '24px' }}>
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      background: 'var(--blue)',
-                      color: '#fff',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      padding: '4px 12px',
-                      borderRadius: '999px',
-                      marginBottom: '12px',
-                    }}
-                  >
+                <div className="p-6">
+                  <span className="inline-block bg-[var(--blue)] text-white text-[0.68rem] font-heading font-bold px-3 py-1 rounded-full tracking-wider mb-3">
                     {article.category}
                   </span>
-                  <h2 style={{ marginBottom: '8px', fontSize: '20px' }}>
+                  <h2 className="font-heading font-extrabold text-[1.1rem] text-[var(--text)] mb-2 leading-snug group-hover:text-[var(--amber)] transition-colors">
                     {article.title}
                   </h2>
-                  <p style={{ color: 'var(--muted)', fontSize: '14px', marginBottom: '16px' }}>
+                  <p className="text-[var(--muted)] font-light text-sm leading-relaxed mb-4">
                     {article.description}
                   </p>
                   {article.hero?.bars && article.hero.bars.length > 0 && (
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <div className="flex gap-2 flex-wrap">
                       {article.hero.bars.slice(0, 3).map((bar) => (
-                        <div
-                          key={bar.label}
-                          style={{
-                            background: 'var(--surface2)',
-                            borderRadius: '8px',
-                            padding: '8px 12px',
-                            fontSize: '13px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                          }}
-                        >
-                          <span style={{ color: 'var(--muted)' }}>{bar.label}</span>
-                          <span style={{ fontWeight: 'bold' }}>{bar.value}</span>
-                        </div>
+                        <span key={bar.label} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-1.5 text-xs font-heading font-bold text-[var(--text)]">
+                          {bar.label} {bar.value}
+                        </span>
                       ))}
                     </div>
                   )}

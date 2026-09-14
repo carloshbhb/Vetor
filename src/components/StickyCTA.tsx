@@ -21,7 +21,7 @@ export default function StickyCTA({ price, affiliateUrl, productName }: StickyCT
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-[var(--surface)] border-t border-white/10 px-4 py-3 transition-transform duration-300 ${
+      className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-[var(--surface)] border-t border-border px-4 py-3 transition-transform duration-300 ${
         visible ? "translate-y-0" : "translate-y-full"
       }`}
     >
@@ -30,14 +30,14 @@ export default function StickyCTA({ price, affiliateUrl, productName }: StickyCT
           <p className="text-xs text-[var(--muted)] truncate">{productName}</p>
           <p className="text-lg font-bold text-[var(--green)]">{price}</p>
         </div>
-        <a
-          href={affiliateUrl || "#"}
-          target={affiliateUrl ? "_blank" : undefined}
-          rel={affiliateUrl ? "noopener noreferrer" : undefined}
-          className="bg-[var(--blue)] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity whitespace-nowrap flex-shrink-0"
-        >
-          Ver Menor Preço
-        </a>
+          <a
+            href={affiliateUrl || "#"}
+            target={affiliateUrl ? "_blank" : undefined}
+            rel={affiliateUrl ? "noopener noreferrer" : undefined}
+            className="bg-[var(--amber)] text-black text-sm font-heading font-extrabold px-5 py-2.5 rounded-xl hover:bg-white transition-colors whitespace-nowrap flex-shrink-0"
+          >
+            Ver Menor Preço
+          </a>
       </div>
     </div>
   );

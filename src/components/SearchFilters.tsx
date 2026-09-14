@@ -59,7 +59,7 @@ export default function SearchFilters({
 
   return (
     <div className="space-y-4">
-      <div className="relative">
+<div className="relative">
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]"
           fill="none"
@@ -81,37 +81,37 @@ export default function SearchFilters({
             setSearch(e.target.value);
             emit(e.target.value);
           }}
-          className="w-full bg-[var(--surface)] border border-white/8 rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--blue)] transition-colors"
+          className="w-full bg-[var(--surface)] border border-border rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--amber)] transition-colors"
         />
       </div>
 
       <div className="flex flex-wrap gap-2">
         <button
-          onClick={() => {
-            setCategory("");
-            emit("", "");
-          }}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-            !category
-              ? "bg-[var(--blue)] text-white border-[var(--blue)]"
-              : "bg-[var(--surface)] text-[var(--muted)] border-white/8 hover:border-[var(--blue)]/50"
-          }`}
-        >
-          Todos
-        </button>
-        {categories.map((cat) => (
-          <button
-            key={cat.name}
-            onClick={() => {
-              setCategory(cat.name);
-              emit(undefined, cat.name);
-            }}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-              category === cat.name
-                ? "bg-[var(--blue)] text-white border-[var(--blue)]"
-                : "bg-[var(--surface)] text-[var(--muted)] border-white/8 hover:border-[var(--blue)]/50"
-            }`}
-          >
+              onClick={() => {
+                setCategory("");
+                emit("", "");
+              }}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                !category
+                  ? "bg-[var(--amber)] text-black border-[var(--amber)]"
+                  : "bg-[var(--surface)] text-[var(--muted)] border-border hover:border-[var(--amber)]/50"
+              }`}
+            >
+              Todos
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat.name}
+                onClick={() => {
+                  setCategory(cat.name);
+                  emit(undefined, cat.name);
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  category === cat.name
+                    ? "bg-[var(--amber)] text-black border-[var(--amber)]"
+                    : "bg-[var(--surface)] text-[var(--muted)] border-border hover:border-[var(--amber)]/50"
+                }`}
+              >
             {cat.name} ({cat.count})
           </button>
         ))}
@@ -122,55 +122,55 @@ export default function SearchFilters({
           <label className="text-xs text-[var(--muted)] mb-1.5 block">
             Preço mínimo: R${minPrice}
           </label>
-          <input
-            type="range"
-            min={0}
-            max={10000}
-            step={50}
-            value={minPrice}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setMinPrice(val);
-              emit(undefined, undefined, val);
-            }}
-            className="w-full accent-[var(--blue)]"
-          />
+<input
+          type="range"
+          min={0}
+          max={10000}
+          step={50}
+          value={minPrice}
+          onChange={(e) => {
+            const val = Number(e.target.value);
+            setMinPrice(val);
+            emit(undefined, undefined, val);
+          }}
+          className="w-full accent-[var(--amber)]"
+        />
         </div>
         <div>
           <label className="text-xs text-[var(--muted)] mb-1.5 block">
             Preço máximo: R${maxPrice}
           </label>
-          <input
-            type="range"
-            min={0}
-            max={10000}
-            step={50}
-            value={maxPrice}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setMaxPrice(val);
-              emit(undefined, undefined, undefined, val);
-            }}
-            className="w-full accent-[var(--blue)]"
-          />
+<input
+          type="range"
+          min={0}
+          max={10000}
+          step={50}
+          value={maxPrice}
+          onChange={(e) => {
+            const val = Number(e.target.value);
+            setMaxPrice(val);
+            emit(undefined, undefined, undefined, val);
+          }}
+          className="w-full accent-[var(--amber)]"
+        />
         </div>
         <div>
           <label className="text-xs text-[var(--muted)] mb-1.5 block">
             Nota mínima: {minScore > 0 ? minScore.toFixed(1) : "Todas"}
           </label>
-          <input
-            type="range"
-            min={0}
-            max={10}
-            step={0.5}
-            value={minScore}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setMinScore(val);
-              emit(undefined, undefined, undefined, undefined, val);
-            }}
-            className="w-full accent-[var(--blue)]"
-          />
+<input
+          type="range"
+          min={0}
+          max={10}
+          step={0.5}
+          value={minScore}
+          onChange={(e) => {
+            const val = Number(e.target.value);
+            setMinScore(val);
+            emit(undefined, undefined, undefined, undefined, val);
+          }}
+          className="w-full accent-[var(--amber)]"
+        />
         </div>
       </div>
 

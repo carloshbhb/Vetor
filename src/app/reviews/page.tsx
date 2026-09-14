@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ReviewCard from "@/components/ReviewCard";
 import SearchFilters from "@/components/SearchFilters";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import { fetchAllReviews, fetchCategories } from "@/lib/data";
 import type { Review, Category } from "@/lib/types";
 import { useEffect } from "react";
@@ -56,14 +57,15 @@ export default function ReviewsPage() {
     <>
       <Navbar />
       <main className="container py-12">
-        <div className="mb-10">
-          <p className="font-heading text-sm font-bold text-amber mb-2 tracking-wider uppercase">
+        <Breadcrumbs items={[{ label: 'Início', href: '/' }, { label: 'Reviews' }]} />
+        <div className="pt-4 mb-10">
+          <p className="font-heading text-sm font-bold text-[var(--amber)] mb-2 tracking-wider uppercase">
             Reviews
           </p>
           <h1 className="font-display leading-none mb-3" style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)" }}>
             TODOS OS REVIEWS
           </h1>
-          <p className="text-muted font-light text-lg max-w-xl">
+          <p className="text-[var(--muted)] font-light text-lg max-w-xl">
             Análises detalhadas para você escolher com confiança.
           </p>
         </div>

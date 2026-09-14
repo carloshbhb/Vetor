@@ -20,8 +20,8 @@ export default function TLDRBox({
   cons,
 }: TLDRBoxProps) {
   return (
-    <div className="rounded-2xl border border-white/8 bg-[var(--surface)] overflow-hidden">
-      <div className="bg-[var(--surface2)] px-6 py-4 border-b border-white/8">
+    <div className="rounded-2xl border border-border bg-[var(--surface)] overflow-hidden">
+      <div className="bg-[var(--surface2)] px-6 py-4 border-b border-border">
         <h2 className="text-lg font-bold flex items-center gap-2">
           <svg className="w-5 h-5 text-[var(--blue)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -31,7 +31,7 @@ export default function TLDRBox({
       </div>
 
       <div className="p-6">
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-6 pb-6 border-b border-white/8">
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-6 pb-6 border-b border-border">
           <ScoreBadge score={score} size="lg" />
           <div className="text-center sm:text-left">
             <div className="text-2xl font-bold text-[var(--green)]">{price}</div>

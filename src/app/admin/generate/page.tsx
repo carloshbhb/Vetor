@@ -53,11 +53,11 @@ export default function AdminGeneratePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Gerar Conteúdo</h1>
+      <h1 className="font-display text-3xl mb-6">Gerar Conteúdo</h1>
 
-      <div className="bg-[var(--surface)] border border-white/8 rounded-xl p-6 max-w-xl">
-        <h2 className="text-lg font-semibold mb-2">Geração Automática</h2>
-        <p className="text-sm text-[var(--muted)] mb-6">
+      <div className="bg-[var(--surface)] border border-border rounded-xl p-6 max-w-xl">
+        <h2 className="font-heading text-sm font-bold tracking-wider uppercase text-[var(--muted)] mb-2">Geração Automática</h2>
+        <p className="text-sm text-[var(--muted)] mb-6 leading-relaxed">
           Gere novos reviews e artigos virais usando IA. O processo pode levar
           alguns minutos.
         </p>
@@ -65,7 +65,7 @@ export default function AdminGeneratePage() {
         <button
           onClick={handleGenerate}
           disabled={generating}
-          className="bg-[var(--blue)] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+          className="bg-[var(--amber)] text-black text-sm font-heading font-extrabold px-6 py-3 rounded-xl hover:bg-white transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           {generating ? (
             <>
@@ -113,7 +113,7 @@ export default function AdminGeneratePage() {
         {progress && (
           <div className="mt-4 flex items-center gap-2">
             {generating && (
-              <div className="w-2 h-2 rounded-full bg-[var(--blue)] animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-[var(--amber)] animate-pulse" />
             )}
             <p className="text-sm text-[var(--muted)]">{progress}</p>
           </div>
