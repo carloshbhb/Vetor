@@ -1,4 +1,35 @@
 @import "tailwindcss";
+@import "../../styles/tokens.css";
+
+@theme {
+  --color-ink: #12211d;
+  --color-ink-soft: #2b3a35;
+  --color-ink-raised: #1a2e28;
+  --color-paper: #efeee4;
+  --color-paper-raised: #f7f6ee;
+  --color-brass: #c68a34;
+  --color-brass-dim: #a9732a;
+  --color-pine: #2b6e5c;
+  --color-clay: #a6432f;
+  --color-line: #cbc7b8;
+  --color-line-strong: #a9a591;
+  --font-display: "Fraunces", "Iowan Old Style", serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --radius-flat: 0px;
+  --max-w-measure: 68ch;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-ink: #efeee4;
+    --color-ink-soft: #cbc7b8;
+    --color-ink-raised: #1a2e28;
+    --color-paper: #12211d;
+    --color-paper-raised: #1a2e28;
+    --color-line: #33463f;
+    --color-line-strong: #435850;
+  }
+}
 
 :root {
   --bg: #080C14;

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { OrganizationSchema, WebSiteSchema } from "@/components/SchemaMarkup";
+import { fraunces, inter } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -38,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={`${fraunces.variable} ${inter.variable}`}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
