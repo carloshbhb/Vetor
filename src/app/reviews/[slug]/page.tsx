@@ -96,9 +96,9 @@ export default async function ReviewPage({ params }: PageProps) {
       {/* ============================================================
            HERO
       ============================================================ */}
-      <section className="bg-surface border-b border-border overflow-hidden" style={{ padding: "64px 32px 0" }} id="topo">
-        <div className="max-w-[1100px] mx-auto grid gap-12 items-end" style={{ gridTemplateColumns: "1fr 460px" }}>
-          <div style={{ paddingBottom: 64 }}>
+      <section className="hero" id="topo">
+        <div className="hero-inner">
+          <div className="hero-left">
             <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 font-heading font-extrabold text-[0.7rem] tracking-[0.04em]" style={{ background: "#DCFCE7", color: "#15803D", border: "1.5px solid #BBF7D0", borderRadius: 4 }}>
               ✓ &nbsp;Review · {review.category}
             </div>

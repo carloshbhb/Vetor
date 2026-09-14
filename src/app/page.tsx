@@ -17,43 +17,35 @@ export default async function Home() {
       <Navbar />
       <main>
         {/* HERO */}
-        <section className="min-h-[90vh] flex items-center" style={{ background: "linear-gradient(to bottom, var(--surface), var(--bg))" }}>
-          <div className="container">
-            <div className="max-w-4xl mx-auto text-center">
-              <p className="font-heading text-sm font-bold text-blue mb-4 tracking-wider uppercase">
-                Reviews Sinceros e Imparciais
-              </p>
-              <h1 className="font-display leading-[0.93] mb-6" style={{ fontSize: "clamp(3rem, 8vw, 7rem)", color: "var(--ink)" }}>
+        <section className="hero" style={{ minHeight: "90vh", display: "flex", alignItems: "center" }}>
+          <div className="hero-inner" style={{ gridTemplateColumns: "1fr" }}>
+            <div style={{ maxWidth: 800, margin: "0 auto", textAlign: "center" }}>
+              <span className="sec-label">Reviews Sinceros e Imparciais</span>
+              <h1 className="font-display" style={{ fontSize: "clamp(3rem, 8vw, 7rem)", lineHeight: 0.93, marginBottom: 24, color: "var(--ink)" }}>
                 Pare de comprar{" "}
                 <span className="text-blue">no escuro.</span>
               </h1>
-              <p className="text-lg sm:text-xl text-body max-w-2xl mx-auto leading-relaxed mb-8 font-light">
+              <p style={{ fontSize: "1.15rem", color: "var(--body)", maxWidth: 640, margin: "0 auto 32px", lineHeight: 1.8, fontWeight: 300 }}>
                 Análises detalhadas com dados reais para você fazer a melhor
                 escolha. Sem enrolação, sem favoritismo.
               </p>
-              <div className="flex flex-wrap justify-center gap-4 mb-12">
-                <a
-                  href="#reviews"
-                  className="bg-cta text-white font-heading font-extrabold px-8 py-4 rounded-md hover:bg-cta-dk transition-all text-base"
-                >
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 16, marginBottom: 48 }}>
+                <a href="#reviews" className="btn-cta">
                   Ver Melhores Reviews
                 </a>
-                <a
-                  href="/reviews"
-                  className="border border-border text-ink font-heading font-bold px-8 py-4 rounded-md hover:bg-surface transition-colors text-base"
-                >
+                <a href="/reviews" className="btn-sec" style={{ padding: "15px 32px", border: "1.5px solid var(--border)", borderRadius: 6 }}>
                   Todos os Reviews
                 </a>
               </div>
-              <div className="flex flex-wrap justify-center gap-6 text-sm text-muted">
-                <div className="flex items-center gap-2">
-                  <span className="text-green">✓</span> +100 Reviews Publicados
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 24, fontSize: "0.88rem", color: "var(--muted)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ color: "var(--green)" }}>✓</span> +100 Reviews Publicados
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-green">✓</span> Dados Reais de Preço
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ color: "var(--green)" }}>✓</span> Dados Reais de Preço
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-green">✓</span> Comparativos Detalhados
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ color: "var(--green)" }}>✓</span> Comparativos Detalhados
                 </div>
               </div>
             </div>
@@ -62,16 +54,12 @@ export default async function Home() {
 
         {/* TOP RATED */}
         {topReviews.length > 0 && (
-          <section id="reviews" className="py-16 bg-surface">
-            <div className="container">
-              <div className="text-center mb-12">
-                <p className="font-heading text-sm font-bold text-blue mb-2 tracking-wider uppercase">
-                  Nota 9.0+
-                </p>
-                <h2 className="font-display leading-none mb-4" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
-                  MELHORES AVALIADOS
-                </h2>
-                <p className="text-body max-w-xl mx-auto font-light">
+          <section id="reviews" className="scores-band" style={{ padding: "64px 32px" }}>
+            <div className="scores-inner">
+              <div style={{ textAlign: "center", marginBottom: 48 }}>
+                <span className="sec-label" style={{ color: "#93C5FD", borderBottomColor: "#93C5FD" }}>Nota 9.0+</span>
+                <h2 className="sec-h" style={{ color: "#fff" }}>MELHORES AVALIADOS</h2>
+                <p style={{ color: "rgba(255,255,255,0.55)", maxWidth: 560, margin: "0 auto", fontWeight: 300 }}>
                   Os produtos com as maiores notas do nosso laboratório de análises.
                 </p>
               </div>
@@ -86,20 +74,17 @@ export default async function Home() {
 
         {/* LATEST REVIEWS */}
         {latestReviews.length > 0 && (
-          <section className="py-16">
-            <div className="container">
-              <div className="flex items-end justify-between mb-8">
+          <section style={{ padding: "64px 32px" }}>
+            <div className="scores-inner">
+              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 32 }}>
                 <div>
-                  <p className="font-heading text-sm font-bold text-blue mb-1 tracking-wider uppercase">
-                    Recentes
-                  </p>
-                  <h2 className="font-display leading-none" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
-                    ÚLTIMOS REVIEWS
-                  </h2>
+                  <span className="sec-label">Recentes</span>
+                  <h2 className="sec-h" style={{ marginBottom: 0 }}>ÚLTIMOS REVIEWS</h2>
                 </div>
                 <a
                   href="/reviews"
-                  className="text-sm text-blue hover:underline hidden sm:block font-heading font-semibold"
+                  className="btn-sec"
+                  style={{ fontSize: "0.88rem" }}
                 >
                   Ver todos →
                 </a>
@@ -115,22 +100,28 @@ export default async function Home() {
 
         {/* CATEGORIES */}
         {categories.length > 0 && (
-          <section className="py-16 bg-surface">
-            <div className="container">
-              <h2 className="font-display leading-none mb-8" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
-                CATEGORIAS
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <section className="faq-sec">
+            <div className="faq-inner">
+              <h2 className="sec-h">CATEGORIAS</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4" style={{ marginTop: 36 }}>
                 {categories.map((cat) => (
                   <a
                     key={cat.name}
                     href={`/reviews?category=${encodeURIComponent(cat.name)}`}
-                    className="bg-bg border border-border rounded-xl p-5 hover:border-blue/30 transition-colors group"
+                    style={{
+                      display: "block",
+                      background: "var(--bg)",
+                      border: "1.5px solid var(--border)",
+                      borderRadius: 10,
+                      padding: 20,
+                      textDecoration: "none",
+                      transition: "border-color 0.15s",
+                    }}
                   >
-                    <div className="font-display text-blue text-3xl font-bold mb-1 group-hover:scale-105 transition-transform origin-left">
+                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", color: "var(--blue)", fontSize: "1.8rem", fontWeight: 700, lineHeight: 1, marginBottom: 4 }}>
                       {cat.count}
                     </div>
-                    <div className="text-sm text-muted font-heading font-semibold">
+                    <div style={{ fontFamily: "'Syne',sans-serif", fontSize: "0.82rem", fontWeight: 700, color: "var(--muted)" }}>
                       {cat.name}
                     </div>
                   </a>
@@ -141,22 +132,15 @@ export default async function Home() {
         )}
 
         {/* CTA */}
-        <section className="py-20">
-          <div className="container text-center">
-            <div className="max-w-2xl mx-auto">
-              <h2 className="font-display leading-none mb-4" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
-                PRONTO PARA ESCOLHER COM CONFIANÇA?
-              </h2>
-              <p className="text-body mb-8 font-light">
-                Acesse nossos reviews completos e encontre o melhor preço.
-              </p>
-              <a
-                href="/reviews"
-                className="inline-block bg-cta text-white font-heading font-extrabold px-8 py-4 rounded-md hover:bg-cta-dk transition-all text-base"
-              >
-                Explorar Todos os Reviews
-              </a>
-            </div>
+        <section style={{ padding: "80px 32px" }}>
+          <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center" }}>
+            <h2 className="sec-h">PRONTO PARA ESCOLHER COM CONFIANÇA?</h2>
+            <p style={{ color: "var(--body)", fontWeight: 300, marginBottom: 32 }}>
+              Acesse nossos reviews completos e encontre o melhor preço.
+            </p>
+            <a href="/reviews" className="btn-cta">
+              Explorar Todos os Reviews
+            </a>
           </div>
         </section>
       </main>
