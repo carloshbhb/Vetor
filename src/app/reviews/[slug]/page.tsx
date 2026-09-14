@@ -371,6 +371,7 @@ export default async function ReviewPage({ params }: PageProps) {
       <StickyCTA
         price={review.price_new}
         productName={review.product}
+        affiliateUrl={review.affiliate_url}
       />
       <Footer />
     </>
