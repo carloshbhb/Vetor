@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { OrganizationSchema, WebSiteSchema } from "@/components/SchemaMarkup";
-import { fraunces, inter } from "@/lib/fonts";
+import { bebasNeue, syne, dmSans } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#080C14",
+  themeColor: "#07090F",
 };
 
 export default function RootLayout({
@@ -39,18 +39,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${fraunces.variable} ${inter.variable}`}>
+    <html lang="pt-BR" className={`${bebasNeue.variable} ${syne.variable} ${dmSans.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
         <OrganizationSchema />
         <WebSiteSchema />
       </head>

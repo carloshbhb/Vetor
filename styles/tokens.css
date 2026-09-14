@@ -1,63 +1,23 @@
-/**
- * Design tokens — "Bancada de testes"
- * Paleta pensada para um site de review de produtos: tom de laboratório de
- * medição, não de blog genérico. Evita cream+terracota e dark+neon padrão.
- * Importe este arquivo no seu app/globals.css: @import "../styles/tokens.css";
- */
-
 :root {
-  /* Cor base */
-  --color-ink: #12211d;        /* texto principal / superfícies escuras */
-  --color-ink-soft: #2b3a35;   /* texto secundário sobre paper */
-  --color-paper: #efeee4;      /* fundo claro — parchment cinza-esverdeado */
-  --color-paper-raised: #f7f6ee; /* painéis levemente elevados sobre paper */
+  --bg: #07090F;
+  --surface: #0D1220;
+  --surface2: #131A2B;
+  --border: rgba(255,255,255,0.06);
+  --text: #EEF2FF;
+  --muted: #7B88A8;
+  --amber: #F59E0B;
+  --amber-d: #D97706;
+  --amber-bg: rgba(245,158,11,0.08);
+  --blue: #3B82F6;
+  --green: #10B981;
+  --red: #EF4444;
+  --purple: #8B5CF6;
 
-  /* Acentos funcionais */
-  --color-brass: #c68a34;      /* nota, CTA primário, ponteiro do dial */
-  --color-brass-dim: #a9732a;  /* hover/active do brass */
-  --color-pine: #2b6e5c;       /* "verificado", selo de confiança, links */
-  --color-clay: #a6432f;       /* nota baixa, alerta */
-  --color-line: #cbc7b8;       /* hairlines / bordas */
-  --color-line-strong: #a9a591;
-
-  /* Superfícies escuras (seções invertidas, footer, hero console) */
-  --color-ink-raised: #1a2e28;
-
-  /* Tipografia */
-  --font-display: "Fraunces", "Iowan Old Style", serif;
-  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
-
-  /* Escala tipográfica (Elements of Typographic Style, razão ~1.25) */
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.25rem;
-  --text-xl: 1.563rem;
-  --text-2xl: 1.953rem;
-  --text-3xl: 2.441rem;
-  --text-4xl: 3.052rem;
-
-  /* Raio — deliberadamente diferenciado por hierarquia, não uniforme */
-  --radius-flat: 0px;   /* painéis "spec sheet" (hero, tabelas) */
-  --radius-sm: 3px;     /* chips, badges */
-  --radius-md: 6px;     /* cards de artigo */
-
-  /* Espaçamento de conteúdo */
-  --measure: 68ch; /* largura máxima de linha para corpo de texto */
+  --font-display: "Bebas Neue", sans-serif;
+  --font-heading: "Syne", sans-serif;
+  --font-body: "DM Sans", sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-paper: #12211d;
-    --color-paper-raised: #1a2e28;
-    --color-ink: #efeee4;
-    --color-ink-soft: #cbc7b8;
-    --color-line: #33463f;
-    --color-line-strong: #435850;
-  }
-}
-
-/* Respeita prefers-reduced-motion globalmente */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -67,8 +27,7 @@
   }
 }
 
-/* Focus visível — acessibilidade, nunca remover outline sem substituto */
 :focus-visible {
-  outline: 2px solid var(--color-brass);
+  outline: 2px solid var(--amber);
   outline-offset: 2px;
 }

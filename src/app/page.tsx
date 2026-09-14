@@ -1,7 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ReviewCard from "@/components/ReviewCard";
-import ScoreBadge from "@/components/ScoreBadge";
 import { fetchAllReviews, fetchCategories } from "@/lib/data";
 
 export default async function Home() {
@@ -17,136 +16,90 @@ export default async function Home() {
     <>
       <Navbar />
       <main>
-        {/* Hero Section - Sales Page Style */}
-        <section className="min-h-[90vh] flex items-center bg-gradient-to-b from-[var(--surface)] to-transparent">
+        {/* HERO */}
+        <section className="min-h-[90vh] flex items-center" style={{ background: "linear-gradient(to bottom, var(--surface), transparent)" }}>
           <div className="container">
             <div className="max-w-4xl mx-auto text-center">
-              <p className="text-sm font-medium text-[var(--blue)] mb-4 tracking-wider uppercase">
+              <p className="font-heading text-sm font-bold text-amber mb-4 tracking-wider uppercase">
                 Reviews Sinceros e Imparciais
               </p>
-              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold leading-[1.1] mb-6">
+              <h1 className="font-display leading-[0.93] mb-6" style={{ fontSize: "clamp(3rem, 8vw, 7rem)" }}>
                 Pare de comprar{" "}
-                <span className="text-[var(--blue)]">no escuro.</span>
+                <span className="text-amber">no escuro.</span>
               </h1>
-              <p className="text-lg sm:text-xl text-[var(--muted)] max-w-2xl mx-auto leading-relaxed mb-8">
+              <p className="text-lg sm:text-xl text-muted max-w-2xl mx-auto leading-relaxed mb-8 font-light">
                 Análises detalhadas com dados reais para você fazer a melhor
                 escolha. Sem enrolação, sem favoritismo.
               </p>
               <div className="flex flex-wrap justify-center gap-4 mb-12">
                 <a
                   href="#reviews"
-                  className="bg-[var(--blue)] text-white font-semibold px-8 py-4 rounded-xl hover:opacity-90 transition-opacity text-base"
+                  className="bg-amber text-black font-heading font-extrabold px-8 py-4 rounded-full hover:bg-white hover:shadow-[0_16px_40px_rgba(245,158,11,0.3)] transition-all text-base"
                 >
                   Ver Melhores Reviews
                 </a>
                 <a
                   href="/reviews"
-                  className="border border-white/15 text-[var(--text)] font-semibold px-8 py-4 rounded-xl hover:bg-[var(--surface)] transition-colors text-base"
+                  className="border border-border text-text font-heading font-bold px-8 py-4 rounded-full hover:bg-surface transition-colors text-base"
                 >
                   Todos os Reviews
                 </a>
               </div>
-              <div className="flex flex-wrap justify-center gap-6 text-sm text-[var(--muted)]">
+              <div className="flex flex-wrap justify-center gap-6 text-sm text-muted">
                 <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[var(--green)]" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  +100 Reviews Publicados
+                  <span className="text-green">✓</span> +100 Reviews Publicados
                 </div>
                 <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[var(--green)]" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Dados Reais de Preço
+                  <span className="text-green">✓</span> Dados Reais de Preço
                 </div>
                 <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[var(--green)]" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Comparativos Detalhados
+                  <span className="text-green">✓</span> Comparativos Detalhados
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Top Rated Reviews - Affiliate Focus */}
+        {/* TOP RATED */}
         {topReviews.length > 0 && (
-          <section id="reviews" className="py-16 bg-[var(--surface)]/30">
+          <section id="reviews" className="py-16" style={{ background: "rgba(13,18,32,0.3)" }}>
             <div className="container">
               <div className="text-center mb-12">
-                <p className="text-sm font-medium text-[var(--blue)] mb-2 tracking-wider uppercase">
+                <p className="font-heading text-sm font-bold text-amber mb-2 tracking-wider uppercase">
                   Nota 9.0+
                 </p>
-                <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                  Melhores Avaliados
+                <h2 className="font-display leading-none mb-4" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
+                  MELHORES AVALIADOS
                 </h2>
-                <p className="text-[var(--muted)] max-w-xl mx-auto">
+                <p className="text-muted max-w-xl mx-auto font-light">
                   Os produtos com as maiores notas do nosso laboratório de análises.
-                  Clique e confira o menor preço.
                 </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {topReviews.map((review) => (
-                  <a
-                    key={review.slug}
-                    href={review.affiliate_url || `/reviews/${review.slug}`}
-                    target={review.affiliate_url ? "_blank" : undefined}
-                    rel={review.affiliate_url ? "noopener noreferrer" : undefined}
-                    className="group bg-[var(--surface)] border border-white/8 rounded-2xl overflow-hidden hover:border-[var(--blue)]/40 transition-all hover:shadow-lg hover:shadow-[var(--blue)]/5"
-                  >
-                    <div className="p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <ScoreBadge score={review.verdict_score} />
-                        <span className="text-xs text-[var(--muted)] bg-[var(--surface3)] px-2 py-1 rounded-full">
-                          {review.category}
-                        </span>
-                      </div>
-                      <h3 className="font-bold text-lg mb-2 group-hover:text-[var(--blue)] transition-colors line-clamp-2">
-                        {review.product}
-                      </h3>
-                      <p className="text-sm text-[var(--muted)] mb-4 line-clamp-2">
-                        {review.hero_lead}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xl font-bold text-[var(--green)]">
-                            {review.price_new}
-                          </p>
-                          {review.price_old && (
-                            <p className="text-xs text-[var(--muted)] line-through">
-                              {review.price_old}
-                            </p>
-                          )}
-                        </div>
-                        <span className="bg-[var(--blue)] text-white text-xs font-semibold px-3 py-2 rounded-lg group-hover:opacity-90 transition-opacity">
-                          Ver Oferta →
-                        </span>
-                      </div>
-                    </div>
-                  </a>
+                  <ReviewCard key={review.slug} review={review} />
                 ))}
               </div>
             </div>
           </section>
         )}
 
-        {/* Latest Reviews */}
+        {/* LATEST REVIEWS */}
         {latestReviews.length > 0 && (
           <section className="py-16">
             <div className="container">
               <div className="flex items-end justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold">
-                    Últimos Reviews
-                  </h2>
-                  <p className="text-[var(--muted)] mt-1">
-                    Análises atualizadas dos produtos mais relevantes
+                  <p className="font-heading text-sm font-bold text-amber mb-1 tracking-wider uppercase">
+                    Recentes
                   </p>
+                  <h2 className="font-display leading-none" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
+                    ÚLTIMOS REVIEWS
+                  </h2>
                 </div>
                 <a
                   href="/reviews"
-                  className="text-sm text-[var(--blue)] hover:underline hidden sm:block"
+                  className="text-sm text-amber hover:underline hidden sm:block font-heading font-semibold"
                 >
                   Ver todos →
                 </a>
@@ -156,34 +109,28 @@ export default async function Home() {
                   <ReviewCard key={review.slug} review={review} />
                 ))}
               </div>
-              <a
-                href="/reviews"
-                className="text-sm text-[var(--blue)] hover:underline mt-6 block text-center sm:hidden"
-              >
-                Ver todos os reviews →
-              </a>
             </div>
           </section>
         )}
 
-        {/* Categories / Market Data */}
+        {/* CATEGORIES */}
         {categories.length > 0 && (
-          <section className="py-16 bg-[var(--surface)]/50">
+          <section className="py-16" style={{ background: "rgba(13,18,32,0.5)" }}>
             <div className="container">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-8">
-                Categorias
+              <h2 className="font-display leading-none mb-8" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
+                CATEGORIAS
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {categories.map((cat) => (
                   <a
                     key={cat.name}
                     href={`/reviews?category=${encodeURIComponent(cat.name)}`}
-                    className="bg-[var(--surface)] border border-white/5 rounded-xl p-5 hover:border-[var(--blue)]/30 transition-colors group"
+                    className="bg-surface border border-border rounded-xl p-5 hover:border-amber/30 transition-colors group"
                   >
-                    <div className="text-3xl font-bold text-[var(--blue)] mb-1 group-hover:scale-105 transition-transform origin-left">
+                    <div className="font-display text-amber text-3xl font-bold mb-1 group-hover:scale-105 transition-transform origin-left">
                       {cat.count}
                     </div>
-                    <div className="text-sm text-[var(--muted)]">
+                    <div className="text-sm text-muted font-heading font-semibold">
                       {cat.name}
                     </div>
                   </a>
@@ -193,50 +140,23 @@ export default async function Home() {
           </section>
         )}
 
-        {/* CTA Final - Sales Page Style */}
+        {/* CTA */}
         <section className="py-20">
           <div className="container text-center">
             <div className="max-w-2xl mx-auto">
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Pronto para escolher com confiança?
+              <h2 className="font-display leading-none mb-4" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
+                PRONTO PARA ESCOLHER COM CONFIANÇA?
               </h2>
-              <p className="text-[var(--muted)] mb-8">
-                Acesse nossos reviews completos e encontre o melhor preço para o
-                produto que você precisa.
+              <p className="text-muted mb-8 font-light">
+                Acesse nossos reviews completos e encontre o melhor preço.
               </p>
               <a
                 href="/reviews"
-                className="inline-block bg-[var(--blue)] text-white font-semibold px-8 py-4 rounded-xl hover:opacity-90 transition-opacity text-base"
+                className="inline-block bg-amber text-black font-heading font-extrabold px-8 py-4 rounded-full hover:bg-white hover:shadow-[0_16px_40px_rgba(245,158,11,0.3)] transition-all text-base"
               >
                 Explorar Todos os Reviews
               </a>
             </div>
-          </div>
-        </section>
-
-        {/* Newsletter */}
-        <section className="py-16 bg-[var(--surface)]/50">
-          <div className="container text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-              Receba Reviews no seu Email
-            </h2>
-            <p className="text-[var(--muted)] max-w-md mx-auto mb-6">
-              Cadastre-se e fique por dentro dos melhores reviews e
-              comparativos.
-            </p>
-            <form className="flex gap-2 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="seu@email.com"
-                className="flex-1 bg-[var(--surface)] border border-white/8 rounded-xl px-4 py-3 text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--blue)]"
-              />
-              <button
-                type="submit"
-                className="bg-[var(--blue)] text-white text-sm font-semibold px-5 py-3 rounded-xl hover:opacity-90 transition-opacity whitespace-nowrap"
-              >
-                Cadastrar
-              </button>
-            </form>
           </div>
         </section>
       </main>

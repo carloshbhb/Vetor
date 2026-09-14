@@ -1,101 +1,58 @@
 import Image from "next/image";
-import ScoreBadge from "./ScoreBadge";
+import Link from "next/link";
 import type { Review } from "@/lib/types";
 
 export default function ReviewCard({ review }: { review: Review }) {
   const hasAffiliate = !!review.affiliate_url;
+  const score = review.verdict_score || review.hero_overall_score;
 
   return (
-    <div className="group block bg-[var(--surface)] rounded-2xl overflow-hidden border border-white/5 hover:border-[var(--blue)]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(66,133,244,0.12)]">
-      <a
-        href={hasAffiliate ? review.affiliate_url : `/reviews/${review.slug}`}
-        target={hasAffiliate ? "_blank" : undefined}
-        rel={hasAffiliate ? "noopener noreferrer" : undefined}
-        className="block"
-      >
-        {review.image_url && (
-          <div className="relative w-full h-48 bg-[var(--surface2)]">
-            <Image
-              src={review.image_url}
-              alt={review.product}
-              fill
-              className="object-contain p-4 group-hover:scale-105 transition-transform duration-300"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            />
-          </div>
-        )}
-
-        <div className="p-5">
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-semibold leading-tight truncate group-hover:text-[var(--blue)] transition-colors">
-                {review.product}
-              </h2>
-            </div>
-            <ScoreBadge score={review.verdict_score} size="sm" />
-          </div>
-
-          <p className="text-sm text-[var(--muted)] line-clamp-2 mb-4 leading-relaxed">
-            {review.hero_lead}
-          </p>
-
-          <div className="flex items-center gap-2 mb-3">
-            <span className="inline-block bg-[var(--surface3)] text-xs text-[var(--muted)] px-2.5 py-1 rounded-full">
-              {review.category}
+    <Link
+      href={`/reviews/${review.slug}`}
+      className="group block bg-bg border border-border rounded-[20px] overflow-hidden transition-all duration-300 hover:border-amber/30 hover:-translate-y-1"
+    >
+      {review.image_url && (
+        <div className="relative h-[180px] overflow-hidden">
+          <Image
+            src={review.image_url}
+            alt={review.product}
+            fill
+            className="object-cover transition-transform duration-400 group-hover:scale-105"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+          <span className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm border border-border rounded-md px-2.5 py-[3px] font-heading text-[0.64rem] font-bold tracking-wider uppercase text-muted">
+            {review.category}
+          </span>
+          {score > 0 && (
+            <span className="absolute top-3 right-3 bg-amber text-black font-display text-1.3rem rounded-lg px-2.5 py-0.5" style={{ lineHeight: 1.3 }}>
+              {score.toFixed(1)}
             </span>
-            <span className="text-[var(--green)] font-bold text-sm">
-              {review.price_new}
-            </span>
-          </div>
-
-          {review.pros && review.pros.length > 0 && (
-            <div className="border-t border-white/5 pt-3 mt-3">
-              <div className="grid grid-cols-2 gap-1">
-                {review.pros.slice(0, 2).map((pro, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-1.5 text-xs text-[var(--green)]"
-                  >
-                    <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="truncate">{pro}</span>
-                  </div>
-                ))}
-              </div>
-              {review.cons && review.cons.length > 0 && (
-                <div className="grid grid-cols-2 gap-1 mt-1.5">
-                  {review.cons.slice(0, 2).map((con, i) => (
-                    <div
-                      key={i}
-                      className="flex items-start gap-1.5 text-xs text-[var(--red)]"
-                    >
-                      <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      <span className="truncate">{con}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           )}
         </div>
-      </a>
-
-      {/* Affiliate CTA Button */}
+      )}
+      <div className="p-5">
+        <h3 className="font-heading font-extrabold text-[0.95rem] text-text mb-1.5 leading-snug group-hover:text-amber transition-colors">
+          {review.product}
+        </h3>
+        <p className="text-[0.82rem] text-muted font-light leading-relaxed mb-3.5 line-clamp-2">
+          {review.hero_lead}
+        </p>
+        <div className="flex items-center justify-between pt-3 border-t border-border font-heading text-[0.7rem] font-semibold text-muted">
+          <span>{review.category}</span>
+          {score > 0 && (
+            <span className={score >= 8 ? "text-green" : score >= 5 ? "text-amber" : "text-red"}>
+              {score >= 8 ? "✓ Recomendado" : score >= 5 ? "Razoável" : "Não recomendado"}
+            </span>
+          )}
+        </div>
+      </div>
       {hasAffiliate && (
         <div className="px-5 pb-5">
-          <a
-            href={review.affiliate_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full text-center bg-[var(--blue)] text-white text-sm font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity"
-          >
+          <span className="block w-full text-center bg-amber text-black text-sm font-heading font-extrabold py-3 rounded-xl transition-all group-hover:bg-white">
             Ver Menor Preço →
-          </a>
+          </span>
         </div>
       )}
-    </div>
+    </Link>
   );
 }

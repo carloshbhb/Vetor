@@ -1,32 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const links = [
   { label: "Home", href: "/" },
   { label: "Reviews", href: "/reviews" },
-  { label: "Comparativos", href: "/reviews?category=comparativos" },
+  { label: "Comparativos", href: "/comparativos" },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/8 bg-[#0F1623]/90 backdrop-blur-md">
-      <div className="container flex items-center justify-between py-5">
-        <a href="/" className="text-2xl font-bold text-[var(--blue)]">
-          vetor.blog
-        </a>
+    <header className="sticky top-0 z-200 bg-bg/90 backdrop-blur-xl border-b border-border" style={{ height: 64 }}>
+      <div className="container flex items-center justify-between h-16 gap-8">
+        <Link href="/" className="font-display text-2xl tracking-wider text-text flex items-center gap-2 shrink-0">
+          vetor
+          <span className="bg-amber text-black font-heading font-extrabold text-[0.6rem] tracking-wider px-1.5 py-0.5 rounded">
+            BLOG
+          </span>
+        </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-7">
           {links.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
-              className="text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors duration-200"
+              className="font-heading text-[0.78rem] font-semibold tracking-wide text-muted hover:text-text transition-colors"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -36,39 +40,23 @@ export default function Navbar() {
           onClick={() => setOpen(!open)}
           aria-label={open ? "Fechar menu" : "Abrir menu"}
         >
-          <span
-            className={`block w-6 h-0.5 bg-[var(--text)] transition-all duration-300 ${
-              open ? "rotate-45 translate-y-2" : ""
-            }`}
-          />
-          <span
-            className={`block w-6 h-0.5 bg-[var(--text)] transition-all duration-300 ${
-              open ? "opacity-0" : ""
-            }`}
-          />
-          <span
-            className={`block w-6 h-0.5 bg-[var(--text)] transition-all duration-300 ${
-              open ? "-rotate-45 -translate-y-2" : ""
-            }`}
-          />
+          <span className={`block w-6 h-0.5 bg-text transition-all duration-300 ${open ? "rotate-45 translate-y-2" : ""}`} />
+          <span className={`block w-6 h-0.5 bg-text transition-all duration-300 ${open ? "opacity-0" : ""}`} />
+          <span className={`block w-6 h-0.5 bg-text transition-all duration-300 ${open ? "-rotate-45 -translate-y-2" : ""}`} />
         </button>
       </div>
 
-      <div
-        className={`md:hidden overflow-hidden transition-all duration-300 ${
-          open ? "max-h-60" : "max-h-0"
-        }`}
-      >
+      <div className={`md:hidden overflow-hidden transition-all duration-300 ${open ? "max-h-60" : "max-h-0"}`}>
         <nav className="container flex flex-col gap-1 pb-4">
           {links.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
-              className="py-2 px-3 rounded-lg text-[var(--muted)] hover:bg-[var(--surface2)] hover:text-[var(--text)] transition-colors duration-200 text-sm"
+              className="py-2 px-3 rounded-lg text-muted hover:bg-surface2 hover:text-text transition-colors text-sm font-heading font-semibold"
               onClick={() => setOpen(false)}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </nav>
       </div>

@@ -1,42 +1,24 @@
-interface ScoreBadgeProps {
+type ScoreBadgeProps = {
   score: number;
-  size?: 'sm' | 'md' | 'lg';
-}
-
-const sizeMap = {
-  sm: { box: 40, font: 14 },
-  md: { box: 56, font: 20 },
-  lg: { box: 72, font: 28 },
+  size?: "sm" | "md" | "lg";
 };
 
-function getColor(score: number): string {
-  if (score >= 9) return '#22C55E';
-  if (score >= 7) return 'var(--blue)';
-  if (score >= 5) return '#F59E0B';
-  return '#EF4444';
+function scoreColor(score: number) {
+  if (score >= 8) return "var(--green)";
+  if (score >= 5) return "var(--amber)";
+  return "var(--red)";
 }
 
-export default function ScoreBadge({ score, size = 'md' }: ScoreBadgeProps) {
-  const { box, font } = sizeMap[size];
-  const color = getColor(score);
+export default function ScoreBadge({ score, size = "md" }: ScoreBadgeProps) {
+  const clamped = Math.min(10, Math.max(0, score));
+  const sizeMap = { sm: "text-sm px-2 py-0.5", md: "text-base px-3 py-1", lg: "text-xl px-4 py-1.5" };
 
   return (
-    <div
-      style={{
-        width: `${box}px`,
-        height: `${box}px`,
-        borderRadius: '50%',
-        border: `3px solid ${color}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: `${font}px`,
-        fontWeight: 'bold',
-        color,
-        flexShrink: 0,
-      }}
+    <span
+      className={`inline-flex items-center font-display rounded-lg ${sizeMap[size]}`}
+      style={{ background: "rgba(245,158,11,0.12)", color: scoreColor(clamped), lineHeight: 1 }}
     >
-      {score.toFixed(1)}
-    </div>
+      {clamped.toFixed(1)}
+    </span>
   );
 }
