@@ -42,7 +42,7 @@ export default function TOCSidebar({ sections, score, affiliateUrl }: TOCSidebar
   }, [sections]);
 
   return (
-    <nav ref={navRef} className="bg-surface border border-border rounded-2xl sticky" style={{ top: 88, padding: "22px 20px" }} aria-label="Índice do review">
+    <nav ref={navRef} className="bg-surface border border-border rounded-[10px] sticky" style={{ top: 88, padding: "22px 20px" }} aria-label="Índice do review">
       <div className="font-heading text-[0.68rem] font-bold tracking-[0.12em] uppercase text-muted mb-3.5 pb-2.5 border-b border-border">
         Neste Review
       </div>
@@ -51,7 +51,7 @@ export default function TOCSidebar({ sections, score, affiliateUrl }: TOCSidebar
           <li key={section.id}>
             <a
               href={`#${section.id}`}
-              className={`toc-link block py-[7px] px-2.5 rounded-lg font-heading text-[0.76rem] font-semibold text-muted hover:bg-surface2 hover:text-text transition-colors${index === 0 ? " active" : ""}`}
+              className={`toc-link block py-[7px] px-2.5 rounded-lg font-heading text-[0.76rem] font-semibold text-body hover:bg-blue-lt hover:text-blue transition-colors${index === 0 ? " active" : ""}`}
             >
               {section.heading}
             </a>
@@ -73,14 +73,9 @@ export default function TOCSidebar({ sections, score, affiliateUrl }: TOCSidebar
           href={affiliateUrl}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          className="block text-center mt-3.5 font-heading font-extrabold text-[0.72rem] tracking-wider py-2.5 rounded-[10px] transition-all"
-          style={{
-            background: "var(--amber-bg)",
-            border: "1px solid rgba(245,158,11,0.2)",
-            color: "var(--amber)",
-          }}
+          className="block text-center mt-3.5 font-heading font-extrabold text-[0.72rem] tracking-wider py-2.5 rounded-md transition-all bg-cta text-white hover:bg-cta-dk"
         >
-          Comprar no Mercado Livre →
+          Comprar agora →
         </a>
       )}
     </nav>

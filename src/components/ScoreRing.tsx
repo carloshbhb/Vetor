@@ -16,15 +16,15 @@ export default function ScoreRing({ score, label, size = 140 }: ScoreRingProps) 
         <div
           className="w-full h-full rounded-full flex items-center justify-center relative"
           style={{
-            background: `conic-gradient(var(--amber) ${pct}%, rgba(255,255,255,0.06) 0%)`,
+            background: `conic-gradient(var(--blue) ${pct}%, var(--border) 0%)`,
           }}
         >
           <div
-            className="absolute rounded-full bg-surface"
+            className="absolute rounded-full bg-white"
             style={{ inset: 8 }}
           />
           <div className="relative z-10 text-center">
-            <span className="font-display text-amber block" style={{ fontSize: "3.4rem", lineHeight: 1 }}>
+            <span className="font-display text-blue block" style={{ fontSize: "3.4rem", lineHeight: 1 }}>
               {clamped.toFixed(1)}
             </span>
             <span className="font-heading text-muted block" style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em" }}>

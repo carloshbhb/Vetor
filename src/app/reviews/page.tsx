@@ -59,13 +59,13 @@ export default function ReviewsPage() {
       <main className="container py-12">
         <Breadcrumbs items={[{ label: 'Início', href: '/' }, { label: 'Reviews' }]} />
         <div className="pt-4 mb-10">
-          <p className="font-heading text-sm font-bold text-[var(--amber)] mb-2 tracking-wider uppercase">
+          <p className="font-heading text-sm font-bold text-blue mb-2 tracking-wider uppercase">
             Reviews
           </p>
           <h1 className="font-display leading-none mb-3" style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)" }}>
             TODOS OS REVIEWS
           </h1>
-          <p className="text-[var(--muted)] font-light text-lg max-w-xl">
+          <p className="text-muted font-light text-lg max-w-xl">
             Análises detalhadas para você escolher com confiança.
           </p>
         </div>
@@ -79,13 +79,13 @@ export default function ReviewsPage() {
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                className="bg-[var(--surface)] rounded-2xl h-80 animate-pulse"
+                className="bg-surface rounded-2xl h-80 animate-pulse"
               />
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-[var(--muted)] text-lg">
+            <p className="text-muted text-lg">
               Nenhum review encontrado com esses filtros.
             </p>
           </div>

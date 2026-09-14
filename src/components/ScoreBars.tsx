@@ -12,9 +12,15 @@ type ScoreBarsProps = {
 };
 
 function barColor(score: number) {
-  if (score >= 8) return "linear-gradient(90deg, #F59E0B, #FCD34D)";
-  if (score >= 6) return "linear-gradient(90deg, #3B82F6, #60A5FA)";
-  return "linear-gradient(90deg, #8B5CF6, #A78BFA)";
+  if (score >= 8) return "linear-gradient(90deg, #10B981, #34D399)";
+  if (score >= 5) return "linear-gradient(90deg, #D97706, #FCD34D)";
+  return "linear-gradient(90deg, #3B82F6, #60A5FA)";
+}
+
+function barClass(score: number) {
+  if (score >= 8) return "great";
+  if (score >= 5) return "good";
+  return "ok";
 }
 
 export default function ScoreBars({ bars }: ScoreBarsProps) {
@@ -48,16 +54,13 @@ export default function ScoreBars({ bars }: ScoreBarsProps) {
   }, []);
 
   return (
-    <div ref={ref} className="flex flex-col gap-4 my-8">
-      {bars.map((bar, i) => (
-        <div key={bar.label} className="flex flex-col gap-1.5">
-          <div className="flex justify-between items-baseline">
-            <span className="font-heading text-[0.82rem] font-bold text-text">{bar.label}</span>
-            <span className="font-display text-amber" style={{ fontSize: "1.4rem", lineHeight: 1 }}>{bar.score.toFixed(1)}</span>
-          </div>
-          <div className="h-1.5 rounded bg-white/5 overflow-hidden">
+    <div ref={ref} className="flex flex-col gap-5 my-8">
+      {bars.map((bar) => (
+        <div key={bar.label} className="grid items-center gap-4" style={{ gridTemplateColumns: "160px 1fr 48px" }}>
+          <span className="font-heading text-[0.8rem] font-bold text-white/70">{bar.label}</span>
+          <div className="h-2 bg-white/[0.08] rounded overflow-hidden">
             <div
-              className="score-fill h-full rounded-[3px]"
+              className={`score-fill h-full rounded ${barClass(bar.score)}`}
               data-w={`${bar.score * 10}%`}
               style={{
                 width: 0,
@@ -66,6 +69,7 @@ export default function ScoreBars({ bars }: ScoreBarsProps) {
               }}
             />
           </div>
+          <span className="font-display text-[1.6rem] text-white text-right">{bar.score.toFixed(1)}</span>
         </div>
       ))}
     </div>

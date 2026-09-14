@@ -2,50 +2,27 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-[#050709] border-t border-border pt-12 pb-8 px-6 md:px-12">
-      <div className="max-w-[1200px] mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-10">
-          <div>
-            <Link href="/" className="font-display text-text block mb-2.5" style={{ fontSize: "1.5rem", letterSpacing: "0.08em" }}>
-              vetor.blog
-            </Link>
-            <p className="text-[0.8rem] text-muted leading-[1.7] font-light">
-              Reviews honestos, testados de verdade — sem patrocínio escondido. Nossa pontuação reflete o que encontramos nos testes, não o que as marcas querem que você ouça.
-            </p>
-          </div>
-          <div>
-            <div className="font-heading text-[0.7rem] font-bold tracking-[0.1em] uppercase text-muted mb-3.5">
-              Categorias
-            </div>
-            <ul className="flex flex-col gap-2">
-              <li><Link href="/reviews?category=celulares" className="text-[0.82rem] text-muted font-light hover:text-amber transition-colors">Celulares</Link></li>
-              <li><Link href="/reviews?category=notebooks" className="text-[0.82rem] text-muted font-light hover:text-amber transition-colors">Notebooks</Link></li>
-              <li><Link href="/reviews?category=audio" className="text-[0.82rem] text-muted font-light hover:text-amber transition-colors">Fones e Áudio</Link></li>
-              <li><Link href="/reviews?category=wearables" className="text-[0.82rem] text-muted font-light hover:text-amber transition-colors">Wearables</Link></li>
-              <li><Link href="/reviews?category=tablets" className="text-[0.82rem] text-muted font-light hover:text-amber transition-colors">Tablets</Link></li>
-              <li><Link href="/comparativos" className="text-[0.82rem] text-muted font-light hover:text-amber transition-colors">Comparativos</Link></li>
-            </ul>
-          </div>
-          <div>
-            <div className="font-heading text-[0.7rem] font-bold tracking-[0.1em] uppercase text-muted mb-3.5">
-              vetor.blog
-            </div>
-            <ul className="flex flex-col gap-2">
-              <li><Link href="#" className="text-[0.82rem] text-muted font-light hover:text-amber transition-colors">Sobre nós</Link></li>
-              <li><Link href="#" className="text-[0.82rem] text-muted font-light hover:text-amber transition-colors">Metodologia</Link></li>
-              <li><Link href="#" className="text-[0.82rem] text-muted font-light hover:text-amber transition-colors">Política de Afiliados</Link></li>
-              <li><Link href="#" className="text-[0.82rem] text-muted font-light hover:text-amber transition-colors">Privacidade</Link></li>
-              <li><Link href="#" className="text-[0.82rem] text-muted font-light hover:text-amber transition-colors">Contato</Link></li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-[1200px] mx-auto pt-6 border-t border-border flex flex-wrap items-center justify-between gap-3 text-[0.72rem] text-muted font-light">
-          <span>© 2026 vetor.blog. Todos os direitos reservados.</span>
-          <span>
-            Alguns links nesta página são de afiliados — ganhamos uma pequena comissão sem custo extra para você.{" "}
-            <Link href="#" className="text-muted hover:text-amber transition-colors">Saiba mais.</Link>
-          </span>
-        </div>
+    <footer className="bg-ink text-white/50 py-10 px-8 text-center">
+      <div className="max-w-[760px] mx-auto">
+        <span className="font-display text-[1.4rem] text-white tracking-[0.08em] mb-3 block">
+          vetor.blog
+        </span>
+        <p className="text-[0.75rem] leading-[1.8] font-light mb-2">
+          Esta página contém links de afiliados. Caso você compre através deles, recebemos uma pequena comissão sem custo adicional para você. Isso nos ajuda a manter o site e continuar publicando reviews independentes.
+        </p>
+        <p className="text-[0.75rem] leading-[1.8] font-light mb-2">
+          Os preços exibidos são indicativos e podem variar. Sempre confirme o valor final antes de concluir a compra.
+        </p>
+        <p className="text-[0.75rem] leading-[1.8] font-light mt-4">
+          <Link href="#" className="text-white/40 hover:text-white/70 transition-colors">Política de privacidade</Link>
+          {" · "}
+          <Link href="#" className="text-white/40 hover:text-white/70 transition-colors">Sobre o vetor.blog</Link>
+          {" · "}
+          <Link href="#" className="text-white/40 hover:text-white/70 transition-colors">Metodologia de review</Link>
+          {" · "}
+          <Link href="#" className="text-white/40 hover:text-white/70 transition-colors">Contato</Link>
+        </p>
+        <p className="text-[0.75rem] leading-[1.8] font-light mt-3">© 2026 vetor.blog. Todos os direitos reservados.</p>
       </div>
     </footer>
   );

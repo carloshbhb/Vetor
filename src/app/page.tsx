@@ -17,30 +17,30 @@ export default async function Home() {
       <Navbar />
       <main>
         {/* HERO */}
-        <section className="min-h-[90vh] flex items-center" style={{ background: "linear-gradient(to bottom, var(--surface), transparent)" }}>
+        <section className="min-h-[90vh] flex items-center" style={{ background: "linear-gradient(to bottom, var(--surface), var(--bg))" }}>
           <div className="container">
             <div className="max-w-4xl mx-auto text-center">
-              <p className="font-heading text-sm font-bold text-amber mb-4 tracking-wider uppercase">
+              <p className="font-heading text-sm font-bold text-blue mb-4 tracking-wider uppercase">
                 Reviews Sinceros e Imparciais
               </p>
-              <h1 className="font-display leading-[0.93] mb-6" style={{ fontSize: "clamp(3rem, 8vw, 7rem)" }}>
+              <h1 className="font-display leading-[0.93] mb-6" style={{ fontSize: "clamp(3rem, 8vw, 7rem)", color: "var(--ink)" }}>
                 Pare de comprar{" "}
-                <span className="text-amber">no escuro.</span>
+                <span className="text-blue">no escuro.</span>
               </h1>
-              <p className="text-lg sm:text-xl text-muted max-w-2xl mx-auto leading-relaxed mb-8 font-light">
+              <p className="text-lg sm:text-xl text-body max-w-2xl mx-auto leading-relaxed mb-8 font-light">
                 Análises detalhadas com dados reais para você fazer a melhor
                 escolha. Sem enrolação, sem favoritismo.
               </p>
               <div className="flex flex-wrap justify-center gap-4 mb-12">
                 <a
                   href="#reviews"
-                  className="bg-amber text-black font-heading font-extrabold px-8 py-4 rounded-full hover:bg-white hover:shadow-[0_16px_40px_rgba(245,158,11,0.3)] transition-all text-base"
+                  className="bg-cta text-white font-heading font-extrabold px-8 py-4 rounded-md hover:bg-cta-dk transition-all text-base"
                 >
                   Ver Melhores Reviews
                 </a>
                 <a
                   href="/reviews"
-                  className="border border-border text-text font-heading font-bold px-8 py-4 rounded-full hover:bg-surface transition-colors text-base"
+                  className="border border-border text-ink font-heading font-bold px-8 py-4 rounded-md hover:bg-surface transition-colors text-base"
                 >
                   Todos os Reviews
                 </a>
@@ -62,16 +62,16 @@ export default async function Home() {
 
         {/* TOP RATED */}
         {topReviews.length > 0 && (
-          <section id="reviews" className="py-16" style={{ background: "rgba(13,18,32,0.3)" }}>
+          <section id="reviews" className="py-16 bg-surface">
             <div className="container">
               <div className="text-center mb-12">
-                <p className="font-heading text-sm font-bold text-amber mb-2 tracking-wider uppercase">
+                <p className="font-heading text-sm font-bold text-blue mb-2 tracking-wider uppercase">
                   Nota 9.0+
                 </p>
                 <h2 className="font-display leading-none mb-4" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
                   MELHORES AVALIADOS
                 </h2>
-                <p className="text-muted max-w-xl mx-auto font-light">
+                <p className="text-body max-w-xl mx-auto font-light">
                   Os produtos com as maiores notas do nosso laboratório de análises.
                 </p>
               </div>
@@ -90,7 +90,7 @@ export default async function Home() {
             <div className="container">
               <div className="flex items-end justify-between mb-8">
                 <div>
-                  <p className="font-heading text-sm font-bold text-amber mb-1 tracking-wider uppercase">
+                  <p className="font-heading text-sm font-bold text-blue mb-1 tracking-wider uppercase">
                     Recentes
                   </p>
                   <h2 className="font-display leading-none" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
@@ -99,7 +99,7 @@ export default async function Home() {
                 </div>
                 <a
                   href="/reviews"
-                  className="text-sm text-amber hover:underline hidden sm:block font-heading font-semibold"
+                  className="text-sm text-blue hover:underline hidden sm:block font-heading font-semibold"
                 >
                   Ver todos →
                 </a>
@@ -115,7 +115,7 @@ export default async function Home() {
 
         {/* CATEGORIES */}
         {categories.length > 0 && (
-          <section className="py-16" style={{ background: "rgba(13,18,32,0.5)" }}>
+          <section className="py-16 bg-surface">
             <div className="container">
               <h2 className="font-display leading-none mb-8" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
                 CATEGORIAS
@@ -125,9 +125,9 @@ export default async function Home() {
                   <a
                     key={cat.name}
                     href={`/reviews?category=${encodeURIComponent(cat.name)}`}
-                    className="bg-surface border border-border rounded-xl p-5 hover:border-amber/30 transition-colors group"
+                    className="bg-bg border border-border rounded-xl p-5 hover:border-blue/30 transition-colors group"
                   >
-                    <div className="font-display text-amber text-3xl font-bold mb-1 group-hover:scale-105 transition-transform origin-left">
+                    <div className="font-display text-blue text-3xl font-bold mb-1 group-hover:scale-105 transition-transform origin-left">
                       {cat.count}
                     </div>
                     <div className="text-sm text-muted font-heading font-semibold">
@@ -147,12 +147,12 @@ export default async function Home() {
               <h2 className="font-display leading-none mb-4" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
                 PRONTO PARA ESCOLHER COM CONFIANÇA?
               </h2>
-              <p className="text-muted mb-8 font-light">
+              <p className="text-body mb-8 font-light">
                 Acesse nossos reviews completos e encontre o melhor preço.
               </p>
               <a
                 href="/reviews"
-                className="inline-block bg-amber text-black font-heading font-extrabold px-8 py-4 rounded-full hover:bg-white hover:shadow-[0_16px_40px_rgba(245,158,11,0.3)] transition-all text-base"
+                className="inline-block bg-cta text-white font-heading font-extrabold px-8 py-4 rounded-md hover:bg-cta-dk transition-all text-base"
               >
                 Explorar Todos os Reviews
               </a>

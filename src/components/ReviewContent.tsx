@@ -15,8 +15,7 @@ export default function ReviewContent({ sections }: ReviewContentProps) {
             {section.heading}
           </h2>
           <div
-            className="text-[0.98rem] font-light leading-[1.85]"
-            style={{ color: "#9AA8C4" }}
+            className="text-[0.97rem] font-light leading-[1.85] text-body"
             dangerouslySetInnerHTML={{
               __html: section.content
                 .split("\n\n")

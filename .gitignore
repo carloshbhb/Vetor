@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+/video/node_modules
+/add-secrets.js
 /.pnp
 .pnp.*
 .yarn/*

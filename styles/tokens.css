@@ -1,21 +1,27 @@
 :root {
-  --bg: #07090F;
-  --surface: #0D1220;
-  --surface2: #131A2B;
-  --border: rgba(255,255,255,0.06);
-  --text: #EEF2FF;
-  --muted: #7B88A8;
-  --amber: #F59E0B;
-  --amber-d: #D97706;
-  --amber-bg: rgba(245,158,11,0.08);
-  --blue: #3B82F6;
-  --green: #10B981;
-  --red: #EF4444;
-  --purple: #8B5CF6;
+  --bg: #FFFFFF;
+  --surface: #F0F5FF;
+  --surface2: #E8EEFF;
+  --ink: #111827;
+  --body: #4B5563;
+  --muted: #9CA3AF;
+  --blue: #1D4ED8;
+  --blue-lt: #EFF6FF;
+  --cta: #EA580C;
+  --cta-dk: #C2410C;
+  --green: #059669;
+  --red: #DC2626;
+  --amber: #D97706;
+  --border: #E5E7EB;
+  --border2: #D1D5DB;
 
   --font-display: "Bebas Neue", sans-serif;
   --font-heading: "Syne", sans-serif;
   --font-body: "DM Sans", sans-serif;
+
+  /* Backward-compatible aliases */
+  --text: var(--ink);
+  --amber-bg: rgba(29,78,216,0.08);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -28,6 +34,6 @@
 }
 
 :focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }

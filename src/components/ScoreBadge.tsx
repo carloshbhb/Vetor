@@ -16,7 +16,7 @@ export default function ScoreBadge({ score, size = "md" }: ScoreBadgeProps) {
   return (
     <span
       className={`inline-flex items-center font-display rounded-lg ${sizeMap[size]}`}
-      style={{ background: "var(--amber-bg)", color: scoreColor(clamped), lineHeight: 1 }}
+      style={{ background: "var(--blue-lt)", color: scoreColor(clamped), lineHeight: 1 }}
     >
       {clamped.toFixed(1)}
     </span>

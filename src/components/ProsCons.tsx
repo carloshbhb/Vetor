@@ -5,28 +5,28 @@ type ProsConsProps = {
 
 export default function ProsCons({ pros, cons }: ProsConsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-8">
-      <div className="bg-surface rounded-2xl p-5 border border-border" style={{ borderTop: "3px solid var(--green)" }}>
-        <p className="font-heading font-extrabold text-[0.76rem] tracking-wider uppercase mb-3.5 flex items-center gap-1.5" style={{ color: "var(--green)" }}>
-          ✓ Pontos Positivos
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+      <div className="rounded-[10px] p-7" style={{ background: "#F0FDF4", border: "1.5px solid #BBF7D0" }}>
+        <p className="font-heading font-extrabold text-[0.8rem] tracking-[0.06em] mb-4 flex items-center gap-2" style={{ color: "#15803D" }}>
+          ✓ &nbsp;Pontos Positivos
         </p>
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2.5">
           {pros.map((pro, i) => (
-            <li key={i} className="text-[0.86rem] text-[#9AA8C4] font-light leading-relaxed pl-[18px] relative">
-              <span className="absolute left-0 top-0 text-[0.75rem] font-bold" style={{ color: "var(--green)" }}>✓</span>
+            <li key={i} className="text-[0.9rem] text-body font-light leading-[1.5] pl-[22px] relative">
+              <span className="absolute left-0 top-0 font-bold text-[0.85rem]" style={{ color: "#16A34A" }}>✓</span>
               {pro}
             </li>
           ))}
         </ul>
       </div>
-      <div className="bg-surface rounded-2xl p-5 border border-border" style={{ borderTop: "3px solid var(--red)" }}>
-        <p className="font-heading font-extrabold text-[0.76rem] tracking-wider uppercase mb-3.5 flex items-center gap-1.5" style={{ color: "var(--red)" }}>
-          ✗ Pontos Negativos
+      <div className="rounded-[10px] p-7" style={{ background: "#FFF1F2", border: "1.5px solid #FECDD3" }}>
+        <p className="font-heading font-extrabold text-[0.8rem] tracking-[0.06em] mb-4 flex items-center gap-2" style={{ color: "#BE123C" }}>
+          ✗ &nbsp;Pontos Negativos
         </p>
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2.5">
           {cons.map((con, i) => (
-            <li key={i} className="text-[0.86rem] text-[#9AA8C4] font-light leading-relaxed pl-[18px] relative">
-              <span className="absolute left-0 top-0 text-[0.75rem] font-bold" style={{ color: "var(--red)" }}>✗</span>
+            <li key={i} className="text-[0.9rem] text-body font-light leading-[1.5] pl-[22px] relative">
+              <span className="absolute left-0 top-0 font-bold text-[0.85rem]" style={{ color: "#DC2626" }}>✗</span>
               {con}
             </li>
           ))}
