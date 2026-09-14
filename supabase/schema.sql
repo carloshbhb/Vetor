@@ -93,3 +93,60 @@ CREATE POLICY "Authenticated delete for viral_articles"
   ON viral_articles
   FOR DELETE
   USING (auth.role() = 'authenticated');
+
+-- Video Queue table
+CREATE TABLE IF NOT EXISTS video_queue (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_url text NOT NULL,
+  product_title text,
+  product_category text,
+  product_price text,
+  product_image_url text,
+  affiliate_url text,
+  shortened_affiliate_url text,
+  script_text text,
+  script_hook text,
+  voiceover_url text,
+  voiceover_duration numeric,
+  media_assets jsonb DEFAULT '{}'::jsonb,
+  status text DEFAULT 'pending',
+  error_message text,
+  video_url text,
+  youtube_video_id text,
+  youtube_url text,
+  scheduled_at timestamptz,
+  started_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Indexes for video queue
+CREATE INDEX IF NOT EXISTS idx_video_queue_status ON video_queue(status);
+CREATE INDEX IF NOT EXISTS idx_video_queue_created_at ON video_queue(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_video_queue_scheduled_at ON video_queue(scheduled_at);
+
+-- Enable Row Level Security
+ALTER TABLE video_queue ENABLE ROW LEVEL SECURITY;
+
+-- Public read access policies
+CREATE POLICY "Public read access for video_queue"
+  ON video_queue
+  FOR SELECT
+  USING (true);
+
+-- Authenticated write access policies
+CREATE POLICY "Authenticated insert for video_queue"
+  ON video_queue
+  FOR INSERT
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated update for video_queue"
+  ON video_queue
+  FOR UPDATE
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated delete for video_queue"
+  ON video_queue
+  FOR DELETE
+  USING (auth.role() = 'authenticated');

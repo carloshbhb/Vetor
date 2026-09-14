@@ -2,20 +2,26 @@
   "name": "vetor-blog-videos",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "start": "remotion studio",
     "build": "remotion render",
     "render-review": "tsx src/utils/renderVideo.ts review",
-    "render-comparison": "tsx src/utils/renderVideo.ts comparison"
+    "render-comparison": "tsx src/utils/renderVideo.ts comparison",
+    "process-video": "node scripts/process-video.js",
+    "upload-youtube": "node scripts/upload-to-youtube.js"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
     "@remotion/player": "^4.0.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "googleapis": "^128.0.0",
     "remotion": "^4.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",
     "typescript": "^5.0.0",
     "tsx": "^4.0.0"

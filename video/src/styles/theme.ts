@@ -9,4 +9,5 @@ export const theme = {
   red: '#EF4444',
   yellow: '#F59E0B',
   gradient: 'linear-gradient(180deg, #080C14 0%, #0F1623 50%, #161E2E 100%)',
+  border: '#2A3A4A',
 } as const;

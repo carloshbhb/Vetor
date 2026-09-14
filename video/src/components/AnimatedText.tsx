@@ -11,6 +11,7 @@ interface AnimatedTextProps {
   durationInFrames?: number;
   textAlign?: 'left' | 'center' | 'right';
   maxWidth?: number;
+  lineHeight?: number;
   style?: React.CSSProperties;
 }
 
@@ -23,6 +24,7 @@ export const AnimatedText: React.FC<AnimatedTextProps> = ({
   durationInFrames = 20,
   textAlign = 'center',
   maxWidth,
+  lineHeight = 1.3,
   style = {},
 }) => {
   const frame = useCurrentFrame();
@@ -48,7 +50,7 @@ export const AnimatedText: React.FC<AnimatedTextProps> = ({
         fontFamily: fonts.heading,
         textAlign,
         maxWidth,
-        lineHeight: 1.3,
+        lineHeight,
         ...style,
       }}
     >

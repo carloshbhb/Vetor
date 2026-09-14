@@ -1,0 +1,184 @@
+name: Render & Publish Videos
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_id:
+        description: 'Video Queue ID to process'
+        required: false
+        type: string
+      process_all_pending:
+        description: 'Process all pending videos'
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    - cron: '0 */6 * * *'
+  push:
+    paths:
+      - 'video/**'
+      - 'src/lib/**'
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  process-video-queue:
+    name: Process Video Queue
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: video/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install edge-tts
+        run: pip install edge-tts --quiet
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Install video dependencies
+        working-directory: ./video
+        run: npm ci
+
+      - name: Fetch pending videos from Supabase
+        id: fetch-videos
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+          
+          let query = supabase
+            .from('video_queue')
+            .select('*')
+            .eq('status', 'pending')
+            .order('created_at', { ascending: true })
+            .limit(3);
+          
+          const videoId = '${{ github.event.inputs.video_id }}';
+          const processAll = '${{ github.event.inputs.process_all_pending }}' === 'true';
+          
+          if (videoId && !processAll) {
+            query = supabase.from('video_queue').select('*').eq('id', videoId).eq('status', 'pending');
+          }
+          
+          query.then(({ data, error }) => {
+            if (error) throw error;
+            console.log('VIDEOS_JSON=' + JSON.stringify(data || []));
+            console.log('COUNT=' + (data?.length || 0));
+          });
+          " >> $GITHUB_OUTPUT
+
+      - name: Process each video
+        if: steps.fetch-videos.outputs.COUNT != '0'
+        run: |
+          VIDEOS='${{ steps.fetch-videos.outputs.VIDEOS_JSON }}'
+          echo "$VIDEOS" | jq -c '.[]' | while read -r video; do
+            VIDEO_ID=$(echo "$video" | jq -r '.id')
+            echo "Processing video: $VIDEO_ID"
+            
+            # Update status to processing
+            node -e "
+            const { createClient } = require('@supabase/supabase-js');
+            const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+            supabase.from('video_queue').update({ status: 'processing', started_at: new Date().toISOString() }).eq('id', '$VIDEO_ID').then(() => console.log('Status updated to processing'));
+            "
+            
+            # Run the video processing script
+            node scripts/process-video.js "$VIDEO_ID" "$video" || {
+              echo "Failed to process video $VIDEO_ID"
+              node -e "
+              const { createClient } = require('@supabase/supabase-js');
+              const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+              supabase.from('video_queue').update({ status: 'failed', error_message: 'Processing failed', updated_at: new Date().toISOString() }).eq('id', '$VIDEO_ID');
+              "
+              continue
+            }
+            
+            echo "Successfully processed video: $VIDEO_ID"
+          done
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
+  render-video:
+    name: Render Video with Remotion
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: process-video-queue
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: video/package-lock.json
+
+      - name: Install video dependencies
+        working-directory: ./video
+        run: npm ci
+
+      - name: Render video
+        working-directory: ./video
+        run: |
+          npx remotion render ReviewVideo out/video.mp4 --props=./render-props.json
+        env:
+          REMOTION_SERVE_URL: http://localhost:3000
+
+  upload-to-youtube:
+    name: Upload to YouTube
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: render-video
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Upload to YouTube
+        run: node scripts/upload-to-youtube.js
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          VIDEO_PATH: ./video/out/video.mp4
+          VIDEO_TITLE: ${{ needs.process-video-queue.outputs.video_title }}
+          VIDEO_DESCRIPTION: ${{ needs.process-video-queue.outputs.video_description }}
+          VIDEO_TAGS: ${{ needs.process-video-queue.outputs.video_tags }}
