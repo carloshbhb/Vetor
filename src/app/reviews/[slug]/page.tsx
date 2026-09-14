@@ -231,10 +231,10 @@ export default async function ReviewPage({ params }: PageProps) {
       )}
 
       {/* ============================================================
-           REVIEW BODY + TOC SIDEBAR
+           REVIEW BODY
       ============================================================ */}
       <div className="content" id="review-body">
-        <div className="max-w-[1100px] mx-auto py-[72px] grid gap-16 items-start" style={{ gridTemplateColumns: "1fr 280px" }}>
+        <div className="max-w-[1100px] mx-auto py-[72px]">
           <article className="max-w-[680px]" style={{ textAlign: "left" }}>
             {sections.length > 0 && (
               <ReviewContent sections={sections} />
@@ -247,44 +247,6 @@ export default async function ReviewPage({ params }: PageProps) {
               </>
             )}
           </article>
-
-          <aside className="hidden lg:block">
-            <nav className="bg-surface border border-border rounded-[10px] sticky" style={{ top: 88, padding: "22px 20px" }}>
-              <div style={{ fontFamily: "'Syne',sans-serif", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid var(--border)" }}>
-                Neste Review
-              </div>
-              <ul style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {sections.map((s) => (
-                  <li key={s.id}>
-                    <a href={`#${s.id}`} className="toc-link" style={{ display: "block", padding: "7px 10px", borderRadius: 8, fontFamily: "'Syne',sans-serif", fontSize: "0.76rem", fontWeight: 600, color: "var(--body)", textDecoration: "none", transition: "background 0.15s, color 0.15s" }}>
-                      {s.heading}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-              <div style={{ height: 1, background: "var(--border)", margin: "10px 0" }} />
-              <div style={{ fontFamily: "'Syne',sans-serif", fontSize: "0.7rem", fontWeight: 700, color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
-                Nota Final
-              </div>
-              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "3rem", lineHeight: 1, color: "var(--amber)" }}>
-                {score.toFixed(1)}
-              </div>
-              <div style={{ fontFamily: "'Syne',sans-serif", fontSize: "0.7rem", fontWeight: 700, marginBottom: 12, color: score >= 8 ? "var(--green)" : score >= 5 ? "var(--amber)" : "var(--red)" }}>
-                ✓ {verdictLabel}
-              </div>
-              {review.affiliate_url && (
-                <a
-                  href={review.affiliate_url}
-                  target="_blank"
-                  rel="noopener noreferrer sponsored"
-                  className="block text-center font-heading font-extrabold tracking-wider py-2.5 rounded-md transition-all bg-cta text-white hover:bg-cta-dk"
-                  style={{ fontFamily: "'Syne',sans-serif", fontSize: "0.72rem" }}
-                >
-                  Comprar agora →
-                </a>
-              )}
-            </nav>
-          </aside>
         </div>
       </div>
 
