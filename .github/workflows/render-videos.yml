@@ -12,12 +12,10 @@ on:
         required: false
         type: boolean
         default: false
+  repository_dispatch:
+    types: [render_video]
   schedule:
     - cron: '0 */6 * * *'
-  push:
-    paths:
-      - 'video/**'
-      - 'src/lib/**'
 
 env:
   NODE_VERSION: '20'
