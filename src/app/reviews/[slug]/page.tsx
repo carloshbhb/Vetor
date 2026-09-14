@@ -235,7 +235,7 @@ export default async function ReviewPage({ params }: PageProps) {
       ============================================================ */}
       <div className="content" id="review-body">
         <div className="max-w-[1100px] mx-auto py-[72px] grid gap-16 items-start" style={{ gridTemplateColumns: "1fr 280px" }}>
-          <article className="max-w-[680px]">
+          <article className="max-w-[680px]" style={{ textAlign: "left" }}>
             {sections.length > 0 && (
               <ReviewContent sections={sections} />
             )}
