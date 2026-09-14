@@ -1,20 +1,48 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { ReviewSection } from "@/lib/types";
 
 type TOCSidebarProps = {
   sections: ReviewSection[];
   score: number;
   affiliateUrl?: string;
-  productName?: string;
 };
 
-export default function TOCSidebar({ sections, score, affiliateUrl, productName }: TOCSidebarProps) {
+export default function TOCSidebar({ sections, score, affiliateUrl }: TOCSidebarProps) {
   const verdictLabel = score >= 8 ? "Recomendado" : score >= 5 ? "Razoável" : "Não Recomendado";
   const verdictColor = score >= 8 ? "var(--green)" : score >= 5 ? "var(--amber)" : "var(--red)";
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const links = nav.querySelectorAll<HTMLAnchorElement>(".toc-link");
+    const sectionIds = Array.from(links).map((a) => a.getAttribute("href")?.replace("#", "")).filter((id): id is string => !!id);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            links.forEach((a) => a.classList.remove("active"));
+            const target = nav.querySelector<HTMLAnchorElement>(`a[href="#${entry.target.id}"]`);
+            if (target) target.classList.add("active");
+          }
+        });
+      },
+      { rootMargin: "-30% 0px -65% 0px" }
+    );
+
+    sectionIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [sections]);
 
   return (
-    <nav className="bg-surface border border-border rounded-2xl p-5 sticky top-24" aria-label="Índice do review">
+    <nav ref={navRef} className="bg-surface border border-border rounded-2xl sticky" style={{ top: 88, padding: "22px 20px" }} aria-label="Índice do review">
       <div className="font-heading text-[0.68rem] font-bold tracking-[0.12em] uppercase text-muted mb-3.5 pb-2.5 border-b border-border">
         Neste Review
       </div>
@@ -23,7 +51,7 @@ export default function TOCSidebar({ sections, score, affiliateUrl, productName 
           <li key={section.id}>
             <a
               href={`#${section.id}`}
-              className="block py-1.5 px-2.5 rounded-lg font-heading text-[0.76rem] font-semibold text-muted hover:bg-surface2 hover:text-text transition-colors"
+              className="toc-link block py-[7px] px-2.5 rounded-lg font-heading text-[0.76rem] font-semibold text-muted hover:bg-surface2 hover:text-text transition-colors"
             >
               {section.heading}
             </a>
@@ -31,7 +59,7 @@ export default function TOCSidebar({ sections, score, affiliateUrl, productName 
         ))}
       </ul>
       <div className="h-px bg-border my-2.5" />
-      <div className="font-heading text-[0.7rem] font-bold text-muted tracking-wider uppercase mb-1.5">
+      <div className="font-heading text-[0.7rem] font-bold text-muted tracking-[0.06em] uppercase mb-1.5">
         Nota Final
       </div>
       <div className="font-display text-amber" style={{ fontSize: "3rem", lineHeight: 1 }}>
@@ -52,7 +80,7 @@ export default function TOCSidebar({ sections, score, affiliateUrl, productName 
             color: "var(--amber)",
           }}
         >
-          Comprar →
+          Comprar no Mercado Livre →
         </a>
       )}
     </nav>

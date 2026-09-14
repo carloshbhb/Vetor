@@ -1,25 +1,44 @@
 import type { ReviewSection } from "@/lib/types";
 
-interface ReviewContentProps {
+type ReviewContentProps = {
   sections: ReviewSection[];
-}
+};
 
 export default function ReviewContent({ sections }: ReviewContentProps) {
   if (!sections || sections.length === 0) return null;
 
   return (
-    <div>
+    <div className="article-body">
       {sections.map((section) => (
-        <section key={section.id} id={section.id} className="mb-8 scroll-mt-24">
-          <h2 className="text-2xl font-bold mb-4">
-            {section.tocEmoji} {section.heading}
+        <div key={section.id} id={section.id}>
+          <h2 className="font-display tracking-wide" style={{ fontSize: "clamp(1.8rem, 3vw, 2.8rem)", lineHeight: 1, letterSpacing: "0.02em", margin: "48px 0 18px" }}>
+            {section.heading}
           </h2>
-          <div className="text-[var(--muted)] leading-relaxed space-y-4">
-            {section.content.split("\n\n").map((paragraph, i) => (
-              <p key={i}>{paragraph}</p>
-            ))}
-          </div>
-        </section>
+          <div
+            className="text-[0.98rem] font-light leading-[1.85]"
+            style={{ color: "#9AA8C4", marginBottom: 18 }}
+            dangerouslySetInnerHTML={{
+              __html: section.content
+                .split("\n\n")
+                .map((para) => {
+                  const trimmed = para.trim();
+                  if (!trimmed) return "";
+                  if (trimmed.startsWith("> ")) {
+                    return `<div class="callout"><p>${trimmed.slice(2).replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")}</p></div>`;
+                  }
+                  if (trimmed.startsWith("![") && trimmed.includes("](")) {
+                    const match = trimmed.match(/!\[(.*?)\]\((.*?)\)/);
+                    if (match) {
+                      return `<figure class="article-img"><img src="${match[2]}" alt="${match[1]}" loading="lazy" /><figcaption>${match[1]}</figcaption></figure>`;
+                    }
+                  }
+                  return `<p>${trimmed.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")}</p>`;
+                })
+                .filter(Boolean)
+                .join("")
+            }}
+          />
+        </div>
       ))}
     </div>
   );

@@ -6,16 +6,9 @@ type ScoreRingProps = {
   size?: number;
 };
 
-function scoreColor(score: number) {
-  if (score >= 8) return "var(--green)";
-  if (score >= 5) return "var(--amber)";
-  return "var(--red)";
-}
-
 export default function ScoreRing({ score, label, size = 140 }: ScoreRingProps) {
   const clamped = Math.min(10, Math.max(0, score));
   const pct = (clamped / 10) * 100;
-  const color = scoreColor(clamped);
 
   return (
     <div className="inline-flex flex-col items-center gap-2" role="img" aria-label={`${label ? label + ": " : ""}nota ${clamped.toFixed(1)} de 10`}>
@@ -23,7 +16,7 @@ export default function ScoreRing({ score, label, size = 140 }: ScoreRingProps) 
         <div
           className="w-full h-full rounded-full flex items-center justify-center relative"
           style={{
-            background: `conic-gradient(${color} ${pct}%, rgba(255,255,255,0.06) 0%)`,
+            background: `conic-gradient(var(--amber) ${pct}%, rgba(255,255,255,0.06) 0%)`,
           }}
         >
           <div

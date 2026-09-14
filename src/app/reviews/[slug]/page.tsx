@@ -2,6 +2,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
+import AnnouncementBar from "@/components/AnnouncementBar";
 import Footer from "@/components/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ScoreRing from "@/components/ScoreRing";
@@ -68,6 +69,7 @@ export default async function ReviewPage({ params }: PageProps) {
   return (
     <>
       <ReviewSchema review={review} />
+      <AnnouncementBar />
       <Navbar />
 
       {/* Breadcrumb */}
@@ -96,20 +98,20 @@ export default async function ReviewPage({ params }: PageProps) {
 
           <div className="flex items-center gap-4 flex-wrap mb-5 font-heading text-[0.76rem] font-semibold text-muted">
             <span className="text-amber">por Editor Vetor</span>
-            <span className="text-white/15">·</span>
+            <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>
             <span>{readTime}</span>
-            <span className="text-white/15">·</span>
+            <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>
             <span>{new Date(review.created_at).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</span>
           </div>
 
           {score > 0 && (
-            <div className="flex items-center gap-1 mb-4">
+            <div className="flex items-center gap-0.5 mb-4">
               {[1, 2, 3, 4, 5].map((star) => (
                 <span key={star} className="text-amber" style={{ fontSize: "0.9rem" }}>
                   {star <= Math.round(score / 2) ? "★" : "☆"}
                 </span>
               ))}
-              <span className="font-heading text-[0.7rem] font-bold text-muted ml-1">{(score / 2).toFixed(1)} / 5</span>
+              <span className="font-heading text-[0.7rem] font-bold text-muted ml-1">{(score / 2).toFixed(1)} / 5 — {verdictLabel}</span>
             </div>
           )}
 
@@ -119,9 +121,9 @@ export default async function ReviewPage({ params }: PageProps) {
 
           {review.specs && review.specs.length > 0 && (
             <div className="flex gap-2 flex-wrap mb-8">
-              {review.specs.slice(0, 5).map((spec, i) => (
+              {review.specs.slice(0, 7).map((spec, i) => (
                 <span key={i} className="bg-surface2 border border-border rounded-md px-3 py-1 font-heading text-[0.68rem] font-bold tracking-wider text-muted">
-                  {spec.label}: {spec.value}
+                  {spec.value}
                 </span>
               ))}
             </div>
@@ -135,6 +137,9 @@ export default async function ReviewPage({ params }: PageProps) {
                 rel="noopener noreferrer sponsored"
                 className="inline-flex items-center gap-2.5 bg-amber text-black font-heading font-extrabold text-[0.88rem] tracking-wide px-8 py-3.5 rounded-full transition-all hover:bg-white hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(245,158,11,0.3)]"
               >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" style={{ width: 16, height: 16 }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
                 Comprar Agora
               </a>
             )}
@@ -145,10 +150,21 @@ export default async function ReviewPage({ params }: PageProps) {
         </div>
 
         {/* SCORE CARD */}
-        <aside className="bg-surface border rounded-3xl p-8 w-[300px] shrink-0 sticky top-24" style={{ borderColor: "rgba(245,158,11,0.15)", boxShadow: "0 24px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03)" }}>
+        <aside
+          className="bg-surface border rounded-3xl w-[300px] shrink-0 sticky"
+          style={{
+            top: 88,
+            padding: "32px 28px 28px",
+            borderColor: "rgba(245,158,11,0.15)",
+            boxShadow: "0 24px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03)",
+          }}
+        >
           <ScoreRing score={score} size={140} />
 
-          <div className="block text-center mt-5 mb-5 py-1.5 rounded-lg font-heading font-extrabold text-[0.72rem] tracking-[0.12em] uppercase" style={{ background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.25)", color: "var(--green)" }}>
+          <div
+            className="block text-center mt-5 mb-5 py-1.5 rounded-lg font-heading font-extrabold text-[0.72rem] tracking-[0.12em] uppercase"
+            style={{ background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.25)", color: "var(--green)" }}
+          >
             ✓ {verdictLabel}
           </div>
 
@@ -166,7 +182,7 @@ export default async function ReviewPage({ params }: PageProps) {
               >
                 Comprar Agora
               </a>
-              <p className="text-center text-[0.68rem] text-muted mt-2 font-light">Via afiliado · Frete Grátis</p>
+              <p className="text-center text-[0.68rem] text-muted mt-2 font-light">Via Mercado Livre · Frete Grátis</p>
             </>
           )}
         </aside>
@@ -181,6 +197,7 @@ export default async function ReviewPage({ params }: PageProps) {
             width={1200}
             height={420}
             className="w-full max-h-[420px] object-cover opacity-85"
+            style={{ objectPosition: "center 30%" }}
           />
           <div className="absolute bottom-0 left-0 right-0 px-12 py-6 flex items-end justify-between gap-5" style={{ background: "linear-gradient(transparent, rgba(7,9,15,0.96))" }}>
             <p className="text-[0.78rem] text-muted max-w-[500px] leading-relaxed"><em>{review.hero_lead}</em></p>
@@ -196,7 +213,12 @@ export default async function ReviewPage({ params }: PageProps) {
           )}
 
           {review.hero_bars && review.hero_bars.length > 0 && (
-            <ScoreBars bars={review.hero_bars.map((b) => ({ label: b.label, score: b.value }))} />
+            <>
+              <h2 className="font-display tracking-wide mt-12 mb-4" style={{ fontSize: "clamp(1.8rem, 3vw, 2.8rem)" }}>
+                Notas por Categoria
+              </h2>
+              <ScoreBars bars={review.hero_bars.map((b) => ({ label: b.label, score: b.value }))} />
+            </>
           )}
 
           {review.specs && review.specs.length > 0 && (
@@ -221,6 +243,7 @@ export default async function ReviewPage({ params }: PageProps) {
             score={score}
             label={verdictLabel}
             text={verdictText}
+            note={review.verdict_note}
             affiliateUrl={review.affiliate_url}
           />
         </article>
@@ -231,7 +254,6 @@ export default async function ReviewPage({ params }: PageProps) {
             sections={review.sections || []}
             score={score}
             affiliateUrl={review.affiliate_url}
-            productName={review.product}
           />
         </aside>
       </div>
@@ -247,39 +269,44 @@ export default async function ReviewPage({ params }: PageProps) {
               OUTROS REVIEWS
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {related.map((r) => (
-                <a
-                  key={r.slug}
-                  href={`/reviews/${r.slug}`}
-                  className="group bg-bg border border-border rounded-[20px] overflow-hidden transition-all duration-300 hover:border-amber/30 hover:-translate-y-1"
-                >
-                  {r.image_url && (
-                    <div className="relative h-[180px] overflow-hidden">
-                      <Image src={r.image_url} alt={r.product} fill className="object-cover transition-transform duration-400 group-hover:scale-105" sizes="(max-width: 640px) 100vw, 33vw" />
-                      <span className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm border border-border rounded-md px-2.5 py-[3px] font-heading text-[0.64rem] font-bold tracking-wider uppercase text-muted">
-                        {r.category}
-                      </span>
-                      {(r.verdict_score || r.hero_overall_score) > 0 && (
-                        <span className="absolute top-3 right-3 bg-amber text-black font-display text-1.3rem rounded-lg px-2.5 py-0.5" style={{ lineHeight: 1.3 }}>
-                          {(r.verdict_score || r.hero_overall_score).toFixed(1)}
+              {related.map((r) => {
+                const rScore = r.verdict_score || r.hero_overall_score;
+                const rVerdict = rScore >= 8 ? "✓ Recomendado" : rScore >= 5 ? "Razoável" : "Não Recomendado";
+                const rColor = rScore >= 8 ? "text-green" : rScore >= 5 ? "text-amber" : "text-red";
+                return (
+                  <a
+                    key={r.slug}
+                    href={`/reviews/${r.slug}`}
+                    className="group bg-bg border border-border rounded-[20px] overflow-hidden transition-all duration-300 hover:border-amber/30 hover:-translate-y-1"
+                  >
+                    {r.image_url && (
+                      <div className="relative h-[180px] overflow-hidden">
+                        <Image src={r.image_url} alt={r.product} fill className="object-cover transition-transform duration-400 group-hover:scale-105" sizes="(max-width: 640px) 100vw, 33vw" />
+                        <span className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm border border-border rounded-md px-2.5 py-[3px] font-heading text-[0.64rem] font-bold tracking-wider uppercase text-muted">
+                          {r.category}
                         </span>
-                      )}
+                        {rScore > 0 && (
+                          <span className="absolute top-3 right-3 bg-amber text-black font-display rounded-lg px-2.5 py-0.5" style={{ fontSize: "1.3rem", lineHeight: 1.3 }}>
+                            {rScore.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div className="p-5">
+                      <h3 className="font-heading font-extrabold text-[0.95rem] text-text mb-1.5 leading-snug group-hover:text-amber transition-colors">
+                        {r.product}
+                      </h3>
+                      <p className="text-[0.82rem] text-muted font-light leading-[1.6] mb-3.5 line-clamp-2">
+                        {r.hero_lead}
+                      </p>
+                      <div className="flex items-center justify-between pt-3 border-t border-border font-heading text-[0.7rem] font-semibold text-muted">
+                        <span>{r.category}</span>
+                        <span className={rColor}>{rVerdict}</span>
+                      </div>
                     </div>
-                  )}
-                  <div className="p-5">
-                    <h3 className="font-heading font-extrabold text-[0.95rem] text-text mb-1.5 leading-snug group-hover:text-amber transition-colors">
-                      {r.product}
-                    </h3>
-                    <p className="text-[0.82rem] text-muted font-light leading-relaxed mb-3.5 line-clamp-2">
-                      {r.hero_lead}
-                    </p>
-                    <div className="flex items-center justify-between pt-3 border-t border-border font-heading text-[0.7rem] font-semibold text-muted">
-                      <span>{r.category}</span>
-                      <span className="text-green">✓ Recomendado</span>
-                    </div>
-                  </div>
-                </a>
-              ))}
+                  </a>
+                );
+              })}
             </div>
           </div>
         </section>

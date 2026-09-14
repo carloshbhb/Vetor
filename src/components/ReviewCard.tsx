@@ -3,7 +3,6 @@ import Link from "next/link";
 import type { Review } from "@/lib/types";
 
 export default function ReviewCard({ review }: { review: Review }) {
-  const hasAffiliate = !!review.affiliate_url;
   const score = review.verdict_score || review.hero_overall_score;
 
   return (
@@ -24,7 +23,7 @@ export default function ReviewCard({ review }: { review: Review }) {
             {review.category}
           </span>
           {score > 0 && (
-            <span className="absolute top-3 right-3 bg-amber text-black font-display text-1.3rem rounded-lg px-2.5 py-0.5" style={{ lineHeight: 1.3 }}>
+            <span className="absolute top-3 right-3 bg-amber text-black font-display rounded-lg px-2.5 py-0.5" style={{ fontSize: "1.3rem", lineHeight: 1.3 }}>
               {score.toFixed(1)}
             </span>
           )}
@@ -34,25 +33,20 @@ export default function ReviewCard({ review }: { review: Review }) {
         <h3 className="font-heading font-extrabold text-[0.95rem] text-text mb-1.5 leading-snug group-hover:text-amber transition-colors">
           {review.product}
         </h3>
-        <p className="text-[0.82rem] text-muted font-light leading-relaxed mb-3.5 line-clamp-2">
+        <p className="text-[0.82rem] text-muted font-light leading-[1.6] mb-3.5 line-clamp-2">
           {review.hero_lead}
         </p>
         <div className="flex items-center justify-between pt-3 border-t border-border font-heading text-[0.7rem] font-semibold text-muted">
           <span>{review.category}</span>
-          {score > 0 && (
-            <span className={score >= 8 ? "text-green" : score >= 5 ? "text-amber" : "text-red"}>
-              {score >= 8 ? "✓ Recomendado" : score >= 5 ? "Razoável" : "Não recomendado"}
-            </span>
+          {score >= 8 ? (
+            <span className="text-green">✓ Recomendado</span>
+          ) : score >= 5 ? (
+            <span className="text-amber">Razoável</span>
+          ) : (
+            <span className="text-red">Não Recomendado</span>
           )}
         </div>
       </div>
-      {hasAffiliate && (
-        <div className="px-5 pb-5">
-          <span className="block w-full text-center bg-amber text-black text-sm font-heading font-extrabold py-3 rounded-xl transition-all group-hover:bg-white">
-            Ver Menor Preço →
-          </span>
-        </div>
-      )}
     </Link>
   );
 }
