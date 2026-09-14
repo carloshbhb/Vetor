@@ -164,8 +164,8 @@ export default async function ReviewPage({ params }: PageProps) {
                 <Image
                   src={review.image_url}
                   alt={review.product}
-                  width={460}
-                  height={480}
+                  width={420}
+                  height={420}
                   className="hero-img"
                   style={{ borderRadius: "12px 12px 0 0", objectPosition: "center bottom" }}
                   priority
