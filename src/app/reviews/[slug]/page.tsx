@@ -203,7 +203,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 <span className="font-heading text-[0.72rem] font-bold text-white/45 tracking-[0.1em]">NOTA FINAL / 10</span>
               </div>
             </div>
-            <ScoreBars bars={review.hero_bars.map((b) => ({ label: b.label, score: b.value }))} />
+            <ScoreBars bars={(Array.isArray(review.hero_bars) ? review.hero_bars : []).map((b) => ({ label: b.label, score: b.value }))} />
           </div>
         </section>
       )}
@@ -232,52 +232,61 @@ export default async function ReviewPage({ params }: PageProps) {
           ) : null}
 
           {/* Comparison Table */}
-          {review.compare_table && review.compare_table.rows && review.compare_table.rows.length > 0 && (
-            <>
-              <h2 className="sec-h mt-12 mb-4">Comparativo</h2>
-              <div className="overflow-x-auto my-8">
-                <table className="w-full border-collapse" style={{ border: "1.5px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-                  <thead>
-                    <tr>
-                      {review.compare_table.columns.map((col, i) => (
-                        <th
-                          key={i}
-                          className="py-4 px-5 text-left font-heading text-[0.78rem] font-bold tracking-[0.04em]"
-                          style={{
-                            background: i === review.compare_table.winnerCol ? "var(--blue)" : "var(--ink)",
-                            color: "#fff",
-                            borderRight: i < review.compare_table.columns.length - 1 ? "1px solid rgba(255,255,255,0.1)" : "none",
-                          }}
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {review.compare_table.rows.map((row, ri) => (
-                      <tr key={ri} className="border-b border-border last:border-b-0 hover:bg-surface transition-colors">
-                        <td className="py-3.5 px-5 font-heading font-bold text-[0.8rem] text-ink">{row.feature}</td>
-                        {row.values.map((val, vi) => (
-                          <td
-                            key={vi}
-                            className="py-3.5 px-5 text-[0.9rem] font-light"
+          {(() => {
+            const ct = review.compare_table;
+            const ctRows = Array.isArray(ct?.rows) ? ct.rows : [];
+            const ctCols = Array.isArray(ct?.columns) ? ct.columns : [];
+            if (ctRows.length === 0) return null;
+            return (
+              <>
+                <h2 className="sec-h mt-12 mb-4">Comparativo</h2>
+                <div className="overflow-x-auto my-8">
+                  <table className="w-full border-collapse" style={{ border: "1.5px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+                    <thead>
+                      <tr>
+                        {ctCols.map((col, i) => (
+                          <th
+                            key={i}
+                            className="py-4 px-5 text-left font-heading text-[0.78rem] font-bold tracking-[0.04em]"
                             style={{
-                              background: vi === review.compare_table.winnerCol ? "var(--blue-lt)" : "transparent",
-                              color: vi === review.compare_table.winnerCol ? "var(--blue)" : "var(--body)",
-                              fontWeight: vi === review.compare_table.winnerCol ? 600 : 300,
+                              background: i === (ct?.winnerCol ?? 0) ? "var(--blue)" : "var(--ink)",
+                              color: "#fff",
+                              borderRight: i < ctCols.length - 1 ? "1px solid rgba(255,255,255,0.1)" : "none",
                             }}
                           >
-                            {val}
-                          </td>
+                            {col}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
+                    </thead>
+                    <tbody>
+                      {ctRows.map((row, ri) => {
+                        const rowValues = Array.isArray(row?.values) ? row.values : [];
+                        return (
+                          <tr key={ri} className="border-b border-border last:border-b-0 hover:bg-surface transition-colors">
+                            <td className="py-3.5 px-5 font-heading font-bold text-[0.8rem] text-ink">{row.feature}</td>
+                            {rowValues.map((val, vi) => (
+                              <td
+                                key={vi}
+                                className="py-3.5 px-5 text-[0.9rem] font-light"
+                                style={{
+                                  background: vi === (ct?.winnerCol ?? 0) ? "var(--blue-lt)" : "transparent",
+                                  color: vi === (ct?.winnerCol ?? 0) ? "var(--blue)" : "var(--body)",
+                                  fontWeight: vi === (ct?.winnerCol ?? 0) ? 600 : 300,
+                                }}
+                              >
+                                {val}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            );
+          })()}
 
           {/* FAQ */}
           {review.faq && review.faq.length > 0 && (

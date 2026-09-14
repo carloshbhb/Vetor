@@ -133,6 +133,35 @@ export async function createViralArticle(data: {
   return { data: result as ViralArticle, error: null };
 }
 
+function parseJsonArray(val: unknown): any[] {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') { try { return JSON.parse(val); } catch { return []; } }
+  return [];
+}
+
+function normalizeReviewFields(data: any): any {
+  if (!data || typeof data !== 'object') return data;
+  const r = { ...data };
+  r.hero_bars = parseJsonArray(r.hero_bars);
+  r.specs = parseJsonArray(r.specs);
+  r.sections = parseJsonArray(r.sections);
+  r.pros = parseJsonArray(r.pros);
+  r.cons = parseJsonArray(r.cons);
+  r.testimonials = parseJsonArray(r.testimonials);
+  r.faq = parseJsonArray(r.faq);
+  if (typeof r.compare_table === 'string') { try { r.compare_table = JSON.parse(r.compare_table); } catch { r.compare_table = null; } }
+  if (r.compare_table && typeof r.compare_table === 'object') {
+    r.compare_table.rows = parseJsonArray(r.compare_table.rows).map((row: any) => ({
+      ...row,
+      values: parseJsonArray(row?.values),
+    }));
+    r.compare_table.columns = parseJsonArray(r.compare_table.columns);
+  } else {
+    r.compare_table = { rows: [], caption: '', columns: [], winnerCol: 0 };
+  }
+  return r;
+}
+
 export async function getAllReviews(): Promise<Review[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
@@ -149,7 +178,7 @@ export async function getAllReviews(): Promise<Review[]> {
     const first = data[0];
     if (!first || typeof first.slug !== 'string') return [];
 
-    return data as Review[];
+    return data.map(normalizeReviewFields) as Review[];
   } catch {
     return [];
   }
@@ -169,7 +198,7 @@ export async function getReviewBySlug(slug: string): Promise<Review | null> {
     if (error || !data) return null;
     if (typeof data.slug !== 'string') return null;
 
-    return data as Review;
+    return normalizeReviewFields(data) as Review;
   } catch {
     return null;
   }
@@ -229,7 +258,7 @@ export async function getReviewsByCategory(category: string): Promise<Review[]> 
       .order('created_at', { ascending: false });
 
     if (error || !data) return [];
-    return data as Review[];
+    return data.map(normalizeReviewFields) as Review[];
   } catch {
     return [];
   }
