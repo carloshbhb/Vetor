@@ -24,10 +24,10 @@ export default function ScoreRing({ score, label, size = 140 }: ScoreRingProps) 
             style={{ inset: 8 }}
           />
           <div className="relative z-10 text-center">
-            <span className="font-display text-amber block" style={{ fontSize: size * 0.24, lineHeight: 1 }}>
+            <span className="font-display text-amber block" style={{ fontSize: "3.4rem", lineHeight: 1 }}>
               {clamped.toFixed(1)}
             </span>
-            <span className="font-heading text-muted block" style={{ fontSize: size * 0.046, fontWeight: 700, letterSpacing: "0.08em" }}>
+            <span className="font-heading text-muted block" style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em" }}>
               de 10
             </span>
           </div>

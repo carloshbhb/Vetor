@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="max-w-[1200px] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-10">
           <div>
-            <Link href="/" className="font-display tracking-wider text-text block mb-2.5" style={{ fontSize: "1.5rem" }}>
+            <Link href="/" className="font-display text-text block mb-2.5" style={{ fontSize: "1.5rem", letterSpacing: "0.08em" }}>
               vetor.blog
             </Link>
             <p className="text-[0.8rem] text-muted leading-[1.7] font-light">

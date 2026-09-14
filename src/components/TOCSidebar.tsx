@@ -47,11 +47,11 @@ export default function TOCSidebar({ sections, score, affiliateUrl }: TOCSidebar
         Neste Review
       </div>
       <ul className="flex flex-col gap-0.5">
-        {sections.map((section) => (
+        {sections.map((section, index) => (
           <li key={section.id}>
             <a
               href={`#${section.id}`}
-              className="toc-link block py-[7px] px-2.5 rounded-lg font-heading text-[0.76rem] font-semibold text-muted hover:bg-surface2 hover:text-text transition-colors"
+              className={`toc-link block py-[7px] px-2.5 rounded-lg font-heading text-[0.76rem] font-semibold text-muted hover:bg-surface2 hover:text-text transition-colors${index === 0 ? " active" : ""}`}
             >
               {section.heading}
             </a>
@@ -73,7 +73,7 @@ export default function TOCSidebar({ sections, score, affiliateUrl }: TOCSidebar
           href={affiliateUrl}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          className="block text-center font-heading font-extrabold text-[0.72rem] tracking-wider py-2.5 rounded-[10px] transition-all"
+          className="block text-center mt-3.5 font-heading font-extrabold text-[0.72rem] tracking-wider py-2.5 rounded-[10px] transition-all"
           style={{
             background: "var(--amber-bg)",
             border: "1px solid rgba(245,158,11,0.2)",

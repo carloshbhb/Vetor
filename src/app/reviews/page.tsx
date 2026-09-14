@@ -57,8 +57,13 @@ export default function ReviewsPage() {
       <Navbar />
       <main className="container py-12">
         <div className="mb-10">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Reviews</h1>
-          <p className="text-[var(--muted)]">
+          <p className="font-heading text-sm font-bold text-amber mb-2 tracking-wider uppercase">
+            Reviews
+          </p>
+          <h1 className="font-display leading-none mb-3" style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)" }}>
+            TODOS OS REVIEWS
+          </h1>
+          <p className="text-muted font-light text-lg max-w-xl">
             Análises detalhadas para você escolher com confiança.
           </p>
         </div>

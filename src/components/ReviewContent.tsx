@@ -9,14 +9,14 @@ export default function ReviewContent({ sections }: ReviewContentProps) {
 
   return (
     <div className="article-body">
-      {sections.map((section) => (
+      {sections.map((section, index) => (
         <div key={section.id} id={section.id}>
-          <h2 className="font-display tracking-wide" style={{ fontSize: "clamp(1.8rem, 3vw, 2.8rem)", lineHeight: 1, letterSpacing: "0.02em", margin: "48px 0 18px" }}>
+          <h2 className="font-display tracking-wide" style={{ fontSize: "clamp(1.8rem, 3vw, 2.8rem)", lineHeight: 1, letterSpacing: "0.02em", margin: `${index === 0 ? 0 : 48}px 0 18px` }}>
             {section.heading}
           </h2>
           <div
             className="text-[0.98rem] font-light leading-[1.85]"
-            style={{ color: "#9AA8C4", marginBottom: 18 }}
+            style={{ color: "#9AA8C4" }}
             dangerouslySetInnerHTML={{
               __html: section.content
                 .split("\n\n")
