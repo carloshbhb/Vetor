@@ -58,6 +58,9 @@ jobs:
         working-directory: ./video
         run: npm ci
 
+      - name: Install root dependencies (for Supabase)
+        run: npm ci
+
       - name: Fetch pending videos from Supabase
         id: fetch-videos
         env:
