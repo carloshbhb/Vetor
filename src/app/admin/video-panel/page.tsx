@@ -18,6 +18,11 @@ interface VideoQueueItem {
 }
 
 export default function VideoPanel() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
   const [videos, setVideos] = useState<VideoQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [newUrl, setNewUrl] = useState('');
@@ -25,6 +30,36 @@ export default function VideoPanel() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const supabase = createClient();
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem('admin_auth');
+    if (saved === 'true') setAuthenticated(true);
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError('');
+
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      if (res.ok) {
+        sessionStorage.setItem('admin_auth', 'true');
+        setAuthenticated(true);
+      } else {
+        setLoginError('Senha incorreta');
+      }
+    } catch {
+      setLoginError('Erro ao conectar');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
 
   const fetchVideos = async () => {
     const { data, error } = await supabase
@@ -43,8 +78,8 @@ export default function VideoPanel() {
   };
 
   useEffect(() => {
-    fetchVideos();
-  }, []);
+    if (authenticated) fetchVideos();
+  }, [authenticated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,10 +155,47 @@ export default function VideoPanel() {
     }
   };
 
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 w-full max-w-md">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">🎬 Painel Admin</h1>
+          <form onSubmit={handleLogin}>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Senha de acesso</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+              placeholder="Digite a senha"
+              autoFocus
+            />
+            {loginError && <p className="text-red-600 text-sm mb-4">{loginError}</p>}
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+            >
+              {loginLoading ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">🎬 Painel de Vídeos - Vetor Blog</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">🎬 Painel de Vídeos</h1>
+          <button
+            onClick={() => { sessionStorage.removeItem('admin_auth'); setAuthenticated(false); }}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Sair
+          </button>
+        </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Adicionar Novo Vídeo</h2>
