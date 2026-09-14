@@ -64,19 +64,18 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          RESULT=$(curl -s -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+          curl -s -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
                -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-               "$SUPABASE_URL/rest/v1/video_queue?status=eq.pending&order=created_at.asc&limit=3&select=*")
-          echo "VIDEOS_JSON=$RESULT" >> $GITHUB_OUTPUT
-          echo "COUNT=$(echo $RESULT | jq length)" >> $GITHUB_OUTPUT
+               "$SUPABASE_URL/rest/v1/video_queue?status=eq.pending&order=created_at.asc&limit=3&select=*" > /tmp/videos.json
+          COUNT=$(jq length /tmp/videos.json)
+          echo "COUNT=$COUNT" >> $GITHUB_OUTPUT
           echo "Found $COUNT pending videos"
 
       - name: Process each video
         if: steps.fetch-videos.outputs.COUNT != '0'
         working-directory: ./video
         run: |
-          VIDEOS='${{ steps.fetch-videos.outputs.VIDEOS_JSON }}'
-          echo "$VIDEOS" | jq -c '.[]' | while read -r video; do
+          jq -c '.[]' /tmp/videos.json | while read -r video; do
             VIDEO_ID=$(echo "$video" | jq -r '.id')
             echo "Processing video: $VIDEO_ID"
             
