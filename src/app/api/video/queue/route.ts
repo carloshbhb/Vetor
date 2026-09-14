@@ -5,8 +5,9 @@ export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
+    const adminPassword = process.env.ADMIN_PASSWORD || 'vetor-blog-admin-2026';
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}` && authHeader !== `Bearer ${adminPassword}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -48,8 +49,9 @@ export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
+    const adminPassword = process.env.ADMIN_PASSWORD || 'vetor-blog-admin-2026';
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}` && authHeader !== `Bearer ${adminPassword}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
