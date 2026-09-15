@@ -8,7 +8,6 @@ import ScoreBars from "@/components/ScoreBars";
 import ProsCons from "@/components/ProsCons";
 import SpecTable from "@/components/SpecTable";
 import Reveal from "@/components/Reveal";
-import ReviewContent from "@/components/ReviewContent";
 import { ReviewSchema } from "@/components/SchemaMarkup";
 import { fetchReviewBySlug, fetchAllReviews } from "@/lib/data";
 import type { Review } from "@/lib/types";
@@ -231,24 +230,18 @@ export default async function ReviewPage({ params }: PageProps) {
       )}
 
       {/* ============================================================
-           REVIEW BODY
+           FICHA TÉCNICA
       ============================================================ */}
-      <div className="content" id="review-body">
-        <div className="max-w-[1100px] mx-auto py-[72px]">
-          <article className="max-w-[680px]" style={{ textAlign: "left" }}>
-            {sections.length > 0 && (
-              <ReviewContent sections={sections} />
-            )}
-
-            {review.specs && review.specs.length > 0 && (
-              <>
-                <h2 className="sec-h mt-12 mb-4">Ficha Técnica</h2>
-                <SpecTable specs={review.specs} />
-              </>
-            )}
-          </article>
+      {review.specs && review.specs.length > 0 && (
+        <div className="content" id="ficha-tecnica">
+          <div className="max-w-[1100px] mx-auto py-[72px]">
+            <article className="max-w-[680px]" style={{ textAlign: "left" }}>
+              <h2 className="sec-h mb-4">Ficha Técnica</h2>
+              <SpecTable specs={review.specs} />
+            </article>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ============================================================
            PROS / CONS (full-width section)
