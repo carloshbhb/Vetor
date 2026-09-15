@@ -20,17 +20,15 @@ export default async function ReviewsPage() {
           <div className="hero-left" style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 32px 48px" }}>
             <Breadcrumbs items={[{ label: "Início", href: "/" }, { label: "Reviews" }]} />
             <span className="sec-label">Reviews</span>
-            <h1 className="font-display" style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)", lineHeight: 0.95, color: "var(--ink)", marginBottom: 12 }}>
-              TODOS OS REVIEWS
-            </h1>
+            <h1 className="sec-h">TODOS OS REVIEWS</h1>
             <p style={{ color: "var(--body)", fontWeight: 300, fontSize: "1.05rem", maxWidth: 560 }}>
               Análises detalhadas para você escolher com confiança.
             </p>
           </div>
         </section>
 
-        <section style={{ padding: "48px 32px 72px" }}>
-          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <section className="content">
+          <div className="container">
             {categories.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 36 }}>
                 <a href="/reviews" style={{

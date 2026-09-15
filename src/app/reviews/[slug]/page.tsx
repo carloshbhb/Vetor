@@ -106,7 +106,7 @@ export default async function ReviewPage({ params }: PageProps) {
            HERO
       ============================================================ */}
       <section className="hero" id="topo">
-        <div className="hero-left" style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 32px 0" }}>
+        <div className="hero-left container" style={{ padding: "64px 32px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 16 }}>
             {review.image_url && (
               <Image
@@ -237,8 +237,8 @@ export default async function ReviewPage({ params }: PageProps) {
            FICHA TÉCNICA
       ============================================================ */}
       {topSpecs.length > 0 && (
-        <div className="content" id="ficha-tecnica">
-          <div className="max-w-[1100px] mx-auto py-[72px]">
+      <div className="content" id="ficha-tecnica">
+        <div className="container" style={{ paddingTop: 72, paddingBottom: 72 }}>
             <article className="max-w-[680px]" style={{ textAlign: "left" }}>
               <h2 className="sec-h mb-4">Ficha Técnica</h2>
               <SpecTable specs={topSpecs} />
@@ -463,7 +463,7 @@ export default async function ReviewPage({ params }: PageProps) {
       {related.length > 0 && (
         <Reveal>
           <section style={{ padding: "72px 32px", background: "var(--surface)" }}>
-            <div className="max-w-[1100px] mx-auto">
+            <div className="container">
               <span className="sec-label">Continue lendo</span>
               <h2 className="sec-h">Outros Reviews</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-9">

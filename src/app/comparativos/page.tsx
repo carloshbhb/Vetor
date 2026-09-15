@@ -1,7 +1,7 @@
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import Breadcrumbs from '@/components/Breadcrumbs';
-import { fetchAllViralArticles } from '@/lib/data';
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { fetchAllViralArticles } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -16,17 +16,15 @@ export default async function ComparativosPage() {
           <div className="hero-left" style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 32px 48px" }}>
             <Breadcrumbs items={[{ label: "Início", href: "/" }, { label: "Comparativos" }]} />
             <span className="sec-label" style={{ color: "var(--amber)", borderBottomColor: "var(--amber)" }}>Comparativos</span>
-            <h1 className="font-display" style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)", lineHeight: 0.95, color: "var(--ink)", marginBottom: 12 }}>
-              COMPARATIVOS
-            </h1>
+            <h1 className="sec-h">COMPARATIVOS</h1>
             <p style={{ color: "var(--body)", fontWeight: 300, fontSize: "1.05rem", maxWidth: 560 }}>
               Veja qual produto leva vantagem em cada categoria.
             </p>
           </div>
         </section>
 
-        <section style={{ padding: "48px 32px 72px" }}>
-          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <section className="content">
+          <div className="container">
             {articles.length === 0 ? (
               <div style={{ textAlign: "center", padding: "80px 0" }}>
                 <p style={{ color: "var(--muted)", fontSize: "1.05rem" }}>Nenhum comparativo disponível no momento.</p>
