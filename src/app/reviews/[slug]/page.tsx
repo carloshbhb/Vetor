@@ -96,81 +96,75 @@ export default async function ReviewPage({ params }: PageProps) {
            HERO
       ============================================================ */}
       <section className="hero" id="topo">
-        <div className="hero-inner">
-          <div className="hero-left">
-            <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 font-heading font-extrabold text-[0.7rem] tracking-[0.04em]" style={{ background: "#DCFCE7", color: "#15803D", border: "1.5px solid #BBF7D0", borderRadius: 4 }}>
-              ✓ &nbsp;Review · {review.category}
-            </div>
-
-            <h1 className="font-display mb-4" style={{ fontSize: "clamp(3rem, 6vw, 5.2rem)", lineHeight: 0.95, letterSpacing: "0.01em", color: "var(--ink)" }}>
-              {review.hero_headline_line1 && (
-                <>{review.hero_headline_line1}<br /></>
-              )}
-              {review.hero_headline_line2 || review.product}
-              {review.hero_headline_em && (
-                <span className="text-blue"> {review.hero_headline_em}</span>
-              )}
-            </h1>
-
-            <p className="text-[1.05rem] text-body leading-[1.8] max-w-[520px] mb-7 font-light">
-              {review.hero_lead}
-            </p>
-
-            {score > 0 && (
-              <div className="flex items-center gap-1 mb-6">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <span key={star} className="star" style={{ color: star <= starCount ? "var(--amber)" : "#D1D5DB", fontSize: "1.2rem" }}>
-                    ★
-                  </span>
-                ))}
-                <span className="font-heading text-[0.78rem] font-bold text-body ml-1.5">{(score / 2).toFixed(1)} / 5 — {score >= 8 ? "Excelente" : score >= 6 ? "Bom" : "Razoável"}</span>
-              </div>
+        <div className="hero-left" style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 32px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 16 }}>
+            {review.image_url && (
+              <Image
+                src={review.image_url}
+                alt={review.product}
+                width={80}
+                height={80}
+                style={{ borderRadius: 10, objectFit: "cover", border: "1.5px solid var(--border)" }}
+                priority
+              />
             )}
-
-            {quickFacts.length > 0 && (
-              <div className="flex flex-wrap overflow-hidden rounded-lg mb-8" style={{ border: "1.5px solid var(--border2)", background: "var(--bg)" }}>
-                {quickFacts.map((spec, i) => (
-                  <div key={i} className="qf-item flex-1 min-w-[100px] text-center" style={{ padding: "14px 16px", borderRight: i < quickFacts.length - 1 ? "1.5px solid var(--border)" : "none" }}>
-                    <span className="font-display text-blue block" style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "1.5rem", lineHeight: 1 }}>{spec.value}</span>
-                    <span style={{ fontSize: "0.65rem", color: "var(--muted)", fontFamily: "'Syne',sans-serif", fontWeight: 700, letterSpacing: "0.04em" }}>{spec.label}</span>
-                  </div>
-                ))}
+            <div>
+              <div className="inline-flex items-center gap-2 mb-2 px-3 py-1 font-heading font-extrabold text-[0.7rem] tracking-[0.04em]" style={{ background: "#DCFCE7", color: "#15803D", border: "1.5px solid #BBF7D0", borderRadius: 4 }}>
+                ✓ &nbsp;Review · {review.category}
               </div>
-            )}
-
-            <div className="flex items-center gap-4 flex-wrap">
-              {review.affiliate_url && (
-                <a
-                  href={review.affiliate_url}
-                  target="_blank"
-                  rel="noopener noreferrer sponsored"
-                  className="btn-cta"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" style={{ width: 16, height: 16 }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                  </svg>
-                  Ver Preço Atualizado
-                </a>
-              )}
-              <a href="#review-body" className="btn-sec">Ler review completo ↓</a>
+              <h1 className="font-display" style={{ fontSize: "clamp(2.4rem, 5vw, 4rem)", lineHeight: 0.95, letterSpacing: "0.01em", color: "var(--ink)" }}>
+                {review.hero_headline_line1 && (
+                  <>{review.hero_headline_line1}<br /></>
+                )}
+                {review.hero_headline_line2 || review.product}
+                {review.hero_headline_em && (
+                  <span className="text-blue"> {review.hero_headline_em}</span>
+                )}
+              </h1>
             </div>
           </div>
 
-          <div className="relative">
-            {review.image_url && (
-              <>
-                <span className="hero-score-bg">{score.toFixed(1)}</span>
-                <Image
-                  src={review.image_url}
-                  alt={review.product}
-                  width={420}
-                  height={420}
-                  className="hero-img"
-                  style={{ borderRadius: "12px 12px 0 0", objectPosition: "center bottom" }}
-                  priority
-                />
-              </>
+          <p className="text-[1.05rem] text-body leading-[1.8] max-w-[520px] mb-7 font-light">
+            {review.hero_lead}
+          </p>
+
+          {score > 0 && (
+            <div className="flex items-center gap-1 mb-6">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <span key={star} className="star" style={{ color: star <= starCount ? "var(--amber)" : "#D1D5DB", fontSize: "1.2rem" }}>
+                  ★
+                </span>
+              ))}
+              <span className="font-heading text-[0.78rem] font-bold text-body ml-1.5">{(score / 2).toFixed(1)} / 5 — {score >= 8 ? "Excelente" : score >= 6 ? "Bom" : "Razoável"}</span>
+            </div>
+          )}
+
+          {quickFacts.length > 0 && (
+            <div className="flex flex-wrap overflow-hidden rounded-lg mb-8" style={{ border: "1.5px solid var(--border2)", background: "var(--bg)" }}>
+              {quickFacts.map((spec, i) => (
+                <div key={i} className="qf-item flex-1 min-w-[100px] text-center" style={{ padding: "14px 16px", borderRight: i < quickFacts.length - 1 ? "1.5px solid var(--border)" : "none" }}>
+                  <span className="font-display text-blue block" style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "1.5rem", lineHeight: 1 }}>{spec.value}</span>
+                  <span style={{ fontSize: "0.65rem", color: "var(--muted)", fontFamily: "'Syne',sans-serif", fontWeight: 700, letterSpacing: "0.04em" }}>{spec.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center gap-4 flex-wrap">
+            {review.affiliate_url && (
+              <a
+                href={review.affiliate_url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                className="btn-cta"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" style={{ width: 16, height: 16 }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
+                Ver Preço Atualizado
+              </a>
             )}
+            <a href="#ficha-tecnica" className="btn-sec">Ver ficha técnica ↓</a>
           </div>
         </div>
       </section>

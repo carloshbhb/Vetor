@@ -84,6 +84,31 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 860px) { .container { padding: 0 16px; } }
 
 /* ============================================================
+   SPEC TABLE
+============================================================ */
+.spec-table {
+  border: 1.5px solid var(--border); border-radius: 10px;
+  overflow: hidden; margin: 24px 0 32px;
+}
+.spec-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.spec-row:last-child { border-bottom: none; }
+.spec-row:hover { background: var(--surface); }
+.spec-label {
+  padding: 14px 20px;
+  font-family: var(--font-heading); font-weight: 700;
+  font-size: 0.8rem; color: var(--ink);
+  background: var(--surface);
+}
+.spec-value {
+  padding: 14px 20px;
+  font-size: 0.88rem; font-weight: 300; color: var(--body);
+}
+
+/* ============================================================
    CONTENT CONTAINER
 ============================================================ */
 .content {
