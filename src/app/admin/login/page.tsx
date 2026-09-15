@@ -26,7 +26,7 @@ export default function AdminLoginPage() {
       });
 
       if (res.ok) {
-        localStorage.setItem("vetor_admin_auth", "true");
+        localStorage.setItem("vetor_admin_auth", password);
         window.location.href = "/admin";
       } else {
         setError("Senha incorreta.");

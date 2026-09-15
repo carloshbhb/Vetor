@@ -4,16 +4,14 @@ import {
   updateProductLink,
   deleteProductLink,
 } from "@/lib/product-links";
+import { verifyAdminAuth } from "@/lib/admin-auth";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authHeader = request.headers.get("authorization");
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (adminPassword && authHeader !== `Bearer ${adminPassword}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
 
   const { id } = await params;
   const link = await getProductLinkById(id);
@@ -28,11 +26,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authHeader = request.headers.get("authorization");
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (adminPassword && authHeader !== `Bearer ${adminPassword}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
 
   const { id } = await params;
   const body = await request.json();
@@ -50,11 +45,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authHeader = request.headers.get("authorization");
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (adminPassword && authHeader !== `Bearer ${adminPassword}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
 
   const { id } = await params;
   const { error } = await deleteProductLink(id);

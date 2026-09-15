@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processVideoPipeline, getPendingVideos, processPendingVideos } from '@/lib/video-orchestrator';
+import { verifyAdminAuth } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'vetor-blog-admin-2026';
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}` && authHeader !== `Bearer ${adminPassword}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    } else {
+      const authError = verifyAdminAuth(request);
+      if (authError) return authError;
     }
 
     const body = await request.json();
@@ -38,10 +40,11 @@ export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'vetor-blog-admin-2026';
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}` && authHeader !== `Bearer ${adminPassword}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    } else {
+      const authError = verifyAdminAuth(request);
+      if (authError) return authError;
     }
 
     const videos = await getPendingVideos(10);
