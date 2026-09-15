@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const legacyPath = path.resolve(process.cwd(), `/tmp/video-${id}/voiceover-combined.mp3`);
     const audioPath = path.resolve(process.cwd(), '/tmp/video-audio/voiceover-' + id + '.mp3');
