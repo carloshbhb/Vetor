@@ -5,11 +5,15 @@ export async function POST(request: Request) {
   const { password } = body;
 
   const envVal = process.env.ADMIN_PASSWORD;
-  const adminPassword = envVal && envVal.length > 0 ? envVal : "vetor-blog-admin-2026";
+  const fallback = "vetor-blog-admin-2026";
+  const adminPassword = envVal && envVal.length > 0 ? envVal : fallback;
 
-  if (password === adminPassword) {
-    return NextResponse.json({ success: true });
-  }
-
-  return NextResponse.json({ error: "Invalid password" }, { status: 401 });
+  return NextResponse.json({
+    debug: {
+      envExists: envVal !== undefined,
+      envLength: envVal ? envVal.length : -1,
+      receivedLength: password ? password.length : -1,
+      match: password === adminPassword,
+    },
+  });
 }
