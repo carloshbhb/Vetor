@@ -103,7 +103,7 @@ export interface ViralArticle {
     imageUrl: string;
     bars: ViralArticleHeroBar[];
   };
-  products: Array<{ name: string; slug: string; imageUrl: string }>;
+  products: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
   seo_title: string;
   seo_description: string;
   published_at: string;

@@ -3,6 +3,8 @@ export function buildReviewPrompt(product: {
   category: string;
   price: string;
   image: string;
+  product_url?: string;
+  marketplace?: string;
 }): string {
   return `Gere uma review profissional e completa para o produto "${product.title}" no site vetor.blog.
 
@@ -10,6 +12,8 @@ Produto: ${product.title}
 Categoria: ${product.category}
 Preço: ${product.price}
 Imagem: ${product.image}
+URL do Produto: ${product.product_url || 'N/A'}
+Marketplace: ${product.marketplace || 'mercadolivre'}
 
 Estrutura obrigatória:
 1. Título SEO otimizado com a palavra-chave principal
@@ -34,10 +38,10 @@ Inclua dados fictícios realistas quando necessário para enriquecer o conteúdo
 export function buildViralPrompt(topic: {
   title: string;
   category: string;
-  comparisonProducts: Array<{ name: string; slug: string; imageUrl: string }>;
+  comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
 }): string {
   const productsList = topic.comparisonProducts
-    .map((p) => `- ${p.name} (slug: ${p.slug})`)
+    .map((p) => `- ${p.name} (slug: ${p.slug}, URL: ${p.product_url || 'N/A'})`)
     .join('\n');
 
   return `Gere um artigo viral de comparativo para o tema "${topic.title}" no site vetor.blog.

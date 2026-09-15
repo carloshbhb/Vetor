@@ -49,13 +49,15 @@ async function downloadFile(url: string, outputPath: string): Promise<void> {
 }
 
 async function generateScript(productData: any): Promise<any> {
+  const marketplace = (productData.product_url || '').includes('amazon') ? 'Amazon' :
+    (productData.product_url || '').includes('shopee') ? 'Shopee' : 'Mercado Livre';
   const prompt = `Crie um roteiro de vídeo curto (60-90 segundos) para o produto "${productData.product_title}" focado em conversão para YouTube Shorts/Reels/TikTok.
 
 PRODUTO:
 - Título: ${productData.product_title}
 - Categoria: ${productData.product_category}
 - Preço: ${productData.product_price}
-- Marketplace: ${productData.product_url.includes('amazon') ? 'Amazon' : productData.product_url.includes('shopee') ? 'Shopee' : 'Mercado Livre'}
+- Marketplace: ${marketplace}
 
 ESTRUTURA OBRIGATÓRIA (JSON):
 {
@@ -187,7 +189,7 @@ async function downloadProductImage(imageUrl: string, outputDir: string): Promis
   return localPath;
 }
 
-async function prepareRemotionProps(videoData: any, script: any, voiceover: any, productImagePath: string, brollPaths: string[]): Promise<any> {
+async function prepareRemotionProps(videoData: any, script: any, voiceover: any, productImagePath: string, brollPaths: string[], videoId: string): Promise<any> {
   const fps = 30;
   const hookFrames = 3 * fps;
 
@@ -212,18 +214,19 @@ async function prepareRemotionProps(videoData: any, script: any, voiceover: any,
   const contentFrames = scenesWithFrames[scenesWithFrames.length - 1]?.endFrame - hookFrames || 0;
   const scoreFrames = 4 * fps;
   const ctaFrames = 4 * fps;
-  const totalDuration = (hookFrames + contentFrames + scoreFrames + ctaFrames) / fps;
+  const totalDurationFrames = hookFrames + contentFrames + scoreFrames + ctaFrames;
+  const totalDuration = totalDurationFrames / fps;
 
   return {
     type: 'review',
     title: videoData.product_title,
     imageUrl: videoData.product_image_url,
-    score: 8.5,
+    score: videoData.score || 8.5,
     category: videoData.product_category,
     hook: script.hook,
     scenes: scenesWithFrames,
     callToAction: script.callToAction,
-    audioUrl: `/assets/voiceover.mp3`,
+    audioUrl: '/assets/voiceover-' + videoId + '.mp3',
     subtitleEntries,
     productImages: [productImagePath],
     brollVideos: brollPaths,
@@ -292,14 +295,19 @@ async function uploadToYouTube(videoPath: string, title: string, description: st
 
 async function main() {
   const videoId = process.argv[2];
-  const videoJson = process.argv[3];
+  const videoJsonPath = process.argv[3];
 
-  if (!videoId || !videoJson) {
-    console.error('Usage: node process-video.js <video-id> <video-json>');
+  if (!videoId || !videoJsonPath) {
+    console.error('Usage: node process-video.js <video-id> <video-json-path>');
     process.exit(1);
   }
 
-  const videoData: VideoQueueItem = JSON.parse(videoJson);
+  if (!fs.existsSync(videoJsonPath)) {
+    console.error(`Video JSON file not found: ${videoJsonPath}`);
+    process.exit(1);
+  }
+
+  const videoData: VideoQueueItem = JSON.parse(fs.readFileSync(videoJsonPath, 'utf-8'));
   console.log(`Processing video: ${videoData.product_title} (${videoId})`);
 
   const workDir = path.resolve(__dirname, `../temp/${videoId}`);
@@ -332,7 +340,7 @@ async function main() {
 
     // Step 5: Prepare Remotion props
     console.log('⚙️ Preparing Remotion props...');
-    const props = await prepareRemotionProps(videoData, script, voiceover, productImagePath, brollPaths);
+    const props = await prepareRemotionProps(videoData, script, voiceover, productImagePath, brollPaths, videoId);
     fs.writeFileSync(propsPath, JSON.stringify(props, null, 2));
 
     // Copy assets to public folder for Remotion

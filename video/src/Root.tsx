@@ -11,7 +11,7 @@ export const RemotionRoot = () => {
       <Composition
         id="ReviewVideo"
         component={ReviewVideoAny}
-        durationInFrames={1800}
+        durationInFrames={3600}
         fps={30}
         width={1080}
         height={1920}
@@ -45,14 +45,14 @@ export const RemotionRoot = () => {
           ],
           productImages: ['https://http2.mlstatic.com/D_NQ_NP_galaxy-s24.webp'],
           brollVideos: [],
-          totalDuration: 60,
+          totalDuration: 120,
           fps: 30,
         }}
       />
       <Composition
         id="ComparisonVideo"
         component={ComparisonVideoAny}
-        durationInFrames={1800}
+        durationInFrames={3600}
         fps={30}
         width={1080}
         height={1920}
@@ -88,7 +88,7 @@ export const RemotionRoot = () => {
           ],
           productImages: ['https://http2.mlstatic.com/D_NQ_NP_galaxy-s24.webp', 'https://http2.mlstatic.com/D_NQ_NP_iphone-15.webp'],
           brollVideos: [],
-          totalDuration: 60,
+          totalDuration: 120,
           fps: 30,
         }}
       />

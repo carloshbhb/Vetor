@@ -6,7 +6,7 @@ import { resolveProductImage } from '@/lib/image-resolver';
 async function publishArticle(topic: {
   title: string;
   category: string;
-  comparisonProducts: Array<{ name: string; slug: string; imageUrl: string }>;
+  comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
 }): Promise<{ slug: string; url: string; status: string }> {
   const resolvedProducts = await Promise.all(
     topic.comparisonProducts.map(async (p) => ({

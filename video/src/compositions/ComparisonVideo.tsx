@@ -115,12 +115,14 @@ const ProductScene: React.FC<{
     <GradientBackground>
       <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30 }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
-          <Video
-            src={brollVideos[brollIndex]}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: brollOpacity, filter: 'brightness(0.35) blur(1px)' }}
-            muted loop
-          />
-        </div>
+            {brollVideos.length > 0 && (
+              <Video
+                src={brollVideos[brollIndex]}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: brollOpacity, filter: 'brightness(0.35) blur(1px)' }}
+                muted loop
+              />
+            )}
+          </div>
 
         <div style={{ opacity: productOpacity, transform: `translateX(${slideIn}px)`, zIndex: 1, background: theme.surface, borderRadius: 32, padding: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, border: `2px solid ${borderColor}`, boxShadow: `0 20px 60px rgba(0,0,0,0.4)` }}>
           <AnimatedText text={label} fontSize={32} color={theme.muted} />

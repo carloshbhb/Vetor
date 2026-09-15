@@ -14,7 +14,7 @@ interface ViralArticleOutput {
   content: string;
   category: string;
   hero: { imageUrl: string; bars: Array<{ label: string; value: string; imageUrl: string }> };
-  products: Array<{ name: string; slug: string; imageUrl: string }>;
+  products: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
   seo_title: string;
   seo_description: string;
 }
@@ -22,7 +22,7 @@ interface ViralArticleOutput {
 export async function generateViralArticle(topic: {
   title: string;
   category: string;
-  comparisonProducts: Array<{ name: string; slug: string; imageUrl: string }>;
+  comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
 }): Promise<ViralArticleOutput> {
   try {
     const prompt = buildViralPrompt(topic);
@@ -51,6 +51,7 @@ export async function generateViralArticle(topic: {
       label: p.name,
       value: `${(7 + Math.floor(Math.random() * 3))}/10`,
       imageUrl: p.imageUrl,
+      product_url: p.product_url,
     }));
 
     return {
@@ -72,6 +73,7 @@ export async function generateViralArticle(topic: {
       label: p.name,
       value: `${(7 + Math.floor(Math.random() * 3))}/10`,
       imageUrl: p.imageUrl,
+      product_url: p.product_url,
     }));
 
     return {
@@ -100,7 +102,7 @@ function generateDefaultViralContent(topic: { title: string; category: string })
 export async function generateViralArticles(topics: Array<{
   title: string;
   category: string;
-  comparisonProducts: Array<{ name: string; slug: string; imageUrl: string }>;
+  comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
 }>): Promise<ViralArticleOutput[]> {
   const results = await Promise.all(
     topics.map((topic) => generateViralArticle(topic))

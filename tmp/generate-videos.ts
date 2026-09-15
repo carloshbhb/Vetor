@@ -14,6 +14,8 @@ interface Review {
   pros: string[];
   cons: string[];
   category: string;
+  price_new?: string;
+  product_url?: string;
 }
 
 interface ViralArticle {
@@ -23,16 +25,30 @@ interface ViralArticle {
   products: Array<{ name: string; slug: string; imageUrl: string }>;
 }
 
+interface VideoManifest {
+  generatedAt: string;
+  videos: Array<{
+    type: 'review' | 'comparison';
+    slug: string;
+    title: string;
+    videoUrl: string;
+    status: 'success' | 'failed';
+    error?: string;
+    videoId?: string;
+  }>;
+}
+
 function getSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!url || !anonKey) {
-    console.error('❌ Missing Supabase credentials in .env.local');
+  if (!url) {
+    console.error('❌ Missing Supabase URL in .env.local');
     process.exit(1);
   }
 
-  return createClient(url, anonKey);
+  return createClient(url, serviceKey || anonKey!);
 }
 
 async function getRecentReviews(supabase: ReturnType<typeof createClient>): Promise<Review[]> {
@@ -65,16 +81,83 @@ async function getRecentViralArticles(supabase: ReturnType<typeof createClient>)
   return (data ?? []) as ViralArticle[];
 }
 
-interface VideoManifest {
-  generatedAt: string;
-  videos: Array<{
-    type: 'review' | 'comparison';
-    slug: string;
-    title: string;
-    videoUrl: string;
-    status: 'success' | 'failed';
-    error?: string;
-  }>;
+async function createVideoJob(supabase: ReturnType<typeof createClient>, review: Review): Promise<string | null> {
+  const productUrl = review.product_url || review.image || '';
+  const { data, error } = await supabase
+    .from('video_queue')
+    .insert({
+      product_url: productUrl,
+      product_title: review.title,
+      product_category: review.category,
+      product_price: review.price_new || 'R$0',
+      product_image_url: review.image,
+      affiliate_url: productUrl,
+      shortened_affiliate_url: productUrl,
+      status: 'pending',
+      scheduled_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating video job:', error.message);
+    return null;
+  }
+
+  return data.id;
+}
+
+async function generateReviewVideo(supabase: ReturnType<typeof createClient>, review: Review): Promise<{ url: string; videoId?: string; status: string }> {
+  const videoId = await createVideoJob(supabase, review);
+
+  if (!videoId) {
+    return { url: '', status: 'failed', error: 'Failed to create video job' };
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+  return {
+    url: `${baseUrl}/videos/review-${review.slug}.mp4`,
+    videoId,
+    status: 'pending',
+  };
+}
+
+async function generateComparisonVideo(supabase: ReturnType<typeof createClient>, article: ViralArticle): Promise<{ url: string; videoId?: string; status: string }> {
+  const products = Array.isArray(article.products) ? article.products : [];
+  if (products.length < 2) {
+    throw new Error('Not enough products for comparison');
+  }
+
+  const firstProduct = products[0];
+  const secondProduct = products[1];
+
+  const { data, error } = await supabase
+    .from('video_queue')
+    .insert({
+      product_url: firstProduct.imageUrl,
+      product_title: `${firstProduct.name} vs ${secondProduct.name}`,
+      product_category: 'Comparação',
+      product_price: '',
+      product_image_url: firstProduct.imageUrl,
+      affiliate_url: firstProduct.imageUrl,
+      shortened_affiliate_url: firstProduct.imageUrl,
+      status: 'pending',
+      scheduled_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating comparison video job:', error.message);
+    return { url: '', status: 'failed', error: 'Failed to create video job' };
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+  return {
+    url: `${baseUrl}/videos/comparison-${article.slug}.mp4`,
+    videoId: data.id,
+    status: 'pending',
+  };
 }
 
 async function generateVideos() {
@@ -93,32 +176,22 @@ async function generateVideos() {
     console.log(`\n🎥 Generating review video: ${review.title}`);
 
     try {
-      const videoData = {
-        title: review.title,
-        imageUrl: review.image,
-        score: review.score,
-        pros: Array.isArray(review.pros) ? review.pros : [],
-        cons: Array.isArray(review.cons) ? review.cons : [],
-        verdict: `Análise completa do ${review.title}. Confira os prós e contras.`,
-        category: review.category,
-      };
-
-      console.log(`  📊 Score: ${review.score}/10`);
-      console.log(`  ✅ Pros: ${videoData.pros.length} items`);
-      console.log(`  ❌ Cons: ${videoData.cons.length} items`);
-
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
-      const videoUrl = `${baseUrl}/videos/review-${review.slug}.mp4`;
+      const result = await generateReviewVideo(supabase, review);
 
       manifest.videos.push({
         type: 'review',
         slug: review.slug,
         title: review.title,
-        videoUrl,
-        status: 'success',
+        videoUrl: result.url,
+        status: result.status === 'pending' ? 'success' : 'failed',
+        videoId: result.videoId,
+        error: result.status !== 'pending' ? (result as any).error : undefined,
       });
 
-      console.log(`  ✅ Video URL: ${videoUrl}`);
+      console.log(`  ✅ Video queued: ${result.url}`);
+      if (result.videoId) {
+        console.log(`  📋 Video ID: ${result.videoId} (will be rendered by pipeline)`);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`  ❌ Failed: ${message}`);
@@ -148,18 +221,22 @@ async function generateVideos() {
 
       console.log(`  📦 Products: ${products.map((p) => p.name).join(' vs ')}`);
 
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
-      const videoUrl = `${baseUrl}/videos/comparison-${article.slug}.mp4`;
+      const result = await generateComparisonVideo(supabase, article);
 
       manifest.videos.push({
         type: 'comparison',
         slug: article.slug,
         title: article.title,
-        videoUrl,
-        status: 'success',
+        videoUrl: result.url,
+        status: result.status === 'pending' ? 'success' : 'failed',
+        videoId: result.videoId,
+        error: result.status !== 'pending' ? (result as any).error : undefined,
       });
 
-      console.log(`  ✅ Video URL: ${videoUrl}`);
+      console.log(`  ✅ Video queued: ${result.url}`);
+      if (result.videoId) {
+        console.log(`  📋 Video ID: ${result.videoId} (will be rendered by pipeline)`);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`  ❌ Failed: ${message}`);
@@ -187,10 +264,12 @@ async function generateVideos() {
 
   const successCount = manifest.videos.filter((v) => v.status === 'success').length;
   const failedCount = manifest.videos.filter((v) => v.status === 'failed').length;
+  const pendingCount = manifest.videos.filter((v) => v.videoId).length;
 
   console.log('\n' + '='.repeat(50));
   console.log('📊 VIDEO GENERATION SUMMARY');
   console.log('='.repeat(50));
+  console.log(`✅ Queued: ${pendingCount}`);
   console.log(`✅ Successful: ${successCount}`);
   console.log(`❌ Failed: ${failedCount}`);
   console.log('='.repeat(50));

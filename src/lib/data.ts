@@ -43,10 +43,10 @@ function normalizeStaticReviews(): Review[] {
     status: 'published',
     product: r.title,
     category: r.category,
-    marketplace: '',
+    marketplace: 'mercadolivre',
     price_old: '',
     price_new: r.price,
-    affiliate_url: '',
+    affiliate_url: r.product_url || '',
     image_url: r.image || '',
     ads_enabled: false,
     meta_title: r.title,
@@ -78,7 +78,7 @@ function normalizeStaticReviews(): Review[] {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     faq: [],
-  }));
+  })).map(r => ({ ...r, marketplace: 'mercadolivre' }));
 }
 
 export async function fetchAllReviews(): Promise<Review[]> {

@@ -6,6 +6,7 @@ export const reviews = [
     price: 'R$199',
     category: 'Wearables',
     image: 'https://http2.mlstatic.com/D_NQ_NP_samsung-fit3.webp',
+    product_url: 'https://www.mercadolivre.com.br/samsung-galaxy-fit3',
   },
   {
     slug: 'redmi-watch-5',
@@ -14,6 +15,7 @@ export const reviews = [
     price: 'R$299',
     category: 'Wearables',
     image: 'https://http2.mlstatic.com/D_NQ_NP_redmi-watch5.webp',
+    product_url: 'https://www.mercadolivre.com.br/redmi-watch-5',
   },
   {
     slug: 'airpods-pro-2',
@@ -22,6 +24,7 @@ export const reviews = [
     price: 'R$1299',
     category: 'Fones de Ouvido',
     image: 'https://http2.mlstatic.com/D_NQ_NP_airpods-pro2.webp',
+    product_url: 'https://www.mercadolivre.com.br/airpods-pro-2',
   },
   {
     slug: 'macbook-air-m3',
@@ -30,5 +33,6 @@ export const reviews = [
     price: 'R$8999',
     category: 'Notebooks',
     image: 'https://http2.mlstatic.com/D_NQ_NP_macbook-air-m3.webp',
+    product_url: 'https://www.mercadolivre.com.br/macbook-air-m3',
   },
 ];

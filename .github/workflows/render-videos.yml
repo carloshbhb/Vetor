@@ -79,23 +79,27 @@ jobs:
             echo "Processing: $PRODUCT_TITLE ($VIDEO_ID)"
             echo "========================================="
             
+            # Write video JSON to a temp file to avoid CLI parsing issues
+            echo "$video" > /tmp/video_${VIDEO_ID}.json
+            
             # Update status to processing
             curl -s -X PATCH -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
               -H "Content-Type: application/json" \
               -d "{\"status\":\"processing\",\"started_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
               "$SUPABASE_URL/rest/v1/video_queue?id=eq.$VIDEO_ID"
             
-            # Run the video processing script (outputs logs to stdout/stderr)
-            if npx tsx scripts/process-video.js "$VIDEO_ID" "$video"; then
+            # Run the video processing script
+            if npx tsx scripts/process-video.js "$VIDEO_ID" "/tmp/video_${VIDEO_ID}.json"; then
               echo "Successfully processed: $PRODUCT_TITLE"
             else
               echo "FAILED to process: $PRODUCT_TITLE"
-              ERROR_MSG=$(echo "$video" | jq -r '.product_title')"' processing failed'"
+              ERROR_MSG="${PRODUCT_TITLE} processing failed"
               curl -s -X PATCH -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
                 -H "Content-Type: application/json" \
                 -d "{\"status\":\"failed\",\"error_message\":\"$ERROR_MSG\"}" \
                 "$SUPABASE_URL/rest/v1/video_queue?id=eq.$VIDEO_ID"
             fi
+            rm -f /tmp/video_${VIDEO_ID}.json
             echo ""
           done
         env:

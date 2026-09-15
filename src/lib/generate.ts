@@ -15,6 +15,8 @@ interface ReviewOutput {
   price: string;
   category: string;
   image: string;
+  product_url?: string;
+  marketplace?: string;
   seo_title: string;
   seo_description: string;
 }
@@ -24,6 +26,8 @@ export async function generateReview(product: {
   category: string;
   price: string;
   image: string;
+  product_url?: string;
+  marketplace?: string;
 }): Promise<ReviewOutput> {
   try {
     const prompt = buildReviewPrompt(product);
@@ -56,6 +60,8 @@ export async function generateReview(product: {
       price: product.price,
       category: product.category,
       image: product.image,
+      product_url: product.product_url,
+      marketplace: product.marketplace,
       seo_title: seoTitle,
       seo_description: seoDesc,
     };
@@ -68,13 +74,15 @@ export async function generateReview(product: {
       price: product.price,
       category: product.category,
       image: product.image,
+      product_url: product.product_url,
+      marketplace: product.marketplace,
       seo_title: `${product.title} - Vale a Pena em 2026?`,
       seo_description: `Review honesto do ${product.title}. Compare com concorrentes e veja se vale a pena.`,
     };
   }
 }
 
-function generateDefaultContent(product: { title: string; category: string; price: string }): string {
+function generateDefaultContent(product: { title: string; category: string; price: string; product_url?: string; marketplace?: string }): string {
   return `<h2>Introdução</h2><p>Chegou a hora de analisar o ${product.title} em profundidade. Neste review completo, vamos avaliar cada aspecto deste produto na categoria de ${product.category} pelo preço de ${product.price}.</p>
 <h2>Design e Construção</h2><p>O ${product.title} impressiona pelo acabamento e construção robusta, mantendo um design moderno que agrada tanto para uso diário quanto para situações mais exigentes.</p>
 <h2>Desempenho</h2><p>O desempenho do ${product.title} é sólido e atende às expectativas para sua categoria. Os processos internos são eficientes e a experiência do usuário é fluida.</p>
@@ -82,7 +90,7 @@ function generateDefaultContent(product: { title: string; category: string; pric
 <h2>Veredicto Final</h2><p>O ${product.title} é uma excelente opção na categoria de ${product.category}, entregando bom custo-benefício pelo preço de ${product.price}. Recomendado para quem busca qualidade e confiabilidade.</p>`;
 }
 
-export async function generateReviews(products: Array<{ title: string; category: string; price: string; image: string }>): Promise<ReviewOutput[]> {
+export async function generateReviews(products: Array<{ title: string; category: string; price: string; image: string; product_url?: string; marketplace?: string }>): Promise<ReviewOutput[]> {
   const results = await Promise.all(
     products.map((product) => generateReview(product))
   );

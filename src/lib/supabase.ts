@@ -30,10 +30,12 @@ export async function createReview(data: {
   cons?: string[];
   hero_overall_score?: number;
   verdict_score?: number;
+  marketplace?: string;
+  affiliate_url?: string;
 }): Promise<{ data: Review | null; error: string | null }> {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return { data: { ...data, id: 'mock-' + Date.now(), status: 'published', marketplace: '', price_old: '', affiliate_url: '', ads_enabled: false, meta_keywords: '', meta_reading_time: 5, meta_canonical: null, meta_og_image: null, hero_headline_line1: '', hero_headline_line2: '', hero_headline_em: '', hero_lead: '', hero_bars: [], specs: [], sections: [], compare_table: { rows: [], caption: '', columns: [], winnerCol: 0 }, testimonials: [], verdict_label: '', verdict_text: '', verdict_note: '', schema_rating_value: data.hero_overall_score ?? 0, schema_review_count: 1, google_rank: null, last_rank_check: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), faq: [] } as Review, error: null };
+    return { data: { ...data, id: 'mock-' + Date.now(), status: 'published', marketplace: data.marketplace || '', price_old: '', affiliate_url: data.affiliate_url || '', ads_enabled: false, meta_keywords: '', meta_reading_time: 5, meta_canonical: null, meta_og_image: null, hero_headline_line1: '', hero_headline_line2: '', hero_headline_em: '', hero_lead: '', hero_bars: [], specs: [], sections: [], compare_table: { rows: [], caption: '', columns: [], winnerCol: 0 }, testimonials: [], verdict_label: '', verdict_text: '', verdict_note: '', schema_rating_value: data.hero_overall_score ?? 0, schema_review_count: 1, google_rank: null, last_rank_check: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), faq: [] } as Review, error: null };
   }
 
   const now = new Date().toISOString();
@@ -42,10 +44,10 @@ export async function createReview(data: {
     status: 'published',
     product: data.product,
     category: data.category,
-    marketplace: '',
+    marketplace: data.marketplace || '',
     price_old: '',
     price_new: data.price_new,
-    affiliate_url: '',
+    affiliate_url: data.affiliate_url || '',
     image_url: data.image_url,
     ads_enabled: false,
     meta_title: data.meta_title || '',
@@ -95,7 +97,7 @@ export async function createViralArticle(data: {
   category: string;
   content: string;
   hero: { imageUrl: string; bars: Array<{ label: string; value: string; imageUrl: string }> };
-  products: Array<{ name: string; slug: string; imageUrl: string }>;
+  products: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
   seo_title: string;
   seo_description: string;
 }): Promise<{ data: ViralArticle | null; error: string | null }> {

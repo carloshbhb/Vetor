@@ -120,8 +120,8 @@ export async function processVideoPipeline(videoId: string): Promise<{ success: 
       category: video.product_category,
       price: video.product_price,
       specifications: {},
-      marketplace: video.product_url.includes('amazon') ? 'Amazon' : 
-                   video.product_url.includes('shopee') ? 'Shopee' : 'Mercado Livre',
+      marketplace: (video.product_url || '').includes('amazon') ? 'Amazon' :
+                   (video.product_url || '').includes('shopee') ? 'Shopee' : 'Mercado Livre',
     };
     const script = await generateVideoScript(productInfo);
     
@@ -160,45 +160,43 @@ export async function processVideoPipeline(videoId: string): Promise<{ success: 
       media_assets: mediaAssets,
     });
 
-    // Step 4: Prepare Remotion data
-    console.log('[4/6] Preparing Remotion composition...');
     const publicBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
-    const mediaForRemotion = await prepareMediaForRemotion(mediaAssets, publicBaseUrl);
-    const subtitles = scriptToSubtitles(script);
+const mediaForRemotion = await prepareMediaForRemotion(mediaAssets, publicBaseUrl);
+const subtitles = scriptToSubtitles(script);
 
-    const fps = 30;
-    const hookFrames = 3 * fps;
-    const scenesWithFrames = script.scenes.map((scene, index) => {
-      const prevFrames = script.scenes.slice(0, index).reduce((sum, s) => sum + s.duration * fps, 0);
-      return {
-        ...scene,
-        startFrame: hookFrames + prevFrames,
-        endFrame: hookFrames + prevFrames + scene.duration * fps,
-      };
-    });
+const fps = 30;
+const hookFrames = 3 * fps;
+const scenesWithFrames = script.scenes.map((scene, index) => {
+  const prevFrames = script.scenes.slice(0, index).reduce((sum, s) => sum + s.duration * fps, 0);
+  return {
+    ...scene,
+    startFrame: hookFrames + prevFrames,
+    endFrame: hookFrames + prevFrames + scene.duration * fps,
+  };
+});
 
-    const contentFrames = scenesWithFrames[scenesWithFrames.length - 1]?.endFrame - hookFrames || 0;
-    const scoreFrames = 4 * fps;
-    const ctaFrames = 4 * fps;
-    const totalDurationFrames = hookFrames + contentFrames + scoreFrames + ctaFrames;
-    const totalDurationSec = totalDurationFrames / fps;
+const contentFrames = scenesWithFrames[scenesWithFrames.length - 1]?.endFrame - hookFrames || 0;
+const scoreFrames = 4 * fps;
+const ctaFrames = 4 * fps;
+const totalDurationFrames = hookFrames + contentFrames + scoreFrames + ctaFrames;
+const totalDurationSec = totalDurationFrames / fps;
 
-    const remotionData = {
-      type: 'review' as const,
-      title: video.product_title,
-      imageUrl: video.product_image_url,
-      score: 8.5,
-      category: video.product_category,
-      hook: script.hook,
-      scenes: scenesWithFrames,
-      callToAction: script.callToAction,
-      audioUrl: `${publicBaseUrl}/api/video/audio/${videoId}`,
-      subtitleEntries: subtitles,
-      productImages: mediaForRemotion.productImages.length > 0 ? mediaForRemotion.productImages : [video.product_image_url],
-      brollVideos: mediaForRemotion.brollVideos,
-      totalDuration: totalDurationSec,
-      fps,
-    };
+const remotionData = {
+  type: 'review' as const,
+  title: video.product_title,
+  imageUrl: video.product_image_url,
+  score: 8.5,
+  category: video.product_category,
+  hook: script.hook,
+  scenes: scenesWithFrames,
+  callToAction: script.callToAction,
+  audioUrl: `${publicBaseUrl}/api/audio/${video.id}`,
+  subtitleEntries: subtitles,
+  productImages: mediaForRemotion.productImages.length > 0 ? mediaForRemotion.productImages : [video.product_image_url],
+  brollVideos: mediaForRemotion.brollVideos,
+  totalDuration: totalDurationSec,
+  fps,
+};
 
     // Step 5: Trigger GitHub Actions for rendering
     console.log('[5/6] Triggering video render via GitHub Actions...');

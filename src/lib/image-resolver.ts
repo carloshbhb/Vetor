@@ -25,8 +25,8 @@ export async function resolveProductImage(url: string): Promise<string> {
 }
 
 export async function resolveProductImages(
-  products: Array<{ name: string; slug: string; imageUrl: string }>
-): Promise<Array<{ name: string; slug: string; imageUrl: string }>> {
+  products: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>
+): Promise<Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>> {
   const resolved = await Promise.all(
     products.map(async (p) => ({
       ...p,
