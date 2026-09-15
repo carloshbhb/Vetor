@@ -9,6 +9,7 @@ const navItems = [
   { label: "Artigos Virais", href: "/admin/viral", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
   { label: "Vídeos", href: "/admin/videos", icon: "M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" },
   { label: "Gerar Conteúdo", href: "/admin/generate", icon: "M12 6v6m0 0v6m0-6h6m-6 0H6" },
+  { label: "Product Links", href: "/admin/product-links", icon: "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" },
 ];
 
 export default function AdminLayout({
