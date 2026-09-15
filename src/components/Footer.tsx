@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer-inner">
-        <span className="footer-brand">vetor.blog</span>
+        <Link href="/" className="footer-brand">vetor.blog</Link>
         <p className="footer-text">
           Esta página contém links de afiliados. Caso você compre através deles, recebemos uma pequena comissão sem custo adicional para você. Isso nos ajuda a manter o site e continuar publicando reviews independentes.
         </p>

@@ -64,12 +64,22 @@ export default async function ReviewPage({ params }: PageProps) {
 
   const starCount = Math.round(score / 2);
   const quickFacts = review.specs?.slice(0, 5) || [];
+  const topSpecs = review.specs?.slice(0, 10) || [];
   const heroBars = Array.isArray(review.hero_bars) ? review.hero_bars : [];
   const sections = Array.isArray(review.sections) ? review.sections : [];
   const testimonials = Array.isArray(review.testimonials) ? review.testimonials as Array<{ name?: string; quote?: string; stars?: number; role?: string; platform?: string }> : [];
   const faq = Array.isArray(review.faq) ? review.faq : [];
 
-  const sectionNav = sections.slice(0, 7).map((s) => ({ id: s.id, label: s.heading }));
+  const sectionNav = [
+    { id: "topo", label: "Início" },
+    ...(heroBars.length > 0 ? [{ id: "avaliacao", label: "Avaliação" }] : []),
+    ...(topSpecs.length ? [{ id: "ficha-tecnica", label: "Ficha Técnica" }] : []),
+    ...(testimonials.length > 0 ? [{ id: "compradores", label: "Compradores" }] : []),
+    ...(review.compare_table?.rows?.length ? [{ id: "comparativo", label: "Comparativo" }] : []),
+    { id: "veredicto", label: "Veredicto" },
+    ...(review.affiliate_url ? [{ id: "comprar", label: "Comprar" }] : []),
+    ...(faq.length > 0 ? [{ id: "faq", label: "FAQ" }] : []),
+  ];
 
   const verdictBgs = score >= 8
     ? { badge: "rgba(16,185,129,0.15)", badgeBorder: "rgba(16,185,129,0.4)", badgeText: "#6EE7B7" }
@@ -226,12 +236,12 @@ export default async function ReviewPage({ params }: PageProps) {
       {/* ============================================================
            FICHA TÉCNICA
       ============================================================ */}
-      {review.specs && review.specs.length > 0 && (
+      {topSpecs.length > 0 && (
         <div className="content" id="ficha-tecnica">
           <div className="max-w-[1100px] mx-auto py-[72px]">
             <article className="max-w-[680px]" style={{ textAlign: "left" }}>
               <h2 className="sec-h mb-4">Ficha Técnica</h2>
-              <SpecTable specs={review.specs} />
+              <SpecTable specs={topSpecs} />
             </article>
           </div>
         </div>
@@ -385,7 +395,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 <div>
                   <div className="buy-product-name">{review.product}</div>
                   <ul className="buy-features">
-                    {(review.specs || []).slice(0, 6).map((spec, i) => (
+                    {topSpecs.slice(0, 6).map((spec, i) => (
                       <li key={i}>{spec.label}: {spec.value}</li>
                     ))}
                   </ul>

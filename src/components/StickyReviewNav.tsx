@@ -53,23 +53,25 @@ export default function StickyReviewNav({ sections, score, affiliateUrl, product
       ref={navRef}
       className="sticky-nav"
       style={{
-        position: "sticky",
+        position: "fixed",
         top: 0,
-        zIndex: 500,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
         background: "var(--bg)",
         borderBottom: "1.5px solid var(--border)",
-        boxShadow: "0 1px 8px rgba(0,0,0,0.06)",
+        boxShadow: visible ? "0 1px 8px rgba(0,0,0,0.06)" : "none",
         transform: visible ? "translateY(0)" : "translateY(-100%)",
-        transition: "transform 0.3s ease",
+        transition: "transform 0.3s ease, box-shadow 0.3s ease",
       }}
       aria-label="Seções do review"
     >
       <div className="sticky-nav-inner" style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", height: 56, gap: 20 }}>
-        <a href="#topo" className="snav-logo" style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: "0.9rem", color: "var(--blue)", textDecoration: "none", flexShrink: 0, letterSpacing: "-0.01em" }}>
+        <a href="/" className="snav-logo" style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: "0.9rem", color: "var(--blue)", textDecoration: "none", flexShrink: 0, letterSpacing: "-0.01em" }}>
           vetor<span style={{ color: "var(--ink)" }}>.blog</span>
         </a>
-        <ul className="snav-links" style={{ display: "flex", gap: 0, listStyle: "none", flex: 1, justifyContent: "center" }}>
-          {sections.slice(0, 6).map((s) => (
+        <ul className="snav-links" style={{ display: "flex", gap: 0, listStyle: "none", flex: 1, justifyContent: "center", overflow: "auto" }}>
+          {sections.map((s) => (
             <li key={s.id}>
               <a
                 href={`#${s.id}`}
