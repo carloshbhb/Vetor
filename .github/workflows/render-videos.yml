@@ -65,7 +65,7 @@ jobs:
         run: |
           curl -s -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
                -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-               "$SUPABASE_URL/rest/v1/video_queue?status=eq.pending&order=created_at.asc&limit=3&select=*" > /tmp/videos.json
+               "$SUPABASE_URL/rest/v1/video_queue?status=eq.pending&order=created_at.asc&limit=8&select=*" > /tmp/videos.json
           COUNT=$(jq length /tmp/videos.json)
           echo "COUNT=$COUNT" >> $GITHUB_OUTPUT
           echo "Found $COUNT pending videos"

@@ -92,7 +92,7 @@ REGRAS:
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'llama-3.1-70b-versatile',
+      model: 'groq/compound',
       messages: [
         { role: 'system', content: 'Você é um roteirista especialista em vídeos virais de review tech. Responda APENAS em JSON válido.' },
         { role: 'user', content: prompt },

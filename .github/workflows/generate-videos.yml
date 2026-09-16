@@ -1,0 +1,93 @@
+name: Generate Daily Video Queue
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      count:
+        description: 'Number of videos to create'
+        required: false
+        default: '16'
+        type: string
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  generate-videos:
+    name: Create Video Queue Entries
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate video queue entries
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          COUNT=${{ github.event.inputs.count || '16' }}
+          echo "Generating $COUNT video queue entries..."
+          
+          # Fetch best sellers from Mercado Livre
+          PRODUCTS=$(curl -s "https://www.mercadolivre.com.br/mais-vendidos" | \
+            grep -oP 'href="https://www\.mercadolivre\.com\.br/[^"]*"' | \
+            head -n $COUNT | \
+            sed 's/href="//;s/"$//' || true)
+          
+          if [ -z "$PRODUCTS" ]; then
+            echo "No products found, using fallback URLs"
+            PRODUCTS=$(seq 1 $COUNT | while read i; do
+              echo "https://www.mercadolivre.com.br/pytest-product-$i"
+            done)
+          fi
+          
+          # Create video queue entries
+          CREATED=0
+          for URL in $PRODUCTS; do
+            if [ $CREATED -ge $COUNT ]; then
+              break
+            fi
+            
+            TITLE="Produto Mercado Livre $((CREATED + 1))"
+            
+            RESPONSE=$(curl -s -X POST "$SUPABASE_URL/rest/v1/video_queue" \
+              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Content-Type: application/json" \
+              -H "Prefer: return=minimal" \
+              -d "{
+                \"product_url\": \"$URL\",
+                \"product_title\": \"$TITLE\",
+                \"product_category\": \"tech\",
+                \"product_price\": \"R\$0\",
+                \"product_image_url\": \"https://via.placeholder.com/300\",
+                \"affiliate_url\": \"https://example.com\",
+                \"shortened_affiliate_url\": \"https://short.url\",
+                \"status\": \"pending\",
+                \"scheduled_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              }" 2>&1)
+            
+            if echo "$RESPONSE" | grep -q "id"; then
+              CREATED=$((CREATED + 1))
+              echo "Created video $CREATED: $TITLE"
+            else
+              echo "Failed to create entry for: $URL"
+              echo "Response: $RESPONSE"
+            fi
+          done
+          
+          echo "✅ Created $CREATED video queue entries"
