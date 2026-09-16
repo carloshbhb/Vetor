@@ -1,8 +1,12 @@
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || 'sk-fallback-key',
-  baseURL: process.env.GROQ_API_KEY ? 'https://api.groq.com/openai/v1' : undefined,
+  apiKey: process.env.GOOGLE_AI_API_KEY || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || 'sk-fallback-key',
+  baseURL: process.env.GOOGLE_AI_API_KEY
+    ? 'https://generativelanguage.googleapis.com/v1beta/openai'
+    : process.env.GROQ_API_KEY
+      ? 'https://api.groq.com/openai/v1'
+      : undefined,
 });
 
 export interface VideoScript {
@@ -77,7 +81,7 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     const prompt = buildScriptPrompt(product);
 
     const response = await openai.chat.completions.create({
-      model: process.env.GROQ_API_KEY ? 'groq/compound' : 'gpt-4o',
+      model: process.env.GOOGLE_AI_API_KEY ? 'gemini-2.5-flash' : process.env.GROQ_API_KEY ? 'groq/compound' : 'gpt-4o',
       messages: [
         { role: 'system', content: 'Você é um roteirista especialista em vídeos virais de review tech para YouTube Shorts/Reels. Responda APENAS em JSON válido.' },
         { role: 'user', content: prompt },

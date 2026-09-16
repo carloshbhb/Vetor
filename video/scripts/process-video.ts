@@ -85,14 +85,21 @@ REGRAS:
 7. Total entre 60-90 segundos
 8. Responda APENAS o JSON válido`;
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const useGemini = !!process.env.GOOGLE_AI_API_KEY;
+  const apiUrl = useGemini
+    ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
+    : 'https://api.groq.com/openai/v1/chat/completions';
+  const apiKey = useGemini ? process.env.GOOGLE_AI_API_KEY : process.env.GROQ_API_KEY;
+  const model = useGemini ? 'gemini-2.5-flash' : 'groq/compound';
+
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'groq/compound',
+      model,
       messages: [
         { role: 'system', content: 'Você é um roteirista especialista em vídeos virais de review tech. Responda APENAS em JSON válido.' },
         { role: 'user', content: prompt },
@@ -104,7 +111,7 @@ REGRAS:
   });
 
   if (!response.ok) {
-    throw new Error(`Groq API error: ${response.status}`);
+    throw new Error(`AI API error: ${response.status}`);
   }
 
   const data = await response.json();
