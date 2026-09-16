@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createVideoJob, getPendingVideos, processVideoPipeline, getVideoById, updateVideoStatus } from '@/lib/video-orchestrator';
+import { createVideoJob, getPendingVideos, processVideoPipeline, getVideoById, updateVideoStatus, createVideoJobsFromBestSellers } from '@/lib/video-orchestrator';
 import { verifyAdminAuth } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
@@ -14,7 +14,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { productUrl, scheduledAt } = body;
+    const { productUrl, scheduledAt, bestSellers } = body;
+
+    if (bestSellers) {
+      const count = await createVideoJobsFromBestSellers(bestSellers);
+      return NextResponse.json({ success: true, created: count });
+    }
 
     if (!productUrl) {
       return NextResponse.json({ error: 'productUrl is required' }, { status: 400 });

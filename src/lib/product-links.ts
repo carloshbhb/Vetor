@@ -1,4 +1,4 @@
-import { getSupabaseClient } from './supabase';
+import { getSupabaseServiceKeyClient } from './supabase';
 
 export interface ProductLink {
   id: string;
@@ -33,7 +33,7 @@ export async function getAllProductLinks(filters?: {
   limit?: number;
   offset?: number;
 }): Promise<ProductLink[]> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return [];
 
   try {
@@ -77,7 +77,7 @@ export async function getAllProductLinks(filters?: {
 }
 
 export async function getProductLinkById(id: string): Promise<ProductLink | null> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return null;
 
   try {
@@ -96,7 +96,7 @@ export async function getProductLinkById(id: string): Promise<ProductLink | null
 }
 
 export async function getProductLinkBySlug(slug: string): Promise<ProductLink | null> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return null;
 
   try {
@@ -117,7 +117,7 @@ export async function getProductLinkBySlug(slug: string): Promise<ProductLink | 
 export async function createProductLink(
   data: Omit<ProductLink, 'id' | 'created_at' | 'updated_at'>
 ): Promise<{ data: ProductLink | null; error: string | null }> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
     const now = new Date().toISOString();
     return {
@@ -167,7 +167,7 @@ export async function updateProductLink(
   id: string,
   data: Partial<ProductLink>
 ): Promise<{ error: string | null }> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return { error: null };
 
   try {
@@ -187,7 +187,7 @@ export async function updateProductLink(
 }
 
 export async function deleteProductLink(id: string): Promise<{ error: string | null }> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return { error: null };
 
   try {
@@ -210,7 +210,7 @@ export async function getProductLinksStats(): Promise<{
   video_generated: number;
   archived: number;
 }> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
     return { total: 0, active: 0, pending: 0, reviewed: 0, video_generated: 0, archived: 0 };
   }
@@ -250,7 +250,7 @@ export async function getProductLinksStats(): Promise<{
 export async function getProductLinksByCategory(): Promise<
   { category: string; count: number }[]
 > {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return [];
 
   try {

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import path from 'path';
-import { extractProductData, generateAffiliateUrl, type ProductData } from './product-extractor';
+import { extractProductData, fetchBestSellers, generateAffiliateUrl, type ProductData } from './product-extractor';
 import { generateVideoScript, type VideoScript } from './script-generator';
 import { generateVoiceover, generateVoiceoverFromScript, combineAudioFiles, type TTSResult } from './tts';
 import { fetchMediaAssets, prepareMediaForRemotion, type MediaFetchResult } from './media-fetcher';
@@ -198,12 +198,7 @@ const remotionData = {
   fps,
 };
 
-    // Step 5: Trigger GitHub Actions for rendering
-    console.log('[5/6] Triggering video render via GitHub Actions...');
-    await triggerGitHubActionsRender(videoId, remotionData);
-
-    // Step 6: The GitHub Action will handle rendering and YouTube upload
-    // We just mark as processing and let the workflow complete
+    // Step 5: Mark as processing - Remotion rendering handled by GitHub Actions workflow
     await updateVideoStatus(videoId, {
       status: 'processing',
     });
@@ -218,41 +213,6 @@ const remotionData = {
       error_message: message,
     });
     return { success: false, error: message };
-  }
-}
-
-async function triggerGitHubActionsRender(videoId: string, remotionData: any): Promise<void> {
-  const githubToken = process.env.GITHUB_ACTIONS_TOKEN || process.env.GITHUB_TOKEN;
-  const repo = process.env.GITHUB_REPOSITORY || process.env.GITHUB_REPO || 'user/vetor-blog';
-  
-  if (!githubToken) {
-    console.warn('GITHUB_ACTIONS_TOKEN not set, skipping workflow trigger');
-    return;
-  }
-
-  const propsPath = `/tmp/video-${videoId}/remotion-props.json`;
-  const fs = await import('fs');
-  fs.mkdirSync(path.dirname(propsPath), { recursive: true });
-  fs.writeFileSync(propsPath, JSON.stringify(remotionData, null, 2));
-
-  try {
-    await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${githubToken}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        event_type: 'render_video',
-        client_payload: {
-          video_id: videoId,
-          remotion_props_path: propsPath,
-        },
-      }),
-    });
-  } catch (error) {
-    console.error('Failed to trigger GitHub Actions:', error);
   }
 }
 
@@ -295,4 +255,21 @@ export async function retryFailedVideos(limit = 3): Promise<void> {
     await processVideoPipeline(video.id);
     await new Promise(r => setTimeout(r, 2000));
   }
+}
+
+export async function createVideoJobsFromBestSellers(limit = 5): Promise<number> {
+  const bestSellers = await fetchBestSellers();
+  const selected = bestSellers.slice(0, limit);
+  let created = 0;
+
+  for (const item of selected) {
+    try {
+      await createVideoJob({ productUrl: item.product_url });
+      created++;
+    } catch (err) {
+      console.error(`Failed to create video job for ${item.product_name}:`, err);
+    }
+  }
+
+  return created;
 }

@@ -44,7 +44,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install edge-tts
-        run: pip install edge-tts --quiet
+        run: npm install -g edge-tts
 
       - name: Install FFmpeg
         run: |
@@ -53,7 +53,9 @@ jobs:
 
       - name: Install video dependencies
         working-directory: ./video
-        run: npm ci
+        run: |
+          npm ci
+          npm install -g edge-tts
 
       - name: Fetch pending videos from Supabase
         id: fetch-videos

@@ -188,6 +188,67 @@ function inferCategory(title: string, specs: Record<string, string>): string {
   return 'Eletrônicos';
 }
 
+export async function fetchBestSellers(): Promise<Array<{ product_name: string; product_url: string; category: string }>> {
+  try {
+    const html = await fetchPage('https://www.mercadolivre.com.br/mais-vendidos');
+    const dom = new JSDOM(html);
+    const document = dom.window.document;
+
+    const results: Array<{ product_name: string; product_url: string; category: string }> = [];
+    const seen = new Set<string>();
+
+    const BASE_URL = 'https://www.mercadolivre.com.br';
+
+    const items = document.querySelectorAll('div[data-testid="listing-item"] a, a[href*="/p/MLB"]');
+    for (const link of items) {
+      const href = link.getAttribute('href');
+      const text = link.textContent?.trim() || '';
+      if (!href || !text || seen.has(href)) continue;
+      if (!href.includes('/p/MLB')) continue;
+
+      let fullUrl: string;
+      if (href.startsWith('/')) {
+        fullUrl = `${BASE_URL}${href}`;
+      } else if (href.startsWith('http')) {
+        fullUrl = href;
+      } else {
+        fullUrl = `${BASE_URL}/${href}`;
+      }
+
+      const category = detectCategoryFromText(text);
+      seen.add(fullUrl);
+      results.push({
+        product_name: text.substring(0, 100),
+        product_url: fullUrl,
+        category: category,
+      });
+    }
+
+    return results.slice(0, 50);
+  } catch (error) {
+    console.error('Error fetching best sellers:', error);
+    throw new Error('Falha ao buscar mais vendidos');
+  }
+}
+
+function detectCategoryFromText(text: string): string {
+  const t = text.toLowerCase();
+  const categories: Record<string, string[]> = {
+    'Smartphones': ['smartphone', 'celular', 'iphone', 'galaxy', 'pixel', 'xiaomi', 'motorola'],
+    'Notebooks': ['notebook', 'laptop', 'macbook', 'ultrabook', 'thinkpad', 'xps', 'gaming'],
+    'Fones de Ouvido': ['fone', 'headphone', 'earphone', 'airpods', 'buds', 'wh-1000xm', 'wf-1000'],
+    'Wearables': ['watch', 'relógio', 'smartwatch', 'band', 'fitbit', 'garmin'],
+    'Tablets': ['tablet', 'ipad', 'galaxy tab'],
+    'Consoles': ['console', 'playstation', 'xbox', 'nintendo', 'switch'],
+    'Casa Inteligente': ['smart home', 'alexa', 'google home', 'lâmpada', 'tomada', 'intelbras'],
+  };
+
+  for (const [category, keywords] of Object.entries(categories)) {
+    if (keywords.some(k => t.includes(k))) return category;
+  }
+  return 'Eletrônicos';
+}
+
 export function generateAffiliateUrl(originalUrl: string, marketplace: ProductData['marketplace']): string {
   const affiliateTags: Record<string, string> = {
     amazon: 'tag=vetorblog-20',

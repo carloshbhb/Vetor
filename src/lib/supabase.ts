@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Review, ViralArticle, Category } from './types';
 
 let client: SupabaseClient | null = null;
+let serviceClient: SupabaseClient | null = null;
 
 function hasSupabaseCredentials(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -15,6 +16,16 @@ export function getSupabaseClient(): SupabaseClient | null {
 
   client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
   return client;
+}
+
+export function getSupabaseServiceKeyClient(): SupabaseClient | null {
+  if (serviceClient) return serviceClient;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !serviceKey) return null;
+
+  serviceClient = createClient(url, serviceKey);
+  return serviceClient;
 }
 
 export async function createReview(data: {
@@ -33,7 +44,7 @@ export async function createReview(data: {
   marketplace?: string;
   affiliate_url?: string;
 }): Promise<{ data: Review | null; error: string | null }> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
     return { data: { ...data, id: 'mock-' + Date.now(), status: 'published', marketplace: data.marketplace || '', price_old: '', affiliate_url: data.affiliate_url || '', ads_enabled: false, meta_keywords: '', meta_reading_time: 5, meta_canonical: null, meta_og_image: null, hero_headline_line1: '', hero_headline_line2: '', hero_headline_em: '', hero_lead: '', hero_bars: [], specs: [], sections: [], compare_table: { rows: [], caption: '', columns: [], winnerCol: 0 }, testimonials: [], verdict_label: '', verdict_text: '', verdict_note: '', schema_rating_value: data.hero_overall_score ?? 0, schema_review_count: 1, google_rank: null, last_rank_check: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), faq: [] } as Review, error: null };
   }
@@ -101,7 +112,7 @@ export async function createViralArticle(data: {
   seo_title: string;
   seo_description: string;
 }): Promise<{ data: ViralArticle | null; error: string | null }> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
     return { data: { ...data, id: 'mock-' + Date.now(), published_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_at: new Date().toISOString() } as ViralArticle, error: null };
   }

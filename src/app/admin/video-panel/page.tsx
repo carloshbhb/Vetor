@@ -81,6 +81,26 @@ export default function VideoPanel() {
     if (authenticated) fetchVideos();
   }, [authenticated]);
 
+  const handleLoadBestSellers = async () => {
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/video/queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bestSellers: 5 }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to load best sellers');
+      setMessage({ type: 'success', text: `${data.created} vídeos agendados dos mais vendidos` });
+      fetchVideos();
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Erro ao carregar mais vendidos' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUrl.trim()) return;
@@ -217,6 +237,15 @@ export default function VideoPanel() {
               {submitting ? 'Agendando...' : 'Agendar Vídeo'}
             </button>
           </form>
+          <div className="mt-3">
+            <button
+              onClick={handleLoadBestSellers}
+              disabled={submitting}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
+            >
+              🔥 Carregar Vídeos dos Mais Vendidos (ML)
+            </button>
+          </div>
         </div>
 
         {message && (
