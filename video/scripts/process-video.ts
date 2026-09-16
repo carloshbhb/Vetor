@@ -92,22 +92,27 @@ REGRAS:
   const apiKey = useGemini ? process.env.GOOGLE_AI_API_KEY : process.env.GROQ_API_KEY;
   const model = useGemini ? 'gemini-2.5-flash' : 'groq/compound';
 
+  const body: any = {
+    model,
+    messages: [
+      { role: 'system', content: 'Você é um roteirista especialista em vídeos virais de review tech. Responda APENAS em JSON válido, sem texto adicional.' },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 4000,
+  };
+
+  if (!useGemini) {
+    body.response_format = { type: 'json_object' };
+  }
+
   const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: 'Você é um roteirista especialista em vídeos virais de review tech. Responda APENAS em JSON válido.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.8,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' },
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -115,7 +120,19 @@ REGRAS:
   }
 
   const data = await response.json();
-  return JSON.parse(data.choices[0].message.content);
+  let content = data.choices[0].message.content || '{}';
+
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    content = jsonMatch[0];
+  }
+
+  try {
+    return JSON.parse(content);
+  } catch {
+    const fixed = content.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+    return JSON.parse(fixed);
+  }
 }
 
 async function generateVoiceover(script: any, outputDir: string): Promise<{ audioPath: string; duration: number }> {

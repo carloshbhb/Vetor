@@ -80,18 +80,25 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
   try {
     const prompt = buildScriptPrompt(product);
 
-    const response = await openai.chat.completions.create({
-      model: process.env.GOOGLE_AI_API_KEY ? 'gemini-2.5-flash' : process.env.GROQ_API_KEY ? 'groq/compound' : 'gpt-4o',
+    const useGemini = !!process.env.GOOGLE_AI_API_KEY;
+    const createParams: any = {
+      model: useGemini ? 'gemini-2.5-flash' : process.env.GROQ_API_KEY ? 'groq/compound' : 'gpt-4o',
       messages: [
-        { role: 'system', content: 'Você é um roteirista especialista em vídeos virais de review tech para YouTube Shorts/Reels. Responda APENAS em JSON válido.' },
+        { role: 'system', content: 'Você é um roteirista especialista em vídeos virais de review tech para YouTube Shorts/Reels. Responda APENAS em JSON válido, sem texto adicional.' },
         { role: 'user', content: prompt },
       ],
-      temperature: 0.8,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' },
-    });
+      temperature: 0.7,
+      max_tokens: 4000,
+    };
+    if (!useGemini) {
+      createParams.response_format = { type: 'json_object' };
+    }
 
-    const content = response.choices[0].message.content || '{}';
+    const response = await openai.chat.completions.create(createParams);
+
+    let content = response.choices[0].message.content || '{}';
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) content = jsonMatch[0];
     const parsed = JSON.parse(content);
 
     return {
