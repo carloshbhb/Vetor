@@ -33,7 +33,7 @@ export async function generateReview(product: {
     const prompt = buildReviewPrompt(product);
 
     const response = await openai.chat.completions.create({
-      model: process.env.GROQ_API_KEY ? 'llama-3.1-70b-versatile' : 'gpt-4o',
+      model: process.env.GROQ_API_KEY ? 'groq/compound' : 'gpt-4o',
       messages: [
         { role: 'system', content: 'Você é um editor de reviews profissionais para vetor.blog. Responda APENAS em JSON válido, sem texto adicional.' },
         { role: 'user', content: prompt },

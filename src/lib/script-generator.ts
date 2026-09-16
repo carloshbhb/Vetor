@@ -77,7 +77,7 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     const prompt = buildScriptPrompt(product);
 
     const response = await openai.chat.completions.create({
-      model: process.env.GROQ_API_KEY ? 'llama-3.1-70b-versatile' : 'gpt-4o',
+      model: process.env.GROQ_API_KEY ? 'groq/compound' : 'gpt-4o',
       messages: [
         { role: 'system', content: 'Você é um roteirista especialista em vídeos virais de review tech para YouTube Shorts/Reels. Responda APENAS em JSON válido.' },
         { role: 'user', content: prompt },
