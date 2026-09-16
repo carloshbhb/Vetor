@@ -15,6 +15,6 @@
     "incremental": true,
     "outDir": "./dist"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "remotion.config.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "remotion.config.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules"]
 }

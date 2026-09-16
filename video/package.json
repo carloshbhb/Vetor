@@ -8,7 +8,7 @@
     "build": "remotion render",
     "render-review": "tsx src/utils/renderVideo.ts review",
     "render-comparison": "tsx src/utils/renderVideo.ts comparison",
-    "process-video": "node scripts/process-video.js",
+    "process-video": "tsx scripts/process-video.ts",
     "upload-youtube": "node scripts/upload-to-youtube.js"
   },
   "dependencies": {
