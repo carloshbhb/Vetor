@@ -32,12 +32,18 @@ async function updateVideoStatus(id, updates) {
 async function generateVoiceover(text, outputPath) {
   const voice = 'pt-BR-ThiagoNeural';
   const tempFile = outputPath.replace('.mp3', '-temp.mp3');
+  const safeText = text.replace(/"/g, '\\"').replace(/\n/g, ' ');
 
   try {
     execSync(
-      `edge-tts --voice "${voice}" --text "${text.replace(/"/g, '\\"')}" --write-media "${tempFile}"`,
-      { stdio: 'pipe', timeout: 30000 }
+      `edge-tts --voice "${voice}" --text "${safeText}" --write-media "${tempFile}"`,
+      { stdio: 'pipe', timeout: 60000 }
     );
+
+    if (!fs.existsSync(tempFile)) {
+      console.error(`   ⚠️ TTS file not created: ${tempFile}`);
+      return 5;
+    }
 
     const durationStr = execSync(
       `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${tempFile}"`,
@@ -48,16 +54,20 @@ async function generateVoiceover(text, outputPath) {
     fs.renameSync(tempFile, outputPath);
     return duration;
   } catch (error) {
-    console.error('TTS error:', error);
+    console.error(`   ⚠️ TTS error for "${text.slice(0, 30)}...":`, error.message?.slice(0, 100));
     if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
     return 5;
   }
 }
 
 async function combineAudioFiles(audioFiles, outputPath) {
-  if (audioFiles.length === 0) return;
-  if (audioFiles.length === 1) {
-    fs.copyFileSync(audioFiles[0], outputPath);
+  const existingFiles = audioFiles.filter(f => fs.existsSync(f));
+  if (existingFiles.length === 0) {
+    console.error('   ⚠️ No audio files to combine');
+    return;
+  }
+  if (existingFiles.length === 1) {
+    fs.copyFileSync(existingFiles[0], outputPath);
     return;
   }
 
