@@ -32,18 +32,18 @@ async function updateVideoStatus(id, updates) {
 async function generateVoiceover(text, outputPath) {
   const voice = 'pt-BR-ThiagoNeural';
   const tempFile = outputPath.replace('.mp3', '-temp.mp3');
+  const textFile = outputPath.replace('.mp3', '-text.txt');
   const safeText = text
-    .replace(/[\u2014\u2013]/g, '-')  // em/en dash -> hyphen
-    .replace(/[\u2018\u2019]/g, "'")  // smart quotes
-    .replace(/[\u201C\u201D]/g, '"')  // smart double quotes
-    .replace(/["]/g, "'")             // double quotes -> single
+    .replace(/[\u2014\u2013]/g, '-')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
     .replace(/\n/g, ' ')
     .trim();
 
   try {
-    const textArg = safeText.replace(/'/g, "'\\''");
+    fs.writeFileSync(textFile, safeText);
     execSync(
-      `edge-tts --voice "${voice}" --text '${textArg}' --write-media "${tempFile}"`,
+      `edge-tts --voice "${voice}" --file "${textFile}" --write-media "${tempFile}"`,
       { stdio: 'pipe', timeout: 60000 }
     );
 
@@ -63,6 +63,7 @@ async function generateVoiceover(text, outputPath) {
   } catch (error) {
     console.error(`   ⚠️ TTS error for "${text.slice(0, 30)}...":`, error.message?.slice(0, 100));
     if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+    if (fs.existsSync(textFile)) fs.unlinkSync(textFile);
     return 5;
   }
 }

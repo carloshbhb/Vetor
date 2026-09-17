@@ -1,4 +1,4 @@
-import { Composition } from 'remotion';
+import { Composition, registerRoot } from 'remotion';
 import { ReviewVideo } from './compositions/ReviewVideo';
 import { ComparisonVideo } from './compositions/ComparisonVideo';
 
@@ -95,3 +95,5 @@ export const RemotionRoot = () => {
     </>
   );
 };
+
+registerRoot(RemotionRoot);
