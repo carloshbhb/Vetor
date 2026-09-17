@@ -3,36 +3,11 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-interface VideoQueueItem {
-  id: string;
-  product_title: string;
-  product_category: string;
-  product_price: string;
-  product_image_url: string;
-  product_url: string;
-  script_text: string;
-  script_hook: string;
-  status: string;
-}
-
-interface VideoScript {
-  hook: string;
-  scenes: Array<{
-    id: number;
-    text: string;
-    duration: number;
-    visualCue: string;
-    brollKeywords: string[];
-  }>;
-  totalDuration: number;
-  callToAction: string;
-}
-
-async function getPendingVideos(limit = 5): Promise<VideoQueueItem[]> {
+async function getPendingVideos(limit = 5) {
   const { data, error } = await supabase
     .from('video_queue')
     .select('*')
@@ -41,17 +16,17 @@ async function getPendingVideos(limit = 5): Promise<VideoQueueItem[]> {
     .limit(limit);
 
   if (error) throw new Error(error.message);
-  return (data || []) as VideoQueueItem[];
+  return data || [];
 }
 
-async function updateVideoStatus(id: string, updates: Record<string, unknown>) {
+async function updateVideoStatus(id, updates) {
   await supabase
     .from('video_queue')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id);
 }
 
-async function generateVoiceover(text: string, outputPath: string): Promise<number> {
+async function generateVoiceover(text, outputPath) {
   const voice = 'pt-BR-ThiagoNeural';
   const tempFile = outputPath.replace('.mp3', '-temp.mp3');
 
@@ -61,26 +36,22 @@ async function generateVoiceover(text: string, outputPath: string): Promise<numb
       { stdio: 'pipe', timeout: 30000 }
     );
 
-    // Get audio duration using ffprobe
     const durationStr = execSync(
       `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${tempFile}"`,
       { encoding: 'utf-8', timeout: 10000 }
     ).trim();
 
     const duration = parseFloat(durationStr) || 5;
-
-    // Rename temp to final
     fs.renameSync(tempFile, outputPath);
     return duration;
   } catch (error) {
     console.error('TTS error:', error);
-    // Cleanup temp file if it exists
     if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
     return 5;
   }
 }
 
-async function combineAudioFiles(audioFiles: string[], outputPath: string) {
+async function combineAudioFiles(audioFiles, outputPath) {
   if (audioFiles.length === 0) return;
   if (audioFiles.length === 1) {
     fs.copyFileSync(audioFiles[0], outputPath);
@@ -101,7 +72,7 @@ async function combineAudioFiles(audioFiles: string[], outputPath: string) {
   }
 }
 
-async function renderWithRemotion(videoData: unknown, outputPath: string) {
+async function renderWithRemotion(videoData, outputPath) {
   const dataPath = path.resolve(outputPath, '../remotion-input.json');
   fs.writeFileSync(dataPath, JSON.stringify(videoData, null, 2));
 
@@ -119,7 +90,7 @@ async function renderWithRemotion(videoData: unknown, outputPath: string) {
   }
 }
 
-async function processVideo(video: VideoQueueItem) {
+async function processVideo(video) {
   console.log(`\n🎬 Processando: ${video.product_title}`);
   console.log(`   ID: ${video.id}`);
   console.log(`   Hook: ${video.script_hook}`);
@@ -127,8 +98,7 @@ async function processVideo(video: VideoQueueItem) {
   await updateVideoStatus(video.id, { status: 'processing', started_at: new Date().toISOString() });
 
   try {
-    // Parse script
-    let script: VideoScript;
+    let script;
     try {
       script = JSON.parse(video.script_text);
     } catch {
@@ -144,21 +114,18 @@ async function processVideo(video: VideoQueueItem) {
       };
     }
 
-    // Step 1: Generate voiceover
     console.log('   [1/3] Gerando voiceover...');
     const audioDir = path.resolve(`/tmp/video-${video.id}`);
     if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
 
-    const audioFiles: string[] = [];
+    const audioFiles = [];
     let totalDuration = 0;
 
-    // Generate hook audio
     const hookAudioPath = path.join(audioDir, 'hook.mp3');
     const hookDuration = await generateVoiceover(script.hook, hookAudioPath);
     audioFiles.push(hookAudioPath);
     totalDuration += hookDuration;
 
-    // Generate scene audio
     for (const scene of script.scenes) {
       const sceneAudioPath = path.join(audioDir, `scene-${scene.id}.mp3`);
       const duration = await generateVoiceover(scene.text, sceneAudioPath);
@@ -166,18 +133,15 @@ async function processVideo(video: VideoQueueItem) {
       totalDuration += duration;
     }
 
-    // Generate CTA audio
     const ctaAudioPath = path.join(audioDir, 'cta.mp3');
     const ctaDuration = await generateVoiceover(script.callToAction, ctaAudioPath);
     audioFiles.push(ctaAudioPath);
     totalDuration += ctaDuration;
 
-    // Combine audio
     console.log('   [2/3] Combinando áudio...');
     const combinedAudioPath = path.join(audioDir, 'combined.mp3');
     await combineAudioFiles(audioFiles, combinedAudioPath);
 
-    // Step 3: Render video
     console.log('   [3/3] Renderizando vídeo com Remotion...');
     const outputDir = path.resolve('out');
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
@@ -207,9 +171,7 @@ async function processVideo(video: VideoQueueItem) {
         { start: 0, end: hookDuration, text: script.hook },
         ...script.scenes.map((scene, i) => {
           const start = hookDuration + script.scenes.slice(0, i).reduce((sum, s) => {
-            const sceneAudio = audioFiles[i + 1];
-            const sceneDuration = fs.existsSync(sceneAudio) ? 5 : s.duration;
-            return sum + sceneDuration;
+            return sum + s.duration;
           }, 0);
           return { start, end: start + 5, text: scene.text };
         }),
@@ -222,7 +184,6 @@ async function processVideo(video: VideoQueueItem) {
 
     await renderWithRemotion(videoData, path.join(outputDir, `video-${video.id}.mp4`));
 
-    // Update status
     await updateVideoStatus(video.id, {
       status: 'completed',
       video_url: `/videos/video-${video.id}.mp4`,
@@ -233,7 +194,6 @@ async function processVideo(video: VideoQueueItem) {
 
     console.log(`   ✅ Vídeo concluído: ${video.product_title}`);
 
-    // Cleanup
     if (fs.existsSync(audioDir)) fs.rmSync(audioDir, { recursive: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -252,7 +212,6 @@ async function main() {
   console.log(`   Timestamp: ${new Date().toISOString()}`);
 
   if (videoId) {
-    // Process specific video
     const { data, error } = await supabase
       .from('video_queue')
       .select('*')
@@ -264,9 +223,8 @@ async function main() {
       process.exit(1);
     }
 
-    await processVideo(data as VideoQueueItem);
+    await processVideo(data);
   } else {
-    // Process all pending videos
     const videos = await getPendingVideos(5);
     console.log(`   ${videos.length} vídeos pendentes encontrados`);
 
