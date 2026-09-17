@@ -1,15 +1,7 @@
-import OpenAI from 'openai';
 import { buildReviewPrompt } from './prompt';
 import { seo } from './seo';
-
-const openai = new OpenAI({
-  apiKey: process.env.GOOGLE_AI_API_KEY || process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY || 'sk-fallback-key',
-  baseURL: process.env.GOOGLE_AI_API_KEY
-    ? 'https://generativelanguage.googleapis.com/v1beta/openai'
-    : process.env.GROQ_API_KEY
-      ? 'https://api.groq.com/openai/v1'
-      : undefined,
-});
+import { chatCompletion } from './llm-provider';
+import type { ReviewHeroBar, ReviewSpec, ReviewSection, ReviewCompareTable, ReviewFaq } from './types';
 
 interface ReviewOutput {
   slug: string;
@@ -23,6 +15,22 @@ interface ReviewOutput {
   marketplace?: string;
   seo_title: string;
   seo_description: string;
+  hero_overall_score: number;
+  hero_bars: ReviewHeroBar[];
+  specs: ReviewSpec[];
+  sections: ReviewSection[];
+  pros: string[];
+  cons: string[];
+  compare_table: ReviewCompareTable;
+  verdict_score: number;
+  verdict_label: string;
+  verdict_text: string;
+  verdict_note: string;
+  hero_lead: string;
+  hero_headline_line1: string;
+  hero_headline_line2: string;
+  hero_headline_em: string;
+  faq: ReviewFaq[];
 }
 
 export async function generateReview(product: {
@@ -36,19 +44,16 @@ export async function generateReview(product: {
   try {
     const prompt = buildReviewPrompt(product);
 
-    const response = await openai.chat.completions.create({
-      model: process.env.GOOGLE_AI_API_KEY ? 'gemini-2.5-flash' : process.env.GROQ_API_KEY ? 'groq/compound' : 'gpt-4o',
-      messages: [
-        { role: 'system', content: 'Você é um editor de reviews profissionais para vetor.blog. Responda APENAS em JSON válido, sem texto adicional.' },
-        { role: 'user', content: prompt },
-      ],
+    const content = await chatCompletion({
+      systemPrompt: 'Você é um editor de reviews profissionais para vetor.blog. Responda APENAS em JSON válido, sem texto adicional.',
+      userPrompt: prompt,
       temperature: 0.8,
-      max_tokens: 4000,
+      maxTokens: 6000,
+      responseFormat: { type: 'json_object' },
     });
 
-    const content = response.choices[0].message.content || '';
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : content;
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
     const generatedTitle = parsed.title || `${product.title} - Vale a Pena?`;
     const generatedDescription = parsed.description || `Review completo do ${product.title}.`;
@@ -66,8 +71,35 @@ export async function generateReview(product: {
       image: product.image,
       product_url: product.product_url,
       marketplace: product.marketplace,
-      seo_title: seoTitle,
-      seo_description: seoDesc,
+      seo_title: parsed.seo_title || seoTitle,
+      seo_description: parsed.seo_description || seoDesc,
+      hero_overall_score: parsed.hero_overall_score ?? 8,
+      hero_bars: parsed.hero_bars ?? [
+        { pct: 85, label: 'Qualidade', value: 8.5 },
+        { pct: 80, label: 'Custo-Benefício', value: 8 },
+        { pct: 75, label: 'Design', value: 7.5 },
+      ],
+      specs: parsed.specs ?? [
+        { label: 'Categoria', value: product.category, highlight: false },
+        { label: 'Preço', value: product.price, highlight: true },
+      ],
+      sections: parsed.sections ?? [
+        { id: 'intro', heading: 'Introdução', tocEmoji: '📝', tocLabel: 'Intro', content: `<p>Análise completa do ${product.title}.</p>` },
+      ],
+      pros: parsed.pros ?? ['Bom custo-benefício', 'Design moderno', 'Boa qualidade de construção'],
+      cons: parsed.cons ?? ['Preço poderia ser menor', 'Poucas opções de cor'],
+      compare_table: parsed.compare_table ?? { rows: [], caption: '', columns: [], winnerCol: 0 },
+      verdict_score: parsed.verdict_score ?? parsed.hero_overall_score ?? 8,
+      verdict_label: parsed.verdict_label ?? 'Excelente',
+      verdict_text: parsed.verdict_text ?? `O ${product.title} é uma excelente opção na categoria ${product.category}.`,
+      verdict_note: parsed.verdict_note ?? 'Recomendado para quem busca qualidade.',
+      hero_lead: parsed.hero_lead ?? `Análise completa do ${product.title} pelo preço de ${product.price}.`,
+      hero_headline_line1: parsed.hero_headline_line1 ?? 'Análise Completa do',
+      hero_headline_line2: parsed.hero_headline_line2 ?? product.title,
+      hero_headline_em: parsed.hero_headline_em ?? 'Vale a Pena?',
+      faq: parsed.faq ?? [
+        { question: `O ${product.title} vale a pena?`, answer: `Sim, pelo preço de ${product.price} é uma ótima opção.` },
+      ],
     };
   } catch {
     return {
@@ -82,11 +114,36 @@ export async function generateReview(product: {
       marketplace: product.marketplace,
       seo_title: `${product.title} - Vale a Pena em 2026?`,
       seo_description: `Review honesto do ${product.title}. Compare com concorrentes e veja se vale a pena.`,
+      hero_overall_score: 8,
+      hero_bars: [
+        { pct: 85, label: 'Qualidade', value: 8.5 },
+        { pct: 80, label: 'Custo-Benefício', value: 8 },
+        { pct: 75, label: 'Design', value: 7.5 },
+      ],
+      specs: [
+        { label: 'Categoria', value: product.category, highlight: false },
+        { label: 'Preço', value: product.price, highlight: true },
+      ],
+      sections: [
+        { id: 'intro', heading: 'Introdução', tocEmoji: '📝', tocLabel: 'Intro', content: `<p>Análise completa do ${product.title}.</p>` },
+      ],
+      pros: ['Bom custo-benefício', 'Design moderno'],
+      cons: ['Preço poderia ser menor'],
+      compare_table: { rows: [], caption: '', columns: [], winnerCol: 0 },
+      verdict_score: 8,
+      verdict_label: 'Excelente',
+      verdict_text: `O ${product.title} é uma excelente opção.`,
+      verdict_note: 'Recomendado.',
+      hero_lead: `Análise do ${product.title}.`,
+      hero_headline_line1: 'Análise Completa do',
+      hero_headline_line2: product.title,
+      hero_headline_em: 'Vale a Pena?',
+      faq: [],
     };
   }
 }
 
-function generateDefaultContent(product: { title: string; category: string; price: string; product_url?: string; marketplace?: string }): string {
+function generateDefaultContent(product: { title: string; category: string; price: string }): string {
   return `<h2>Introdução</h2><p>Chegou a hora de analisar o ${product.title} em profundidade. Neste review completo, vamos avaliar cada aspecto deste produto na categoria de ${product.category} pelo preço de ${product.price}.</p>
 <h2>Design e Construção</h2><p>O ${product.title} impressiona pelo acabamento e construção robusta, mantendo um design moderno que agrada tanto para uso diário quanto para situações mais exigentes.</p>
 <h2>Desempenho</h2><p>O desempenho do ${product.title} é sólido e atende às expectativas para sua categoria. Os processos internos são eficientes e a experiência do usuário é fluida.</p>

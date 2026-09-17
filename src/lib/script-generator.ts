@@ -1,13 +1,4 @@
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.GOOGLE_AI_API_KEY || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || 'sk-fallback-key',
-  baseURL: process.env.GOOGLE_AI_API_KEY
-    ? 'https://generativelanguage.googleapis.com/v1beta/openai'
-    : process.env.GROQ_API_KEY
-      ? 'https://api.groq.com/openai/v1'
-      : undefined,
-});
+import { chatCompletion, getLLMProvider } from './llm-provider';
 
 export interface VideoScript {
   hook: string;
@@ -79,27 +70,20 @@ REGRAS:
 export async function generateVideoScript(product: ProductInfo): Promise<VideoScript> {
   try {
     const prompt = buildScriptPrompt(product);
+    const provider = getLLMProvider();
 
-    const useGemini = !!process.env.GOOGLE_AI_API_KEY;
-    const createParams: any = {
-      model: useGemini ? 'gemini-2.5-flash' : process.env.GROQ_API_KEY ? 'groq/compound' : 'gpt-4o',
-      messages: [
-        { role: 'system', content: 'Você é um roteirista especialista em vídeos virais de review tech para YouTube Shorts/Reels. Responda APENAS em JSON válido, sem texto adicional.' },
-        { role: 'user', content: prompt },
-      ],
+    const content = await chatCompletion({
+      systemPrompt: 'Você é um roteirista especialista em vídeos virais de review tech para YouTube Shorts/Reels. Responda APENAS em JSON válido, sem texto adicional.',
+      userPrompt: prompt,
       temperature: 0.7,
-      max_tokens: 4000,
-    };
-    if (!useGemini) {
-      createParams.response_format = { type: 'json_object' };
-    }
+      maxTokens: 4000,
+      responseFormat: provider.provider !== 'gemini' ? { type: 'json_object' } : undefined,
+    });
 
-    const response = await openai.chat.completions.create(createParams);
-
-    let content = response.choices[0].message.content || '{}';
+    let parsedContent = content;
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) content = jsonMatch[0];
-    const parsed = JSON.parse(content);
+    if (jsonMatch) parsedContent = jsonMatch[0];
+    const parsed = JSON.parse(parsedContent);
 
     return {
       hook: parsed.hook || `Conheça o ${product.title} - vale a pena?`,

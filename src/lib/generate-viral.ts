@@ -1,15 +1,6 @@
-import OpenAI from 'openai';
 import { buildViralPrompt } from './prompt';
 import { seo } from './seo';
-
-const openai = new OpenAI({
-  apiKey: process.env.GOOGLE_AI_API_KEY || process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY || 'sk-fallback-key',
-  baseURL: process.env.GOOGLE_AI_API_KEY
-    ? 'https://generativelanguage.googleapis.com/v1beta/openai'
-    : process.env.GROQ_API_KEY
-      ? 'https://api.groq.com/openai/v1'
-      : undefined,
-});
+import { chatCompletion } from './llm-provider';
 
 interface ViralArticleOutput {
   slug: string;
@@ -31,17 +22,13 @@ export async function generateViralArticle(topic: {
   try {
     const prompt = buildViralPrompt(topic);
 
-    const response = await openai.chat.completions.create({
-      model: process.env.GOOGLE_AI_API_KEY ? 'gemini-2.5-flash' : process.env.GROQ_API_KEY ? 'groq/compound' : 'gpt-4o',
-      messages: [
-        { role: 'system', content: 'Você é um gerador de artigos virais para vetor.blog. Responda APENAS em JSON válido, sem texto adicional.' },
-        { role: 'user', content: prompt },
-      ],
+    const content = await chatCompletion({
+      systemPrompt: 'Você é um gerador de artigos virais para vetor.blog. Responda APENAS em JSON válido, sem texto adicional.',
+      userPrompt: prompt,
       temperature: 0.9,
-      max_tokens: 5000,
+      maxTokens: 5000,
     });
 
-    const content = response.choices[0].message.content || '';
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : content;
 

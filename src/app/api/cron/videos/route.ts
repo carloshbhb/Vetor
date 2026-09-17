@@ -1,93 +1,141 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllReviews, getAllViralArticles } from '@/lib/supabase';
+import { generateVideoScript } from '@/lib/script-generator';
+import { createClient } from '@supabase/supabase-js';
 
-interface VideoJob {
-  id: string;
-  type: 'review' | 'comparison';
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  url?: string;
+const SERVICE_SUPABASE = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
+);
+
+interface VideoJobResult {
+  type: string;
+  slug: string;
+  status: string;
+  videoId?: string;
   error?: string;
-  createdAt: string;
 }
 
-const videoJobs: VideoJob[] = [];
+async function createVideoQueueEntry(data: {
+  product_title: string;
+  product_category: string;
+  product_price: string;
+  product_image_url: string;
+  product_url: string;
+  type: 'review' | 'comparison';
+  slug: string;
+  script_hook: string;
+  script_text: string;
+}): Promise<string | null> {
+  const { data: result, error } = await SERVICE_SUPABASE
+    .from('video_queue')
+    .insert({
+      product_url: data.product_url,
+      product_title: data.product_title,
+      product_category: data.product_category,
+      product_price: data.product_price,
+      product_image_url: data.product_image_url,
+      affiliate_url: data.product_url,
+      shortened_affiliate_url: data.product_url,
+      script_text: data.script_text,
+      script_hook: data.script_hook,
+      status: 'pending',
+      scheduled_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single();
 
-async function generateReviewVideo(review: {
+  if (error) {
+    console.error(`[VIDEO] Erro ao criar fila: ${error.message}`);
+    return null;
+  }
+  return result.id;
+}
+
+async function generateReviewVideoJob(review: {
+  slug: string;
   product: string;
-  image_url: string;
-  verdict_score: number;
-  pros: string[];
-  cons: string[];
   category: string;
-}): Promise<{ url: string; filename: string }> {
-  const timestamp = Date.now();
-  const filename = `review-${review.product.toLowerCase().replace(/\s+/g, '-')}-${timestamp}.mp4`;
+  price_new: string;
+  image_url: string;
+  affiliate_url: string;
+}): Promise<VideoJobResult> {
+  try {
+    console.log(`[VIDEO] Gerando script para review: ${review.product}`);
 
-  const videoData = {
-    title: review.product,
-    imageUrl: review.image_url,
-    score: review.verdict_score,
-    pros: review.pros,
-    cons: review.cons,
-    verdict: `Análise completa do ${review.product}. Confira os prós e contras neste vídeo.`,
-    category: review.category,
-  };
+    const script = await generateVideoScript({
+      title: review.product,
+      category: review.category,
+      price: review.price_new,
+      marketplace: 'Mercado Livre',
+    });
 
-  console.log(`[VIDEO] Generating review video for: ${review.product}`);
-  console.log(`[VIDEO] Data:`, JSON.stringify(videoData, null, 2));
+    const videoId = await createVideoQueueEntry({
+      product_title: review.product,
+      product_category: review.category,
+      product_price: review.price_new,
+      product_image_url: review.image_url,
+      product_url: review.affiliate_url || `https://vetor.blog/reviews/${review.slug}`,
+      type: 'review',
+      slug: review.slug,
+      script_hook: script.hook,
+      script_text: JSON.stringify(script),
+    });
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
-  const videoUrl = `${baseUrl}/videos/${filename}`;
+    if (!videoId) {
+      return { type: 'review', slug: review.slug, status: 'failed', error: 'Falha ao criar entrada na fila' };
+    }
 
-  return {
-    url: videoUrl,
-    filename,
-  };
+    console.log(`[VIDEO] Script gerado para ${review.product} | Hook: ${script.hook}`);
+    return { type: 'review', slug: review.slug, status: 'queued', videoId };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[VIDEO] Erro ao gerar script para ${review.slug}:`, message);
+    return { type: 'review', slug: review.slug, status: 'failed', error: message };
+  }
 }
 
-async function generateComparisonVideo(products: {
-  name: string;
-  image: string;
-  score: number;
-}[]): Promise<{ url: string; filename: string }> {
-  const timestamp = Date.now();
-  const productNames = products.map((p) => p.name.toLowerCase().replace(/\s+/g, '-')).join('-vs-');
-  const filename = `comparison-${productNames}-${timestamp}.mp4`;
+async function generateComparisonVideoJob(article: {
+  slug: string;
+  title: string;
+  category: string;
+  products: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
+}): Promise<VideoJobResult> {
+  try {
+    const productNames = article.products.map(p => p.name).join(' vs ');
+    console.log(`[VIDEO] Gerando script para comparativo: ${productNames}`);
 
-  const winnerIndex = products.reduce(
-    (maxIdx, product, idx, arr) => (product.score > arr[maxIdx].score ? idx : maxIdx),
-    0
-  );
+    const script = await generateVideoScript({
+      title: `${article.title} - Comparativo Completo`,
+      category: article.category,
+      price: 'Comparativo',
+      marketplace: 'Mercado Livre',
+    });
 
-  const videoData = {
-    title: products.map((p) => p.name).join(' vs '),
-    product1: {
-      name: products[0].name,
-      imageUrl: products[0].image,
-      score: products[0].score,
-    },
-    product2: {
-      name: products[1].name,
-      imageUrl: products[1].image,
-      score: products[1].score,
-    },
-    categories: [
-      { label: 'Qualidade', score1: products[0].score, score2: products[1].score },
-      { label: 'Custo-Benefício', score1: products[0].score * 0.9, score2: products[1].score * 0.95 },
-    ],
-    winner: (winnerIndex + 1) as 1 | 2,
-  };
+    const firstProduct = article.products[0];
+    const videoId = await createVideoQueueEntry({
+      product_title: productNames,
+      product_category: article.category,
+      product_price: 'Comparativo',
+      product_image_url: firstProduct.imageUrl,
+      product_url: firstProduct.product_url || `https://vetor.blog/comparativos/${article.slug}`,
+      type: 'comparison',
+      slug: article.slug,
+      script_hook: script.hook,
+      script_text: JSON.stringify(script),
+    });
 
-  console.log(`[VIDEO] Generating comparison video for: ${videoData.title}`);
-  console.log(`[VIDEO] Data:`, JSON.stringify(videoData, null, 2));
+    if (!videoId) {
+      return { type: 'comparison', slug: article.slug, status: 'failed', error: 'Falha ao criar entrada na fila' };
+    }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
-  const videoUrl = `${baseUrl}/videos/${filename}`;
-
-  return {
-    url: videoUrl,
-    filename,
-  };
+    console.log(`[VIDEO] Script gerado para comparativo ${productNames} | Hook: ${script.hook}`);
+    return { type: 'comparison', slug: article.slug, status: 'queued', videoId };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[VIDEO] Erro ao gerar script para comparativo ${article.slug}:`, message);
+    return { type: 'comparison', slug: article.slug, status: 'failed', error: message };
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -99,122 +147,53 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const results: { type: string; slug: string; status: string; videoUrl?: string; error?: string }[] = [];
+    const results: VideoJobResult[] = [];
 
+    // Gerar videos para os 3 reviews mais recentes
     const reviews = await getAllReviews();
     const recentReviews = reviews.slice(0, 3);
 
     for (const review of recentReviews) {
-      const jobId = `review-${review.slug}-${Date.now()}`;
-      const job: VideoJob = {
-        id: jobId,
-        type: 'review',
-        status: 'processing',
-        createdAt: new Date().toISOString(),
-      };
-      videoJobs.push(job);
-
-      try {
-        const { url, filename } = await generateReviewVideo({
-          product: review.product,
-          image_url: review.image_url,
-          verdict_score: review.verdict_score,
-          pros: Array.isArray(review.pros) ? review.pros : [],
-          cons: Array.isArray(review.cons) ? review.cons : [],
-          category: review.category,
-        });
-
-        job.status = 'completed';
-        job.url = url;
-
-        results.push({
-          type: 'review',
-          slug: review.slug,
-          status: 'completed',
-          videoUrl: url,
-        });
-
-        console.log(`[VIDEO] Review video generated: ${url}`);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        job.status = 'failed';
-        job.error = message;
-
-        results.push({
-          type: 'review',
-          slug: review.slug,
-          status: 'failed',
-          error: message,
-        });
-
-        console.error(`[VIDEO] Failed to generate review video for ${review.slug}:`, message);
-      }
+      const result = await generateReviewVideoJob({
+        slug: review.slug,
+        product: review.product,
+        category: review.category,
+        price_new: review.price_new,
+        image_url: review.image_url,
+        affiliate_url: review.affiliate_url,
+      });
+      results.push(result);
     }
 
+    // Gerar videos para os 2 comparativos mais recentes
     const viralArticles = await getAllViralArticles();
     const recentComparisons = viralArticles.slice(0, 2);
 
     for (const article of recentComparisons) {
-      const jobId = `comparison-${article.slug}-${Date.now()}`;
-      const job: VideoJob = {
-        id: jobId,
-        type: 'comparison',
-        status: 'processing',
-        createdAt: new Date().toISOString(),
-      };
-      videoJobs.push(job);
+      const products = Array.isArray(article.products) ? article.products : [];
+      if (products.length < 2) continue;
 
-      try {
-        const products = Array.isArray(article.products) ? article.products : [];
-        if (products.length < 2) {
-          throw new Error('Not enough products for comparison');
-        }
-
-        const productData = products.slice(0, 2).map((p) => ({
-          name: p.name,
-          image: p.imageUrl,
-          score: Math.random() * 3 + 7,
-        }));
-
-        const { url, filename } = await generateComparisonVideo(productData);
-
-        job.status = 'completed';
-        job.url = url;
-
-        results.push({
-          type: 'comparison',
-          slug: article.slug,
-          status: 'completed',
-          videoUrl: url,
-        });
-
-        console.log(`[VIDEO] Comparison video generated: ${url}`);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        job.status = 'failed';
-        job.error = message;
-
-        results.push({
-          type: 'comparison',
-          slug: article.slug,
-          status: 'failed',
-          error: message,
-        });
-
-        console.error(`[VIDEO] Failed to generate comparison video for ${article.slug}:`, message);
-      }
+      const result = await generateComparisonVideoJob({
+        slug: article.slug,
+        title: article.title,
+        category: article.category,
+        products,
+      });
+      results.push(result);
     }
 
-    return NextResponse.json(
-      {
-        timestamp: new Date().toISOString(),
-        totalJobs: results.length,
-        completed: results.filter((r) => r.status === 'completed').length,
-        failed: results.filter((r) => r.status === 'failed').length,
-        results,
-      },
-      { status: 200 }
-    );
+    const queued = results.filter(r => r.status === 'queued').length;
+    const failed = results.filter(r => r.status === 'failed').length;
+
+    console.log(`[VIDEO-CRON] Resultado: ${queued} enfileirados, ${failed} falharam`);
+
+    return NextResponse.json({
+      timestamp: new Date().toISOString(),
+      totalJobs: results.length,
+      queued,
+      failed,
+      results,
+    }, { status: 200 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message, timestamp: new Date().toISOString() }, { status: 500 });

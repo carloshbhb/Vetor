@@ -43,10 +43,22 @@ export async function createReview(data: {
   verdict_score?: number;
   marketplace?: string;
   affiliate_url?: string;
+  hero_bars?: Array<{ pct: number; label: string; value: number }>;
+  specs?: Array<{ label: string; value: string; highlight: boolean }>;
+  sections?: Array<{ id: string; heading: string; tocEmoji: string; tocLabel: string; content: string }>;
+  compare_table?: { rows: Array<{ feature: string; values: string[]; winner: number }>; caption: string; columns: string[]; winnerCol: number };
+  verdict_label?: string;
+  verdict_text?: string;
+  verdict_note?: string;
+  hero_lead?: string;
+  hero_headline_line1?: string;
+  hero_headline_line2?: string;
+  hero_headline_em?: string;
+  faq?: Array<{ question: string; answer: string }>;
 }): Promise<{ data: Review | null; error: string | null }> {
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
-    return { data: { ...data, id: 'mock-' + Date.now(), status: 'published', marketplace: data.marketplace || '', price_old: '', affiliate_url: data.affiliate_url || '', ads_enabled: false, meta_keywords: '', meta_reading_time: 5, meta_canonical: null, meta_og_image: null, hero_headline_line1: '', hero_headline_line2: '', hero_headline_em: '', hero_lead: '', hero_bars: [], specs: [], sections: [], compare_table: { rows: [], caption: '', columns: [], winnerCol: 0 }, testimonials: [], verdict_label: '', verdict_text: '', verdict_note: '', schema_rating_value: data.hero_overall_score ?? 0, schema_review_count: 1, google_rank: null, last_rank_check: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), faq: [] } as Review, error: null };
+    return { data: { ...data, id: 'mock-' + Date.now(), status: 'published', marketplace: data.marketplace || '', price_old: '', affiliate_url: data.affiliate_url || '', ads_enabled: false, meta_keywords: '', meta_reading_time: 5, meta_canonical: null, meta_og_image: null, hero_headline_line1: data.hero_headline_line1 || '', hero_headline_line2: data.hero_headline_line2 || '', hero_headline_em: data.hero_headline_em || '', hero_lead: data.hero_lead || '', hero_bars: data.hero_bars || [], specs: data.specs || [], sections: data.sections || [], compare_table: data.compare_table || { rows: [], caption: '', columns: [], winnerCol: 0 }, testimonials: [], verdict_label: data.verdict_label || '', verdict_text: data.verdict_text || '', verdict_note: data.verdict_note || '', schema_rating_value: data.hero_overall_score ?? 0, schema_review_count: 1, google_rank: null, last_rank_check: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), faq: data.faq || [] } as Review, error: null };
   }
 
   const now = new Date().toISOString();
@@ -65,27 +77,27 @@ export async function createReview(data: {
     meta_description: data.meta_description || '',
     meta_keywords: '',
     meta_reading_time: 5,
-    hero_headline_line1: '',
-    hero_headline_line2: '',
-    hero_headline_em: '',
-    hero_lead: '',
+    hero_headline_line1: data.hero_headline_line1 || '',
+    hero_headline_line2: data.hero_headline_line2 || '',
+    hero_headline_em: data.hero_headline_em || '',
+    hero_lead: data.hero_lead || '',
     hero_overall_score: data.hero_overall_score ?? 0,
-    hero_bars: [],
-    specs: [],
-    sections: [],
-    compare_table: { rows: [], caption: '', columns: [], winnerCol: 0 },
+    hero_bars: data.hero_bars ?? [],
+    specs: data.specs ?? [],
+    sections: data.sections ?? [],
+    compare_table: data.compare_table ?? { rows: [], caption: '', columns: [], winnerCol: 0 },
     pros: data.pros ?? [],
     cons: data.cons ?? [],
     testimonials: [],
-    verdict_score: data.verdict_score ?? 0,
-    verdict_label: '',
-    verdict_text: '',
-    verdict_note: '',
+    verdict_score: data.verdict_score ?? data.hero_overall_score ?? 0,
+    verdict_label: data.verdict_label || '',
+    verdict_text: data.verdict_text || '',
+    verdict_note: data.verdict_note || '',
     schema_rating_value: data.hero_overall_score ?? 0,
     schema_review_count: 1,
     created_at: now,
     updated_at: now,
-    faq: [],
+    faq: data.faq ?? [],
   };
 
   const { data: result, error } = await supabase

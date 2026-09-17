@@ -11,28 +11,66 @@ export function buildReviewPrompt(product: {
 Produto: ${product.title}
 Categoria: ${product.category}
 Preço: ${product.price}
-Imagem: ${product.image}
 URL do Produto: ${product.product_url || 'N/A'}
 Marketplace: ${product.marketplace || 'mercadolivre'}
 
-Estrutura obrigatória:
-1. Título SEO otimizado com a palavra-chave principal
-2. Introdução envolvente (2-3 parágrafos)
-3. Design e construção
-4. Desempenho e funcionalidades
-5. Bateria e duração
-6. Câmera e sensores (se aplicável)
-7. Prós e contras detalhados
-8. Comparativo com concorrentes diretos
-9. Veredicto final com nota de 0 a 10
-10. Perguntas frequentes (FAQ)
-11. Onde comprar e link de afiliado
+Responda APENAS em JSON válido com esta estrutura exata:
+{
+  "title": "Título SEO otimizado",
+  "description": "Descrição curta (max 160 chars)",
+  "content": "HTML completo do artigo com h2, p, ul/li, table. Use <h2> para seções, <p> para parágrafos, <ul><li> para listas",
+  "hero_overall_score": 8.5,
+  "hero_bars": [
+    { "pct": 90, "label": "Qualidade", "value": 9 },
+    { "pct": 85, "label": "Custo-Benefício", "value": 8.5 },
+    { "pct": 80, "label": "Design", "value": 8 }
+  ],
+  "specs": [
+    { "label": "Marca", "value": "Samsung", "highlight": false },
+    { "label": "Modelo", "value": "Galaxy Fit3", "highlight": true }
+  ],
+  "sections": [
+    {
+      "id": "design",
+      "heading": "Design e Construção",
+      "tocEmoji": "🎨",
+      "tocLabel": "Design",
+      "content": "<p>Conteúdo da seção...</p>"
+    }
+  ],
+  "pros": ["Ponto forte 1", "Ponto forte 2"],
+  "cons": ["Ponto fraco 1", "Ponto fraco 2"],
+  "compare_table": {
+    "columns": ["Produto", "Preço", "Nota"],
+    "rows": [
+      { "feature": "${product.title}", "values": ["${product.price}", "8.5"], "winner": 0 }
+    ],
+    "caption": "Comparativo",
+    "winnerCol": 1
+  },
+  "verdict_score": 8.5,
+  "verdict_label": "Excelente",
+  "verdict_text": "O ${product.title} é uma excelente opção...",
+  "verdict_note": "Recomendado para quem busca qualidade.",
+  "faq": [
+    { "question": "Vale a pena comprar?", "answer": "Sim, pelo preço é uma ótima opção." }
+  ],
+  "hero_lead": "Parágrafo de introdução envolvente",
+  "hero_headline_line1": "Análise Completa do",
+  "hero_headline_line2": "${product.title}",
+  "hero_headline_em": "Vale a Pena?"
+}
 
-Tom: profissional, objetivo, confiável.
-Idioma: português brasileiro.
-Estilo: artigo de blog otimizado para SEO com schema markup.
-Inclua dados fictícios realistas quando necessário para enriquecer o conteúdo.
-`;
+Regras:
+- content deve ser HTML válido com <h2>, <p>, <ul>, <li>, <table>
+- hero_bars deve ter 3-5 barras com pct (0-100) e value (0-10)
+- specs deve ter 4-8 especificações
+- sections deve ter 4-6 seções com conteúdo HTML
+- pros e cons devem ter 3-5 itens cada
+- compare_table deve comparar com 1-2 concorrentes
+- faq deve ter 3-5 perguntas
+- Tom: profissional, objetivo, confiável
+- Idioma: português brasileiro`;
 }
 
 export function buildViralPrompt(topic: {
@@ -50,23 +88,24 @@ Categoria: ${topic.category}
 Produtos comparados:
 ${productsList}
 
-Estrutura obrigatória:
-1. Título viral e SEO otimizado (ex: "O Melhor X de 2026? Comparativo Completo")
-2. Hero section com imagem destacada e resumo executivo
-3. Introdução com hook impactante
-4. Tabela comparativa detalhada (preço, performance, bateria, design, etc.)
-5. Análise individual de cada produto com pros e contras
-6. Score bars para cada produto
-7. Verditos por categoria
-8. Melhor custo-benefício
-9. Recomendação final
-10. FAQ section
-11. CTA de compra para cada produto
+Responda APENAS em JSON válido com esta estrutura:
+{
+  "title": "Título viral e SEO otimizado",
+  "description": "Descrição curta (max 160 chars)",
+  "content": "HTML completo do artigo comparativo com h2, p, ul/li, table",
+  "seo_title": "Título SEO (max 60 chars)",
+  "seo_description": "Descrição SEO (max 160 chars)"
+}
+
+O content HTML deve incluir:
+1. Introdução com hook impactante
+2. Tabela comparativa detalhada
+3. Análise individual de cada produto
+4. Score bars para cada produto
+5. Veredicto final
+6. FAQ section
+7. CTA de compra
 
 Tom: envolvente, persuasivo, urgente.
-Idioma: português brasileiro.
-Estilo: artigo viral otimizado para SEO com schema markup de comparativo.
-Cada produto deve ter sua imagem própria no hero section (hero.bars com imageUrl por produto).
-Inclua dados fictícios realistas.
-`;
+Idioma: português brasileiro.`;
 }
