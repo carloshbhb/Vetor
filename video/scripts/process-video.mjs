@@ -32,11 +32,18 @@ async function updateVideoStatus(id, updates) {
 async function generateVoiceover(text, outputPath) {
   const voice = 'pt-BR-ThiagoNeural';
   const tempFile = outputPath.replace('.mp3', '-temp.mp3');
-  const safeText = text.replace(/"/g, '\\"').replace(/\n/g, ' ');
+  const safeText = text
+    .replace(/[\u2014\u2013]/g, '-')  // em/en dash -> hyphen
+    .replace(/[\u2018\u2019]/g, "'")  // smart quotes
+    .replace(/[\u201C\u201D]/g, '"')  // smart double quotes
+    .replace(/["]/g, "'")             // double quotes -> single
+    .replace(/\n/g, ' ')
+    .trim();
 
   try {
+    const textArg = safeText.replace(/'/g, "'\\''");
     execSync(
-      `edge-tts --voice "${voice}" --text "${safeText}" --write-media "${tempFile}"`,
+      `edge-tts --voice "${voice}" --text '${textArg}' --write-media "${tempFile}"`,
       { stdio: 'pipe', timeout: 60000 }
     );
 

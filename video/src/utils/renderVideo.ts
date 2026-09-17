@@ -2,6 +2,10 @@ import { bundle } from '@remotion/bundler';
 import { renderMedia, getCompositions } from '@remotion/renderer';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 type InputProps = Record<string, unknown>;
 
