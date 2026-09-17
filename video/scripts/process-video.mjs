@@ -7,7 +7,7 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-async function getPendingVideos(limit = 5) {
+async function getPendingVideos(limit = 16) {
   const { data, error } = await supabase
     .from('video_queue')
     .select('*')
@@ -90,6 +90,55 @@ async function renderWithRemotion(videoData, outputPath) {
   }
 }
 
+async function uploadToYouTube(videoPath, title, description, tags) {
+  const clientId = process.env.YOUTUBE_CLIENT_ID;
+  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
+  const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    console.log('   ⚠️ YouTube credentials not configured, skipping upload');
+    return null;
+  }
+
+  try {
+    const { google } = await import('googleapis');
+    const { OAuth2Client } = google.auth;
+    const oauth2Client = new OAuth2Client(clientId, clientSecret);
+    oauth2Client.setCredentials({ refresh_token: refreshToken });
+
+    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+
+    const response = await youtube.videos.insert({
+      part: ['snippet', 'status'],
+      requestBody: {
+        snippet: {
+          title: title.slice(0, 100),
+          description: description.slice(0, 5000),
+          tags: tags.slice(0, 30),
+          categoryId: '28',
+          defaultLanguage: 'pt',
+          defaultAudioLanguage: 'pt',
+        },
+        status: {
+          privacyStatus: 'public',
+          selfDeclaredMadeForKids: false,
+        },
+      },
+      media: {
+        body: fs.createReadStream(videoPath),
+      },
+    });
+
+    const videoId = response.data.id;
+    const videoUrl = `https://youtube.com/watch?v=${videoId}`;
+    console.log(`   📤 YouTube: ${videoUrl}`);
+    return { videoId, videoUrl };
+  } catch (error) {
+    console.error('   ❌ YouTube upload failed:', error.message);
+    return null;
+  }
+}
+
 async function processVideo(video) {
   console.log(`\n🎬 Processando: ${video.product_title}`);
   console.log(`   ID: ${video.id}`);
@@ -114,7 +163,7 @@ async function processVideo(video) {
       };
     }
 
-    console.log('   [1/3] Gerando voiceover...');
+    console.log('   [1/4] Gerando voiceover...');
     const audioDir = path.resolve(`/tmp/video-${video.id}`);
     if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
 
@@ -138,11 +187,11 @@ async function processVideo(video) {
     audioFiles.push(ctaAudioPath);
     totalDuration += ctaDuration;
 
-    console.log('   [2/3] Combinando áudio...');
+    console.log('   [2/4] Combinando áudio...');
     const combinedAudioPath = path.join(audioDir, 'combined.mp3');
     await combineAudioFiles(audioFiles, combinedAudioPath);
 
-    console.log('   [3/3] Renderizando vídeo com Remotion...');
+    console.log('   [3/4] Renderizando vídeo com Remotion...');
     const outputDir = path.resolve('out');
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
@@ -182,17 +231,34 @@ async function processVideo(video) {
       fps,
     };
 
-    await renderWithRemotion(videoData, path.join(outputDir, `video-${video.id}.mp4`));
+    const videoFileName = `video-${video.id}.mp4`;
+    const videoPath = path.join(outputDir, videoFileName);
+    await renderWithRemotion(videoData, videoPath);
 
-    await updateVideoStatus(video.id, {
+    console.log('   [4/4] Upload para YouTube...');
+    const ytTitle = `${video.product_title} - Review Completo 2026 | Vetor Blog`;
+    const ytDescription = `${script.hook}\n\n${script.scenes.map(s => s.text).join('\n\n')}\n\n${script.callToAction}\n\n🔗 Links na descrição do vídeo no site: https://vetor.blog`;
+    const ytTags = ['review', 'tech', 'produto', video.product_category, 'vetor blog', '2026'];
+
+    const ytResult = await uploadToYouTube(videoPath, ytTitle, ytDescription, ytTags);
+
+    const updates = {
       status: 'completed',
-      video_url: `/videos/video-${video.id}.mp4`,
+      video_url: `/videos/${videoFileName}`,
       voiceover_url: combinedAudioPath,
       voiceover_duration: totalDuration,
       completed_at: new Date().toISOString(),
-    });
+    };
+
+    if (ytResult) {
+      updates.youtube_video_id = ytResult.videoId;
+      updates.youtube_url = ytResult.videoUrl;
+    }
+
+    await updateVideoStatus(video.id, updates);
 
     console.log(`   ✅ Vídeo concluído: ${video.product_title}`);
+    if (ytResult) console.log(`   📺 YouTube: ${ytResult.videoUrl}`);
 
     if (fs.existsSync(audioDir)) fs.rmSync(audioDir, { recursive: true });
   } catch (error) {
@@ -225,7 +291,7 @@ async function main() {
 
     await processVideo(data);
   } else {
-    const videos = await getPendingVideos(5);
+    const videos = await getPendingVideos(16);
     console.log(`   ${videos.length} vídeos pendentes encontrados`);
 
     for (const video of videos) {

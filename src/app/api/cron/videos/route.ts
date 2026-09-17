@@ -149,9 +149,9 @@ export async function GET(request: NextRequest) {
   try {
     const results: VideoJobResult[] = [];
 
-    // Gerar videos para os 3 reviews mais recentes
+    // Gerar videos para os 8 reviews mais recentes
     const reviews = await getAllReviews();
-    const recentReviews = reviews.slice(0, 3);
+    const recentReviews = reviews.slice(0, 8);
 
     for (const review of recentReviews) {
       const result = await generateReviewVideoJob({
@@ -165,9 +165,9 @@ export async function GET(request: NextRequest) {
       results.push(result);
     }
 
-    // Gerar videos para os 2 comparativos mais recentes
+    // Gerar videos para os 8 comparativos mais recentes
     const viralArticles = await getAllViralArticles();
-    const recentComparisons = viralArticles.slice(0, 2);
+    const recentComparisons = viralArticles.slice(0, 8);
 
     for (const article of recentComparisons) {
       const products = Array.isArray(article.products) ? article.products : [];
