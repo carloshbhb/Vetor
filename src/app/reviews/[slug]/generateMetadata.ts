@@ -17,7 +17,7 @@ export default async function generateMetadata({
       title: review.meta_title || review.product,
       description: review.meta_description || review.hero_lead,
       type: 'article',
-      url: `https://vetor.blog/reviews/${review.slug}`,
+      url: `https://www.vetor.blog/reviews/${review.slug}`,
       images: review.image_url
         ? [{ url: review.image_url, width: 1200, height: 630 }]
         : [],
@@ -28,7 +28,7 @@ export default async function generateMetadata({
       description: review.meta_description || review.hero_lead,
     },
     alternates: {
-      canonical: `https://vetor.blog/reviews/${review.slug}`,
+      canonical: `https://www.vetor.blog/reviews/${review.slug}`,
     },
   };
 }

@@ -17,7 +17,7 @@ export default async function generateMetadata({
       title: article.seo_title || article.title,
       description: article.seo_description || article.description,
       type: 'article',
-      url: `https://vetor.blog/comparativos/${article.slug}`,
+      url: `https://www.vetor.blog/comparativos/${article.slug}`,
       images: article.hero?.imageUrl
         ? [{ url: article.hero.imageUrl, width: 1200, height: 630 }]
         : [],
@@ -28,7 +28,7 @@ export default async function generateMetadata({
       description: article.seo_description || article.description,
     },
     alternates: {
-      canonical: `https://vetor.blog/comparativos/${article.slug}`,
+      canonical: `https://www.vetor.blog/comparativos/${article.slug}`,
     },
   };
 }

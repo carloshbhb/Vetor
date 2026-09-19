@@ -1,6 +1,6 @@
 import type { Review, ViralArticle } from './types';
 
-const SITE_URL = 'https://vetor.blog';
+const SITE_URL = 'https://www.vetor.blog';
 
 export function seo(title: string, description: string) {
   return {

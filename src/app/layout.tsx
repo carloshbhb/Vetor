@@ -10,13 +10,14 @@ export const metadata: Metadata = {
   },
   description:
     "Reviews profissionais, comparativos e recomendações de compra. Escolha com confiança.",
-  metadataBase: new URL("https://vetor.blog"),
+  metadataBase: new URL("https://www.vetor.blog"),
   openGraph: {
     title: "vetor.blog",
     description: "Reviews e comparativos modernos.",
     siteName: "vetor.blog",
     locale: "pt_BR",
     type: "website",
+    url: "https://www.vetor.blog",
   },
   twitter: {
     card: "summary_large_image",

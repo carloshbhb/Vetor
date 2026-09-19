@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
     },
 
-    sitemap: 'https://vetor.blog/sitemap.xml',
+    sitemap: 'https://www.vetor.blog/sitemap.xml',
   }
 }

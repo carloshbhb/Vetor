@@ -7,21 +7,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     fetchAllViralArticles(),
   ]);
 
+  const baseUrl = 'https://www.vetor.blog';
+
   const staticPages: MetadataRoute.Sitemap = [
     {
-      url: 'https://vetor.blog',
+      url: baseUrl,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1,
     },
     {
-      url: 'https://vetor.blog/reviews',
+      url: `${baseUrl}/reviews`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
     },
     {
-      url: 'https://vetor.blog/comparativos',
+      url: `${baseUrl}/comparativos`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
@@ -29,14 +31,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const reviewPages: MetadataRoute.Sitemap = reviews.map((r) => ({
-    url: `https://vetor.blog/reviews/${r.slug}`,
+    url: `${baseUrl}/reviews/${r.slug}`,
     lastModified: new Date(r.updated_at || r.created_at),
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }));
 
   const viralPages: MetadataRoute.Sitemap = viralArticles.map((a) => ({
-    url: `https://vetor.blog/comparativos/${a.slug}`,
+    url: `${baseUrl}/comparativos/${a.slug}`,
     lastModified: new Date(a.updated_at || a.created_at),
     changeFrequency: 'weekly' as const,
     priority: 0.7,

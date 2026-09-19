@@ -37,8 +37,8 @@ export default async function ViralArticlePage({
       <OrganizationSchema />
       <BreadcrumbSchema
         items={[
-          { name: 'Comparativos', url: 'https://vetor.blog/comparativos' },
-          { name: article.title, url: `https://vetor.blog/comparativos/${article.slug}` },
+          { name: 'Comparativos', url: 'https://www.vetor.blog/comparativos' },
+          { name: article.title, url: `https://www.vetor.blog/comparativos/${article.slug}` },
         ]}
       />
       <Navbar />
