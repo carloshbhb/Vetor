@@ -26,25 +26,19 @@ const BRAZILIAN_VOICES = [
   'pt-BR-IsabelaNeural',
 ];
 
-const DEFAULT_VOICE = 'pt-BR-ThiagoNeural';
+const DEFAULT_VOICE = 'pt-BR-FranciscaNeural';
 
-function getEdgeTtsPath(): string {
+function getPythonScriptPath(): string {
   const possiblePaths = [
-    path.resolve(__dirname, '../../../node_modules/.bin/edge-tts'),
-    path.resolve(__dirname, '../../node_modules/.bin/edge-tts'),
-    'edge-tts',
+    path.resolve(__dirname, '../../../scripts/tts.py'),
+    path.resolve(__dirname, '../../scripts/tts.py'),
+    path.resolve(__dirname, '../../../scripts/tts.py'),
   ];
 
   for (const p of possiblePaths) {
-    try {
-      if (fs.existsSync(p) || p === 'edge-tts') {
-        return p;
-      }
-    } catch {
-      continue;
-    }
+    if (fs.existsSync(p)) return p;
   }
-  return 'edge-tts';
+  return 'scripts/tts.py';
 }
 
 export async function generateVoiceover(
@@ -53,34 +47,23 @@ export async function generateVoiceover(
   options: TTSOptions = {}
 ): Promise<TTSResult> {
   const voice = options.voice || DEFAULT_VOICE;
-  const rate = options.rate || '+0%';
-  const volume = options.volume || '+0%';
-  const pitch = options.pitch || '+0Hz';
+  const scriptPath = getPythonScriptPath();
 
-  const edgeTtsPath = getEdgeTtsPath();
-
-  const args = [
-    '--text', text,
-    '--voice', voice,
-    '--rate', rate,
-    '--volume', volume,
-    '--pitch', pitch,
-    '--write-media', outputPath,
-  ];
+  const args = [scriptPath, text, outputPath, voice];
 
   return new Promise((resolve, reject) => {
-    const child = spawn(edgeTtsPath, args, {
+    const child = spawn('python', args, {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
+    let stdout = '';
     let stderr = '';
-    child.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
+    child.stdout.on('data', (data) => { stdout += data.toString(); });
+    child.stderr.on('data', (data) => { stderr += data.toString(); });
 
     child.on('close', (code) => {
       if (code !== 0) {
-        reject(new Error(`edge-tts failed with code ${code}: ${stderr}`));
+        reject(new Error(`TTS failed with code ${code}: ${stderr}`));
         return;
       }
 
@@ -104,7 +87,7 @@ export async function generateVoiceover(
     });
 
     child.on('error', (err) => {
-      reject(new Error(`Failed to spawn edge-tts: ${err.message}`));
+      reject(new Error(`Failed to spawn python: ${err.message}`));
     });
   });
 }
@@ -256,31 +239,7 @@ function findFfprobe(): string {
 }
 
 export function listVoices(): Promise<string[]> {
-  const edgeTtsPath = getEdgeTtsPath();
-  
-  return new Promise((resolve, reject) => {
-    const child = spawn(edgeTtsPath, ['--list-voices']);
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-    child.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    child.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`Failed to list voices: ${stderr}`));
-        return;
-      }
-      const lines = stdout.trim().split('\n');
-      const voices = lines
-        .filter(line => line.includes('pt-BR'))
-        .map(line => line.split(/\s+/)[0])
-        .filter(Boolean);
-      resolve(voices.length > 0 ? voices : BRAZILIAN_VOICES);
-    });
+  return new Promise((resolve) => {
+    resolve(BRAZILIAN_VOICES);
   });
 }

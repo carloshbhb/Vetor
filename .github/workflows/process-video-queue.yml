@@ -1,0 +1,199 @@
+name: Process Video Queue
+
+on:
+  schedule:
+    # Run every 2 hours
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      max_videos:
+        description: 'Máximo de vídeos para processar'
+        required: false
+        default: '3'
+
+jobs:
+  process-queue:
+    name: Processar Fila de Vídeos
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: video/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: pip install edge-tts aiohttp
+
+      - name: Install video dependencies
+        run: npm ci
+        working-directory: ./video
+
+      - name: Install Chrome for Remotion
+        run: npx @remotion/cli install
+        working-directory: ./video
+
+      - name: Fetch pending videos
+        id: fetch
+        run: |
+          RESPONSE=$(curl -s -X GET \
+            -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?status=eq.pending&order=scheduled_at.asc&limit=${{ inputs.max_videos || 3 }}")
+          
+          echo "$RESPONSE" > pending.json
+          COUNT=$(echo "$RESPONSE" | jq 'length')
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "has_videos=$( [ "$COUNT" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
+
+      - name: Process videos
+        if: steps.fetch.outputs.has_videos == 'true'
+        run: |
+          MAX=${{ inputs.max_videos || 3 }}
+          PROCESSED=0
+          
+          # Read each video from pending.json
+          jq -c '.[]' pending.json | while read -r video; do
+            if [ "$PROCESSED" -ge "$MAX" ]; then break; fi
+            
+            ID=$(echo "$video" | jq -r '.id')
+            TITLE=$(echo "$video" | jq -r '.product_title')
+            IMAGE=$(echo "$video" | jq -r '.product_image_url')
+            CATEGORY=$(echo "$video" | jq -r '.product_category')
+            HOOK=$(echo "$video" | jq -r '.script_hook // "Confira esta análise completa!"')
+            AFFILIATE=$(echo "$video" | jq -r '.affiliate_url // ""')
+            SCRIPT_RAW=$(echo "$video" | jq -r '.script_text // "{}"')
+            
+            echo "=== Processing: $TITLE ($ID) ==="
+            
+            # Mark as processing
+            curl -s -X PATCH \
+              -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d '{"status":"processing","started_at":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' \
+              "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$ID" > /dev/null
+            
+            # Parse script or create default
+            SCRIPT=$(echo "$SCRIPT_RAW" | jq . 2>/dev/null || echo '{}')
+            
+            # Generate TTS audio for hook
+            HOOK_AUDIO="/tmp/hook-$ID.mp3"
+            python scripts/tts.py "$HOOK" "$HOOK_AUDIO" "pt-BR-FranciscaNeural" || true
+            
+            # Create video data for Remotion
+            cat > "/tmp/video-$ID.json" << EOF
+            {
+              "type": "review",
+              "title": "$TITLE",
+              "imageUrl": "$IMAGE",
+              "score": 8.5,
+              "category": "$CATEGORY",
+              "hook": "$HOOK",
+              "callToAction": "Link na descrição para comprar com desconto!",
+              "scenes": $(echo "$SCRIPT" | jq -c '.scenes // [
+                {"id":1,"text":"$HOOK","duration":5,"visualCue":"Produto em destaque","brollKeywords":["product reveal"]},
+                {"id":2,"text":"Vamos analisar os pontos fortes e fracos.","duration":8,"visualCue":"Análise detalhada","brollKeywords":["analysis"]},
+                {"id":3,"text":"Design e construção são pontos positivos.","duration":7,"visualCue":"Close no produto","brollKeywords":["design"]},
+                {"id":4,"text":"Desempenho no dia a dia surpreende.","duration":8,"visualCue":"Uso real","brollKeywords":["performance"]},
+                {"id":5,"text":"Veredicto: vale a pena? Confira na descrição!","duration":7,"visualCue":"Nota final","brollKeywords":["verdict"]}
+              ]'),
+              "subtitleEntries": [],
+              "productImages": ["$IMAGE"],
+              "brollVideos": [],
+              "totalDuration": 45,
+              "fps": 30
+            }
+            EOF
+            
+            # Render video with Remotion
+            echo "Rendering..."
+            npx tsx src/utils/renderVideo.ts review "/tmp/video-$ID.json" || {
+              echo "Render failed"
+              curl -s -X PATCH \
+                -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+                -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+                -H "Content-Type: application/json" \
+                -d '{"status":"failed","error_message":"Render failed"}' \
+                "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$ID"
+              continue
+            }
+            
+            # Find rendered video
+            VIDEO_FILE=$(ls -t video/out/*.mp4 2>/dev/null | head -1)
+            
+            if [ -z "$VIDEO_FILE" ]; then
+              echo "No video file found"
+              curl -s -X PATCH \
+                -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+                -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+                -H "Content-Type: application/json" \
+                -d '{"status":"failed","error_message":"No video file generated"}' \
+                "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$ID"
+              continue
+            fi
+            
+            echo "Video rendered: $VIDEO_FILE"
+            
+            # Upload to YouTube
+            export VIDEO_PATH="$VIDEO_FILE"
+            export VIDEO_TITLE="$TITLE | Vetor Blog"
+            export VIDEO_DESCRIPTION="Review completo: $TITLE
+
+🔗 Leia a análise completa: https://vetor.blog
+🛒 Compre com desconto: $AFFILIATE
+
+#Review #Tech #VetorBlog"
+            export VIDEO_TAGS="review,tech,vetorblog,$( echo "$CATEGORY" | tr '[:upper:]' '[:lower:]' )"
+            export YOUTUBE_CLIENT_ID="${{ secrets.YOUTUBE_CLIENT_ID }}"
+            export YOUTUBE_CLIENT_SECRET="${{ secrets.YOUTUBE_CLIENT_SECRET }}"
+            export YOUTUBE_REFRESH_TOKEN="${{ secrets.YOUTUBE_REFRESH_TOKEN }}"
+            
+            cd video && node scripts/upload-to-youtube.js && cd ..
+            
+            if [ $? -eq 0 ]; then
+              # Get YouTube URL
+              YOUTUBE_URL=$(cat video/logs/upload-log.json 2>/dev/null | jq -r 'last(.[]?.videoUrl)' 2>/dev/null || echo "")
+              
+              curl -s -X PATCH \
+                -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+                -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+                -H "Content-Type: application/json" \
+                -d '{"status":"completed","completed_at":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","youtube_url":"'"$YOUTUBE_URL"'"}' \
+                "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$ID"
+              
+              echo "✅ Completed: $TITLE"
+              PROCESSED=$((PROCESSED + 1))
+            else
+              curl -s -X PATCH \
+                -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+                -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+                -H "Content-Type: application/json" \
+                -d '{"status":"failed","error_message":"YouTube upload failed"}' \
+                "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$ID"
+            fi
+            
+            sleep 5
+          done
+        env:
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          NEXT_PUBLIC_SITE_URL: https://vetor.blog
+
+      - name: Summary
+        run: |
+          echo "## 📹 Video Queue Processing" >> $GITHUB_STEP_SUMMARY
+          echo "- **Videos found:** ${{ steps.fetch.outputs.count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
