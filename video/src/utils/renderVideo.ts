@@ -9,33 +9,6 @@ const __dirname = path.dirname(__filename);
 
 type InputProps = Record<string, unknown>;
 
-interface SubtitleEntry {
-  start: number;
-  end: number;
-  text: string;
-}
-
-interface VideoScene {
-  id: number;
-  text: string;
-  duration: number;
-  visualCue: string;
-  brollKeywords: string[];
-  startFrame: number;
-  endFrame: number;
-}
-
-interface ComparisonSceneData {
-  id: number;
-  text: string;
-  duration: number;
-  visualCue: string;
-  brollKeywords: string[];
-  startFrame: number;
-  endFrame: number;
-  type: 'intro' | 'product1' | 'product2' | 'comparison' | 'verdict';
-}
-
 interface ReviewVideoData {
   type: 'review';
   title: string;
@@ -74,10 +47,30 @@ interface ComparisonVideoData {
 type VideoData = ReviewVideoData | ComparisonVideoData;
 
 async function renderVideo(data: VideoData, outputPath: string): Promise<string> {
+  const projectRoot = path.resolve(__dirname, '../..');
   const bundleLocation = await bundle({
-    entryPoint: path.resolve(__dirname, '../Root.tsx'),
+    entryPoint: path.resolve(projectRoot, 'src/Root.tsx'),
     webpackOverride: (config) => config,
+    publicDir: path.resolve(projectRoot, 'public'),
   });
+
+  // Copy all public directory contents recursively to bundle root
+  function copyDirRecursive(src: string, dest: string) {
+    if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      if (entry.isDirectory()) {
+        copyDirRecursive(srcPath, destPath);
+      } else {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
+  }
+  const publicDir = path.resolve(projectRoot, 'public');
+  if (fs.existsSync(publicDir)) {
+    copyDirRecursive(publicDir, bundleLocation);
+  }
 
   const compositions = await getCompositions(bundleLocation, {
     inputProps: data as unknown as InputProps,
@@ -100,6 +93,18 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
     codec: 'h264',
     outputLocation,
     inputProps: data as unknown as InputProps,
+    crf: 18,
+    codecOptions: {
+      preset: 'slow',
+      profile: 'high',
+      level: '4.2',
+      pix_fmt: 'yuv420p',
+    },
+    onStart: ({ command }) => {
+      if (command) {
+        console.log('FFmpeg command:', command.join(' '));
+      }
+    },
   });
 
   return outputLocation;
@@ -227,7 +232,7 @@ async function main() {
       videoData = {
         type: 'review',
         title: 'Samsung Galaxy S24 Ultra',
-        imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_galaxy-s24.webp',
+        imageUrl: '/images/samsung-s24.png',
         score: 9.2,
         category: 'Smartphones',
         hook: 'Pare! Antes de comprar o Galaxy S24 Ultra, veja isso!',
@@ -235,7 +240,7 @@ async function main() {
         callToAction: 'Link na descrição para comprar com desconto!',
         audioUrl: '/audio/sample-review.mp3',
         subtitleEntries,
-        productImages: ['https://http2.mlstatic.com/D_NQ_NP_galaxy-s24.webp'],
+        productImages: ['/images/samsung-s24.png'],
         brollVideos: [],
         totalDuration,
         fps,
@@ -266,8 +271,8 @@ async function main() {
       videoData = {
         type: 'comparison',
         title: 'Galaxy S24 vs iPhone 15: Qual Comprar em 2026?',
-        product1: { name: 'Galaxy S24', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_galaxy-s24.webp', score: 8.8 },
-        product2: { name: 'iPhone 15', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_iphone-15.webp', score: 8.5 },
+        product1: { name: 'Galaxy S24', imageUrl: '/images/samsung-s24.png', score: 8.8 },
+        product2: { name: 'iPhone 15', imageUrl: '/images/iphone15.png', score: 8.5 },
         categories: [
           { label: 'Design', score1: 8.5, score2: 9.0 },
           { label: 'Câmera', score1: 9.0, score2: 8.5 },
@@ -281,7 +286,7 @@ async function main() {
         callToAction: 'Confira a análise completa!',
         audioUrl: '/audio/sample-comparison.mp3',
         subtitleEntries,
-        productImages: ['https://http2.mlstatic.com/D_NQ_NP_galaxy-s24.webp', 'https://http2.mlstatic.com/D_NQ_NP_iphone-15.webp'],
+        productImages: ['/images/samsung-s24.png', '/images/iphone15.png'],
         brollVideos: [],
         totalDuration,
         fps,

@@ -224,7 +224,10 @@ const SubtitleOverlay: React.FC<{ subtitles: SubtitleEntry[]; currentFrame: numb
   if (!activeSubtitle) return null;
 
   const progress = (currentTime - activeSubtitle.start) / (activeSubtitle.end - activeSubtitle.start);
-  const opacity = progress < 0.1 ? progress * 10 : progress > 0.9 ? (1 - progress) * 10 : 1;
+  const opacity = interpolate(progress, [0, 0.1, 0.9, 1], [0, 1, 1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 
   return (
     <div style={{ position: 'absolute', bottom: 120, left: '50%', transform: 'translateX(-50%)', zIndex: 100, opacity }}>

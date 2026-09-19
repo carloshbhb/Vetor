@@ -2,6 +2,9 @@ import { Composition, registerRoot } from 'remotion';
 import { ReviewVideo } from './compositions/ReviewVideo';
 import { ComparisonVideo } from './compositions/ComparisonVideo';
 
+// Import Google Fonts via CSS
+import './styles/global.css';
+
 const ReviewVideoAny = ReviewVideo as any;
 const ComparisonVideoAny = ComparisonVideo as any;
 

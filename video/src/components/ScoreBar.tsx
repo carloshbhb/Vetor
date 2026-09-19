@@ -1,4 +1,4 @@
-import { interpolate, useCurrentFrame } from 'remotion';
+import { interpolate, useCurrentFrame, spring, useVideoConfig } from 'remotion';
 import { theme } from '../styles/theme';
 import { fonts } from '../styles/fonts';
 
@@ -18,8 +18,15 @@ export const ScoreBar: React.FC<ScoreBarProps> = ({
   color = theme.blue,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
 
-  const barWidth = interpolate(frame, [delay, delay + 40], [0, (score / maxScore) * 100], {
+  const barProgress = spring({
+    fps,
+    frame: frame - delay,
+    config: { stiffness: 150, damping: 25 },
+  });
+
+  const barWidth = interpolate(barProgress, [0, 1], [0, (score / maxScore) * 100], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -82,7 +89,6 @@ export const ScoreBar: React.FC<ScoreBarProps> = ({
             height: '100%',
             background: color,
             borderRadius: 8,
-            transition: 'width 0.3s ease',
           }}
         />
       </div>
