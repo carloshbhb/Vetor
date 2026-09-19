@@ -1,0 +1,190 @@
+name: Generate & Publish Video to YouTube
+
+on:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: 'Tipo de vídeo'
+        type: choice
+        required: true
+        options:
+          - review
+          - comparison
+      product_url:
+        description: 'URL do produto (para review)'
+        required: false
+        type: string
+      title:
+        description: 'Título customizado (opcional)'
+        required: false
+        type: string
+
+jobs:
+  generate-video:
+    name: Gerar Vídeo
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: video/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./video
+
+      - name: Install Chrome for Remotion
+        run: |
+          npx @remotion/cli install
+        working-directory: ./video
+
+      - name: Generate video data
+        id: video-data
+        run: |
+          if [ "${{ github.event.inputs.type }}" = "review" ]; then
+            # Use sample data for review
+            cat > video-data.json << 'EOF'
+            {
+              "type": "review",
+              "title": "Samsung Galaxy S24 Ultra",
+              "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_samsung-s24.webp",
+              "score": 9.2,
+              "category": "Smartphones",
+              "hook": "Pare! Antes de comprar o Galaxy S24 Ultra, veja isso!",
+              "callToAction": "Link na descrição para comprar com desconto!",
+              "scenes": [
+                {"id": 1, "text": "Chegou o Samsung Galaxy S24 Ultra, será que vale o investimento?", "duration": 5, "visualCue": "Produto em destaque com zoom dramático", "brollKeywords": ["product reveal", "tech unboxing"]},
+                {"id": 2, "text": "Pelo preço de R$ 6.999, ele promete muito. Vamos testar.", "duration": 7, "visualCue": "Preço aparecendo na tela, transição para produto em mãos", "brollKeywords": ["price tag", "money", "shopping"]},
+                {"id": 3, "text": "Design premium, construção sólida. Na mão passa confiança.", "duration": 8, "visualCue": "Close nos detalhes, materiais, acabamento", "brollKeywords": ["product close up", "premium design", "hands on"]},
+                {"id": 4, "text": "Desempenho surpreendeu. Rodo tudo liso, sem engasgos.", "duration": 8, "visualCue": "Produto em uso real: apps, jogos, multitarefa", "brollKeywords": ["performance test", "gaming", "multitasking"]},
+                {"id": 5, "text": "Bateria aguenta o dia todo tranquilo. Carregamento rápido.", "duration": 7, "visualCue": "Ícone de bateria, carregador, uso contínuo", "brollKeywords": ["battery life", "charging", "all day"]},
+                {"id": 6, "text": "Pontos fracos: preço alto e sem carregador na caixa.", "duration": 7, "visualCue": "Lista de contras aparecendo, expressão de decepção leve", "brollKeywords": ["cons list", "disappointed", "expensive"]},
+                {"id": 7, "text": "Veredicto: Galaxy S24 Ultra é top, mas só compre se precisar do melhor.", "duration": 8, "visualCue": "Nota final na tela, produto ao lado de concorrentes", "brollKeywords": ["verdict", "rating", "comparison"]}
+              ]
+            }
+            EOF
+          else
+            # Use sample data for comparison
+            cat > video-data.json << 'EOF'
+            {
+              "type": "comparison",
+              "title": "Galaxy S24 vs iPhone 15: Qual Comprar em 2026?",
+              "product1": {"name": "Galaxy S24", "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_samsung-s24.webp", "score": 8.8},
+              "product2": {"name": "iPhone 15", "imageUrl": "https://http2.mlstatic.com/D_NQ_NP_iphone15.webp", "score": 8.5},
+              "categories": [
+                {"label": "Design", "score1": 8.5, "score2": 9.0},
+                {"label": "Câmera", "score1": 9.0, "score2": 8.5},
+                {"label": "Desempenho", "score1": 9.0, "score2": 9.0},
+                {"label": "Bateria", "score1": 8.5, "score2": 7.5},
+                {"label": "Custo-Benefício", "score1": 8.0, "score2": 7.0}
+              ],
+              "winner": 1,
+              "hook": "Galaxy S24 vs iPhone 15 - qual comprar em 2026?",
+              "callToAction": "Confira a análise completa!",
+              "scenes": [
+                {"id": 1, "text": "Galaxy S24 vs iPhone 15 - qual comprar em 2026?", "duration": 4, "visualCue": "Dois produtos lado a lado", "brollKeywords": ["smartphone comparison"], "type": "intro"},
+                {"id": 2, "text": "Galaxy S24: tela incrível, câmera versátil, S Pen opcional.", "duration": 8, "visualCue": "Galaxy S24 em close, demonstrando features", "brollKeywords": ["samsung galaxy", "android phone"], "type": "product1"},
+                {"id": 3, "text": "iPhone 15: ecossistema Apple, vídeo imbatível, Face ID.", "duration": 8, "visualCue": "iPhone 15 em uso, demonstrando ecossistema", "brollKeywords": ["iphone", "apple ecosystem"], "type": "product2"},
+                {"id": 4, "text": "", "duration": 10, "visualCue": "Barras comparativas lado a lado", "brollKeywords": ["comparison chart", "vs"], "type": "comparison"},
+                {"id": 5, "text": "", "duration": 5, "visualCue": "Coroa no vencedor", "brollKeywords": ["winner", "trophy"], "type": "verdict"}
+              ]
+            }
+            EOF
+          fi
+          
+          echo "data-path=$(pwd)/video-data.json" >> $GITHUB_OUTPUT
+
+      - name: Render video
+        run: |
+          npx tsx src/utils/renderVideo.ts ${{ github.event.inputs.type }} video-data.json
+        working-directory: ./video
+        env:
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+
+      - name: Find video file
+        id: video-file
+        run: |
+          VIDEO_FILE=$(ls -t out/*.mp4 | head -1)
+          echo "path=$VIDEO_FILE" >> $GITHUB_OUTPUT
+          echo "filename=$(basename $VIDEO_FILE)" >> $GITHUB_OUTPUT
+        working-directory: ./video
+
+      - name: Upload video artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-video
+          path: ${{ steps.video-file.outputs.path }}
+          retention-days: 1
+
+      - name: Set video metadata outputs
+        id: meta
+        run: |
+          if [ "${{ github.event.inputs.type }}" = "review" ]; then
+            echo "title=Review: Samsung Galaxy S24 Ultra - Vale a Pena? | Vetor Blog" >> $GITHUB_OUTPUT
+            echo "description=Review completo do Samsung Galaxy S24 Ultra. Análise detalhada de design, desempenho, câmera, bateria e custo-benefício.
+
+🔗 Leia o review completo: https://vetor.blog/reviews/samsung-galaxy-s24-ultra
+🛒 Compre com desconto: [link afiliado]
+
+#SamsungGalaxyS24Ultra #Review #Tech #Smartphone #VetorBlog" >> $GITHUB_OUTPUT
+            echo "tags=samsung,galaxy,s24,ultra,review,smartphone,tech,portugues,vetorblog" >> $GITHUB_OUTPUT
+          else
+            echo "title=Galaxy S24 vs iPhone 15: Qual Comprar em 2026? | Comparativo | Vetor Blog" >> $GITHUB_OUTPUT
+            echo "description=Comparativo completo entre Galaxy S24 e iPhone 15. Design, câmera, desempenho, bateria e custo-benefício.
+
+🔗 Leia o comparativo completo: https://vetor.blog/comparativos/galaxy-s24-vs-iphone-15
+🛒 Galaxy S24: [link afiliado]
+🛒 iPhone 15: [link afiliado]
+
+#GalaxyS24 #iPhone15 #Comparativo #Smartphone #Tech #VetorBlog" >> $GITHUB_OUTPUT
+            echo "tags=galaxy,s24,iphone,15,comparativo,vs,review,smartphone,tech,portugues,vetorblog" >> $GITHUB_OUTPUT
+          fi
+
+  upload-youtube:
+    name: Upload para YouTube
+    needs: generate-video
+    runs-on: ubuntu-latest
+    if: ${{ secrets.YOUTUBE_CLIENT_ID != '' && secrets.YOUTUBE_CLIENT_SECRET != '' && secrets.YOUTUBE_REFRESH_TOKEN != '' }}
+    steps:
+      - name: Download video artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-video
+          path: ./video
+
+      - name: Find video file
+        id: video-file
+        run: |
+          VIDEO_FILE=$(ls video/*.mp4)
+          echo "path=$VIDEO_FILE" >> $GITHUB_OUTPUT
+          echo "filename=$(basename $VIDEO_FILE)" >> $GITHUB_OUTPUT
+
+      - name: Upload to YouTube
+        run: |
+          node scripts/upload-to-youtube.js
+        working-directory: ./video
+        env:
+          VIDEO_PATH: ${{ steps.video-file.outputs.path }}
+          VIDEO_TITLE: ${{ needs.generate-video.outputs.title }}
+          VIDEO_DESCRIPTION: ${{ needs.generate-video.outputs.description }}
+          VIDEO_TAGS: ${{ needs.generate-video.outputs.tags }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+
+      - name: Post upload summary
+        run: |
+          echo "## ✅ Vídeo Publicado no YouTube" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tipo:** ${{ github.event.inputs.type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Arquivo:** ${{ steps.video-file.outputs.filename }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Título:** ${{ needs.generate-video.outputs.title }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "O vídeo foi processado e enviado ao YouTube automaticamente." >> $GITHUB_STEP_SUMMARY
