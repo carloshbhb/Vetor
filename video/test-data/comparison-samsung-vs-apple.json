@@ -1,0 +1,35 @@
+{
+  "title": "Galaxy S24 vs iPhone 15: Qual Comprar?",
+  "product1": { "name": "Galaxy S24", "imageUrl": "/images/samsung-s24.png", "score": 8.8 },
+  "product2": { "name": "iPhone 15", "imageUrl": "/images/iphone15.png", "score": 8.5 },
+  "categories": [
+    { "label": "Design", "score1": 8.5, "score2": 9.0 },
+    { "label": "Câmera", "score1": 9.0, "score2": 8.5 },
+    { "label": "Desempenho", "score1": 9.0, "score2": 9.0 },
+    { "label": "Bateria", "score1": 8.5, "score2": 7.5 },
+    { "label": "Custo-Benefício", "score1": 8.0, "score2": 7.0 }
+  ],
+  "winner": 1,
+  "hook": "Galaxy S24 vs iPhone 15 - qual vale mais a pena?",
+  "scenes": [
+    { "id": 1, "text": "Dois gigantes do smartphone frente a frente.", "duration": 4, "visualCue": "Dois produtos lado a lado com VS", "brollKeywords": ["vs comparison", "smartphone"], "type": "intro" },
+    { "id": 2, "text": "Galaxy S24: tela Dynamic AMOLED, câmera 50MP, S Pen opcional.", "duration": 8, "visualCue": "Galaxy S24 em close, S Pen sendo usado", "brollKeywords": ["samsung galaxy", "s pen"], "type": "product1" },
+    { "id": 3, "text": "iPhone 15: Dynamic Island, vídeo cinematic, Face ID.", "duration": 8, "visualCue": "iPhone 15 em uso, Dynamic Island animado", "brollKeywords": ["iphone 15", "dynamic island"], "type": "product2" },
+    { "id": 4, "text": "", "duration": 10, "visualCue": "Barras comparativas lado a lado", "brollKeywords": ["comparison chart", "score bars"], "type": "comparison" },
+    { "id": 5, "text": "", "duration": 5, "visualCue": "Coroa no vencedor", "brollKeywords": ["winner", "trophy"], "type": "verdict" }
+  ],
+  "callToAction": "Confira a análise completa no blog!",
+  "audioUrl": "/audio/sample-comparison.mp3",
+  "subtitleEntries": [
+    { "start": 0, "end": 3, "text": "Galaxy S24 vs iPhone 15 - qual vale mais a pena?" },
+    { "start": 3, "end": 11, "text": "Galaxy S24: AMOLED, 50MP, S Pen." },
+    { "start": 11, "end": 19, "text": "iPhone 15: Dynamic Island, vídeo cinematic." },
+    { "start": 19, "end": 29, "text": "Comparando design, câmera, desempenho, bateria e custo." },
+    { "start": 29, "end": 34, "text": "Vencedor: Galaxy S24 com nota 8.8!" },
+    { "start": 34, "end": 37, "text": "Confira a análise completa no blog!" }
+  ],
+  "productImages": ["/images/samsung-s24.png", "/images/iphone15.png"],
+  "brollVideos": [],
+  "totalDuration": 42,
+  "fps": 30
+}

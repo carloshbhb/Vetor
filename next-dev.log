@@ -1,0 +1,77 @@
+   ▲ Next.js 15.5.25
+   - Local:        http://localhost:3000
+   - Network:      http://10.85.142.77:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1954ms
+ ○ Compiling /api/cron/viral-content ...
+ ✓ Compiled /api/cron/viral-content in 2.1s (484 modules)
+[CRON-VIRAL] Gerando artigo viral: Apple Watch Series 9 vs Galaxy Watch 6 vs Pixel Watch 2
+[LLM] Usando provedor: openrouter | Modelo: xiaomi/mimo-v2.5
+(node:2364) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ GET /api/cron/viral-content 401 in 52ms
+ GET /api/cron/viral-content 200 in 36097ms
+ ✓ Compiled /api/cron/generate in 270ms (487 modules)
+[CRON] Generating review: Apple Watch Series 9
+[LLM] Usando provedor: openrouter | Modelo: xiaomi/mimo-v2.5
+ GET /api/cron/generate 401 in 31ms
+ GET /api/cron/generate 401 in 30ms
+ GET /api/cron/generate 200 in 62605ms
+[CRON] Generating review: Sony WF-1000XM5
+[CRON] Generating viral article: AirPods Pro 2 vs Galaxy Buds Pro vs Sony WF-1000XM5
+ GET /api/cron/generate 200 in 1739ms
+ ✓ Compiled /api/cron/videos in 240ms (488 modules)
+[VIDEO] Gerando script para review: Sony WF-1000XM5 - Vale a Pena em 2026?
+[LLM] Usando provedor: openrouter | Modelo: xiaomi/mimo-v2.5
+Error generating script: Error: 402 This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.
+    at async chatCompletion (src\lib\llm-provider.ts:127:20)
+    at async generateVideoScript (src\lib\script-generator.ts:75:21)
+    at async generateReviewVideoJob (src\app\api\cron\videos\route.ts:66:20)
+    at async GET (src\app\api\cron\videos\route.ts:157:22)
+  125 |   }
+  126 |
+> 127 |   const response = await client.chat.completions.create(createParams);
+      |                    ^
+  128 |   if ('choices' in response) {
+  129 |     return response.choices[0].message.content || '';
+  130 |   } {
+  status: 402,
+  headers: [Object],
+  request_id: undefined,
+  error: [Object],
+  code: 402,
+  param: undefined,
+  type: undefined
+}
+[VIDEO] Script gerado para Sony WF-1000XM5 - Vale a Pena em 2026? | Hook: Pare! Antes de comprar o Sony WF-1000XM5 - Vale a Pena em 2026?, veja isso!
+[VIDEO] Gerando script para review: Xiaomi Smart Band vs Samsung Galaxy Fit vs Air Fryer
+ GET /api/cron/videos 401 in 27ms
+[VIDEO] Script gerado para Xiaomi Smart Band vs Samsung Galaxy Fit vs Air Fryer | Hook: Com R$199, qual vale mais a pena: Smart Band, Galaxy Fit ou Air Fryer?
+[VIDEO] Gerando script para review: Dell XPS 16 (2026) vs HP Spectre x360 16 (2026)
+Error generating script: Error: 402 This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.
+    at async chatCompletion (src\lib\llm-provider.ts:127:20)
+    at async generateVideoScript (src\lib\script-generator.ts:75:21)
+    at async generateReviewVideoJob (src\app\api\cron\videos\route.ts:66:20)
+    at async GET (src\app\api\cron\videos\route.ts:157:22)
+  125 |   }
+  126 |
+> 127 |   const response = await client.chat.completions.create(createParams);
+      |                    ^
+  128 |   if ('choices' in response) {
+  129 |     return response.choices[0].message.content || '';
+  130 |   } {
+  status: 402,
+  headers: [Object],
+  request_id: undefined,
+  error: [Object],
+  code: 402,
+  param: undefined,
+  type: undefined
+}
+[VIDEO] Script gerado para Dell XPS 16 (2026) vs HP Spectre x360 16 (2026) | Hook: Pare! Antes de comprar o Dell XPS 16 (2026) vs HP Spectre x360 16 (2026), veja isso!
+[VIDEO-CRON] Resultado: 3 enfileirados, 0 falharam
+ GET /api/cron/videos 200 in 15066ms
+[CRON] Generating viral article: Galaxy S24 vs iPhone 15 vs Pixel 8: O Melhor Smartphone 2026?
+ ✓ Compiled in 36ms

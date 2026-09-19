@@ -1,0 +1,30 @@
+{
+  "title": "Xiaomi Redmi Note 14 Pro",
+  "imageUrl": "/images/xiaomi-redmi.png",
+  "score": 8.5,
+  "category": "Smartphones",
+  "hook": "Smartphone de R$ 1.999 que desafia os caros!",
+  "scenes": [
+    { "id": 1, "text": "O Redmi Note 14 Pro surpreende pelo preço.", "duration": 5, "visualCue": "Produto em destaque com preço gigante", "brollKeywords": ["budget phone", "xiaomi"] },
+    { "id": 2, "text": "Tela AMOLED 120Hz suave e responsiva.", "duration": 6, "visualCue": "Scroll fluido na tela", "brollKeywords": ["amoled display", "120hz"] },
+    { "id": 3, "text": "Câmera de 200MP que não deveria estar nessa faixa.", "duration": 7, "visualCue": "Fotos noturnas e diurnas", "brollKeywords": ["camera comparison", "night mode"] },
+    { "id": 4, "text": "Bateria de 5500mAh é um monstro.", "duration": 5, "visualCue": "Teste de resistência de bateria", "brollKeywords": ["battery monster", "long lasting"] },
+    { "id": 5, "text": "Contras: processador não é top e gasta um pouco.", "duration": 5, "visualCue": "Termômetro mostrando temperatura", "brollKeywords": ["heating", "performance limit"] },
+    { "id": 6, "text": "Mas pelo preço? Melhor custo-benefício do Brasil.", "duration": 5, "visualCue": "Selado de melhor custo-benefício", "brollKeywords": ["best value", "award"] }
+  ],
+  "callToAction": "Garanta o seu com desconto no link!",
+  "audioUrl": "/audio/sample-review.mp3",
+  "subtitleEntries": [
+    { "start": 0, "end": 3, "text": "Smartphone de R$ 1.999 que desafia os caros!" },
+    { "start": 3, "end": 8, "text": "Surpreende pelo preço baixo." },
+    { "start": 8, "end": 14, "text": "Tela AMOLED 120Hz responsiva." },
+    { "start": 14, "end": 21, "text": "Câmera 200MP inacreditável." },
+    { "start": 21, "end": 26, "text": "Bateria de 5500mAh monstra." },
+    { "start": 26, "end": 31, "text": "Processador não é top." },
+    { "start": 31, "end": 36, "text": "Melhor custo-benefício do Brasil!" }
+  ],
+  "productImages": ["/images/xiaomi-redmi.png"],
+  "brollVideos": [],
+  "totalDuration": 41,
+  "fps": 30
+}

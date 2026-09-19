@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "skills": {
+    "captions": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/captions/SKILL.md",
+      "computedHash": "838a748c6bd8bb8f2ebc2544a444ab24baccbacfd2d773cb37e626b62da7c54c"
+    },
+    "deploy-to-vercel": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/deploy-to-vercel/SKILL.md",
+      "computedHash": "3a0481591523c55ecfe2569b6b28b2dcbfa3742367667697219d29170981ad53"
+    },
+    "subtitles": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/subtitles/SKILL.md",
+      "computedHash": "24fff1820ccc0263d85f08bd2b8dd23de49c44a04dac79256eccaebab91bb4bb"
+    },
+    "supabase": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/supabase/SKILL.md",
+      "computedHash": "a6260582f48df8ba53380bb9b9e870ed2ae5fe147799e90ed783b8aa25167d50"
+    },
+    "supabase-postgres-best-practices": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
+      "computedHash": "128fac78002d916c8ca908245d398e634f540d8bcf20915b2b2359aeb18eba59"
+    },
+    "transcript": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/transcript/SKILL.md",
+      "computedHash": "a96855bc3fd38fa5eaefa6875bfba144adbced3d0d6d9051722e0dac431b22ee"
+    },
+    "transcriptapi": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/transcriptapi/SKILL.md",
+      "computedHash": "841ee74618a60ca542e2c0f78618ba668d2a8c6efdeb7f84474ddd8a1e88e135"
+    },
+    "vercel-cli-with-tokens": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/vercel-cli-with-tokens/SKILL.md",
+      "computedHash": "d3ad6e1d6278a4df322ee5bf49211f921f4aaea1148fb127b4e928de04b39fef"
+    },
+    "vercel-composition-patterns": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/composition-patterns/SKILL.md",
+      "computedHash": "10eb4ec94577b79ae98c63ce3e7f35f8a6a06436a4011bff083b397de6960eeb"
+    },
+    "vercel-optimize": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/vercel-optimize/SKILL.md",
+      "computedHash": "fb87d3a135fef30748f772200a9f161f780b5a16830e8e70a3a126195cb16963"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "6b526d013e28073246a36f99b529bc43745d30832ecfa8217b359c34f260ca6b"
+    },
+    "vercel-react-native-skills": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-native-skills/SKILL.md",
+      "computedHash": "a804b4e848059822638c390359976f7021380bcefb1469d473aa4e9202c15ecb"
+    },
+    "vercel-react-view-transitions": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-view-transitions/SKILL.md",
+      "computedHash": "12f8e118b8ca5fa45e3f0b56c269fb2e35251b705d2320b26b0727a0f58adefc"
+    },
+    "video-transcript": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/video-transcript/SKILL.md",
+      "computedHash": "d8a3887c2d90f6bb540fdb460c5e9b110ceaa351159530bcaca0a320454d6a5a"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "d8e7d3afe37dcc8a97b99ffb5afdb4d0919ae0092ea8b68f44eb201f035e33ac"
+    },
+    "writing-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/writing-guidelines/SKILL.md",
+      "computedHash": "9c221f46dca7bdf94af9c27ce54a7b4ea323c590333f8bc0a55c65254c646584"
+    },
+    "youtube-api": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/youtube-api/SKILL.md",
+      "computedHash": "e5dd8fced1e3c5ca232afd5c18887bde1491d861883be99601eaac8bfdf344a3"
+    },
+    "youtube-channels": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/youtube-channels/SKILL.md",
+      "computedHash": "ff7e41160233dafb5c799e7406dbe02c5a98e0077f0c5982c69dbb12d79ec53f"
+    },
+    "youtube-data": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/youtube-data/SKILL.md",
+      "computedHash": "3168a42137fcefa7d9fc690ecda8cac82eeb5f0ddf5c02a1aea84111059d695d"
+    },
+    "youtube-full": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/youtube-full/SKILL.md",
+      "computedHash": "e9f6d84af24e275c8eb452113a795cbd0b53607c648ad716dcdbd218e5832e19"
+    },
+    "youtube-marketing": {
+      "source": "sergebulaev/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "cec2d0d8d3ee6722f437c4ac34c36787bc810a670cc0b86343b36a0b6b6ba34c"
+    },
+    "youtube-playlist": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/youtube-playlist/SKILL.md",
+      "computedHash": "eddd4fc661830e270122e2b4fae53db715ec8d3fe9a597544d08898396e72b45"
+    },
+    "youtube-search": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/youtube-search/SKILL.md",
+      "computedHash": "325150411647b053ff40b03190470838cec351607ebadf53606d7afd7bc19e22"
+    },
+    "yt": {
+      "source": "ZeroPointRepo/youtube-skills",
+      "sourceType": "github",
+      "skillPath": "skills/yt/SKILL.md",
+      "computedHash": "c51670337989af153b3bb112c0507c24b17c9871ca6e803f0d8f9a235a097345"
+    }
+  }
+}

@@ -67,7 +67,7 @@ export default async function ReviewPage({ params }: PageProps) {
   const topSpecs = review.specs?.slice(0, 10) || [];
   const heroBars = Array.isArray(review.hero_bars) ? review.hero_bars : [];
   const sections = Array.isArray(review.sections) ? review.sections : [];
-  const testimonials = Array.isArray(review.testimonials) ? review.testimonials as Array<{ name?: string; quote?: string; stars?: number; role?: string; platform?: string }> : [];
+  const testimonials = Array.isArray(review.testimonials) ? review.testimonials : [];
   const faq = Array.isArray(review.faq) ? review.faq : [];
 
   const sectionNav = [

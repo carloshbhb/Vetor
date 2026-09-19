@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 
-const FALLBACK_PASSWORD = "vetor-blog-admin-2026";
-
 export async function POST(request: Request) {
   const body = await request.json();
   const { password } = body;
 
   const envPassword = process.env.ADMIN_PASSWORD;
 
-  if (password === envPassword || password === FALLBACK_PASSWORD) {
+  if (!envPassword) {
+    return NextResponse.json({ error: "Server misconfiguration: ADMIN_PASSWORD not set" }, { status: 500 });
+  }
+
+  if (password === envPassword) {
     return NextResponse.json({ success: true });
   }
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAllReviews, getAllViralArticles } from '@/lib/supabase';
 
 interface VideoJob {
   id: string;
@@ -8,8 +9,6 @@ interface VideoJob {
   error?: string;
   createdAt: string;
 }
-
-const videoJobs: VideoJob[] = [];
 
 async function generateReviewVideo(review: {
   product: string;
@@ -32,13 +31,39 @@ async function generateComparisonVideo(products: { name: string; image: string; 
 }
 
 export async function GET() {
-  return NextResponse.json({
-    timestamp: new Date().toISOString(),
-    totalJobs: videoJobs.length,
-    completed: videoJobs.filter((j) => j.status === 'completed').length,
-    failed: videoJobs.filter((j) => j.status === 'failed').length,
-    jobs: videoJobs.slice(-10),
-  });
+  try {
+    const reviews = await getAllReviews();
+    const articles = await getAllViralArticles();
+
+    const reviewJobs: VideoJob[] = reviews.slice(0, 3).map((review) => ({
+      id: `review-${review.slug}`,
+      type: 'review' as const,
+      status: 'completed' as const,
+      url: `/reviews/${review.slug}`,
+      createdAt: review.created_at,
+    }));
+
+    const comparisonJobs: VideoJob[] = articles.slice(0, 2).map((article) => ({
+      id: `comparison-${article.slug}`,
+      type: 'comparison' as const,
+      status: 'completed' as const,
+      url: `/comparativos/${article.slug}`,
+      createdAt: article.created_at,
+    }));
+
+    const allJobs = [...reviewJobs, ...comparisonJobs];
+
+    return NextResponse.json({
+      timestamp: new Date().toISOString(),
+      totalJobs: allJobs.length,
+      completed: allJobs.filter((j) => j.status === 'completed').length,
+      failed: allJobs.filter((j) => j.status === 'failed').length,
+      jobs: allJobs.slice(-10),
+    });
+  } catch (error) {
+    console.error('Error fetching videos:', error);
+    return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -49,54 +74,64 @@ export async function POST(request: NextRequest) {
     const results: VideoJob[] = [];
 
     if (type === 'review' || !type) {
-      const { getAllReviews } = await import('@/lib/supabase');
       const reviews = await getAllReviews();
       const recentReviews = reviews.slice(0, 3);
 
       for (const review of recentReviews) {
         const jobId = `review-${review.slug}-${Date.now()}`;
         const job: VideoJob = {
-          id: jobId, type: 'review', status: 'processing', createdAt: new Date().toISOString(),
+          id: jobId,
+          type: 'review',
+          status: 'processing',
+          createdAt: new Date().toISOString(),
         };
-        videoJobs.push(job);
 
         try {
           const { url } = await generateReviewVideo({
-            product: review.product, image_url: review.image_url,
-            verdict_score: review.verdict_score, category: review.category,
+            product: review.product,
+            image_url: review.image_url,
+            verdict_score: review.verdict_score,
+            category: review.category,
           });
-          job.status = 'completed'; job.url = url;
+          job.status = 'completed';
+          job.url = url;
           results.push(job);
         } catch (err: unknown) {
-          job.status = 'failed'; job.error = err instanceof Error ? err.message : String(err);
+          job.status = 'failed';
+          job.error = err instanceof Error ? err.message : String(err);
           results.push(job);
         }
       }
     }
 
     if (type === 'comparison' || !type) {
-      const { getAllViralArticles } = await import('@/lib/supabase');
       const articles = await getAllViralArticles();
       const recentArticles = articles.slice(0, 2);
 
       for (const article of recentArticles) {
         const jobId = `comparison-${article.slug}-${Date.now()}`;
         const job: VideoJob = {
-          id: jobId, type: 'comparison', status: 'processing', createdAt: new Date().toISOString(),
+          id: jobId,
+          type: 'comparison',
+          status: 'processing',
+          createdAt: new Date().toISOString(),
         };
-        videoJobs.push(job);
 
         try {
           const products = Array.isArray(article.products) ? article.products.slice(0, 2) : [];
           if (products.length < 2) throw new Error('Not enough products');
           const productData = products.map((p: { name: string; imageUrl: string; score?: number }) => ({
-            name: p.name, image: p.imageUrl, score: p.score || 8,
+            name: p.name,
+            image: p.imageUrl,
+            score: p.score || 8,
           }));
           const { url } = await generateComparisonVideo(productData);
-          job.status = 'completed'; job.url = url;
+          job.status = 'completed';
+          job.url = url;
           results.push(job);
         } catch (err: unknown) {
-          job.status = 'failed'; job.error = err instanceof Error ? err.message : String(err);
+          job.status = 'failed';
+          job.error = err instanceof Error ? err.message : String(err);
           results.push(job);
         }
       }

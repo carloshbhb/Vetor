@@ -1,0 +1,131 @@
+name: Render Remotion Videos
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_type:
+        description: 'Type of video to render'
+        type: choice
+        required: true
+        options:
+          - review
+          - comparison
+      data_file:
+        description: 'Path to JSON data file (optional, uses sample if omitted)'
+        type: string
+        required: false
+      title:
+        description: 'Custom title for the video (used in artifact name)'
+        type: string
+        required: false
+
+  push:
+    paths:
+      - 'video/**'
+      - '.github/workflows/remotion-render.yml'
+    branches:
+      - main
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: remotion-render-${{ github.ref }}-${{ github.event.inputs.video_type || 'auto' }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    name: Render ${{ github.event.inputs.video_type || 'auto-detect' }} video
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: video
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: video/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chrome for headless rendering
+        uses: browser-actions/setup-chrome@d771e13e1a05ec71f4c8e347b30fa5e74d2c1b5d # v1.2.0
+        with:
+          chrome-version: stable
+
+      - name: Verify Chrome installation
+        run: |
+          google-chrome --version
+          which google-chrome
+
+      - name: Create output directory
+        run: mkdir -p out
+
+      - name: Render video
+        id: render
+        env:
+          REMOTION_CHROME_PATH: /usr/bin/google-chrome
+          REMOTION_GL: angle
+        run: |
+          TYPE="${{ github.event.inputs.video_type }}"
+          DATA_FILE="${{ github.event.inputs.data_file }}"
+          TITLE="${{ github.event.inputs.title }}"
+
+          if [ -z "$TYPE" ]; then
+            echo "::error::video_type input is required for workflow_dispatch"
+            exit 1
+          fi
+
+          if [ -n "$DATA_FILE" ] && [ -f "$DATA_FILE" ]; then
+            echo "Rendering $TYPE video with data from $DATA_FILE"
+            npx tsx src/utils/renderVideo.ts "$TYPE" "$DATA_FILE"
+          else
+            echo "Rendering $TYPE video with sample data"
+            npx tsx src/utils/renderVideo.ts "$TYPE"
+          fi
+
+      - name: Find rendered video
+        id: find-video
+        run: |
+          VIDEO_FILE=$(find out -name "*.mp4" -type f | head -1)
+          if [ -z "$VIDEO_FILE" ]; then
+            echo "::error::No video file found in out/"
+            exit 1
+          fi
+          echo "video_path=$VIDEO_FILE" >> $GITHUB_OUTPUT
+          echo "Found video: $VIDEO_FILE"
+
+      - name: Upload video artifact
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0db45cf0a # v4.6.0
+        with:
+          name: ${{ github.event.inputs.video_type || 'remotion-video' }}-${{ github.run_number }}
+          path: ${{ steps.find-video.outputs.video_path }}
+          retention-days: 30
+          compression-level: 6
+
+      - name: Upload all rendered videos
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0db45cf0a # v4.6.0
+        with:
+          name: all-videos-${{ github.run_number }}
+          path: video/out/*.mp4
+          retention-days: 7
+          compression-level: 6
+
+      - name: Render summary
+        if: always()
+        run: |
+          echo "## Render Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type**: ${{ github.event.inputs.video_type || 'auto' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run**: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Video**: ${{ steps.find-video.outputs.video_path }}" >> $GITHUB_STEP_SUMMARY
+          ls -lh video/out/ >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No output files"

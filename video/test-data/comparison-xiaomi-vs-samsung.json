@@ -1,0 +1,35 @@
+{
+  "title": "Redmi Note 14 Pro vs Galaxy A55: Melhor Custo-Benefício?",
+  "product1": { "name": "Redmi Note 14 Pro", "imageUrl": "/images/xiaomi-redmi.png", "score": 8.5 },
+  "product2": { "name": "Galaxy A55", "imageUrl": "/images/samsung-a55.png", "score": 8.0 },
+  "categories": [
+    { "label": "Design", "score1": 8.0, "score2": 8.5 },
+    { "label": "Câmera", "score1": 9.0, "score2": 8.0 },
+    { "label": "Desempenho", "score1": 7.5, "score2": 8.5 },
+    { "label": "Bateria", "score1": 9.5, "score2": 8.0 },
+    { "label": "Custo-Benefício", "score1": 9.0, "score2": 7.5 }
+  ],
+  "winner": 1,
+  "hook": "R$ 1.999 vs R$ 2.499 - qual smartphone intermediário comprar?",
+  "scenes": [
+    { "id": 1, "text": "Dois intermediários top se enfrentam nessa comparação.", "duration": 4, "visualCue": "Dois celulares lado a lado com VS", "brollKeywords": ["mid range comparison", "smartphone"], "type": "intro" },
+    { "id": 2, "text": "Redmi Note 14 Pro: câmera 200MP, tela 120Hz, bateria 5500mAh.", "duration": 8, "visualCue": "Redmi em close, câmera destacada", "brollKeywords": ["redmi note", "200mp camera"], "type": "product1" },
+    { "id": 3, "text": "Galaxy A55: processador Exynos, tela Super AMOLED, IP67.", "duration": 8, "visualCue": "Galaxy A55 em uso, mostrando resistência", "brollKeywords": ["galaxy a55", "water resistant"], "type": "product2" },
+    { "id": 4, "text": "", "duration": 10, "visualCue": "Barras comparativas lado a lado", "brollKeywords": ["comparison chart", "score bars"], "type": "comparison" },
+    { "id": 5, "text": "", "duration": 5, "visualCue": "Coroa no vencedor", "brollKeywords": ["winner", "best value"], "type": "verdict" }
+  ],
+  "callToAction": "Links na descrição com os melhores preços!",
+  "audioUrl": "/audio/sample-comparison.mp3",
+  "subtitleEntries": [
+    { "start": 0, "end": 3, "text": "R$ 1.999 vs R$ 2.499 - qual comprar?" },
+    { "start": 3, "end": 11, "text": "Redmi: 200MP, 120Hz, 5500mAh." },
+    { "start": 11, "end": 19, "text": "Galaxy A55: Exynos, AMOLED, IP67." },
+    { "start": 19, "end": 29, "text": "Comparando todos os aspectos." },
+    { "start": 29, "end": 34, "text": "Vencedor: Redmi Note 14 Pro!" },
+    { "start": 34, "end": 37, "text": "Links na descrição!" }
+  ],
+  "productImages": ["/images/xiaomi-redmi.png", "/images/samsung-a55.png"],
+  "brollVideos": [],
+  "totalDuration": 42,
+  "fps": 30
+}

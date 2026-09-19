@@ -43,6 +43,14 @@ export interface ReviewFaq {
   answer: string;
 }
 
+export interface ReviewTestimonial {
+  name?: string;
+  quote?: string;
+  stars?: number;
+  role?: string;
+  platform?: string;
+}
+
 export interface Review {
   id?: string;
   slug: string;
@@ -72,7 +80,7 @@ export interface Review {
   compare_table: ReviewCompareTable;
   pros: string[];
   cons: string[];
-  testimonials: unknown[];
+  testimonials: ReviewTestimonial[];
   verdict_score: number;
   verdict_label: string;
   verdict_text: string;

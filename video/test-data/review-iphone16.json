@@ -1,0 +1,30 @@
+{
+  "title": "Apple iPhone 16 Pro Max",
+  "imageUrl": "/images/iphone16.png",
+  "score": 9.0,
+  "category": "Smartphones",
+  "hook": "O iPhone 16 Pro Max vale R$ 9.999? Descubra agora!",
+  "scenes": [
+    { "id": 1, "text": "O iPhone 16 Pro Max finalmente chegou com chip A18 Pro.", "duration": 5, "visualCue": "Unboxing dramático com iluminação lateral", "brollKeywords": ["iphone unboxing", "apple"] },
+    { "id": 2, "text": "Tela Super Retina XDR de 6.9 polegadas é absurdamente boa.", "duration": 6, "visualCue": "Close na tela mostrando cores vibrantes", "brollKeywords": ["oled screen", "display quality"] },
+    { "id": 3, "text": "Câmera de 48MP com zoom óptico 5x impressiona muito.", "duration": 7, "visualCue": "Fotos tiradas com a câmera, comparação de zoom", "brollKeywords": ["camera test", "photography"] },
+    { "id": 4, "text": "Bateria dura o dia todo, mesmo com uso pesado.", "duration": 6, "visualCue": "Gráfico de uso de bateria ao longo do dia", "brollKeywords": ["battery test", "endurance"] },
+    { "id": 5, "text": "O único problema é o preço salgado e sem carregador.", "duration": 5, "visualCue": "Ícone de preço alto, caixa vazia", "brollKeywords": ["expensive", "no charger"] },
+    { "id": 6, "text": "Mas se você quer o melhor, esse é o smartphone top.", "duration": 5, "visualCue": "Produto em pedestal com nota alta", "brollKeywords": ["best smartphone", "premium"] }
+  ],
+  "callToAction": "Link na descrição com desconto exclusivo!",
+  "audioUrl": "/audio/sample-review.mp3",
+  "subtitleEntries": [
+    { "start": 0, "end": 3, "text": "O iPhone 16 Pro Max vale R$ 9.999?" },
+    { "start": 3, "end": 8, "text": "Chegou com chip A18 Pro!" },
+    { "start": 8, "end": 14, "text": "Tela de 6.9 polegadas absurdamente boa." },
+    { "start": 14, "end": 21, "text": "Câmera 48MP com zoom 5x impressiona." },
+    { "start": 21, "end": 27, "text": "Bateria dura o dia todo." },
+    { "start": 27, "end": 32, "text": "Preço salgado e sem carregador." },
+    { "start": 32, "end": 37, "text": "Mas é o melhor smartphone do mercado!" }
+  ],
+  "productImages": ["/images/iphone16.png"],
+  "brollVideos": [],
+  "totalDuration": 42,
+  "fps": 30
+}

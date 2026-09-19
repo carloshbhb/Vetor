@@ -31,6 +31,7 @@ interface VideoQueueItem {
   video_url: string;
   youtube_video_id: string;
   youtube_url: string;
+  completed_at?: string;
 }
 
 async function updateVideoStatus(id: string, updates: Partial<VideoQueueItem>) {
@@ -282,7 +283,7 @@ async function renderVideo(propsPath: string, outputPath: string): Promise<strin
 
 async function uploadToYouTube(videoPath: string, title: string, description: string, tags: string[]): Promise<string> {
   const { google } = await import('googleapis');
-  const { OAuth2Client } = google.auth;
+  const { OAuth2Client } = await import('google-auth-library');
 
   const oauth2Client = new OAuth2Client(
     process.env.YOUTUBE_CLIENT_ID,

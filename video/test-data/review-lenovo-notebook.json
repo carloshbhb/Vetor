@@ -1,0 +1,30 @@
+{
+  "title": "Notebook Lenovo IdeaPad 5",
+  "imageUrl": "/images/lenovo-notebook.png",
+  "score": 8.0,
+  "category": "Notebooks",
+  "hook": "Notebook de R$ 3.999 que serve pra tudo!",
+  "scenes": [
+    { "id": 1, "text": "Lenovo IdeaPad 5 é o notebook para quem quer tudo.", "duration": 5, "visualCue": "Notebook abrindo com animação elegante", "brollKeywords": ["laptop unboxing", "lenovo"] },
+    { "id": 2, "text": "Processador Ryzen 7 e 16GB de RAM entregam desempenho.", "duration": 6, "visualCue": "Benchmarks e testes de velocidade", "brollKeywords": ["benchmark", "performance"] },
+    { "id": 3, "text": "Tela IPS Full HD com cores boas para trabalho.", "duration": 6, "visualCue": "Tela mostrando design e código", "brollKeywords": ["ips display", "color accuracy"] },
+    { "id": 4, "text": "Teclado confortável e touchpad preciso.", "duration": 5, "visualCue": "Close no teclado sendo utilizado", "brollKeywords": ["keyboard", "typing test"] },
+    { "id": 5, "text": "Bateria mediana, dura umas 5 horas.", "duration": 5, "visualCue": "Timer contando horas de uso", "brollKeywords": ["battery test", "office work"] },
+    { "id": 6, "text": "Para trabalho e estudo, é uma máquina excelente.", "duration": 5, "visualCue": "Pessoa usando para trabalho remoto", "brollKeywords": ["remote work", "productivity"] }
+  ],
+  "callToAction": "Link na descrição com o melhor preço!",
+  "audioUrl": "/audio/sample-review.mp3",
+  "subtitleEntries": [
+    { "start": 0, "end": 3, "text": "Notebook de R$ 3.999 que serve pra tudo!" },
+    { "start": 3, "end": 8, "text": "O notebook para quem quer tudo." },
+    { "start": 8, "end": 14, "text": "Ryzen 7 com 16GB de RAM." },
+    { "start": 14, "end": 20, "text": "Tela IPS Full HD para trabalho." },
+    { "start": 20, "end": 25, "text": "Teclado e touchpad excelentes." },
+    { "start": 25, "end": 30, "text": "Bateria de 5 horas." },
+    { "start": 30, "end": 35, "text": "Máquina excelente para trabalho e estudo!" }
+  ],
+  "productImages": ["/images/lenovo-notebook.png"],
+  "brollVideos": [],
+  "totalDuration": 40,
+  "fps": 30
+}
