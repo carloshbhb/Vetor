@@ -1,0 +1,234 @@
+name: Render Video Queue (Auto)
+
+on:
+  schedule:
+    # Run every 2 hours to process pending videos
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      max_videos:
+        description: 'Máximo de vídeos para processar'
+        required: false
+        default: '3'
+        type: string
+
+jobs:
+  process-queue:
+    name: Processar Fila de Vídeos
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: video/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./video
+
+      - name: Install Chrome for Remotion
+        run: npx @remotion/cli install
+        working-directory: ./video
+
+      - name: Fetch pending videos from Supabase
+        id: fetch-queue
+        run: |
+          # Fetch pending videos from Supabase
+          RESPONSE=$(curl -s -X GET \
+            -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?status=eq.pending&order=scheduled_at.asc&limit=${{ github.event.inputs.max_videos || 3 }}")
+          
+          echo "$RESPONSE" > pending-videos.json
+          COUNT=$(echo "$RESPONSE" | jq 'length')
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          
+          if [ "$COUNT" -gt 0 ]; then
+            echo "has_videos=true" >> $GITHUB_OUTPUT
+            echo "$RESPONSE" | jq -c '.[]' > pending-videos.ndjson
+          else
+            echo "has_videos=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+      - name: Process each video
+        if: steps.fetch-queue.outputs.has_videos == 'true'
+        run: |
+          MAX_VIDEOS=${{ github.event.inputs.max_videos || 3 }}
+          PROCESSED=0
+          
+          while IFS= read -r video; do
+            if [ "$PROCESSED" -ge "$MAX_VIDEOS" ]; then
+              break
+            fi
+            
+            echo "Processing video: $video"
+            VIDEO_ID=$(echo "$video" | jq -r '.id')
+            PRODUCT_TITLE=$(echo "$video" | jq -r '.product_title')
+            PRODUCT_IMAGE=$(echo "$video" | jq -r '.product_image_url')
+            PRODUCT_CATEGORY=$(echo "$video" | jq -r '.product_category')
+            SCRIPT_TEXT=$(echo "$video" | jq -r '.script_text')
+            SCRIPT_HOOK=$(echo "$video" | jq -r '.script_hook')
+            AFFILIATE_URL=$(echo "$video" | jq -r '.affiliate_url')
+            
+            # Update status to processing
+            curl -s -X PATCH \
+              -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d '{"status": "processing", "started_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' \
+              "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$VIDEO_ID"
+            
+            # Parse script
+            SCRIPT_JSON=$(echo "$SCRIPT_TEXT" | jq . 2>/dev/null || echo '{}')
+            
+            # Create video data for Remotion
+            if echo "$SCRIPT_JSON" | jq -e '.scenes' >/dev/null 2>&1; then
+              # It's a review script
+              cat > video-data.json << EOF
+              {
+                "type": "review",
+                "title": "$PRODUCT_TITLE",
+                "imageUrl": "$PRODUCT_IMAGE",
+                "score": 8.5,
+                "category": "$PRODUCT_CATEGORY",
+                "hook": "$SCRIPT_HOOK",
+                "callToAction": "Link na descrição para comprar com desconto!",
+                "scenes": $(echo "$SCRIPT_JSON" | jq -c '.scenes // []'),
+                "subtitleEntries": $(echo "$SCRIPT_JSON" | jq -c '.subtitleEntries // []'),
+                "productImages": ["$PRODUCT_IMAGE"],
+                "brollVideos": [],
+                "totalDuration": 60,
+                "fps": 30
+              }
+              EOF
+              VIDEO_TYPE="review"
+            else
+              # Comparison script
+              cat > video-data.json << EOF
+              {
+                "type": "comparison",
+                "title": "$PRODUCT_TITLE",
+                "product1": {"name": "Produto A", "imageUrl": "$PRODUCT_IMAGE", "score": 8.5},
+                "product2": {"name": "Produto B", "imageUrl": "$PRODUCT_IMAGE", "score": 8.0},
+                "categories": [
+                  {"label": "Design", "score1": 8.5, "score2": 8.0},
+                  {"label": "Câmera", "score1": 9.0, "score2": 8.5},
+                  {"label": "Desempenho", "score1": 8.5, "score2": 8.0},
+                  {"label": "Bateria", "score1": 8.0, "score2": 7.5},
+                  {"label": "Custo-Benefício", "score1": 8.5, "score2": 7.0}
+                ],
+                "winner": 1,
+                "hook": "$SCRIPT_HOOK",
+                "callToAction": "Confira a análise completa!",
+                "scenes": [],
+                "subtitleEntries": [],
+                "productImages": ["$PRODUCT_IMAGE"],
+                "brollVideos": [],
+                "totalDuration": 45,
+                "fps": 30
+              }
+              EOF
+              VIDEO_TYPE="comparison"
+            fi
+            
+            # Render video
+            echo "Rendering video for: $PRODUCT_TITLE"
+            npx tsx src/utils/renderVideo.ts "$VIDEO_TYPE" video-data.json
+            
+            if [ $? -eq 0 ]; then
+              # Find generated video
+              VIDEO_FILE=$(ls -t out/*.mp4 | head -1)
+              
+              if [ -f "$VIDEO_FILE" ]; then
+                # Upload to YouTube
+                echo "Uploading to YouTube: $VIDEO_FILE"
+                node scripts/upload-to-youtube.js
+                
+                if [ $? -eq 0 ]; then
+                  # Get YouTube URL from log
+                  YOUTUBE_LOG=$(cat logs/upload-log.json 2>/dev/null | jq -r 'last(.[]?.videoUrl)' 2>/dev/null || echo "")
+                  
+                  # Update status to completed
+                  curl -s -X PATCH \
+                    -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+                    -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+                    -H "Content-Type: application/json" \
+                    -d '{"status": "completed", "completed_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "youtube_url": "'$YOUTUBE_LOG'"}' \
+                    "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$VIDEO_ID"
+                  
+                  echo "✅ Video processed and uploaded: $PRODUCT_TITLE"
+                  PROCESSED=$((PROCESSED + 1))
+                else
+                  echo "❌ YouTube upload failed"
+                  curl -s -X PATCH \
+                    -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+                    -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+                    -H "Content-Type: application/json" \
+                    -d '{"status": "failed", "error_message": "YouTube upload failed"}' \
+                    "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$VIDEO_ID"
+                fi
+              else
+                echo "❌ Video file not found after render"
+                curl -s -X PATCH \
+                  -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+                  -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+                  -H "Content-Type: application/json" \
+                  -d '{"status": "failed", "error_message": "Video file not found after render"}' \
+                  "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$VIDEO_ID"
+              fi
+            else
+              echo "❌ Render failed for: $PRODUCT_TITLE"
+              curl -s -X PATCH \
+                -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+                -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+                -H "Content-Type: application/json" \
+                -d '{"status": "failed", "error_message": "Render failed"}' \
+                "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$VIDEO_ID"
+            fi
+            
+            # Small delay between videos
+            sleep 10
+            
+          done < pending-videos.ndjson
+          
+          echo "processed=$PROCESSED" >> $GITHUB_OUTPUT
+        env:
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        working-directory: ./video
+
+      - name: Summary
+        if: steps.fetch-queue.outputs.has_videos == 'true'
+        run: |
+          echo "## 📹 Processamento de Fila de Vídeos" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Vídeos na fila:** ${{ steps.fetch-queue.outputs.count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Processados com sucesso:** ${{ steps.process-videos.outputs.processed || 0 }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+
+  notify-complete:
+    name: Notificar Conclusão
+    needs: process-queue
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log result
+        run: |
+          echo "Video queue processing completed"
+          echo "Check GitHub Actions for details"

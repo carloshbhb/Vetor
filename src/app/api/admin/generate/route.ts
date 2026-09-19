@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createReview, createViralArticle } from "@/lib/supabase";
+import { createReview, createViralArticle, getAllReviews } from "@/lib/supabase";
 import { generateReview } from "@/lib/generate";
 import { generateViralArticle } from "@/lib/generate-viral";
 import { resolveProductImage } from "@/lib/image-resolver";
@@ -13,15 +13,47 @@ export async function POST() {
   try {
     const results: string[] = [];
 
-    let bestSellers: Array<{ product_name: string; product_url: string; category: string }>;
+    // 1. Try Mercado Livre best sellers (scraping)
+    let bestSellers: Array<{ product_name: string; product_url: string; category: string }> = [];
     try {
       bestSellers = await fetchBestSellers();
-    } catch {
-      bestSellers = [];
+      if (bestSellers.length > 0) {
+        results.push(`✅ Scraping ML: ${bestSellers.length} produtos`);
+      }
+    } catch (e) {
+      results.push(`⚠️ Scraping ML falhou: ${e instanceof Error ? e.message : 'erro desconhecido'}`);
     }
 
-    if (bestSellers.length > 0) {
-      const product = pickRandom(bestSellers);
+    // 2. Fallback: Use product links from Supabase
+    let supabaseProducts: Array<{ product_name: string; product_url: string; category: string }> = [];
+    if (bestSellers.length === 0) {
+      try {
+        const reviews = await getAllReviews();
+        // Get unique products from existing reviews (last 50)
+        const uniqueProducts = new Map<string, { product_name: string; product_url: string; category: string }>();
+        for (const r of reviews.slice(0, 50)) {
+          if (r.affiliate_url && !uniqueProducts.has(r.affiliate_url)) {
+            uniqueProducts.set(r.affiliate_url, {
+              product_name: r.product,
+              product_url: r.affiliate_url,
+              category: r.category,
+            });
+          }
+        }
+        supabaseProducts = Array.from(uniqueProducts.values());
+        if (supabaseProducts.length > 0) {
+          results.push(`✅ Fallback Supabase: ${supabaseProducts.length} produtos únicos`);
+        }
+      } catch (e) {
+        results.push(`⚠️ Fallback Supabase falhou: ${e instanceof Error ? e.message : 'erro'}`);
+      }
+    }
+
+    const productsToUse = bestSellers.length > 0 ? bestSellers : supabaseProducts;
+
+    // Generate 1 review
+    if (productsToUse.length > 0) {
+      const product = pickRandom(productsToUse);
       try {
         const review = await generateReview({
           title: product.product_name,
@@ -62,17 +94,18 @@ export async function POST() {
         if (dbResult.error) {
           results.push(`Review "${review.title}": erro ao salvar - ${dbResult.error}`);
         } else {
-          results.push(`Review "${review.title}": criado com sucesso`);
+          results.push(`✅ Review "${review.title}": criado com sucesso`);
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         results.push(`Review: erro na geração - ${message}`);
       }
     } else {
-      results.push("Nenhum produto dos mais vendidos disponível para review");
+      results.push("❌ Nenhum produto disponível para review (scraping + fallback falharam)");
     }
 
-    const topProducts = bestSellers.slice(0, 3);
+    // Generate 1 viral article (comparison) - need at least 2 products
+    const topProducts = productsToUse.slice(0, 3);
     if (topProducts.length >= 2) {
       const category = topProducts[0].category;
       const topicTitle = `${topProducts.map(p => p.product_name.split(' ').slice(0, 2).join(' ')).join(' vs ')}: O Melhor ${category}?`;
@@ -112,7 +145,7 @@ export async function POST() {
         if (dbResult.error) {
           results.push(`Artigo "${article.title}": erro ao salvar - ${dbResult.error}`);
         } else {
-          results.push(`Artigo "${article.title}": criado com sucesso`);
+          results.push(`✅ Artigo "${article.title}": criado com sucesso`);
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
@@ -122,8 +155,8 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: results.join("; "),
-      count: results.filter((r) => r.includes("sucesso")).length,
+      message: results.join(" | "),
+      count: results.filter((r) => r.includes("✅")).length,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
