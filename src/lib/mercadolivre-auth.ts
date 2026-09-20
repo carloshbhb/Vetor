@@ -60,6 +60,7 @@ export async function exchangeCodeForToken(
     throw new Error('ML_CLIENT_ID and ML_CLIENT_SECRET must be set');
   }
 
+  console.log('[ML Auth] Exchanging code for token...');
   const response = await fetch(ML_TOKEN_URL, {
     method: 'POST',
     headers: {
@@ -121,6 +122,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<MLTokenR
  */
 async function fetchUserId(accessToken: string): Promise<number | null> {
   try {
+    console.log('[ML Auth] Fetching user ID from API...');
     const response = await fetch('https://api.mercadolibre.com/users/me', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -129,11 +131,12 @@ async function fetchUserId(accessToken: string): Promise<number | null> {
     });
 
     if (!response.ok) {
-      console.error('[ML Auth] Failed to fetch user ID:', response.status);
+      console.error('[ML Auth] Failed to fetch user ID:', response.status, await response.text());
       return null;
     }
 
     const data = await response.json();
+    console.log('[ML Auth] Got user ID:', data.id);
     return data.id;
   } catch (error) {
     console.error('[ML Auth] Error fetching user ID:', error);
@@ -160,7 +163,8 @@ export async function saveSession(tokenResponse: MLTokenResponse): Promise<MLSes
   };
 
   if (session.userId) {
-    const { error } = await supabase
+    console.log('[ML Auth] Saving session for user:', session.userId);
+    const { data, error } = await supabase
       .from('ml_tokens')
       .upsert({
         user_id: session.userId,
@@ -168,12 +172,13 @@ export async function saveSession(tokenResponse: MLTokenResponse): Promise<MLSes
         refresh_token: session.refreshToken,
         expires_at: new Date(session.expiresAt).toISOString(),
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
+      }, { onConflict: 'user_id' })
+      .select();
 
     if (error) {
-      console.error('[ML Auth] Failed to save session to Supabase:', error);
+      console.error('[ML Auth] Failed to save session to Supabase:', JSON.stringify(error));
     } else {
-      console.log(`[ML Auth] Session saved to Supabase for user ${session.userId}`);
+      console.log('[ML Auth] Session saved to Supabase:', JSON.stringify(data));
     }
   } else {
     console.error('[ML Auth] Could not determine user ID');
