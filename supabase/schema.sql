@@ -150,3 +150,87 @@ CREATE POLICY "Authenticated delete for video_queue"
   ON video_queue
   FOR DELETE
   USING (auth.role() = 'authenticated');
+
+-- Mercado Livre Tokens table
+CREATE TABLE IF NOT EXISTS ml_tokens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id integer UNIQUE NOT NULL,
+  access_token text NOT NULL,
+  refresh_token text NOT NULL,
+  expires_at timestamptz NOT NULL,
+  scope text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Indexes for ML tokens
+CREATE INDEX IF NOT EXISTS idx_ml_tokens_user_id ON ml_tokens(user_id);
+
+-- Enable Row Level Security
+ALTER TABLE ml_tokens ENABLE ROW LEVEL SECURITY;
+
+-- Service role access policies (only server can access)
+CREATE POLICY "Service role insert for ml_tokens"
+  ON ml_tokens
+  FOR INSERT
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Service role update for ml_tokens"
+  ON ml_tokens
+  FOR UPDATE
+  USING (auth.role() = 'service_role');
+
+CREATE POLICY "Service role select for ml_tokens"
+  ON ml_tokens
+  FOR SELECT
+  USING (auth.role() = 'service_role');
+
+CREATE POLICY "Service role delete for ml_tokens"
+  ON ml_tokens
+  FOR DELETE
+  USING (auth.role() = 'service_role');
+
+-- Mercado Livre Affiliate Links table
+CREATE TABLE IF NOT EXISTS ml_affiliate_links (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_url text NOT NULL,
+  product_id text,
+  product_title text,
+  product_category text,
+  product_price numeric,
+  tracking_url text NOT NULL,
+  short_url text,
+  campaign text DEFAULT 'vetor_blog',
+  status text DEFAULT 'active',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Indexes for affiliate links
+CREATE INDEX IF NOT EXISTS idx_ml_affiliate_links_product_id ON ml_affiliate_links(product_id);
+CREATE INDEX IF NOT EXISTS idx_ml_affiliate_links_status ON ml_affiliate_links(status);
+
+-- Enable Row Level Security
+ALTER TABLE ml_affiliate_links ENABLE ROW LEVEL SECURITY;
+
+-- Public read access policies
+CREATE POLICY "Public read access for ml_affiliate_links"
+  ON ml_affiliate_links
+  FOR SELECT
+  USING (true);
+
+-- Service role access policies
+CREATE POLICY "Service role insert for ml_affiliate_links"
+  ON ml_affiliate_links
+  FOR INSERT
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Service role update for ml_affiliate_links"
+  ON ml_affiliate_links
+  FOR UPDATE
+  USING (auth.role() = 'service_role');
+
+CREATE POLICY "Service role delete for ml_affiliate_links"
+  ON ml_affiliate_links
+  FOR DELETE
+  USING (auth.role() = 'service_role');

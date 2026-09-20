@@ -9,7 +9,6 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
   const error = searchParams.get('error');
-  const state = searchParams.get('state');
 
   if (error) {
     console.error('[ML OAuth] Authorization error:', error);
@@ -30,11 +29,10 @@ export async function GET(request: NextRequest) {
     console.log('[ML OAuth] Exchanging code for token...');
 
     const tokenResponse = await exchangeCodeForToken(code, redirectUri);
-    const session = saveSession(tokenResponse);
+    const session = await saveSession(tokenResponse);
 
     console.log('[ML OAuth] Authorization successful! User ID:', session.userId);
 
-    // Redirect to admin panel with success
     return NextResponse.redirect(
       new URL('/admin?success=ml_authorized', request.url)
     );

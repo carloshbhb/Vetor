@@ -1,5 +1,12 @@
 import { JSDOM } from 'jsdom';
 import { hasValidSession, getValidAccessToken } from './mercadolivre-auth';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!,
+  { auth: { persistSession: false } }
+);
 
 export interface ProductData {
   title: string;
@@ -185,7 +192,7 @@ export async function extractProductData(url: string): Promise<ProductData> {
     const marketplace = detectMarketplace(url);
     let extractedData: Partial<ProductData> = { url, marketplace };
 
-    if (marketplace === 'mercadolivre' && hasValidSession()) {
+    if (marketplace === 'mercadolivre' && await hasValidSession()) {
       // Use ML API with OAuth
       extractedData = await extractMercadoLivreFromApi(url);
     } else {
@@ -257,7 +264,7 @@ function inferCategory(title: string, specs: Record<string, string>): string {
 export async function fetchBestSellers(): Promise<Array<{ product_name: string; product_url: string; category: string }>> {
   try {
     // Try API first if authenticated
-    if (hasValidSession()) {
+    if (await hasValidSession()) {
       console.log('[ML] Fetching best sellers via API');
       const token = await getValidAccessToken();
       const response = await fetch(
@@ -360,4 +367,57 @@ export function generateAffiliateUrl(originalUrl: string, marketplace: ProductDa
 
   const separator = originalUrl.includes('?') ? '&' : '?';
   return `${originalUrl}${separator}${tag}`;
+}
+
+/**
+ * Get affiliate link from database
+ */
+export async function getAffiliateLink(productUrl: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('ml_affiliate_links')
+      .select('tracking_url, short_url')
+      .eq('product_url', productUrl)
+      .eq('status', 'active')
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return data.short_url || data.tracking_url;
+  } catch (error) {
+    console.error('Error getting affiliate link:', error);
+    return null;
+  }
+}
+
+/**
+ * Get random affiliate link for a category
+ */
+export async function getRandomAffiliateLink(category?: string): Promise<string | null> {
+  try {
+    let query = supabase
+      .from('ml_affiliate_links')
+      .select('tracking_url, short_url')
+      .eq('status', 'active');
+
+    if (category) {
+      query = query.eq('product_category', category);
+    }
+
+    const { data, error } = await query
+      .order('random()')
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return data.short_url || data.tracking_url;
+  } catch (error) {
+    console.error('Error getting random affiliate link:', error);
+    return null;
+  }
 }

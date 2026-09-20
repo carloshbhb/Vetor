@@ -3,8 +3,16 @@
  * Documentation: https://developers.mercadolivre.com.br/en_us/authentication-and-authorization
  */
 
+import { createClient } from '@supabase/supabase-js';
+
 const ML_AUTH_URL = 'https://auth.mercadolivre.com.br';
 const ML_TOKEN_URL = 'https://api.mercadolibre.com/oauth/token';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!,
+  { auth: { persistSession: false } }
+);
 
 export interface MLTokenResponse {
   access_token: string;
@@ -22,22 +30,17 @@ export interface MLSession {
   userId?: number;
 }
 
-// In-memory token store (should be persisted in production)
-let currentSession: MLSession | null = null;
-
 /**
  * Generate the authorization URL for OAuth 2.0 flow
- * User must visit this URL to authorize the app
  */
 export function getAuthorizationUrl(redirectUri: string): string {
   const clientId = process.env.ML_CLIENT_ID;
-  const state = process.env.ML_REDIRECT_URI || redirectUri;
 
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: clientId || '',
     redirect_uri: redirectUri,
-    state: state,
+    state: redirectUri,
   });
 
   return `${ML_AUTH_URL}/authorization?${params.toString()}`;
@@ -114,63 +117,95 @@ export async function refreshAccessToken(refreshToken: string): Promise<MLTokenR
 }
 
 /**
- * Save session (should use database in production)
+ * Save session to Supabase
  */
-export function saveSession(tokenResponse: MLTokenResponse): MLSession {
-  currentSession = {
+export async function saveSession(tokenResponse: MLTokenResponse): Promise<MLSession> {
+  const session: MLSession = {
     accessToken: tokenResponse.access_token,
     refreshToken: tokenResponse.refresh_token,
     expiresAt: Date.now() + tokenResponse.expires_in * 1000,
     userId: tokenResponse.user_id,
   };
 
-  console.log(`[ML Auth] Session saved. Expires in ${tokenResponse.expires_in}s`);
-  return currentSession;
+  if (session.userId) {
+    const { error } = await supabase
+      .from('ml_tokens')
+      .upsert({
+        user_id: session.userId,
+        access_token: session.accessToken,
+        refresh_token: session.refreshToken,
+        expires_at: new Date(session.expiresAt).toISOString(),
+        scope: tokenResponse.scope,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error('[ML Auth] Failed to save session to Supabase:', error);
+    } else {
+      console.log(`[ML Auth] Session saved to Supabase for user ${session.userId}`);
+    }
+  }
+
+  return session;
+}
+
+/**
+ * Load session from Supabase
+ */
+async function loadSessionFromSupabase(): Promise<MLSession | null> {
+  const { data, error } = await supabase
+    .from('ml_tokens')
+    .select('*')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+    expiresAt: new Date(data.expires_at).getTime(),
+    userId: data.user_id,
+  };
 }
 
 /**
  * Get valid access token (refreshes if needed)
  */
 export async function getValidAccessToken(): Promise<string> {
-  // Try to load from environment first
-  if (!currentSession) {
-    const envToken = process.env.ML_ACCESS_TOKEN;
-    const envRefresh = process.env.ML_REFRESH_TOKEN;
+  // Try to load from Supabase if no in-memory session
+  let session = await loadSessionFromSupabase();
 
-    if (envToken && envRefresh) {
-      currentSession = {
-        accessToken: envToken,
-        refreshToken: envRefresh,
-        expiresAt: Date.now() + 3600 * 1000, // Assume 1 hour
-      };
-    }
-  }
-
-  if (!currentSession) {
+  if (!session) {
     throw new Error('No ML session available. Please complete OAuth flow first.');
   }
 
   // Check if token is expired (with 5 min buffer)
-  if (Date.now() > currentSession.expiresAt - 5 * 60 * 1000) {
+  if (Date.now() > session.expiresAt - 5 * 60 * 1000) {
     console.log('[ML Auth] Token expired, refreshing...');
-    const tokenResponse = await refreshAccessToken(currentSession.refreshToken);
-    saveSession(tokenResponse);
+    const tokenResponse = await refreshAccessToken(session.refreshToken);
+    const newSession = await saveSession(tokenResponse);
+    return newSession.accessToken;
   }
 
-  return currentSession.accessToken;
+  return session.accessToken;
 }
 
 /**
  * Check if we have a valid session
  */
-export function hasValidSession(): boolean {
-  if (!currentSession) return false;
-  return Date.now() < currentSession.expiresAt - 5 * 60 * 1000;
+export async function hasValidSession(): Promise<boolean> {
+  const session = await loadSessionFromSupabase();
+  if (!session) return false;
+  return Date.now() < session.expiresAt - 5 * 60 * 1000;
 }
 
 /**
  * Get current session info
  */
-export function getSessionInfo(): MLSession | null {
-  return currentSession;
+export async function getSessionInfo(): Promise<MLSession | null> {
+  return loadSessionFromSupabase();
 }

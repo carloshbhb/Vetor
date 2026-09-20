@@ -9,10 +9,9 @@ import { getAuthorizationUrl, hasValidSession, getSessionInfo } from '@/lib/merc
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
 
-  // Check if requesting status
   if (searchParams.get('status') === 'true') {
-    const hasSession = hasValidSession();
-    const session = getSessionInfo();
+    const hasSession = await hasValidSession();
+    const session = await getSessionInfo();
 
     return NextResponse.json({
       authenticated: hasSession,
@@ -21,7 +20,6 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Generate authorization URL
   const redirectUri = `${request.nextUrl.origin}/api/ml/callback`;
   const authUrl = getAuthorizationUrl(redirectUri);
 
