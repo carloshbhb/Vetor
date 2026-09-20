@@ -27,11 +27,14 @@ export async function GET(request: NextRequest) {
   try {
     const redirectUri = `${request.nextUrl.origin}/api/ml/callback`;
     console.log('[ML OAuth] Exchanging code for token...');
+    console.log('[ML OAuth] Has SUPABASE_SERVICE_ROLE_KEY:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+    console.log('[ML OAuth] Has ML_CLIENT_ID:', !!process.env.ML_CLIENT_ID);
 
     const tokenResponse = await exchangeCodeForToken(code, redirectUri);
-    const session = await saveSession(tokenResponse);
+    console.log('[ML OAuth] Token received, user_id:', tokenResponse.user_id);
 
-    console.log('[ML OAuth] Authorization successful! User ID:', session.userId);
+    const session = await saveSession(tokenResponse);
+    console.log('[ML OAuth] Session saved! User ID:', session.userId);
 
     return NextResponse.redirect(
       new URL('/admin?success=ml_authorized', request.url)
