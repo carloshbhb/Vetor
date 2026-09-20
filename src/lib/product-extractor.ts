@@ -1,4 +1,5 @@
 import { JSDOM } from 'jsdom';
+import { hasValidSession, getValidAccessToken } from './mercadolivre-auth';
 
 export interface ProductData {
   title: string;
@@ -120,26 +121,91 @@ function extractMercadoLivreData(dom: JSDOM, url: string): Partial<ProductData> 
   return { title, price, imageUrl, specifications: specs, url, marketplace: 'mercadolivre' };
 }
 
-export async function extractProductData(url: string): Promise<ProductData> {
+/**
+ * Extract product data from Mercado Livre API (OAuth)
+ */
+async function extractMercadoLivreFromApi(url: string): Promise<Partial<ProductData>> {
   try {
+    // Extract product ID from URL
+    const idMatch = url.match(/MLB-?\d+/i) || url.match(/\/p\/MLB/i);
+    if (!idMatch) {
+      throw new Error('Could not extract product ID from URL');
+    }
+
+    const productId = idMatch[0].replace(/-/g, '');
+
+    const token = await getValidAccessToken();
+    const response = await fetch(
+      `https://api.mercadolibre.com/items/${productId}?attributes=id,title,category_id,price,currency_id,condition,permalink,thumbnail,pictures,attributes,seller,status`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`ML API returned ${response.status}`);
+    }
+
+    const product = await response.json();
+
+    const specs: Record<string, string> = {};
+    if (product.attributes) {
+      product.attributes.forEach((attr: { name: string; value_name: string }) => {
+        if (attr.value_name) {
+          specs[attr.name] = attr.value_name;
+        }
+      });
+    }
+
+    const imageUrl = product.thumbnail
+      ?.replace('http:', 'https:')
+      .replace('-I.jpg', '-O.jpg') || '';
+
+    return {
+      title: product.title,
+      price: String(product.price),
+      imageUrl,
+      specifications: specs,
+      url: product.permalink || url,
+      marketplace: 'mercadolivre' as const,
+    };
+  } catch (error) {
+    console.warn('[ML API] Falling back to scraping:', error);
     const html = await fetchPage(url);
     const dom = new JSDOM(html);
-    const marketplace = detectMarketplace(url);
+    return extractMercadoLivreData(dom, url);
+  }
+}
 
+export async function extractProductData(url: string): Promise<ProductData> {
+  try {
+    const marketplace = detectMarketplace(url);
     let extractedData: Partial<ProductData> = { url, marketplace };
 
-    switch (marketplace) {
-      case 'amazon':
-        extractedData = extractAmazonData(dom, url);
-        break;
-      case 'shopee':
-        extractedData = extractShopeeData(dom, url);
-        break;
-      case 'mercadolivre':
-        extractedData = extractMercadoLivreData(dom, url);
-        break;
-      default:
-        throw new Error('Marketplace não suportado. Use Amazon, Shopee ou Mercado Livre.');
+    if (marketplace === 'mercadolivre' && hasValidSession()) {
+      // Use ML API with OAuth
+      extractedData = await extractMercadoLivreFromApi(url);
+    } else {
+      // Fallback to scraping
+      const html = await fetchPage(url);
+      const dom = new JSDOM(html);
+
+      switch (marketplace) {
+        case 'amazon':
+          extractedData = extractAmazonData(dom, url);
+          break;
+        case 'shopee':
+          extractedData = extractShopeeData(dom, url);
+          break;
+        case 'mercadolivre':
+          extractedData = extractMercadoLivreData(dom, url);
+          break;
+        default:
+          throw new Error('Marketplace não suportado. Use Amazon, Shopee ou Mercado Livre.');
+      }
     }
 
     const category = inferCategory(extractedData.title || '', extractedData.specifications || {});
@@ -190,6 +256,39 @@ function inferCategory(title: string, specs: Record<string, string>): string {
 
 export async function fetchBestSellers(): Promise<Array<{ product_name: string; product_url: string; category: string }>> {
   try {
+    // Try API first if authenticated
+    if (hasValidSession()) {
+      console.log('[ML] Fetching best sellers via API');
+      const token = await getValidAccessToken();
+      const response = await fetch(
+        'https://api.mercadolibre.com/sites/MLB/best_sellers?attributes=id,title,category_id,permalink',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const items = data.items || data.results || [];
+
+        return items.slice(0, 50).map((item: {
+          id: string;
+          title: string;
+          category_id: string;
+          permalink: string;
+        }) => ({
+          product_name: item.title.substring(0, 100),
+          product_url: item.permalink,
+          category: detectCategoryFromText(item.title),
+        }));
+      }
+    }
+
+    // Fallback to scraping
+    console.log('[ML] Falling back to scraping');
     const html = await fetchPage('https://www.mercadolivre.com.br/mais-vendidos');
     const dom = new JSDOM(html);
     const document = dom.window.document;
