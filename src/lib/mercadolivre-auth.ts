@@ -117,14 +117,46 @@ export async function refreshAccessToken(refreshToken: string): Promise<MLTokenR
 }
 
 /**
+ * Fetch user ID from ML API using access token
+ */
+async function fetchUserId(accessToken: string): Promise<number | null> {
+  try {
+    const response = await fetch('https://api.mercadolibre.com/users/me', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('[ML Auth] Failed to fetch user ID:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.id;
+  } catch (error) {
+    console.error('[ML Auth] Error fetching user ID:', error);
+    return null;
+  }
+}
+
+/**
  * Save session to Supabase
  */
 export async function saveSession(tokenResponse: MLTokenResponse): Promise<MLSession> {
+  let userId = tokenResponse.user_id;
+
+  // If user_id not in token response, fetch it from API
+  if (!userId) {
+    userId = await fetchUserId(tokenResponse.access_token) || undefined;
+  }
+
   const session: MLSession = {
     accessToken: tokenResponse.access_token,
     refreshToken: tokenResponse.refresh_token,
     expiresAt: Date.now() + tokenResponse.expires_in * 1000,
-    userId: tokenResponse.user_id,
+    userId,
   };
 
   if (session.userId) {
@@ -144,6 +176,8 @@ export async function saveSession(tokenResponse: MLTokenResponse): Promise<MLSes
     } else {
       console.log(`[ML Auth] Session saved to Supabase for user ${session.userId}`);
     }
+  } else {
+    console.error('[ML Auth] Could not determine user ID');
   }
 
   return session;
