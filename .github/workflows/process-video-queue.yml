@@ -119,7 +119,7 @@ jobs:
             
             # Render video with Remotion
             echo "Rendering..."
-            npx tsx src/utils/renderVideo.ts review "/tmp/video-$ID.json" || {
+            npx tsx video/src/utils/renderVideo.ts review "/tmp/video-$ID.json" || {
               echo "Render failed"
               curl -s -X PATCH \
                 -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
