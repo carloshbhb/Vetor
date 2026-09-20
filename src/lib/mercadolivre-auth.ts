@@ -167,7 +167,6 @@ export async function saveSession(tokenResponse: MLTokenResponse): Promise<MLSes
         access_token: session.accessToken,
         refresh_token: session.refreshToken,
         expires_at: new Date(session.expiresAt).toISOString(),
-        scope: tokenResponse.scope,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
 
