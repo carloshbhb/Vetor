@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const redirectUri = process.env.ML_REDIRECT_URI || `${request.nextUrl.origin}/api/ml/callback`;
+  const redirectUri = process.env.ML_REDIRECT_URI || 'https://www.vetor.blog/api/ml/callback';
   const authUrl = getAuthorizationUrl(redirectUri);
 
   return NextResponse.json({

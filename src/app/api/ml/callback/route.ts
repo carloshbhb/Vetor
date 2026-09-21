@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const redirectUri = process.env.ML_REDIRECT_URI || `${request.nextUrl.origin}/api/ml/callback`;
+    const redirectUri = process.env.ML_REDIRECT_URI || 'https://www.vetor.blog/api/ml/callback';
     console.log('[ML OAuth] Exchanging code for token...');
     console.log('[ML OAuth] Redirect URI:', redirectUri);
     console.log('[ML OAuth] Has ML_CLIENT_ID:', !!process.env.ML_CLIENT_ID);
