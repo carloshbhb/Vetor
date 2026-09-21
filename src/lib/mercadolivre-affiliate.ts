@@ -3,9 +3,8 @@
  * Documentation: https://www.mercadolivre.com.br/afiliados/linkbuilder
  */
 
-import { getValidAccessToken } from './mercadolivre-auth';
-
-const ML_API_BASE = 'https://api.mercadolibre.com';
+import { getProduct, searchProducts, getBestSellers } from './mercadolivre-api';
+import type { MLProduct } from './mercadolivre-api';
 
 export interface AffiliateLink {
   originalUrl: string;
@@ -63,40 +62,6 @@ export function extractProductId(url: string): string | null {
 }
 
 /**
- * Get product details from ML API
- */
-async function getProductDetails(productId: string): Promise<{
-  id: string;
-  title: string;
-  price: number;
-  permalink: string;
-  category_id: string;
-} | null> {
-  try {
-    const token = await getValidAccessToken();
-
-    const response = await fetch(
-      `${ML_API_BASE}/items/${productId}?attributes=id,title,price,permalink,category_id`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('[ML Affiliate] Failed to get product details:', error);
-    return null;
-  }
-}
-
-/**
  * Generate affiliate link for a product
  */
 export async function generateAffiliateLink(
@@ -116,23 +81,22 @@ export async function generateAffiliateLink(
     return null;
   }
 
-  const product = await getProductDetails(productId);
+  try {
+    const product = await getProduct(productId);
+    const trackingUrl = generateTrackingUrl(product.permalink, trackingId, options);
 
-  if (!product) {
-    console.error('[ML Affiliate] Could not get product details for:', productId);
+    return {
+      originalUrl: product.permalink,
+      trackingUrl,
+      productId: product.id,
+      title: product.title,
+      price: product.price,
+      commission: product.price * 0.05, // 5% typical commission
+    };
+  } catch (error) {
+    console.error('[ML Affiliate] Failed to get product details:', error);
     return null;
   }
-
-  const trackingUrl = generateTrackingUrl(product.permalink, trackingId, options);
-
-  return {
-    originalUrl: product.permalink,
-    trackingUrl,
-    productId: product.id,
-    title: product.title,
-    price: product.price,
-    commission: product.price * 0.05, // 5% typical commission
-  };
 }
 
 /**
@@ -168,31 +132,9 @@ export async function getBestSellersWithAffiliateLinks(
   limit: number = 10
 ): Promise<AffiliateLink[]> {
   try {
-    const token = await getValidAccessToken();
+    const items = await getBestSellers();
 
-    const response = await fetch(
-      `${ML_API_BASE}/sites/MLB/best_sellers?limit=${limit}&attributes=id,title,price,permalink`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const data = await response.json();
-    const items = data.items || data.results || [];
-
-    return items.map((item: {
-      id: string;
-      title: string;
-      price: number;
-      permalink: string;
-    }) => ({
+    return items.slice(0, limit).map((item: MLProduct) => ({
       originalUrl: item.permalink,
       trackingUrl: generateTrackingUrl(item.permalink, trackingId),
       productId: item.id,
@@ -218,40 +160,12 @@ export async function searchProductsWithAffiliateLinks(
   }
 ): Promise<AffiliateLink[]> {
   try {
-    const token = await getValidAccessToken();
-
-    const params = new URLSearchParams({
-      q: query,
-      limit: String(options?.limit || 10),
+    const result = await searchProducts(query, {
+      category: options?.category,
+      limit: options?.limit || 10,
     });
 
-    if (options?.category) {
-      params.set('category', options.category);
-    }
-
-    const response = await fetch(
-      `${ML_API_BASE}/sites/MLB/search?${params.toString()}&attributes=id,title,price,permalink`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const data = await response.json();
-    const items = data.results || [];
-
-    return items.map((item: {
-      id: string;
-      title: string;
-      price: number;
-      permalink: string;
-    }) => ({
+    return result.results.map((item: MLProduct) => ({
       originalUrl: item.permalink,
       trackingUrl: generateTrackingUrl(item.permalink, trackingId),
       productId: item.id,

@@ -28,11 +28,8 @@ function createOpenRouterProvider(): LLMProvider | null {
     },
   });
 
-  for (const model of OPENROUTER_FREE_MODELS) {
-    return { client, model, provider: 'openrouter' };
-  }
-
-  return { client, model: 'xiaomi/mimo-v2.5', provider: 'openrouter' };
+  const model = OPENROUTER_FREE_MODELS[0] || 'xiaomi/mimo-v2.5';
+  return { client, model, provider: 'openrouter' };
 }
 
 function createGeminiProvider(): LLMProvider | null {

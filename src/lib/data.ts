@@ -8,35 +8,6 @@ import {
 import { reviews as staticReviews } from '@/data/reviews';
 import type { Review, ViralArticle, Category } from './types';
 
-function normalizeReview(raw: Review): Review {
-  const r = { ...raw };
-
-  if (typeof r.compare_table === 'string') {
-    try { r.compare_table = JSON.parse(r.compare_table as string); } catch { r.compare_table = { rows: [], caption: '', columns: [], winnerCol: 0 }; }
-  }
-  if (r.compare_table && typeof r.compare_table === 'object') {
-    if (typeof r.compare_table.rows === 'string') {
-      try { r.compare_table.rows = JSON.parse(r.compare_table.rows as string); } catch { r.compare_table.rows = []; }
-    }
-    r.compare_table.rows = (r.compare_table.rows || []).map((row: any) => ({
-      ...row,
-      values: typeof row.values === 'string' ? (() => { try { return JSON.parse(row.values); } catch { return []; } })() : (row.values || []),
-    }));
-    if (typeof r.compare_table.columns === 'string') {
-      try { r.compare_table.columns = JSON.parse(r.compare_table.columns as string); } catch { r.compare_table.columns = []; }
-    }
-  }
-
-  for (const field of ['hero_bars', 'specs', 'sections', 'pros', 'cons', 'testimonials', 'faq'] as const) {
-    if (typeof r[field] === 'string') {
-      try { (r as any)[field] = JSON.parse(r[field] as string); } catch { (r as any)[field] = []; }
-    }
-    if (!Array.isArray(r[field])) (r as any)[field] = [];
-  }
-
-  return r;
-}
-
 function normalizeStaticReviews(): Review[] {
   return staticReviews.map((r) => ({
     slug: r.slug,
@@ -84,7 +55,7 @@ function normalizeStaticReviews(): Review[] {
 export async function fetchAllReviews(): Promise<Review[]> {
   try {
     const reviews = await getAllReviews();
-    if (reviews && reviews.length > 0) return reviews.map(normalizeReview);
+    if (reviews && reviews.length > 0) return reviews;
   } catch {
     // Supabase not available, fall back to static
   }
@@ -94,7 +65,7 @@ export async function fetchAllReviews(): Promise<Review[]> {
 export async function fetchReviewBySlug(slug: string): Promise<Review | null> {
   try {
     const review = await getReviewBySlug(slug);
-    if (review) return normalizeReview(review);
+    if (review) return review;
   } catch {
     // Supabase not available
   }

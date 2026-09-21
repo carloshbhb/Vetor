@@ -6,7 +6,7 @@ import { getValidAccessToken, hasValidSession } from '@/lib/mercadolivre-auth';
  * GET /api/ml/test - Tests API access and returns results
  */
 export async function GET(request: NextRequest) {
-  if (!hasValidSession()) {
+  if (!(await hasValidSession())) {
     return NextResponse.json({
       error: 'Not authenticated',
       message: 'Visit /api/ml/auth first to authorize',

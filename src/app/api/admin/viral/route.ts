@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllViralArticles, createViralArticle, deleteViralArticle } from '@/lib/supabase';
+import { verifyAdminAuth } from '@/lib/admin-auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
   try {
     const articles = await getAllViralArticles();
     return NextResponse.json(articles, { status: 200 });
@@ -12,6 +15,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
   try {
     const body = await request.json();
 
@@ -46,6 +51,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
   try {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get('slug');

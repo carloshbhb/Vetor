@@ -3,16 +3,10 @@
  * Documentation: https://developers.mercadolivre.com.br/en_us/authentication-and-authorization
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServiceKeyClient } from './supabase';
 
 const ML_AUTH_URL = 'https://auth.mercadolivre.com.br';
 const ML_TOKEN_URL = 'https://api.mercadolibre.com/oauth/token';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-);
 
 export interface MLTokenResponse {
   access_token: string;
@@ -35,12 +29,13 @@ export interface MLSession {
  */
 export function getAuthorizationUrl(redirectUri: string): string {
   const clientId = process.env.ML_CLIENT_ID;
+  const state = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
 
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: clientId || '',
     redirect_uri: redirectUri,
-    state: redirectUri,
+    state,
   });
 
   return `${ML_AUTH_URL}/authorization?${params.toString()}`;
@@ -164,6 +159,11 @@ export async function saveSession(tokenResponse: MLTokenResponse): Promise<MLSes
 
   if (session.userId) {
     console.log('[ML Auth] Saving session for user:', session.userId);
+    const supabase = getSupabaseServiceKeyClient();
+    if (!supabase) {
+      console.error('[ML Auth] Supabase client not available');
+      return session;
+    }
     const { data, error } = await supabase
       .from('ml_tokens')
       .upsert({
@@ -191,6 +191,9 @@ export async function saveSession(tokenResponse: MLTokenResponse): Promise<MLSes
  * Load session from Supabase
  */
 async function loadSessionFromSupabase(): Promise<MLSession | null> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('ml_tokens')
     .select('*')

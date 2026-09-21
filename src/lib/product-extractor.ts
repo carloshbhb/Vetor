@@ -1,12 +1,6 @@
 import { JSDOM } from 'jsdom';
 import { hasValidSession, getValidAccessToken } from './mercadolivre-auth';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-);
+import { getSupabaseServiceKeyClient } from './supabase';
 
 export interface ProductData {
   title: string;
@@ -374,6 +368,9 @@ export function generateAffiliateUrl(originalUrl: string, marketplace: ProductDa
  */
 export async function getAffiliateLink(productUrl: string): Promise<string | null> {
   try {
+    const supabase = getSupabaseServiceKeyClient();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('ml_affiliate_links')
       .select('tracking_url, short_url')
@@ -397,6 +394,9 @@ export async function getAffiliateLink(productUrl: string): Promise<string | nul
  */
 export async function getRandomAffiliateLink(category?: string): Promise<string | null> {
   try {
+    const supabase = getSupabaseServiceKeyClient();
+    if (!supabase) return null;
+
     let query = supabase
       .from('ml_affiliate_links')
       .select('tracking_url, short_url')

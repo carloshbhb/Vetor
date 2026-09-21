@@ -21,7 +21,7 @@ export function getSupabaseClient(): SupabaseClient | null {
 export function getSupabaseServiceKeyClient(): SupabaseClient | null {
   if (serviceClient) return serviceClient;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   if (!url || !serviceKey) return null;
 
   serviceClient = createClient(url, serviceKey);
@@ -204,7 +204,8 @@ export async function getAllReviews(): Promise<Review[]> {
     if (!first || typeof first.slug !== 'string') return [];
 
     return data.map(normalizeReviewFields) as Review[];
-  } catch {
+  } catch (err) {
+    console.error('[Supabase] getAllReviews error:', err);
     return [];
   }
 }
@@ -224,7 +225,8 @@ export async function getReviewBySlug(slug: string): Promise<Review | null> {
     if (typeof data.slug !== 'string') return null;
 
     return normalizeReviewFields(data) as Review;
-  } catch {
+  } catch (err) {
+    console.error('[Supabase] getReviewBySlug error:', err);
     return null;
   }
 }
@@ -245,7 +247,8 @@ export async function getAllViralArticles(): Promise<ViralArticle[]> {
     if (!first || typeof first.slug !== 'string') return [];
 
     return data as ViralArticle[];
-  } catch {
+  } catch (err) {
+    console.error('[Supabase] getAllViralArticles error:', err);
     return [];
   }
 }
@@ -265,7 +268,8 @@ export async function getViralArticleBySlug(slug: string): Promise<ViralArticle 
     if (typeof data.slug !== 'string') return null;
 
     return data as ViralArticle;
-  } catch {
+  } catch (err) {
+    console.error('[Supabase] getViralArticleBySlug error:', err);
     return null;
   }
 }
@@ -284,7 +288,8 @@ export async function getReviewsByCategory(category: string): Promise<Review[]> 
 
     if (error || !data) return [];
     return data.map(normalizeReviewFields) as Review[];
-  } catch {
+  } catch (err) {
+    console.error('[Supabase] getReviewsByCategory error:', err);
     return [];
   }
 }
@@ -312,7 +317,8 @@ export async function getCategories(): Promise<Category[]> {
     return Object.entries(counts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
-  } catch {
+  } catch (err) {
+    console.error('[Supabase] getCategories error:', err);
     return [];
   }
 }
@@ -328,8 +334,9 @@ export async function updateReviewScore(slug: string, score: number): Promise<{ 
       .eq('slug', slug);
 
     return { error: error?.message ?? null };
-  } catch {
-    return { error: null };
+  } catch (err) {
+    console.error('[Supabase] updateReviewScore error:', err);
+    return { error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -344,8 +351,9 @@ export async function deleteReview(slug: string): Promise<{ error: string | null
       .eq('slug', slug);
 
     return { error: error?.message ?? null };
-  } catch {
-    return { error: null };
+  } catch (err) {
+    console.error('[Supabase] deleteReview error:', err);
+    return { error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -360,7 +368,8 @@ export async function deleteViralArticle(slug: string): Promise<{ error: string 
       .eq('slug', slug);
 
     return { error: error?.message ?? null };
-  } catch {
-    return { error: null };
+  } catch (err) {
+    console.error('[Supabase] deleteViralArticle error:', err);
+    return { error: err instanceof Error ? err.message : String(err) };
   }
 }

@@ -25,10 +25,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const redirectUri = `${request.nextUrl.origin}/api/ml/callback`;
+    const redirectUri = process.env.ML_REDIRECT_URI || `${request.nextUrl.origin}/api/ml/callback`;
     console.log('[ML OAuth] Exchanging code for token...');
-    console.log('[ML OAuth] Has SUPABASE_SERVICE_ROLE_KEY:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+    console.log('[ML OAuth] Redirect URI:', redirectUri);
     console.log('[ML OAuth] Has ML_CLIENT_ID:', !!process.env.ML_CLIENT_ID);
+    console.log('[ML OAuth] Has ML_CLIENT_SECRET:', !!process.env.ML_CLIENT_SECRET);
 
     const tokenResponse = await exchangeCodeForToken(code, redirectUri);
     console.log('[ML OAuth] Token received, user_id:', tokenResponse.user_id);
@@ -41,8 +42,9 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error('[ML OAuth] Token exchange failed:', error);
+    const detail = error instanceof Error ? error.message : String(error);
     return NextResponse.redirect(
-      new URL('/admin?error=ml_token_exchange_failed', request.url)
+      new URL(`/admin?error=ml_token_exchange_failed&detail=${encodeURIComponent(detail)}`, request.url)
     );
   }
 }

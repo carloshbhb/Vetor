@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { getValidAccessToken } from '@/lib/mercadolivre-auth';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-);
+import { getSupabaseServiceKeyClient } from '@/lib/supabase';
 
 /**
  * GET /api/ml/affiliates - List affiliate links
  * POST /api/ml/affiliates - Add new affiliate link
  */
 export async function GET(request: NextRequest) {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const status = searchParams.get('status') || 'active';
   const category = searchParams.get('category');
@@ -40,6 +39,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getSupabaseServiceKeyClient();
+    if (!supabase) {
+      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
+    }
+
     const body = await request.json();
     const { productUrl, trackingUrl, shortUrl, campaign } = body;
 

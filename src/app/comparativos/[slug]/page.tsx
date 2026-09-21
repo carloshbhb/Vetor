@@ -6,6 +6,7 @@ import AuthorBox from "@/components/AuthorBox";
 import ScoreBadge from "@/components/ScoreBadge";
 import { OrganizationSchema, BreadcrumbSchema } from "@/components/SchemaMarkup";
 import { fetchViralArticleBySlug, fetchAllViralArticles } from "@/lib/data";
+import { sanitizeHtml } from "@/lib/sanitize";
 import type { ViralArticle } from '@/lib/types';
 
 export default async function ViralArticlePage({
@@ -112,7 +113,7 @@ export default async function ViralArticlePage({
           )}
 
           {article.content && (
-            <div className="prose mb-8" dangerouslySetInnerHTML={{ __html: article.content }} />
+            <div className="prose mb-8" dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }} />
           )}
 
           {article.products && article.products.length > 0 && (

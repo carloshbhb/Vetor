@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllReviews, getAllViralArticles } from '@/lib/supabase';
+import { verifyAdminAuth } from '@/lib/admin-auth';
 
 interface VideoJob {
   id: string;
@@ -30,7 +31,9 @@ async function generateComparisonVideo(products: { name: string; image: string; 
   return { url: `${baseUrl}/videos/${filename}`, filename };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
   try {
     const reviews = await getAllReviews();
     const articles = await getAllViralArticles();
@@ -67,6 +70,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
   try {
     const body = await request.json();
     const type = body.type;

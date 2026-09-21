@@ -1,15 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createReview, createViralArticle, getAllReviews } from "@/lib/supabase";
 import { generateReview } from "@/lib/generate";
 import { generateViralArticle } from "@/lib/generate-viral";
 import { resolveProductImage } from "@/lib/image-resolver";
 import { fetchBestSellers } from "@/lib/product-extractor";
+import { verifyAdminAuth } from "@/lib/admin-auth";
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
   try {
     const results: string[] = [];
 
