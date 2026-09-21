@@ -56,16 +56,16 @@ export async function exchangeCodeForToken(
   }
 
   console.log('[ML Auth] Exchanging code for token...');
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
   const response = await fetch(ML_TOKEN_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Accept': 'application/json',
+      'Authorization': `Basic ${credentials}`,
     },
     body: new URLSearchParams({
       grant_type: 'authorization_code',
-      client_id: clientId,
-      client_secret: clientSecret,
       code: code,
       redirect_uri: redirectUri,
     }),
@@ -90,16 +90,16 @@ export async function refreshAccessToken(refreshToken: string): Promise<MLTokenR
     throw new Error('ML_CLIENT_ID and ML_CLIENT_SECRET must be set');
   }
 
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
   const response = await fetch(ML_TOKEN_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Accept': 'application/json',
+      'Authorization': `Basic ${credentials}`,
     },
     body: new URLSearchParams({
       grant_type: 'refresh_token',
-      client_id: clientId,
-      client_secret: clientSecret,
       refresh_token: refreshToken,
     }),
   });
