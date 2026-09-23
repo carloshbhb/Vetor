@@ -1,19 +1,47 @@
 import Image from "next/image";
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import AuthorBox from "@/components/AuthorBox";
 import ScoreBadge from "@/components/ScoreBadge";
-import { OrganizationSchema, BreadcrumbSchema } from "@/components/SchemaMarkup";
+import { BreadcrumbSchema } from "@/components/SchemaMarkup";
 import { fetchViralArticleBySlug, fetchAllViralArticles } from "@/lib/data";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { generateViralArticleSchema } from "@/lib/seo";
 import type { ViralArticle } from '@/lib/types';
+
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const article = await fetchViralArticleBySlug(slug);
+  if (!article) return { title: "Comparativo não encontrado" };
+  const url = `https://www.vetor.blog/comparativos/${article.slug}`;
+  return {
+    title: article.title,
+    description: article.description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: article.title,
+      description: article.description,
+      url,
+      type: "article",
+      images: article.hero?.imageUrl ? [article.hero.imageUrl] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description: article.description,
+    },
+  };
+}
 
 export default async function ViralArticlePage({
   params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+}: PageProps) {
   const { slug } = await params;
   const article = await fetchViralArticleBySlug(slug);
 
@@ -33,9 +61,14 @@ export default async function ViralArticlePage({
   const related = await fetchAllViralArticles();
   const relatedFiltered = related.filter((a) => a.slug !== article.slug).slice(0, 2);
 
+  const articleSchema = generateViralArticleSchema(article);
+
   return (
     <>
-      <OrganizationSchema />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
       <BreadcrumbSchema
         items={[
           { name: 'Comparativos', url: 'https://www.vetor.blog/comparativos' },
@@ -69,6 +102,7 @@ export default async function ViralArticlePage({
                 src={article.hero.imageUrl}
                 alt={article.title}
                 fill
+                sizes="(max-width: 680px) 100vw, 680px"
                 className="object-cover"
                 style={{ objectPosition: 'center 30%' }}
               />
@@ -125,7 +159,7 @@ export default async function ViralArticlePage({
                 {article.products.map((product) => (
                   <div key={product.slug} className="bg-[var(--surface)] border border-border rounded-xl p-5 text-center">
                     {product.imageUrl && (
-                      <Image src={product.imageUrl} alt={product.name} className="h-16 object-contain mx-auto mb-3" />
+                      <Image src={product.imageUrl} alt={product.name} width={64} height={64} className="h-16 w-16 object-contain mx-auto mb-3" />
                     )}
                     <p className="text-sm font-heading font-bold text-[var(--text)]">{product.name}</p>
                   </div>
@@ -160,7 +194,7 @@ export default async function ViralArticlePage({
                   >
                     {r.hero?.imageUrl && (
                       <div className="relative h-[180px] overflow-hidden">
-                        <Image src={r.hero.imageUrl} alt={r.title} fill className="object-cover transition-transform duration-400 group-hover:scale-105" />
+                        <Image src={r.hero.imageUrl} alt={r.title} fill sizes="(max-width: 640px) 100vw, 340px" className="object-cover transition-transform duration-400 group-hover:scale-105" />
                       </div>
                     )}
                     <div className="p-5">

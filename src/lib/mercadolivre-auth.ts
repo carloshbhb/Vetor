@@ -65,8 +65,9 @@ export async function exchangeCodeForToken(
       'Authorization': `Basic ${credentials}`,
     },
     body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
     }),
   });
 

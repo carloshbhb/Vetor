@@ -6,13 +6,13 @@
   --color-surface: #F0F5FF;
   --color-surface2: #E8EEFF;
   --color-ink: #111827;
-  --color-body: #4B5563;
-  --color-muted: #9CA3AF;
+  --color-body: #374151;
+  --color-muted: #555F6E;
   --color-blue: #1D4ED8;
   --color-blue-lt: #EFF6FF;
   --color-cta: #EA580C;
   --color-cta-dk: #C2410C;
-  --color-green: #059669;
+  --color-green: #047857;
   --color-red: #DC2626;
   --color-amber: #D97706;
   --color-border: #E5E7EB;
@@ -413,13 +413,13 @@ a { color: inherit; text-decoration: none; }
 }
 .btn-cta {
   display: inline-flex; align-items: center; gap: 10px;
-  background: var(--cta); color: #fff;
+  background: var(--cta-dk); color: #fff;
   padding: 15px 32px; border-radius: 6px;
   font-family: var(--font-heading); font-weight: 800;
   font-size: 0.9rem; letter-spacing: 0.03em;
   text-decoration: none; transition: background 0.15s;
 }
-.btn-cta:hover { background: var(--cta-dk); }
+.btn-cta:hover { background: #9A3412; }
 .btn-cta svg { width: 16px; height: 16px; }
 .btn-sec {
   font-family: var(--font-heading); font-size: 0.8rem; font-weight: 700;
@@ -435,8 +435,13 @@ a { color: inherit; text-decoration: none; }
 .who-col-title {
   font-family: var(--font-heading); font-weight: 800;
   font-size: 0.8rem; letter-spacing: 0.06em;
-  margin-bottom: 14px; opacity: 0.7;
+  margin-bottom: 14px; opacity: 0.85;
 }
+.who-col-heading {
+  font-family: var(--font-display); font-size: 1.8rem;
+  line-height: 1; margin-bottom: 14px; color: #fff;
+}
+.who-col h2.who-col-heading,
 .who-col h3 {
   font-family: var(--font-display); font-size: 1.8rem;
   line-height: 1; margin-bottom: 14px; color: #fff;
@@ -458,7 +463,7 @@ a { color: inherit; text-decoration: none; }
 .scores-head { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center; margin-bottom: 48px; }
 .scores-head-text .sec-label { color: #93C5FD; border-bottom-color: #93C5FD; }
 .scores-head-text .sec-h { color: #fff; margin-bottom: 6px; }
-.scores-head-text p { color: rgba(255,255,255,0.55); font-size: 0.88rem; font-weight: 300; }
+.scores-head-text p { color: rgba(255,255,255,0.8); font-size: 0.88rem; font-weight: 300; }
 .big-score { text-align: center; }
 .big-score-num {
   font-family: var(--font-display); font-size: 7rem;
@@ -466,7 +471,7 @@ a { color: inherit; text-decoration: none; }
 }
 .big-score-label {
   font-family: var(--font-heading); font-size: 0.72rem; font-weight: 700;
-  color: rgba(255,255,255,0.45); letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.6); letter-spacing: 0.1em;
 }
 
 /* ============================================================
@@ -563,13 +568,13 @@ a { color: inherit; text-decoration: none; }
 .verdict-content .sec-label { color: #93C5FD; border-bottom-color: #93C5FD; }
 .verdict-content .sec-h { color: #fff; font-size: clamp(1.8rem, 3vw, 2.8rem); }
 .verdict-text {
-  font-size: 1rem; color: rgba(255,255,255,0.65);
+  font-size: 1rem; color: rgba(255,255,255,0.85);
   font-weight: 300; line-height: 1.9; max-width: 620px; margin-bottom: 28px;
 }
 .verdict-text strong { color: #fff; font-weight: 500; }
 .verdict-mini-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 32px; }
 .vms-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 14px; }
-.vms-label { font-family: var(--font-heading); font-size: 0.65rem; font-weight: 700; color: rgba(255,255,255,0.45); margin-bottom: 4px; }
+.vms-label { font-family: var(--font-heading); font-size: 0.65rem; font-weight: 700; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
 .vms-val { font-family: var(--font-display); font-size: 1.8rem; color: var(--amber); line-height: 1; }
 
 /* ============================================================
@@ -699,7 +704,7 @@ a { color: inherit; text-decoration: none; }
    FOOTER
 ============================================================ */
 .footer {
-  background: var(--ink); color: rgba(255,255,255,0.5);
+  background: var(--ink); color: rgba(255,255,255,0.75);
   padding: 48px 32px; text-align: center;
 }
 .footer-inner { max-width: 760px; margin: 0 auto; }
@@ -719,10 +724,10 @@ a { color: inherit; text-decoration: none; }
   gap: 6px; margin-top: 16px;
 }
 .footer-links a {
-  font-size: 0.75rem; color: rgba(255,255,255,0.4);
+  font-size: 0.75rem; color: rgba(255,255,255,0.75);
   text-decoration: none; transition: color 0.2s;
 }
-.footer-links a:hover { color: rgba(255,255,255,0.7); }
+.footer-links a:hover { color: #fff; }
 .footer-copy {
   font-size: 0.75rem; line-height: 1.8; font-weight: 300;
   margin-top: 12px;

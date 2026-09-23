@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   description:
     "Reviews profissionais, comparativos e recomendações de compra. Escolha com confiança.",
   metadataBase: new URL("https://www.vetor.blog"),
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "vetor.blog",
     description: "Reviews e comparativos modernos.",
@@ -44,6 +47,27 @@ export default function RootLayout({
       <head>
         <OrganizationSchema />
         <WebSiteSchema />
+        <link
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          href="/_next/static/media/6c25f6e897d845a3-s.p.woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          href="/_next/static/media/8a1d8947e5852e30-s.p.woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          href="/_next/static/media/13971731025ec697-s.p.woff2"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className="antialiased">{children}</body>
     </html>

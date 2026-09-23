@@ -286,6 +286,10 @@ export default function VideoPanel() {
                             src={video.product_image_url}
                             alt={video.product_title}
                             className="w-16 h-16 object-cover rounded-lg"
+                            loading="lazy"
+                            decoding="async"
+                            width="64"
+                            height="64"
                           />
                           <div>
                             <p className="font-medium text-gray-900 truncate max-w-xs">{video.product_title}</p>

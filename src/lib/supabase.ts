@@ -194,7 +194,7 @@ export async function getAllReviews(): Promise<Review[]> {
   try {
     const { data, error } = await supabase
       .from('reviews')
-      .select('*')
+      .select('slug,status,product,category,marketplace,price_old,price_new,affiliate_url,image_url,ads_enabled,meta_title,meta_description,meta_keywords,meta_reading_time,meta_canonical,meta_og_image,hero_headline_line1,hero_headline_line2,hero_headline_em,hero_lead,hero_overall_score,hero_bars,specs,sections,compare_table,pros,cons,testimonials,verdict_score,verdict_label,verdict_text,verdict_note,schema_rating_value,schema_review_count,google_rank,last_rank_check,created_at,updated_at,faq')
       .eq('status', 'published')
       .order('created_at', { ascending: false });
 
@@ -217,7 +217,7 @@ export async function getReviewBySlug(slug: string): Promise<Review | null> {
   try {
     const { data, error } = await supabase
       .from('reviews')
-      .select('*')
+      .select('slug,status,product,category,marketplace,price_old,price_new,affiliate_url,image_url,ads_enabled,meta_title,meta_description,meta_keywords,meta_reading_time,meta_canonical,meta_og_image,hero_headline_line1,hero_headline_line2,hero_headline_em,hero_lead,hero_overall_score,hero_bars,specs,sections,compare_table,pros,cons,testimonials,verdict_score,verdict_label,verdict_text,verdict_note,schema_rating_value,schema_review_count,google_rank,last_rank_check,created_at,updated_at,faq')
       .eq('slug', slug)
       .single();
 
@@ -238,7 +238,7 @@ export async function getAllViralArticles(): Promise<ViralArticle[]> {
   try {
     const { data, error } = await supabase
       .from('viral_articles')
-      .select('*')
+      .select('id,slug,title,description,category,content,hero,products,seo_title,seo_description,published_at,updated_at,created_at')
       .order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) return [];

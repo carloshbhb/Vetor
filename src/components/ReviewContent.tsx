@@ -27,7 +27,7 @@ export default function ReviewContent({ sections }: ReviewContentProps) {
                     if (trimmed.startsWith("![") && trimmed.includes("](")) {
                       const match = trimmed.match(/!\[(.*?)\]\((.*?)\)/);
                       if (match) {
-                        return `<figure class="article-img"><img src="${match[2]}" alt="${match[1]}" loading="lazy" /><figcaption>${match[1]}</figcaption></figure>`;
+                        return `<figure class="article-img"><img src="${match[2]}" alt="${match[1]}" loading="lazy" decoding="async" width="800" height="450" /><figcaption>${match[1]}</figcaption></figure>`;
                       }
                     }
                     return `<p>${trimmed.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")}</p>`;

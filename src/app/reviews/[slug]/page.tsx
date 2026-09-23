@@ -26,13 +26,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const review = await fetchReviewBySlug(slug);
   if (!review) return { title: "Review não encontrado" };
+  const url = `https://www.vetor.blog/reviews/${review.slug}`;
   return {
     title: review.meta_title || review.product,
     description: review.meta_description || review.hero_lead,
+    alternates: { canonical: url },
     openGraph: {
       title: review.meta_title || review.product,
       description: review.meta_description || review.hero_lead,
+      url,
+      type: "article",
       images: review.image_url ? [review.image_url] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: review.meta_title || review.product,
+      description: review.meta_description || review.hero_lead,
     },
   };
 }
@@ -188,7 +197,7 @@ export default async function ReviewPage({ params }: PageProps) {
             {review.pros.length > 0 && (
               <div className="who-col">
                 <div className="who-col-title">PARA QUEM É IDEAL</div>
-                <h3>Compre se você busca…</h3>
+                <h2 className="who-col-heading">Compre se você busca…</h2>
                 <ul className="who-list yes">
                   {review.pros.slice(0, 6).map((p, i) => (
                     <li key={i}>{p}</li>
@@ -199,7 +208,7 @@ export default async function ReviewPage({ params }: PageProps) {
             {review.cons.length > 0 && (
               <div className="who-col">
                 <div className="who-col-title">PARA QUEM NÃO É</div>
-                <h3>Pule se você precisa de…</h3>
+                <h2 className="who-col-heading">Pule se você precisa de…</h2>
                 <ul className="who-list no">
                   {review.cons.slice(0, 6).map((c, i) => (
                     <li key={i}>{c}</li>
@@ -423,7 +432,7 @@ export default async function ReviewPage({ params }: PageProps) {
               <div className="guarantee-band">
                 <div className="guarantee-seal">🛡️</div>
                 <div className="guarantee-text">
-                  <h4>Compra 100% protegida</h4>
+                  <h3>Compra 100% protegida</h3>
                   <p>Garantia de devolução e produto original. Você conta com suporte completo.</p>
                 </div>
               </div>
