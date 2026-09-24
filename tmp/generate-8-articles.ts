@@ -32,7 +32,7 @@ interface ViralInput {
   comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
 }
 
-const SITE_URL = 'https://vetor.blog';
+const SITE_URL = 'https://www.vetor.blog';
 
 async function submitToIndexNow(url: string): Promise<void> {
   try {

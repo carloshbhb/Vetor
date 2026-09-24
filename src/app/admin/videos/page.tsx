@@ -23,7 +23,11 @@ export default function AdminVideosPage() {
 
   const fetchJobs = async () => {
     try {
-      const res = await fetch("/api/admin/videos");
+      const res = await fetch("/api/admin/videos", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("vetor_admin_auth") || ""}`,
+        },
+      });
       const data = await res.json();
       setJobs(data.jobs || []);
       setStats({ total: data.totalJobs || 0, completed: data.completed || 0, failed: data.failed || 0 });
@@ -34,7 +38,14 @@ export default function AdminVideosPage() {
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      await fetch("/api/admin/videos", { method: "POST", body: JSON.stringify({ type: "all" }) });
+      await fetch("/api/admin/videos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("vetor_admin_auth") || ""}`,
+        },
+        body: JSON.stringify({ type: "all" }),
+      });
       await fetchJobs();
     } catch {}
     setGenerating(false);

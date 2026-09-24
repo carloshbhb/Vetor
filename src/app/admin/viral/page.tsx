@@ -20,7 +20,17 @@ export default function AdminViralPage() {
     if (!confirm(`Tem certeza que deseja excluir o artigo "${slug}"?`)) return;
     setDeleting(slug);
     try {
-      await fetch(`/api/admin/viral?slug=${encodeURIComponent(slug)}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/viral?slug=${encodeURIComponent(slug)}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("vetor_admin_auth") || ""}`,
+        },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Erro ao excluir artigo.");
+        return;
+      }
       setArticles((prev) => prev.filter((a) => a.slug !== slug));
     } catch {
       alert("Erro ao excluir artigo.");

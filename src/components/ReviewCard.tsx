@@ -25,7 +25,7 @@ export default function ReviewCard({ review }: { review: Review }) {
             alt={review.product}
             fill
             style={{ objectFit: "cover", transition: "transform 0.4s" }}
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 340px"
           />
           <span style={{
             position: "absolute", top: 12, left: 12,

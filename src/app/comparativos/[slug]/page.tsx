@@ -1,4 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -20,21 +22,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const article = await fetchViralArticleBySlug(slug);
   if (!article) return { title: "Comparativo não encontrado" };
   const url = `https://www.vetor.blog/comparativos/${article.slug}`;
+  const title = article.title.includes("Comparativo") ? article.title : `Comparativo: ${article.title}`;
+  const description =
+    article.description ||
+    `Comparativo ${article.title}: especificações, preços e veredicto para escolher o melhor produto.`;
   return {
-    title: article.title,
-    description: article.description,
+    title,
+    description,
     alternates: { canonical: url },
     openGraph: {
-      title: article.title,
-      description: article.description,
+      title,
+      description,
       url,
       type: "article",
       images: article.hero?.imageUrl ? [article.hero.imageUrl] : [],
     },
     twitter: {
       card: "summary_large_image",
-      title: article.title,
-      description: article.description,
+      title,
+      description,
     },
   };
 }
@@ -45,18 +51,7 @@ export default async function ViralArticlePage({
   const { slug } = await params;
   const article = await fetchViralArticleBySlug(slug);
 
-  if (!article) {
-    return (
-      <>
-        <Navbar />
-        <main className="container py-20">
-          <h1 className="font-display text-3xl">Comparativo não encontrado</h1>
-          <p className="text-[var(--muted)] mt-2">O comparativo que você procura não existe.</p>
-        </main>
-        <Footer />
-      </>
-    );
-  }
+  if (!article) notFound();
 
   const related = await fetchAllViralArticles();
   const relatedFiltered = related.filter((a) => a.slug !== article.slug).slice(0, 2);
@@ -157,11 +152,21 @@ export default async function ViralArticlePage({
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {article.products.map((product) => (
-                  <div key={product.slug} className="bg-[var(--surface)] border border-border rounded-xl p-5 text-center">
+                  <div key={product.slug || product.name} className="bg-[var(--surface)] border border-border rounded-xl p-5 text-center">
                     {product.imageUrl && (
-                      <Image src={product.imageUrl} alt={product.name} width={64} height={64} className="h-16 w-16 object-contain mx-auto mb-3" />
+                      <Image src={product.imageUrl} alt={product.name} width={64} height={64} sizes="64px" className="h-16 w-16 object-contain mx-auto mb-3" />
                     )}
-                    <p className="text-sm font-heading font-bold text-[var(--text)]">{product.name}</p>
+                    {product.slug ? (
+                      <Link
+                        href={`/reviews/${product.slug}`}
+                        className="text-sm font-heading font-bold text-[var(--text)] hover:text-[var(--amber)] transition-colors"
+                        style={{ textDecoration: "none" }}
+                      >
+                        {product.name}
+                      </Link>
+                    ) : (
+                      <p className="text-sm font-heading font-bold text-[var(--text)]">{product.name}</p>
+                    )}
                   </div>
                 ))}
               </div>

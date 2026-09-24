@@ -1,4 +1,3 @@
-import Image from "next/image";
 import type { ReviewSpec } from "@/lib/types";
 
 type SpecTableProps = {

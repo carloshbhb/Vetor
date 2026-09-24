@@ -160,7 +160,7 @@ export async function processVideoPipeline(videoId: string): Promise<{ success: 
       media_assets: mediaAssets,
     });
 
-    const publicBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+    const publicBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
 const mediaForRemotion = await prepareMediaForRemotion(mediaAssets, publicBaseUrl);
 const subtitles = scriptToSubtitles(script);
 

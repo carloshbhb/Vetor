@@ -8,10 +8,13 @@ import ScoreBars from "@/components/ScoreBars";
 import ProsCons from "@/components/ProsCons";
 import SpecTable from "@/components/SpecTable";
 import Reveal from "@/components/Reveal";
-import { ReviewSchema } from "@/components/SchemaMarkup";
+import ReviewContent from "@/components/ReviewContent";
+import { ReviewSchema, FAQSchema, BreadcrumbSchema } from "@/components/SchemaMarkup";
 import { fetchReviewBySlug, fetchAllReviews } from "@/lib/data";
 import type { Review } from "@/lib/types";
 import StickyReviewNav from "@/components/StickyReviewNav";
+import AuthorBox from "@/components/AuthorBox";
+import { primaryAuthor } from "@/data/authors";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -27,23 +30,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const review = await fetchReviewBySlug(slug);
   if (!review) return { title: "Review não encontrado" };
   const url = `https://www.vetor.blog/reviews/${review.slug}`;
+  const title = review.meta_title || `Review: ${review.product}`;
+  const description =
+    review.meta_description ||
+    review.hero_lead ||
+    `Review independente do ${review.product}: nota, prós, contras e onde comprar.`;
   return {
-    title: review.meta_title || review.product,
-    description: review.meta_description || review.hero_lead,
+    title,
+    description,
     alternates: { canonical: url },
     openGraph: {
-      title: review.meta_title || review.product,
-      description: review.meta_description || review.hero_lead,
+      title,
+      description,
       url,
       type: "article",
       images: review.image_url ? [review.image_url] : [],
     },
     twitter: {
       card: "summary_large_image",
-      title: review.meta_title || review.product,
-      description: review.meta_description || review.hero_lead,
+      title,
+      description,
     },
   };
+}
+
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function generateVerdictText(review: Review): string {
@@ -82,6 +97,7 @@ export default async function ReviewPage({ params }: PageProps) {
   const sectionNav = [
     { id: "topo", label: "Início" },
     ...(heroBars.length > 0 ? [{ id: "avaliacao", label: "Avaliação" }] : []),
+    ...(sections.length > 0 ? [{ id: "analise", label: "Análise" }] : []),
     ...(topSpecs.length ? [{ id: "ficha-tecnica", label: "Ficha Técnica" }] : []),
     ...(testimonials.length > 0 ? [{ id: "compradores", label: "Compradores" }] : []),
     ...(review.compare_table?.rows?.length ? [{ id: "comparativo", label: "Comparativo" }] : []),
@@ -100,6 +116,14 @@ export default async function ReviewPage({ params }: PageProps) {
     <>
       <ProgressBar />
       <ReviewSchema review={review} />
+      {faq.length > 0 && <FAQSchema faqs={faq} />}
+      <BreadcrumbSchema
+        items={[
+          { name: "Início", url: "https://www.vetor.blog/" },
+          { name: "Reviews", url: "https://www.vetor.blog/reviews" },
+          { name: review.product, url: `https://www.vetor.blog/reviews/${review.slug}` },
+        ]}
+      />
 
       {/* ============================================================
            IN-PAGE STICKY NAV (replaces site Navbar on review pages)
@@ -116,7 +140,14 @@ export default async function ReviewPage({ params }: PageProps) {
       ============================================================ */}
       <section className="hero" id="topo">
         <div className="hero-left container" style={{ padding: "64px 32px 0" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 16 }}>
+          <Breadcrumbs
+            items={[
+              { label: "Início", href: "/" },
+              { label: "Reviews", href: "/reviews" },
+              { label: review.product },
+            ]}
+          />
+          <div style={{ display: "flex", alignItems: "center", gap: 20, margin: "16px 0" }}>
             {review.image_url && (
               <Image
                 src={review.image_url}
@@ -124,6 +155,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 width={80}
                 height={80}
                 style={{ borderRadius: 10, objectFit: "cover", border: "1.5px solid var(--border)" }}
+                sizes="80px"
                 priority
               />
             )}
@@ -240,6 +272,27 @@ export default async function ReviewPage({ params }: PageProps) {
             <ScoreBars bars={heroBars.map((b) => ({ label: b.label, score: b.value }))} />
           </div>
         </section>
+      )}
+
+      {/* ============================================================
+           LONG-FORM ANALYSIS (sections)
+      ============================================================ */}
+      {sections.length > 0 && (
+        <div className="content" id="analise">
+          <div className="container" style={{ paddingTop: 72, paddingBottom: 72 }}>
+            <article className="max-w-[680px]" style={{ textAlign: "left" }}>
+              <span className="sec-label">Análise completa</span>
+              <h2 className="sec-h mb-4">Nossa análise</h2>
+              <p style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 300, marginBottom: 24 }}>
+                {review.created_at && <>Publicado em {formatDate(review.created_at)}</>}
+                {review.created_at && review.updated_at && " · "}
+                {review.updated_at && <>Atualizado em {formatDate(review.updated_at)}</>}
+                {totalContentLength > 0 && <> · {readTime}</>}
+              </p>
+              <ReviewContent sections={sections} />
+            </article>
+          </div>
+        </div>
       )}
 
       {/* ============================================================
@@ -467,6 +520,24 @@ export default async function ReviewPage({ params }: PageProps) {
       )}
 
       {/* ============================================================
+           AUTHOR (E-E-A-T)
+      ============================================================ */}
+      <div className="content">
+        <div className="container" style={{ paddingTop: 72, paddingBottom: 72 }}>
+          <div style={{ maxWidth: 680 }}>
+            <AuthorBox
+              name={primaryAuthor.name}
+              role={primaryAuthor.role}
+              bio={primaryAuthor.tagline}
+              slug={primaryAuthor.slug}
+              date={review.created_at}
+              readTime={readTime}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================
            RELATED REVIEWS
       ============================================================ */}
       {related.length > 0 && (
@@ -488,7 +559,7 @@ export default async function ReviewPage({ params }: PageProps) {
                     >
                       {r.image_url && (
                         <div style={{ position: "relative", height: 180, overflow: "hidden" }}>
-                          <Image src={r.image_url} alt={r.product} fill style={{ objectFit: "cover" }} sizes="(max-width: 640px) 100vw, 33vw" />
+                          <Image src={r.image_url} alt={r.product} fill style={{ objectFit: "cover" }} sizes="(max-width: 640px) 100vw, 340px" />
                         </div>
                       )}
                       <div style={{ padding: 20 }}>

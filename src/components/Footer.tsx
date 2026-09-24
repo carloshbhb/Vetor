@@ -12,10 +12,11 @@ export default function Footer() {
           Os preços exibidos são indicativos e podem variar. Sempre confirme o valor final antes de concluir a compra.
         </p>
         <div className="footer-links">
-          <Link href="#">Política de privacidade</Link>
-          <Link href="#">Sobre o vetor.blog</Link>
-          <Link href="#">Metodologia de review</Link>
-          <Link href="#">Contato</Link>
+          <Link href="/privacidade">Política de privacidade</Link>
+          <Link href="/sobre">Sobre o vetor.blog</Link>
+          <Link href="/author">Quem escreve</Link>
+          <Link href="/metodologia">Metodologia de review</Link>
+          <Link href="/contato">Contato</Link>
         </div>
         <p className="footer-copy">© 2026 vetor.blog. Todos os direitos reservados.</p>
       </div>

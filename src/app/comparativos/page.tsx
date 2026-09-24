@@ -1,7 +1,16 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { ItemListSchema } from "@/components/SchemaMarkup";
 import { fetchAllViralArticles } from "@/lib/data";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Comparativos de Produtos — Qual Vale Mais a Pena?",
+  description:
+    "Comparativos lado a lado de fones, smartwatches, celulares e outros produtos. Veja especificações, preços e o veredicto de cada disputa.",
+  alternates: { canonical: "/comparativos" },
+};
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +19,12 @@ export default async function ComparativosPage() {
 
   return (
     <>
+      <ItemListSchema
+        items={articles.map((a) => ({
+          name: a.title,
+          url: `/comparativos/${a.slug}`,
+        }))}
+      />
       <Navbar />
       <main>
         <section className="hero" style={{ minHeight: "auto", paddingBottom: 0 }}>

@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createReview, createViralArticle } from '@/lib/supabase';
-import { generateReview } from '@/lib/generate';
+import { createViralArticle } from '@/lib/supabase';
 import { generateViralArticle } from '@/lib/generate-viral';
 import { resolveProductImage } from '@/lib/image-resolver';
 import { REVIEW_PRODUCTS, VIRAL_TOPICS } from '@/lib/seed-data';
+import { buildContentUrl, pingNewContent } from '@/lib/indexnow';
+import {
+  getNextReviewProductLink,
+  markProductLinkReviewed,
+} from '@/lib/product-links';
+import {
+  productLinkToPipelineInput,
+  runReviewPipeline,
+} from '@/lib/content-pipeline';
+
+type CronReviewStatus = 'success' | 'failed' | 'skipped';
 
 interface CronResult {
-  review?: { slug: string; status: string; error?: string };
-  viralArticle?: { slug: string; status: string; error?: string };
+  review?: { slug: string; status: CronReviewStatus; error?: string; issues?: string[] };
+  viralArticle?: { slug: string; status: CronReviewStatus; error?: string };
   timestamp: string;
 }
 
@@ -26,52 +36,49 @@ export async function GET(request: NextRequest) {
   try {
     const result: CronResult = { timestamp: new Date().toISOString() };
 
-    const product = pickRandom(REVIEW_PRODUCTS);
-    console.log(`[CRON] Generating review: ${product.title}`);
+    const backlogLink = await getNextReviewProductLink();
+    const product = backlogLink
+      ? productLinkToPipelineInput(backlogLink)
+      : (() => {
+          const seed = pickRandom(REVIEW_PRODUCTS);
+          return {
+            title: seed.title,
+            category: seed.category,
+            price: seed.price,
+            image: seed.image,
+            product_url: seed.product_url,
+            marketplace: 'mercadolivre' as const,
+          };
+        })();
 
-    try {
-      const review = await generateReview({
-        ...product,
-        product_url: product.product_url,
-        marketplace: 'mercadolivre',
-      });
-      const dbResult = await createReview({
-        slug: review.slug,
-        product: review.title,
-        category: review.category,
-        price_new: review.price,
-        image_url: review.image,
-        content: review.content,
-        meta_title: review.seo_title,
-        meta_description: review.seo_description,
-        pros: review.pros,
-        cons: review.cons,
-        hero_overall_score: review.hero_overall_score,
-        verdict_score: review.verdict_score,
-        verdict_label: review.verdict_label,
-        verdict_text: review.verdict_text,
-        verdict_note: review.verdict_note,
-        hero_bars: review.hero_bars,
-        specs: review.specs,
-        sections: review.sections,
-        compare_table: review.compare_table,
-        hero_lead: review.hero_lead,
-        hero_headline_line1: review.hero_headline_line1,
-        hero_headline_line2: review.hero_headline_line2,
-        hero_headline_em: review.hero_headline_em,
-        faq: review.faq,
-        marketplace: 'mercadolivre',
-        affiliate_url: product.product_url || review.image,
-      });
+    console.log(`[CRON] Generating review: ${product.title} (source: ${backlogLink ? 'backlog' : 'seed'})`);
 
-      if (dbResult.error) {
-        result.review = { slug: review.slug, status: 'failed', error: dbResult.error };
-      } else {
-        result.review = { slug: review.slug, status: 'success' };
+    const outcome = await runReviewPipeline(product, 'cron');
+
+    if (outcome.status === 'created') {
+      if (backlogLink) {
+        await markProductLinkReviewed(backlogLink.id, outcome.slug);
       }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      result.review = { slug: product.title, status: 'failed', error: message };
+      result.review = { slug: outcome.slug, status: 'success' };
+    } else if (outcome.status === 'validation_failed') {
+      result.review = {
+        slug: outcome.slug ?? product.title,
+        status: 'skipped',
+        error: 'quality validation failed',
+        issues: outcome.issues,
+      };
+    } else if (outcome.status === 'db_error') {
+      result.review = {
+        slug: outcome.slug ?? product.title,
+        status: 'failed',
+        error: outcome.error,
+      };
+    } else {
+      result.review = {
+        slug: product.title,
+        status: 'failed',
+        error: outcome.error,
+      };
     }
 
     const topic = pickRandom(VIRAL_TOPICS);
@@ -107,6 +114,7 @@ export async function GET(request: NextRequest) {
         result.viralArticle = { slug: article.slug, status: 'failed', error: dbResult.error };
       } else {
         result.viralArticle = { slug: article.slug, status: 'success' };
+        await pingNewContent([buildContentUrl(`/comparativos/${article.slug}`)]);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);

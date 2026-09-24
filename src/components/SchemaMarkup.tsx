@@ -3,6 +3,7 @@ import {
   generateOrganizationSchema,
   generateBreadcrumbSchema,
   generateFAQSchema,
+  generateItemListSchema,
   generateWebSiteSchema,
 } from '@/lib/seo';
 import type { Review } from '@/lib/types';
@@ -47,6 +48,21 @@ export function FAQSchema({
   faqs: Array<{ question: string; answer: string }>;
 }) {
   const schema = generateFAQSchema(faqs);
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
+export function ItemListSchema({
+  items,
+}: {
+  items: Array<{ name: string; url: string }>;
+}) {
+  if (items.length === 0) return null;
+  const schema = generateItemListSchema(items);
   return (
     <script
       type="application/ld+json"

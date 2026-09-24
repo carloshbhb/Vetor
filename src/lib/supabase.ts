@@ -28,6 +28,9 @@ export function getSupabaseServiceKeyClient(): SupabaseClient | null {
   return serviceClient;
 }
 
+const REVIEW_COLUMNS =
+  'slug,status,product,category,marketplace,price_old,price_new,affiliate_url,image_url,ads_enabled,meta_title,meta_description,meta_keywords,meta_reading_time,meta_canonical,meta_og_image,hero_headline_line1,hero_headline_line2,hero_headline_em,hero_lead,hero_overall_score,hero_bars,specs,sections,compare_table,pros,cons,testimonials,verdict_score,verdict_label,verdict_text,verdict_note,schema_rating_value,schema_review_count,google_rank,last_rank_check,created_at,updated_at,faq';
+
 export async function createReview(data: {
   slug: string;
   product: string;
@@ -58,13 +61,19 @@ export async function createReview(data: {
 }): Promise<{ data: Review | null; error: string | null }> {
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
-    return { data: { ...data, id: 'mock-' + Date.now(), status: 'published', marketplace: data.marketplace || '', price_old: '', affiliate_url: data.affiliate_url || '', ads_enabled: false, meta_keywords: '', meta_reading_time: 5, meta_canonical: null, meta_og_image: null, hero_headline_line1: data.hero_headline_line1 || '', hero_headline_line2: data.hero_headline_line2 || '', hero_headline_em: data.hero_headline_em || '', hero_lead: data.hero_lead || '', hero_bars: data.hero_bars || [], specs: data.specs || [], sections: data.sections || [], compare_table: data.compare_table || { rows: [], caption: '', columns: [], winnerCol: 0 }, testimonials: [], verdict_label: data.verdict_label || '', verdict_text: data.verdict_text || '', verdict_note: data.verdict_note || '', schema_rating_value: data.hero_overall_score ?? 0, schema_review_count: 1, google_rank: null, last_rank_check: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), faq: data.faq || [] } as Review, error: null };
+    return { data: { ...data, id: 'mock-' + Date.now(), status: 'draft', marketplace: data.marketplace || '', price_old: '', affiliate_url: data.affiliate_url || '', ads_enabled: false, meta_keywords: '', meta_reading_time: 5, meta_canonical: null, meta_og_image: null, hero_headline_line1: data.hero_headline_line1 || '', hero_headline_line2: data.hero_headline_line2 || '', hero_headline_em: data.hero_headline_em || '', hero_lead: data.hero_lead || '', hero_bars: data.hero_bars || [], specs: data.specs || [], sections: data.sections || [], compare_table: data.compare_table || { rows: [], caption: '', columns: [], winnerCol: 0 }, testimonials: [], verdict_label: data.verdict_label || '', verdict_text: data.verdict_text || '', verdict_note: data.verdict_note || '', schema_rating_value: data.hero_overall_score ?? 0, schema_review_count: 1, google_rank: null, last_rank_check: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), faq: data.faq || [] } as Review, error: null };
   }
 
   const now = new Date().toISOString();
+  const { data: existing } = await supabase
+    .from('reviews')
+    .select('created_at,status')
+    .eq('slug', data.slug)
+    .maybeSingle();
+
   const row = {
     slug: data.slug,
-    status: 'published',
+    status: existing?.status ?? 'draft',
     product: data.product,
     category: data.category,
     marketplace: data.marketplace || '',
@@ -95,14 +104,14 @@ export async function createReview(data: {
     verdict_note: data.verdict_note || '',
     schema_rating_value: data.hero_overall_score ?? 0,
     schema_review_count: 1,
-    created_at: now,
+    created_at: existing?.created_at ?? now,
     updated_at: now,
     faq: data.faq ?? [],
   };
 
   const { data: result, error } = await supabase
     .from('reviews')
-    .insert(row)
+    .upsert(row, { onConflict: 'slug' })
     .select()
     .single();
 
@@ -130,6 +139,12 @@ export async function createViralArticle(data: {
   }
 
   const now = new Date().toISOString();
+  const { data: existing } = await supabase
+    .from('viral_articles')
+    .select('created_at,published_at')
+    .eq('slug', data.slug)
+    .maybeSingle();
+
   const row = {
     slug: data.slug,
     title: data.title,
@@ -140,14 +155,14 @@ export async function createViralArticle(data: {
     products: data.products,
     seo_title: data.seo_title,
     seo_description: data.seo_description,
-    published_at: now,
+    published_at: existing?.published_at ?? now,
     updated_at: now,
-    created_at: now,
+    created_at: existing?.created_at ?? now,
   };
 
   const { data: result, error } = await supabase
     .from('viral_articles')
-    .insert(row)
+    .upsert(row, { onConflict: 'slug' })
     .select()
     .single();
 
@@ -187,16 +202,20 @@ function normalizeReviewFields(data: any): any {
   return r;
 }
 
-export async function getAllReviews(): Promise<Review[]> {
+export async function getAllReviews(options?: {
+  includeUnpublished?: boolean;
+}): Promise<Review[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
 
   try {
-    const { data, error } = await supabase
-      .from('reviews')
-      .select('slug,status,product,category,marketplace,price_old,price_new,affiliate_url,image_url,ads_enabled,meta_title,meta_description,meta_keywords,meta_reading_time,meta_canonical,meta_og_image,hero_headline_line1,hero_headline_line2,hero_headline_em,hero_lead,hero_overall_score,hero_bars,specs,sections,compare_table,pros,cons,testimonials,verdict_score,verdict_label,verdict_text,verdict_note,schema_rating_value,schema_review_count,google_rank,last_rank_check,created_at,updated_at,faq')
-      .eq('status', 'published')
-      .order('created_at', { ascending: false });
+    let query = supabase.from('reviews').select(REVIEW_COLUMNS);
+    if (!options?.includeUnpublished) {
+      query = query.eq('status', 'published');
+    }
+    const { data, error } = await query.order('created_at', {
+      ascending: false,
+    });
 
     if (error || !data || data.length === 0) return [];
 
@@ -210,6 +229,58 @@ export async function getAllReviews(): Promise<Review[]> {
   }
 }
 
+export async function getAllReviewsAdmin(): Promise<Review[]> {
+  const supabase = getSupabaseServiceKeyClient() ?? getSupabaseClient();
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select(REVIEW_COLUMNS)
+      .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) return [];
+
+    const first = data[0];
+    if (!first || typeof first.slug !== 'string') return [];
+
+    return data.map(normalizeReviewFields) as Review[];
+  } catch (err) {
+    console.error('[Supabase] getAllReviewsAdmin error:', err);
+    return [];
+  }
+}
+
+export async function updateReviewStatus(
+  params: { slug: string },
+  status: 'draft' | 'published'
+): Promise<{ data: { slug: string } | null; error: string | null }> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) {
+    return { data: null, error: 'Supabase service client not configured' };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('slug', params.slug)
+      .select('slug');
+
+    if (error) return { data: null, error: error.message };
+    if (!data || data.length === 0) {
+      return { data: null, error: 'Review not found' };
+    }
+
+    return { data: data[0] as { slug: string }, error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 export async function getReviewBySlug(slug: string): Promise<Review | null> {
   const supabase = getSupabaseClient();
   if (!supabase) return null;
@@ -217,8 +288,9 @@ export async function getReviewBySlug(slug: string): Promise<Review | null> {
   try {
     const { data, error } = await supabase
       .from('reviews')
-      .select('slug,status,product,category,marketplace,price_old,price_new,affiliate_url,image_url,ads_enabled,meta_title,meta_description,meta_keywords,meta_reading_time,meta_canonical,meta_og_image,hero_headline_line1,hero_headline_line2,hero_headline_em,hero_lead,hero_overall_score,hero_bars,specs,sections,compare_table,pros,cons,testimonials,verdict_score,verdict_label,verdict_text,verdict_note,schema_rating_value,schema_review_count,google_rank,last_rank_check,created_at,updated_at,faq')
+      .select(REVIEW_COLUMNS)
       .eq('slug', slug)
+      .eq('status', 'published')
       .single();
 
     if (error || !data) return null;

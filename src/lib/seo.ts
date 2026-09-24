@@ -17,43 +17,96 @@ export function generateSEO(title: string, description: string) {
   return seo(title, description);
 }
 
+function parseBRLPrice(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const cleaned = raw.replace(/[^0-9.,]/g, '').trim();
+  if (!cleaned) return null;
+  let normalized = cleaned;
+  if (normalized.includes(',')) {
+    normalized = normalized.replace(/\./g, '').replace(',', '.');
+  } else if (/^\d{1,3}(?:\.\d{3})+$/.test(normalized)) {
+    normalized = normalized.replace(/\./g, '');
+  }
+  const value = Number(normalized);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return value.toFixed(2);
+}
+
+function scoreToFiveScale(score: number | null | undefined): number | null {
+  if (typeof score !== 'number' || !Number.isFinite(score) || score <= 0) return null;
+  return Math.round((score / 2) * 10) / 10;
+}
+
+function buildReviewBody(review: Review): string {
+  const lead = (review.hero_lead || '').trim();
+  const firstSection = (review.sections?.[0]?.content || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!lead) return firstSection.slice(0, 500);
+  if (!firstSection) return lead;
+  return `${lead} ${firstSection.slice(0, 300)}`.trim();
+}
+
 export function generateReviewSchema(review: Review): Record<string, unknown> {
-  return {
+  const score = scoreToFiveScale(
+    review.verdict_score > 0 ? review.verdict_score : review.hero_overall_score
+  );
+  const price = parseBRLPrice(review.price_new);
+  const reviewCount = Number(review.schema_review_count);
+
+  const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: review.product,
-    image: review.image_url,
     description: review.hero_lead,
-    brand: {
-      '@type': 'Brand',
-      name: review.category,
-    },
-    offers: {
-      '@type': 'Offer',
-      price: review.price_new?.replace(/[^0-9.,]/g, '') || '0',
-      priceCurrency: 'BRL',
-      availability: 'https://schema.org/InStock',
-    },
     review: {
       '@type': 'Review',
       author: {
         '@type': 'Person',
         name: 'Editor Vetor',
       },
-      reviewRating: {
-        '@type': 'Rating',
-        ratingValue: String(review.schema_rating_value ?? 0),
-        bestRating: '5',
-      },
-      reviewBody: review.hero_lead || '',
-    },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: String(review.schema_rating_value ?? 0),
-      bestRating: '5',
-      ratingCount: String(review.schema_review_count ?? 1),
+      reviewBody: buildReviewBody(review),
     },
   };
+
+  if (review.image_url) {
+    schema.image = review.image_url;
+  }
+
+  const reviewNode = schema.review as Record<string, unknown>;
+
+  if (score !== null) {
+    reviewNode.reviewRating = {
+      '@type': 'Rating',
+      ratingValue: String(score),
+      bestRating: '5',
+    };
+  }
+
+  if (price !== null) {
+    schema.offers = {
+      '@type': 'Offer',
+      price,
+      priceCurrency: 'BRL',
+      ...(review.affiliate_url
+        ? {
+            url: review.affiliate_url,
+            availability: 'https://schema.org/InStock',
+          }
+        : {}),
+    };
+  }
+
+  if (score !== null && Number.isFinite(reviewCount) && reviewCount > 1) {
+    schema.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: String(score),
+      bestRating: '5',
+      ratingCount: String(reviewCount),
+    };
+  }
+
+  return schema;
 }
 
 export function generateViralArticleSchema(article: ViralArticle): Record<string, unknown> {
@@ -112,6 +165,21 @@ export function generateBreadcrumbSchema(items: Array<{ name: string; url: strin
   };
 }
 
+export function generateItemListSchema(
+  items: Array<{ name: string; url: string }>
+): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      url: item.url.startsWith('http') ? item.url : `${SITE_URL}${item.url}`,
+    })),
+  };
+}
+
 export function generateFAQSchema(faqs: Array<{ question: string; answer: string }>): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
@@ -133,13 +201,5 @@ export function generateWebSiteSchema(): Record<string, unknown> {
     '@type': 'WebSite',
     name: 'vetor.blog',
     url: SITE_URL,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
-      },
-      'query-input': 'required name=search_term_string',
-    },
   };
 }

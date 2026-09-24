@@ -37,7 +37,7 @@ async function main() {
   console.log('🎬 Enfileirando 16 vídeos...');
 
   const entries = topics.map((t, i) => ({
-    product_url: `https://vetor.blog/${t.type === 'review' ? 'reviews' : 'comparativos'}/${t.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`,
+    product_url: `https://www.vetor.blog/${t.type === 'review' ? 'reviews' : 'comparativos'}/${t.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`,
     product_title: t.title,
     product_category: t.category,
     product_price: t.price || 'Consultar',

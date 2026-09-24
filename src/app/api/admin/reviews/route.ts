@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllReviews, createReview, deleteReview } from '@/lib/supabase';
+import {
+  getAllReviewsAdmin,
+  createReview,
+  deleteReview,
+  updateReviewStatus,
+} from '@/lib/supabase';
 import { verifyAdminAuth } from '@/lib/admin-auth';
+import { markProductLinksForReview } from '@/lib/product-links';
+import { buildContentUrl, pingNewContent } from '@/lib/indexnow';
 
 export async function GET(request: NextRequest) {
   const authError = verifyAdminAuth(request);
   if (authError) return authError;
   try {
-    const reviews = await getAllReviews();
+    const reviews = await getAllReviewsAdmin();
     return NextResponse.json(reviews, { status: 200 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -46,6 +53,48 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(result.data, { status: 201 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
+  try {
+    const body = await request.json();
+    const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+    const status = body.status;
+
+    if (!slug || body.id) {
+      return NextResponse.json(
+        { error: 'Missing or invalid slug field (id is not accepted; use slug)' },
+        { status: 400 }
+      );
+    }
+
+    if (status !== 'draft' && status !== 'published') {
+      return NextResponse.json(
+        { error: 'status must be "draft" or "published"' },
+        { status: 400 }
+      );
+    }
+
+    const result = await updateReviewStatus({ slug }, status);
+    if (result.error || !result.data) {
+      return NextResponse.json(
+        { error: result.error || 'Review not found' },
+        { status: result.error === 'Review not found' ? 404 : 500 }
+      );
+    }
+
+    if (status === 'published') {
+      await markProductLinksForReview(slug);
+      await pingNewContent([buildContentUrl(`/reviews/${slug}`)]);
+    }
+
+    return NextResponse.json({ success: true, slug, status }, { status: 200 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });

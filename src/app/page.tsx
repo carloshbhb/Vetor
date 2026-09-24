@@ -3,6 +3,8 @@ import Footer from "@/components/Footer";
 import ReviewCard from "@/components/ReviewCard";
 import { fetchAllReviews, fetchCategories } from "@/lib/data";
 
+export const revalidate = 300;
+
 export default async function Home() {
   const [reviews, categories] = await Promise.all([
     fetchAllReviews(),
@@ -95,7 +97,7 @@ export default async function Home() {
                 {categories.map((cat) => (
                   <a
                     key={cat.name}
-                    href={`/reviews?category=${encodeURIComponent(cat.name)}`}
+                    href={`/reviews/categoria/${encodeURIComponent(cat.name)}`}
                     style={{
                       display: "block", background: "var(--bg)",
                       border: "1.5px solid var(--border)", borderRadius: 10,

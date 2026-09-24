@@ -3,6 +3,7 @@ import { createViralArticle } from '@/lib/supabase';
 import { generateViralArticle } from '@/lib/generate-viral';
 import { resolveProductImage } from '@/lib/image-resolver';
 import { VIRAL_TOPICS } from '@/lib/seed-data';
+import { buildContentUrl, pingNewContent } from '@/lib/indexnow';
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -50,7 +51,10 @@ async function publishArticle(topic: {
     throw new Error(String(result.error));
   }
 
-  return { slug: article.slug, url: `https://vetor.blog/comparativos/${article.slug}`, status: 'published' };
+  const url = buildContentUrl(`/comparativos/${article.slug}`);
+  await pingNewContent([url]);
+
+  return { slug: article.slug, url, status: 'published' };
 }
 
 export async function GET(request: NextRequest) {

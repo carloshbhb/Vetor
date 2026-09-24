@@ -114,7 +114,7 @@ async function generateReviewVideo(supabase: ReturnType<typeof createClient>, re
     return { url: '', status: 'failed', error: 'Failed to create video job' };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
   return {
     url: `${baseUrl}/videos/review-${review.slug}.mp4`,
     videoId,
@@ -152,7 +152,7 @@ async function generateComparisonVideo(supabase: ReturnType<typeof createClient>
     return { url: '', status: 'failed', error: 'Failed to create video job' };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
   return {
     url: `${baseUrl}/videos/comparison-${article.slug}.mp4`,
     videoId: data.id,

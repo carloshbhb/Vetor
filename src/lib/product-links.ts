@@ -202,6 +202,77 @@ export async function deleteProductLink(id: string): Promise<{ error: string | n
   }
 }
 
+export async function getNextReviewProductLink(): Promise<ProductLink | null> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('product_links')
+      .select('*')
+      .eq('has_review', false)
+      .neq('status', 'reviewed')
+      .neq('status', 'archived')
+      .order('priority', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return { ...data, tags: parseJsonArray(data.tags) } as ProductLink;
+  } catch {
+    return null;
+  }
+}
+
+export async function markProductLinkReviewed(
+  id: string,
+  reviewSlug: string
+): Promise<{ error: string | null }> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return { error: null };
+
+  try {
+    const { error } = await supabase
+      .from('product_links')
+      .update({
+        has_review: true,
+        status: 'reviewed',
+        review_slug: reviewSlug,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    return { error: error?.message ?? null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function markProductLinksForReview(
+  reviewSlug: string
+): Promise<{ error: string | null }> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return { error: null };
+
+  try {
+    const { error } = await supabase
+      .from('product_links')
+      .update({
+        has_review: true,
+        status: 'reviewed',
+        review_slug: reviewSlug,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('review_slug', reviewSlug);
+
+    return { error: error?.message ?? null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 export async function getProductLinksStats(): Promise<{
   total: number;
   active: number;

@@ -19,7 +19,7 @@ async function generateReviewVideo(review: {
 }): Promise<{ url: string; filename: string }> {
   const timestamp = Date.now();
   const filename = `review-${review.product.toLowerCase().replace(/\s+/g, '-')}-${timestamp}.mp4`;
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
   return { url: `${baseUrl}/videos/${filename}`, filename };
 }
 
@@ -27,7 +27,7 @@ async function generateComparisonVideo(products: { name: string; image: string; 
   const timestamp = Date.now();
   const productNames = products.map((p) => p.name.toLowerCase().replace(/\s+/g, '-')).join('-vs-');
   const filename = `comparison-${productNames}-${timestamp}.mp4`;
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
   return { url: `${baseUrl}/videos/${filename}`, filename };
 }
 

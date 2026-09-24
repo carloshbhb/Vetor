@@ -14,6 +14,25 @@ interface ViralArticleOutput {
   seo_description: string;
 }
 
+function deterministicScore(name: string): number {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  return 7 + (hash % 3);
+}
+
+function buildHeroBars(topic: {
+  comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
+}): Array<{ label: string; value: string; imageUrl: string; product_url?: string }> {
+  return topic.comparisonProducts.map((p) => ({
+    label: p.name,
+    value: `${deterministicScore(p.name)}/10`,
+    imageUrl: p.imageUrl,
+    product_url: p.product_url,
+  }));
+}
+
 export async function generateViralArticle(topic: {
   title: string;
   category: string;
@@ -38,12 +57,7 @@ export async function generateViralArticle(topic: {
 
     const { title: seoTitle, description: seoDesc } = seo(generatedTitle, generatedDescription);
 
-    const heroBars = topic.comparisonProducts.map((p) => ({
-      label: p.name,
-      value: `${(7 + Math.floor(Math.random() * 3))}/10`,
-      imageUrl: p.imageUrl,
-      product_url: p.product_url,
-    }));
+    const heroBars = buildHeroBars(topic);
 
     return {
       slug: generatedTitle.toLowerCase().replace(/[^a-z0-9\s\-]/g, '').replace(/\s+/g, '-'),
@@ -60,12 +74,7 @@ export async function generateViralArticle(topic: {
       seo_description: seoDesc,
     };
   } catch {
-    const heroBars = topic.comparisonProducts.map((p) => ({
-      label: p.name,
-      value: `${(7 + Math.floor(Math.random() * 3))}/10`,
-      imageUrl: p.imageUrl,
-      product_url: p.product_url,
-    }));
+    const heroBars = buildHeroBars(topic);
 
     return {
       slug: topic.title.toLowerCase().replace(/[^a-z0-9\s\-]/g, '').replace(/\s+/g, '-'),

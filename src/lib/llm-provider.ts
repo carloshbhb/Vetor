@@ -23,7 +23,7 @@ function createOpenRouterProvider(): LLMProvider | null {
     apiKey,
     baseURL: 'https://openrouter.ai/api/v1',
     defaultHeaders: {
-      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://vetor.blog',
+      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog',
       'X-Title': 'Vetor Blog',
     },
   });

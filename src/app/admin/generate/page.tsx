@@ -8,6 +8,12 @@ interface GenerationResult {
   count?: number;
 }
 
+function getAuthHeaders(): Record<string, string> {
+  return {
+    Authorization: `Bearer ${localStorage.getItem("vetor_admin_auth") || ""}`,
+  };
+}
+
 export default function AdminGeneratePage() {
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<GenerationResult | null>(null);
@@ -22,6 +28,7 @@ export default function AdminGeneratePage() {
       setProgress("Enviando requisição para o servidor...");
       const res = await fetch("/api/admin/generate", {
         method: "POST",
+        headers: getAuthHeaders(),
       });
 
       const data = await res.json();
@@ -32,6 +39,21 @@ export default function AdminGeneratePage() {
           success: true,
           message: data.message || "Conteúdo gerado com sucesso.",
           count: data.count,
+        });
+      } else if (res.status === 422) {
+        setProgress("Validação de qualidade falhou.");
+        const issues = Array.isArray(data.issues)
+          ? data.issues.join("; ")
+          : "";
+        setResult({
+          success: false,
+          message: `${data.error || "Validação de qualidade falhou."}${issues ? ` — ${issues}` : ""}`,
+        });
+      } else if (res.status === 401) {
+        setProgress("Não autorizado.");
+        setResult({
+          success: false,
+          message: "Não autorizado. Faça login novamente no painel admin.",
         });
       } else {
         setProgress("Erro na geração.");

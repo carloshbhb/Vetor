@@ -5,11 +5,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "vetor.blog — Reviews e Comparativos",
+    default: "vetor.blog — Reviews, Comparativos e Melhores Produtos",
     template: "%s | vetor.blog",
   },
   description:
-    "Reviews profissionais, comparativos e recomendações de compra. Escolha com confiança.",
+    "Reviews independentes, comparativos e guias de compra em português. Notas de 0 a 10, prós e contras e as melhores ofertas para você escolher com confiança.",
   metadataBase: new URL("https://www.vetor.blog"),
   alternates: {
     canonical: "/",
@@ -21,9 +21,18 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     type: "website",
     url: "https://www.vetor.blog",
+    images: [
+      {
+        url: "https://www.vetor.blog/og.png",
+        width: 1200,
+        height: 630,
+        alt: "vetor.blog — Reviews honestas",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
+    images: ["https://www.vetor.blog/og.png"],
   },
   robots: {
     index: true,
@@ -48,25 +57,10 @@ export default function RootLayout({
         <OrganizationSchema />
         <WebSiteSchema />
         <link
-          rel="preload"
-          as="font"
-          type="font/woff2"
-          href="/_next/static/media/6c25f6e897d845a3-s.p.woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          as="font"
-          type="font/woff2"
-          href="/_next/static/media/8a1d8947e5852e30-s.p.woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          as="font"
-          type="font/woff2"
-          href="/_next/static/media/13971731025ec697-s.p.woff2"
-          crossOrigin="anonymous"
+          rel="alternate"
+          type="application/rss+xml"
+          title="vetor.blog — Reviews e Comparativos"
+          href="https://www.vetor.blog/feed.xml"
         />
       </head>
       <body className="antialiased">{children}</body>
