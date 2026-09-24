@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS ml_tokens (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id integer UNIQUE NOT NULL,
   access_token text NOT NULL,
-  refresh_token text NOT NULL,
+  refresh_token text DEFAULT '',
   expires_at timestamptz NOT NULL,
   scope text,
   created_at timestamptz DEFAULT now(),

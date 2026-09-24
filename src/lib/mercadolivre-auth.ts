@@ -13,7 +13,7 @@ export interface MLTokenResponse {
   token_type: string;
   expires_in: number;
   scope: string;
-  refresh_token: string;
+  refresh_token?: string | null;
   user_id?: number;
 }
 
@@ -22,6 +22,7 @@ export interface MLSession {
   refreshToken: string;
   expiresAt: number;
   userId?: number;
+  scope?: string;
 }
 
 /**
@@ -76,7 +77,13 @@ export async function exchangeCodeForToken(
     throw new Error(`Failed to exchange code: ${response.status} - ${error}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  // ML sometimes omits refresh_token on first exchange
+  if (!data.refresh_token) {
+    console.warn('[ML Auth] No refresh_token in token response');
+    data.refresh_token = '';
+  }
+  return data;
 }
 
 /**
@@ -152,36 +159,38 @@ export async function saveSession(tokenResponse: MLTokenResponse): Promise<MLSes
 
   const session: MLSession = {
     accessToken: tokenResponse.access_token,
-    refreshToken: tokenResponse.refresh_token,
+    refreshToken: tokenResponse.refresh_token || '',
     expiresAt: Date.now() + tokenResponse.expires_in * 1000,
     userId,
+    scope: tokenResponse.scope,
   };
 
   if (session.userId) {
     console.log('[ML Auth] Saving session for user:', session.userId);
     const supabase = getSupabaseServiceKeyClient();
     if (!supabase) {
-      console.error('[ML Auth] Supabase client not available');
-      return session;
+      throw new Error('[ML Auth] Supabase client not available');
     }
     const { data, error } = await supabase
       .from('ml_tokens')
       .upsert({
         user_id: session.userId,
         access_token: session.accessToken,
-        refresh_token: session.refreshToken,
+        refresh_token: session.refreshToken || '',
         expires_at: new Date(session.expiresAt).toISOString(),
+        scope: session.scope || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
       .select();
 
     if (error) {
       console.error('[ML Auth] Failed to save session to Supabase:', JSON.stringify(error));
-    } else {
-      console.log('[ML Auth] Session saved to Supabase:', JSON.stringify(data));
+      throw new Error(`Failed to save ML session: ${error.message}`);
     }
+    console.log('[ML Auth] Session saved to Supabase for user:', session.userId);
   } else {
     console.error('[ML Auth] Could not determine user ID');
+    throw new Error('[ML Auth] Could not determine ML user ID');
   }
 
   return session;
@@ -207,9 +216,10 @@ async function loadSessionFromSupabase(): Promise<MLSession | null> {
 
   return {
     accessToken: data.access_token,
-    refreshToken: data.refresh_token,
+    refreshToken: data.refresh_token || '',
     expiresAt: new Date(data.expires_at).getTime(),
     userId: data.user_id,
+    scope: data.scope || undefined,
   };
 }
 
@@ -226,6 +236,9 @@ export async function getValidAccessToken(): Promise<string> {
 
   // Check if token is expired (with 5 min buffer)
   if (Date.now() > session.expiresAt - 5 * 60 * 1000) {
+    if (!session.refreshToken) {
+      throw new Error('ML access token expired and no refresh_token available. Please re-authorize.');
+    }
     console.log('[ML Auth] Token expired, refreshing...');
     const tokenResponse = await refreshAccessToken(session.refreshToken);
     const newSession = await saveSession(tokenResponse);
