@@ -125,6 +125,10 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 
 ### Ciclo 6 — 2026-09-23 (Indexing API + titles + GitHub)
 - **Google Indexing API:** `pingGoogleIndexing` → OAuth RS256 JWT (`GOOGLE_SERVICE_ACCOUNT_EMAIL` + `GOOGLE_PRIVATE_KEY`) → `urlNotifications:publish`; cache de access_token; fallback legacy `GOOGLE_INDEXING_API_KEY`
-- Env vars novas no Vercel production: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`
+- Env vars novas no Vercel production: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY` (adicionadas via CLI)
+- Teste local: IndexNow 3 URLs + Google Indexing 3 URLs OK (`service_account=true`)
 - **P4-4 titles:** layout default/template, `/reviews`, `/comparativos` (+detalhe), categorias, tags, autor, institucionais — keyword + brand + length
-- Gate: `npm run lint` · `npm run build` · **push GitHub** (deploy Vercel automático)
+- Gate: `npm run lint` · `npm run build` (293 pages) · **push** `f43c088` → `origin/main` (`carloshbhb/Vetor`) · **deploy CLI** `3ol44cjv7` READY alias `www.vetor.blog`
+- Smoke produção: home/comparativos/author/tags/reviews/sobre 200 com titles novos · sitemap 260 URLs (author+tags) · AuthorBox no review ✓ · robots disallow `/admin` ✓
+- **Nota:** Git integration do projeto `vetor-blog` aponta para outro repo (`Vetor.blog`); push em `Vetor` **não** dispara deploy sozinho — usar `vercel --prod` ou reconectar o repo correto
+- **Status:** P0–P3 + P2-4/2-5 + P4-1/2/3/4/5 done · restam: GSC impressions para refinar titles, conteúdo de intenção-compra (briefs prontas)
