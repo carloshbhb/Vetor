@@ -349,11 +349,29 @@ function detectCategoryFromText(text: string): string {
   return 'Eletrônicos';
 }
 
+const ML_TRACKING_ID = process.env.ML_TRACKING_ID || 'carloshbhb';
+
 export function generateAffiliateUrl(originalUrl: string, marketplace: ProductData['marketplace']): string {
+  if (marketplace === 'mercadolivre') {
+    if (originalUrl.includes('matt_tool=') || originalUrl.includes('meli.la/')) {
+      return originalUrl;
+    }
+    try {
+      const url = new URL(originalUrl);
+      url.searchParams.set('matt_tool', ML_TRACKING_ID);
+      url.searchParams.set('matt_word', 'vetorblog');
+      url.searchParams.set('ref', ML_TRACKING_ID);
+      url.searchParams.set('tracking_id', ML_TRACKING_ID);
+      return url.toString();
+    } catch {
+      const separator = originalUrl.includes('?') ? '&' : '?';
+      return `${originalUrl}${separator}matt_tool=${ML_TRACKING_ID}&matt_word=vetorblog&ref=${ML_TRACKING_ID}&tracking_id=${ML_TRACKING_ID}`;
+    }
+  }
+
   const affiliateTags: Record<string, string> = {
     amazon: 'tag=vetorblog-20',
     shopee: 'affiliate=vetorblog',
-    mercadolivre: 'affiliate_id=vetorblog',
   };
 
   const tag = affiliateTags[marketplace];

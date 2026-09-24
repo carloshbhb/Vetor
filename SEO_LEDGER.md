@@ -132,3 +132,10 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 - Smoke produção: home/comparativos/author/tags/reviews/sobre 200 com titles novos · sitemap 260 URLs (author+tags) · AuthorBox no review ✓ · robots disallow `/admin` ✓
 - **Nota:** Git integration do projeto `vetor-blog` aponta para outro repo (`Vetor.blog`); push em `Vetor` **não** dispara deploy sozinho — usar `vercel --prod` ou reconectar o repo correto
 - **Status:** P0–P3 + P2-4/2-5 + P4-1/2/3/4/5 done · restam: GSC impressions para refinar titles, conteúdo de intenção-compra (briefs prontas)
+
+### Ciclo 7 — 2026-09-23 (Links de afiliado ML / meli)
+- **Diagnóstico:** ML **não tem API pública oficial** de afiliados para gerar `meli.la` (gerador de links é o painel; OAuth `ml_tokens` vazio → API autenticada indisponível); tracking `matt_*` é client-side
+- **Dados:** `product_links` 107/107 com `affiliate_id=vetorblog` inválido → reescritos p/ `matt_tool=carloshbhb&matt_word=vetorblog&ref=carloshbhb&tracking_id=carloshbhb`; `reviews` 13 plain ML → matt_* (138/142 meli-like; 4 restantes multi/non-ML intocados)
+- **Code:** `generateAffiliateUrl` (product-extractor) ML usa `matt_*` (fallback env `ML_TRACKING_ID`); scripts `tmp/test-ml-links.ts`, `tmp/fix-meli-links.ts`
+- Gate: `npm run lint` ✅ · `npm run build` ✅ 293 pages
+- **Status:** links de produto no padrão meli/tracking · bloqueios restantes: OAuth ML (interativo) p/ enriquecer via API, meli.la em massa só via painel/cookie (não oficial)
