@@ -76,12 +76,17 @@ jobs:
         run: |
           MAX=${{ inputs.max_videos || 3 }}
           PROCESSED=0
+          TOTAL=$(jq 'length' pending.json)
+          INDEX=0
           
-          # Read each video from pending.json. The select() has to run per element:
-          # testing the whole payload would see an "array" and drop every record.
-          jq -c '.[] | select(type == "object")' pending.json | while read -r video; do
+          # Iterate by index instead of `jq | while read`: `read` stops at the
+          # first newline, and script_text is a multi-line JSON blob stored as
+          # TEXT, so every field extracted from `$video` came out truncated.
+          while [ "$INDEX" -lt "$TOTAL" ]; do
             if [ "$PROCESSED" -ge "$MAX" ]; then break; fi
+            INDEX=$((INDEX + 1))
             
+            video=$(jq -c ".[$((INDEX - 1))]" pending.json)
             ID=$(echo "$video" | jq -r '.id')
             TITLE=$(echo "$video" | jq -r '.product_title')
             IMAGE=$(echo "$video" | jq -r '.product_image_url')
@@ -106,6 +111,7 @@ jobs:
             # so --argjson below never receives invalid JSON.
             SCRIPT=$(printf '%s' "$SCRIPT_RAW" | jq -R 'fromjson? // {}' 2>/dev/null | jq -c 'if type == "object" then . else {} end' 2>/dev/null || echo '{}')
             SCRIPT=${SCRIPT:-{}}
+            echo "Roteiro: $(echo "$SCRIPT" | jq -r '(.scenes | if type == "array" then length else 0 end)') cenas"
             
             # Generate TTS audio for the hook. The file has to live inside the
             # Remotion publicDir to be served to the renderer, otherwise
