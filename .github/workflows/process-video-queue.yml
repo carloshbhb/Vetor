@@ -41,7 +41,7 @@ jobs:
         working-directory: ./video
 
       - name: Install Chrome for Remotion
-        run: npx @remotion/cli install
+        run: npx remotion browser ensure
         working-directory: ./video
 
       - name: Fetch pending videos
