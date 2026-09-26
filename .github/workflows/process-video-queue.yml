@@ -66,6 +66,8 @@ jobs:
 
           mv response.json pending.json
           COUNT=$(jq 'length' pending.json)
+          echo "Registros pendentes retornados: $COUNT"
+          jq -r '.[] | "  - \(.id) \(.status) \(.product_title)"' pending.json || true
           echo "count=$COUNT" >> $GITHUB_OUTPUT
           echo "has_videos=$( [ "$COUNT" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
 
