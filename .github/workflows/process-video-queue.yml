@@ -77,8 +77,9 @@ jobs:
           MAX=${{ inputs.max_videos || 3 }}
           PROCESSED=0
           
-          # Read each video from pending.json
-          jq -c 'if type == "object" then . else empty end' pending.json | while read -r video; do
+          # Read each video from pending.json. The select() has to run per element:
+          # testing the whole payload would see an "array" and drop every record.
+          jq -c '.[] | select(type == "object")' pending.json | while read -r video; do
             if [ "$PROCESSED" -ge "$MAX" ]; then break; fi
             
             ID=$(echo "$video" | jq -r '.id')
