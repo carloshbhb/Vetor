@@ -46,3 +46,6 @@ next-env.d.ts
 
 # lighthouse reports
 lh-*.json
+
+tmp/*.json
+tmp/*.log
