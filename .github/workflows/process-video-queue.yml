@@ -82,8 +82,12 @@ jobs:
               -d '{"status":"processing","started_at":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' \
               "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$ID" > /dev/null
             
-            # Parse script or create default
-            SCRIPT=$(echo "$SCRIPT_RAW" | jq . 2>/dev/null || echo '{}')
+            # Parse script or create default.
+            # script_text is stored as TEXT, so it arrives here as a JSON string
+            # and must be decoded before use. Empty/garbage/null all fall back to {}
+            # so --argjson below never receives invalid JSON.
+            SCRIPT=$(printf '%s' "$SCRIPT_RAW" | jq -R 'fromjson? // {}' 2>/dev/null | jq -c 'if type == "object" then . else {} end' 2>/dev/null || echo '{}')
+            SCRIPT=${SCRIPT:-{}}
             
             # Generate TTS audio for hook
             HOOK_AUDIO="/tmp/hook-$ID.mp3"
@@ -106,13 +110,13 @@ jobs:
                 category: $category,
                 hook: $hook,
                 callToAction: "Link na descricao para comprar com desconto!",
-                scenes: ($script.scenes // [
+                scenes: (if (($script.scenes | type) == "array" and ($script.scenes | length) > 0) then $script.scenes else [
                   {"id":1,"text":$hook,"duration":5,"visualCue":"Produto em destaque","brollKeywords":["product reveal"]},
                   {"id":2,"text":"Vamos analisar os pontos fortes e fracos.","duration":8,"visualCue":"Analise detalhada","brollKeywords":["analysis"]},
                   {"id":3,"text":"Design e construcao sao pontos positivos.","duration":7,"visualCue":"Close no produto","brollKeywords":["design"]},
                   {"id":4,"text":"Desempenho no dia a dia surpreende.","duration":8,"visualCue":"Uso real","brollKeywords":["performance"]},
                   {"id":5,"text":"Veredicto: vale a pena? Confira na descricao!","duration":7,"visualCue":"Nota final","brollKeywords":["verdict"]}
-                ]),
+                ] end),
                 subtitleEntries: [],
                 productImages: [$imageUrl],
                 brollVideos: [],
