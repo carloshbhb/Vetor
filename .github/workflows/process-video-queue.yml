@@ -149,12 +149,7 @@ jobs:
             # Upload to YouTube
             export VIDEO_PATH="$VIDEO_FILE"
             export VIDEO_TITLE="$TITLE | Vetor Blog"
-            export VIDEO_DESCRIPTION="Review completo: $TITLE
-
-🔗 Leia a análise completa: https://www.vetor.blog
-🛒 Compre com desconto: $AFFILIATE
-
-#Review #Tech #VetorBlog"
+            export VIDEO_DESCRIPTION="$(printf 'Review completo: %s\n\nLeia a analise completa: https://www.vetor.blog\nCompre com desconto: %s\n\n#Review #Tech #VetorBlog' "$TITLE" "$AFFILIATE")"
             export VIDEO_TAGS="review,tech,vetorblog,$( echo "$CATEGORY" | tr '[:upper:]' '[:lower:]' )"
             export YOUTUBE_CLIENT_ID="${{ secrets.YOUTUBE_CLIENT_ID }}"
             export YOUTUBE_CLIENT_SECRET="${{ secrets.YOUTUBE_CLIENT_SECRET }}"
