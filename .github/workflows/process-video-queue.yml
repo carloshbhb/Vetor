@@ -104,9 +104,19 @@ jobs:
             SCRIPT=$(printf '%s' "$SCRIPT_RAW" | jq -R 'fromjson? // {}' 2>/dev/null | jq -c 'if type == "object" then . else {} end' 2>/dev/null || echo '{}')
             SCRIPT=${SCRIPT:-{}}
             
-            # Generate TTS audio for hook
-            HOOK_AUDIO="/tmp/hook-$ID.mp3"
+            # Generate TTS audio for the hook. The file has to live inside the
+            # Remotion publicDir to be served to the renderer, otherwise
+            # renderMedia gets a 404 trying to fetch it.
+            HOOK_AUDIO="video/public/tmp/video-$ID.mp3"
+            mkdir -p video/public/tmp
             python scripts/tts.py "$HOOK" "$HOOK_AUDIO" "pt-BR-FranciscaNeural" || true
+            
+            if [ -s "$HOOK_AUDIO" ]; then
+              AUDIO_URL="tmp/video-$ID.mp3"
+            else
+              echo "::warning::TTS falhou; renderizando sem audio"
+              AUDIO_URL=""
+            fi
             
             # Build the Remotion input with jq. Interpolating the raw title/hook
             # into a heredoc produced invalid JSON whenever they contained a quote,
@@ -116,6 +126,7 @@ jobs:
               --arg imageUrl "$IMAGE" \
               --arg category "$CATEGORY" \
               --arg hook "$HOOK" \
+              --arg audioUrl "$AUDIO_URL" \
               --argjson script "$SCRIPT" \
               '{
                 type: "review",
@@ -124,6 +135,7 @@ jobs:
                 score: 8.5,
                 category: $category,
                 hook: $hook,
+                audioUrl: $audioUrl,
                 callToAction: "Link na descricao para comprar com desconto!",
                 scenes: (if (($script.scenes | type) == "array" and ($script.scenes | length) > 0) then $script.scenes else [
                   {"id":1,"text":$hook,"duration":5,"visualCue":"Produto em destaque","brollKeywords":["product reveal"]},
