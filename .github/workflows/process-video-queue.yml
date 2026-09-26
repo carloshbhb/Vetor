@@ -89,30 +89,36 @@ jobs:
             HOOK_AUDIO="/tmp/hook-$ID.mp3"
             python scripts/tts.py "$HOOK" "$HOOK_AUDIO" "pt-BR-FranciscaNeural" || true
             
-            # Create video data for Remotion
-            cat > "/tmp/video-$ID.json" << EOF
-            {
-              "type": "review",
-              "title": "$TITLE",
-              "imageUrl": "$IMAGE",
-              "score": 8.5,
-              "category": "$CATEGORY",
-              "hook": "$HOOK",
-              "callToAction": "Link na descrição para comprar com desconto!",
-              "scenes": $(echo "$SCRIPT" | jq -c '.scenes // [
-                {"id":1,"text":"$HOOK","duration":5,"visualCue":"Produto em destaque","brollKeywords":["product reveal"]},
-                {"id":2,"text":"Vamos analisar os pontos fortes e fracos.","duration":8,"visualCue":"Análise detalhada","brollKeywords":["analysis"]},
-                {"id":3,"text":"Design e construção são pontos positivos.","duration":7,"visualCue":"Close no produto","brollKeywords":["design"]},
-                {"id":4,"text":"Desempenho no dia a dia surpreende.","duration":8,"visualCue":"Uso real","brollKeywords":["performance"]},
-                {"id":5,"text":"Veredicto: vale a pena? Confira na descrição!","duration":7,"visualCue":"Nota final","brollKeywords":["verdict"]}
-              ]'),
-              "subtitleEntries": [],
-              "productImages": ["$IMAGE"],
-              "brollVideos": [],
-              "totalDuration": 45,
-              "fps": 30
-            }
-            EOF
+            # Build the Remotion input with jq. Interpolating the raw title/hook
+            # into a heredoc produced invalid JSON whenever they contained a quote,
+            # so every value goes through --arg instead.
+            jq -n \
+              --arg title "$TITLE" \
+              --arg imageUrl "$IMAGE" \
+              --arg category "$CATEGORY" \
+              --arg hook "$HOOK" \
+              --argjson script "$SCRIPT" \
+              '{
+                type: "review",
+                title: $title,
+                imageUrl: $imageUrl,
+                score: 8.5,
+                category: $category,
+                hook: $hook,
+                callToAction: "Link na descricao para comprar com desconto!",
+                scenes: ($script.scenes // [
+                  {"id":1,"text":$hook,"duration":5,"visualCue":"Produto em destaque","brollKeywords":["product reveal"]},
+                  {"id":2,"text":"Vamos analisar os pontos fortes e fracos.","duration":8,"visualCue":"Analise detalhada","brollKeywords":["analysis"]},
+                  {"id":3,"text":"Design e construcao sao pontos positivos.","duration":7,"visualCue":"Close no produto","brollKeywords":["design"]},
+                  {"id":4,"text":"Desempenho no dia a dia surpreende.","duration":8,"visualCue":"Uso real","brollKeywords":["performance"]},
+                  {"id":5,"text":"Veredicto: vale a pena? Confira na descricao!","duration":7,"visualCue":"Nota final","brollKeywords":["verdict"]}
+                ]),
+                subtitleEntries: [],
+                productImages: [$imageUrl],
+                brollVideos: [],
+                totalDuration: 45,
+                fps: 30
+              }' > "/tmp/video-$ID.json"
             
             # Render video with Remotion
             echo "Rendering..."
