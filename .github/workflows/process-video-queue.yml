@@ -44,13 +44,28 @@ jobs:
       - name: Fetch pending videos
         id: fetch
         run: |
-          RESPONSE=$(curl -s -X GET \
+          HTTP_CODE=$(curl -s -o response.json -w '%{http_code}' -X GET \
             -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
             "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?status=eq.pending&order=scheduled_at.asc&limit=${{ inputs.max_videos || 3 }}")
-          
-          echo "$RESPONSE" > pending.json
-          COUNT=$(echo "$RESPONSE" | jq 'length')
+
+          # Um erro do PostgREST volta como JSON objeto, e `jq length` de um objeto
+          # devolve a contagem de chaves (ex.: 4) - o workflow achava que havia
+          # videos e entrava no loop com strings em vez de registros. Falha alto.
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Supabase respondeu HTTP $HTTP_CODE"
+            cat response.json
+            exit 1
+          fi
+
+          if [ "$(jq -r 'type' response.json)" != "array" ]; then
+            echo "::error::Resposta do Supabase nao e uma lista:"
+            cat response.json
+            exit 1
+          fi
+
+          mv response.json pending.json
+          COUNT=$(jq 'length' pending.json)
           echo "count=$COUNT" >> $GITHUB_OUTPUT
           echo "has_videos=$( [ "$COUNT" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
 
@@ -61,7 +76,7 @@ jobs:
           PROCESSED=0
           
           # Read each video from pending.json
-          jq -c '.[]' pending.json | while read -r video; do
+          jq -c 'if type == "object" then . else empty end' pending.json | while read -r video; do
             if [ "$PROCESSED" -ge "$MAX" ]; then break; fi
             
             ID=$(echo "$video" | jq -r '.id')
