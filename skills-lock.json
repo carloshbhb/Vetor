@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "skills": {
     "captions": {
       "source": "ZeroPointRepo/youtube-skills",
@@ -144,6 +144,72 @@
       "sourceType": "github",
       "skillPath": "skills/yt/SKILL.md",
       "computedHash": "c51670337989af153b3bb112c0507c24b17c9871ca6e803f0d8f9a235a097345"
+    },
+    "ruflo-integration": {
+      "source": "ruvnet/ruflo",
+      "sourceType": "github",
+      "skillPath": "skills/ruflo-integration/SKILL.md",
+      "computedHash": "placeholder-for-hash"
+    },
+    "ruflo-swarm-coordinator": {
+      "source": "ruvnet/ruflo",
+      "sourceType": "github",
+      "skillPath": "skills/ruflo-swarm-coordinator/SKILL.md",
+      "computedHash": "placeholder-for-hash"
+    },
+    "ruflo-adaptive-memory": {
+      "source": "ruvnet/ruflo",
+      "sourceType": "github",
+      "skillPath": "skills/ruflo-adaptive-memory/SKILL.md",
+      "computedHash": "placeholder-for-hash"
+    },
+    "ruflo-federation": {
+      "source": "ruvnet/ruflo",
+      "sourceType": "github",
+      "skillPath": "skills/ruflo-federation/SKILL.md",
+      "computedHash": "placeholder-for-hash"
+    },
+    "ruflo-rag-integration": {
+      "source": "ruvnet/ruflo",
+      "sourceType": "github",
+      "skillPath": "skills/ruflo-rag-integration/SKILL.md",
+      "computedHash": "placeholder-for-hash"
+    },
+    "ruflo-native-integration": {
+      "source": "ruvnet/ruflo",
+      "sourceType": "github",
+      "skillPath": "skills/ruflo-native-integration/SKILL.md",
+      "computedHash": "placeholder-for-hash"
+    },
+    "nexu-minimalist-ui": {
+      "source": "nexu-io/open-design",
+      "sourceType": "github",
+      "skillPath": "skills/nexu-minimalist-ui/SKILL.md",
+      "computedHash": "placeholder-for-hash"
+    },
+    "nexu-ui-constraints": {
+      "source": "nexu-io/open-design",
+      "sourceType": "github",
+      "skillPath": "skills/nexu-ui-constraints/SKILL.md",
+      "computedHash": "placeholder-for-hash"
+    },
+    "nexu-design-protocols": {
+      "source": "nexu-io/open-design",
+      "sourceType": "github",
+      "skillPath": "skills/nexu-design-protocols/SKILL.md",
+      "computedHash": "placeholder-for-hash"
+    },
+    "nexu-marketing-psychology": {
+      "source": "nexu-io/open-design",
+      "sourceType": "github",
+      "skillPath": "skills/nexu-marketing-psychology/SKILL.md",
+      "computedHash": "placeholder-for-hash"
+    },
+    "nexu-skill-catalog": {
+      "source": "nexu-io/open-design",
+      "sourceType": "github",
+      "skillPath": "skills/nexu-skill-catalog/SKILL.md",
+      "computedHash": "placeholder-for-hash"
     }
   }
 }

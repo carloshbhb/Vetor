@@ -1,27 +1,27 @@
 :root {
   --bg: #FFFFFF;
-  --surface: #F0F5FF;
-  --surface2: #E8EEFF;
-  --ink: #111827;
-  --body: #374151;
-  --muted: #555F6E;
-  --blue: #1D4ED8;
-  --blue-lt: #EFF6FF;
-  --cta: #EA580C;
-  --cta-dk: #C2410C;
-  --green: #047857;
-  --red: #DC2626;
-  --amber: #D97706;
-  --border: #E5E7EB;
-  --border2: #D1D5DB;
+  --surface: #F7F6F3;
+  --surface2: #FBFBFA;
+  --ink: #111111;
+  --body: #2F3437;
+  --muted: #787774;
+  --blue: #1F6C9F;
+  --blue-lt: #E1F3FE;
+  --cta: #111111;
+  --cta-dk: #333333;
+  --green: #346538;
+  --red: #9F2F2D;
+  --amber: #956400;
+  --border: #EAEAEA;
+  --border2: #DFDFDF;
 
-  --font-display: "Bebas Neue", sans-serif;
-  --font-heading: "Syne", sans-serif;
-  --font-body: "DM Sans", sans-serif;
+  --font-display: 'Lyon Text', 'Newsreader', 'Playfair Display', 'Instrument Serif', serif;
+  --font-heading: 'SF Pro Display', 'Geist Sans', 'Helvetica Neue', 'Switzer', sans-serif;
+  --font-body: 'SF Pro Display', 'Geist Sans', 'Helvetica Neue', 'Switzer', sans-serif;
 
   /* Backward-compatible aliases */
   --text: var(--ink);
-  --amber-bg: rgba(29,78,216,0.08);
+  --amber-bg: rgba(29,78,216,0.04);
 }
 
 @media (prefers-reduced-motion: reduce) {

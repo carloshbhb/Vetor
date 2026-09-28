@@ -11,10 +11,10 @@ export default function ReviewCard({ review }: { review: Review }) {
       style={{
         display: "block",
         background: "var(--bg)",
-        border: "1.5px solid var(--border)",
-        borderRadius: 10,
+        border: "1px solid var(--border)",
+        borderRadius: "8px",
         overflow: "hidden",
-        transition: "all 0.3s",
+        transition: "border-color 0.2s",
         textDecoration: "none",
       }}
     >
@@ -29,10 +29,10 @@ export default function ReviewCard({ review }: { review: Review }) {
           />
           <span style={{
             position: "absolute", top: 12, left: 12,
-            background: "rgba(255,255,255,0.9)", backdropFilter: "blur(4px)",
-            border: "1px solid var(--border)", borderRadius: 4,
+            background: "rgba(255,255,255,0.9)", backdropFilter: "blur(0px)",
+            border: "1px solid var(--border)", borderRadius: "4px",
             padding: "3px 10px",
-            fontFamily: "'Syne',sans-serif", fontSize: "0.64rem", fontWeight: 700,
+            fontFamily: "var(--font-heading)", fontSize: "0.64rem", fontWeight: 700,
             letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--body)",
           }}>
             {review.category}
@@ -41,34 +41,28 @@ export default function ReviewCard({ review }: { review: Review }) {
             <span style={{
               position: "absolute", top: 12, right: 12,
               background: "var(--blue)", color: "#fff",
-              fontFamily: "'Bebas Neue',sans-serif",
-              borderRadius: 8, padding: "3px 10px", fontSize: "1.2rem", lineHeight: 1.2,
+              fontFamily: "var(--font-heading)",
+              borderRadius: "8px", padding: "3px 10px", fontSize: "1.2rem", lineHeight: 1.2,
             }}>
               {score.toFixed(1)}
             </span>
           )}
         </div>
       )}
-      <div style={{ padding: 20 }}>
+      <div style={{ padding: "20px" }}>
         <h3 style={{
-          fontFamily: "'Syne',sans-serif", fontWeight: 800,
+          fontFamily: "var(--font-heading)", fontWeight: 800,
           fontSize: "0.95rem", color: "var(--ink)",
           marginBottom: 6, lineHeight: 1.3,
         }}>
           {review.product}
         </h3>
-        <p style={{
-          fontSize: "0.82rem", color: "var(--muted)", fontWeight: 300,
-          lineHeight: 1.6, marginBottom: 14,
-          overflow: "hidden", textOverflow: "ellipsis",
-          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-        }}>
+        <p style={{fontSize: "0.82rem", color: "var(--muted)", fontWeight: 300, lineHeight: 1.6, marginBottom: 14, overflow: "hidden", textOverflow: "ellipsis", WebkitLineClamp: 2, WebkitBoxOrient: "vertical"}}>
           {review.hero_lead}
         </p>
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          paddingTop: 12, borderTop: "1px solid var(--border)",
-          fontFamily: "'Syne',sans-serif", fontSize: "0.7rem", fontWeight: 600, color: "var(--muted)",
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+          paddingTop: "12px", borderTop: "1px solid var(--border)",
+          fontFamily: "var(--font-heading)", fontSize: "0.7rem", fontWeight: 600, color: "var(--muted)",
         }}>
           <span>{review.category}</span>
           {score >= 8 ? (

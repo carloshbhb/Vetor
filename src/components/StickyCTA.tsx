@@ -21,10 +21,9 @@ export default function StickyCTA({ price, affiliateUrl, productName }: StickyCT
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-bg border-t border-border px-4 py-3 transition-transform duration-300 ${
-        visible ? "translate-y-0" : "translate-y-full"
+      className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden transition-opacity duration-300 ${
+        visible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
-      style={{ boxShadow: "0 -2px 12px rgba(0,0,0,0.08)" }}
     >
       <div className="container flex items-center justify-between gap-3">
         <div className="min-w-0">
@@ -35,7 +34,24 @@ export default function StickyCTA({ price, affiliateUrl, productName }: StickyCT
           href={affiliateUrl || "#"}
           target={affiliateUrl ? "_blank" : undefined}
           rel={affiliateUrl ? "noopener noreferrer" : undefined}
-          className="bg-cta text-white text-sm font-heading font-extrabold px-5 py-2.5 rounded-md hover:bg-cta-dk transition-colors whitespace-nowrap flex-shrink-0"
+          style={{
+            background: "var(--cta)",
+            color: "#FFFFFF",
+            border: "none",
+            borderRadius: "4px",
+            padding: "12px 24px",
+            fontFamily: "var(--font-heading)",
+            fontWeight: "800",
+            fontSize: "0.875rem",
+            letterSpacing: "0.03em",
+            color: "#FFFFFF",
+            padding: "12px 24px",
+            transition: "background 0.15s",
+            whiteSpace: "nowrap",
+          }}
+          onMouseOver={(e) => e.target.style.background = "var(--cta-dk)"}
+          onMouseOut={(e) => e.target.style.background = "var(--cta)"}
+          rel={affiliateUrl ? "noopener noreferrer" : undefined}
         >
           Ver Menor Preço
         </a>
