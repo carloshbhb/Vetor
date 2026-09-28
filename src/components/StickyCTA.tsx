@@ -33,7 +33,6 @@ export default function StickyCTA({ price, affiliateUrl, productName }: StickyCT
         <a
           href={affiliateUrl || "#"}
           target={affiliateUrl ? "_blank" : undefined}
-          rel={affiliateUrl ? "noopener noreferrer" : undefined}
           style={{
             background: "var(--cta)",
             color: "#FFFFFF",
@@ -44,13 +43,11 @@ export default function StickyCTA({ price, affiliateUrl, productName }: StickyCT
             fontWeight: "800",
             fontSize: "0.875rem",
             letterSpacing: "0.03em",
-            color: "#FFFFFF",
-            padding: "12px 24px",
             transition: "background 0.15s",
             whiteSpace: "nowrap",
           }}
-          onMouseOver={(e) => e.target.style.background = "var(--cta-dk)"}
-          onMouseOut={(e) => e.target.style.background = "var(--cta)"}
+          onMouseOver={(e) => (e.currentTarget as HTMLAnchorElement).style.background = "var(--cta-dk)"}
+          onMouseOut={(e) => (e.currentTarget as HTMLAnchorElement).style.background = "var(--cta)"}
           rel={affiliateUrl ? "noopener noreferrer" : undefined}
         >
           Ver Menor Preço

@@ -19,7 +19,14 @@
   --font-heading: 'SF Pro Display', 'Geist Sans', 'Helvetica Neue', 'Switzer', sans-serif;
   --font-body: 'SF Pro Display', 'Geist Sans', 'Helvetica Neue', 'Switzer', sans-serif;
 
-  /* Backward-compatible aliases */
+  /* Frequently used values */
+  --transition-fast: 0.15s;
+  --transition-normal: 0.3s;
+  --transition-slow: 0.5s;
+  --box-shadow-sm: 0 1px 8px rgba(0,0,0,0.06);
+  --box-shadow-none: none;
+  --border-radius-base: 8px;
+  --border-radius-sm: 4px;
   --text: var(--ink);
   --amber-bg: rgba(29,78,216,0.04);
 }
