@@ -15,6 +15,8 @@ import type { Review } from "@/lib/types";
 import StickyReviewNav from "@/components/StickyReviewNav";
 import AuthorBox from "@/components/AuthorBox";
 import { primaryAuthor } from "@/data/authors";
+import NoiseOverlay from "@/components/NoiseOverlay";
+import CustomCursor from "@/components/CustomCursor";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -125,6 +127,10 @@ export default async function ReviewPage({ params }: PageProps) {
         ]}
       />
 
+      {/* Premium UI: Noise overlay + Custom cursor */}
+      <NoiseOverlay opacity={0.02} />
+      <CustomCursor />
+
       {/* ============================================================
            IN-PAGE STICKY NAV (replaces site Navbar on review pages)
       ============================================================ */}
@@ -136,10 +142,21 @@ export default async function ReviewPage({ params }: PageProps) {
       />
 
       {/* ============================================================
-           HERO
+           HERO - Full bleed with word-level animation
       ============================================================ */}
-      <section className="hero" id="topo">
-        <div className="hero-left container" style={{ padding: "64px 32px 0" }}>
+      <section className="hero" id="topo" style={{ 
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Ambient radial gradients */}
+        <div className="pointer-events-none absolute inset-0 -z-10" style={{
+          background: `
+            radial-gradient(ellipse 70% 50% at 20% 10%, rgba(31,108,159,0.06) 0%, transparent 60%),
+            radial-gradient(ellipse 50% 40% at 80% 90%, rgba(149,100,0,0.04) 0%, transparent 50%)
+          `
+        }} />
+
+        <div className="hero-left container" style={{ padding: "64px 32px 0", position: "relative", zIndex: 10 }}>
           <Breadcrumbs
             items={[
               { label: "Início", href: "/" },
@@ -154,7 +171,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 alt={review.product}
                 width={80}
                 height={80}
-                style={{ borderRadius: 10, objectFit: "cover", border: "1.5px solid var(--border)" }}
+                style={{ borderRadius: 10, objectFit: "cover", border: "1.5px solid var(--border)", transition: "transform 0.3s" }}
                 sizes="80px"
                 priority
               />
@@ -163,24 +180,59 @@ export default async function ReviewPage({ params }: PageProps) {
               <div className="inline-flex items-center gap-2 mb-2 px-3 py-1 font-heading font-extrabold text-[0.7rem] tracking-[0.04em]" style={{ background: "#DCFCE7", color: "#15803D", border: "1.5px solid #BBF7D0", borderRadius: 4 }}>
                 ✓ &nbsp;Review · {review.category}
               </div>
-              <h1 className="font-display" style={{ fontSize: "clamp(2.4rem, 5vw, 4rem)", lineHeight: 0.95, letterSpacing: "0.01em", color: "var(--ink)" }}>
-                {review.hero_headline_line1 && (
-                  <>{review.hero_headline_line1}<br /></>
-                )}
-                {review.hero_headline_line2 || review.product}
+              <h1 className="font-display reveal-word" style={{ 
+                fontSize: "clamp(2.4rem, 5vw, 4rem)", 
+                lineHeight: 0.95, 
+                letterSpacing: "0.01em", 
+                color: "var(--ink)",
+                marginBottom: "16px",
+              }}>
+                <span className="word" style={{ 
+                  opacity: 0, transform: "translateY(30px)", 
+                  transition: "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1)",
+                  transitionDelay: "200ms",
+                  display: "block"
+                }}>
+                  {review.hero_headline_line1 ? `${review.hero_headline_line1}<br />` : ""}
+                </span>
+                <span className="word" style={{ 
+                  opacity: 0, transform: "translateY(30px)", 
+                  transition: "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1)",
+                  transitionDelay: "280ms",
+                  display: "block"
+                }}>
+                  {review.hero_headline_line2 || review.product}
+                </span>
                 {review.hero_headline_em && (
-                  <span className="text-blue"> {review.hero_headline_em}</span>
+                  <span className="word text-blue" style={{ 
+                    opacity: 0, transform: "translateY(30px)", 
+                    transition: "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1)",
+                    transitionDelay: "360ms",
+                    display: "block"
+                  }}>
+                    {review.hero_headline_em}
+                  </span>
                 )}
               </h1>
             </div>
           </div>
 
-          <p className="text-[1.05rem] text-body leading-[1.8] max-w-[520px] mb-7 font-light">
+          <p className="reveal-word text-[1.05rem] text-body leading-[1.8] max-w-[520px] mb-7 font-light" style={{
+            opacity: 0,
+            transform: "translateY(20px)",
+            transition: "opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1)",
+            transitionDelay: "500ms"
+          }}>
             {review.hero_lead}
           </p>
 
           {score > 0 && (
-            <div className="flex items-center gap-1 mb-6">
+            <div className="reveal-word flex items-center gap-1 mb-6" style={{
+              opacity: 0,
+              transform: "translateY(20px)",
+              transition: "opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1)",
+              transitionDelay: "580ms"
+            }}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <span key={star} className="star" style={{ color: star <= starCount ? "var(--amber)" : "#D1D5DB", fontSize: "1.2rem" }}>
                   ★
@@ -191,7 +243,13 @@ export default async function ReviewPage({ params }: PageProps) {
           )}
 
           {quickFacts.length > 0 && (
-            <div className="flex flex-wrap overflow-hidden rounded-lg mb-8" style={{ border: "1.5px solid var(--border2)", background: "var(--bg)" }}>
+            <div className="reveal-word flex flex-wrap overflow-hidden rounded-lg mb-8" style={{
+              border: "1.5px solid var(--border2)", background: "var(--bg)",
+              opacity: 0,
+              transform: "translateY(20px)",
+              transition: "opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1)",
+              transitionDelay: "660ms"
+            }}>
               {quickFacts.map((spec, i) => (
                 <div key={i} className="qf-item flex-1 min-w-[100px] text-center" style={{ padding: "14px 16px", borderRight: i < quickFacts.length - 1 ? "1.5px solid var(--border)" : "none" }}>
                   <span className="font-display text-blue block" style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "1.5rem", lineHeight: 1 }}>{spec.value}</span>
@@ -201,21 +259,76 @@ export default async function ReviewPage({ params }: PageProps) {
             </div>
           )}
 
-          <div className="flex items-center gap-4 flex-wrap">
+          {/* Magnetic CTA Buttons */}
+          <div className="reveal-word flex items-center gap-4 flex-wrap" style={{
+            opacity: 0,
+            transform: "translateY(20px)",
+            transition: "opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1)",
+            transitionDelay: "740ms"
+          }}>
             {review.affiliate_url && (
               <a
                 href={review.affiliate_url}
                 target="_blank"
                 rel="noopener noreferrer sponsored"
-                className="btn-cta"
+                className="btn-cta magnetic"
+                data-magnetic="true"
+                style={{
+                  background: "var(--cta)",
+                  color: "#FFFFFF",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "16px 36px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 800,
+                  fontSize: "0.9rem",
+                  letterSpacing: "0.03em",
+                  textDecoration: "none",
+                  transition: "background 0.15s, transform 0.2s, box-shadow 0.2s",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  willChange: "transform",
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.15)",
+                }}
+                onMouseOver={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.background = "var(--cta-dk)";
+                  el.style.boxShadow = "0 8px 32px rgba(0,0,0,0.2)";
+                  el.style.transform = "scale(1.02)";
+                }}
+                onMouseOut={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.background = "var(--cta)";
+                  el.style.boxShadow = "0 4px 24px rgba(0,0,0,0.15)";
+                  el.style.transform = "scale(1)";
+                }}
+                onMouseDown={(e) => {
+                  (e.currentTarget as HTMLElement).style.transform = "scale(0.98)";
+                }}
+                onMouseUp={(e) => {
+                  (e.currentTarget as HTMLElement).style.transform = "scale(1.02)";
+                }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" style={{ width: 16, height: 16 }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                 </svg>
-                Ver Preço Atualizado
+                Ver Preço Atualizado no ML
               </a>
             )}
-            <a href="#ficha-tecnica" className="btn-sec">Ver ficha técnica ↓</a>
+            <a href="#ficha-tecnica" className="btn-sec magnetic" data-magnetic="true" style={{
+              fontFamily: "var(--font-heading)",
+              fontSize: "0.85rem",
+              fontWeight: 700",
+              color: "var(--blue)",
+              textDecoration: "none",
+              borderBottom: "2px solid var(--blue)",
+              paddingBottom: "4px",
+              transition: "color 0.15s, border-color 0.15s",
+              willChange: "transform",
+            }}>
+              Ver ficha técnica ↓
+            </a>
           </div>
         </div>
       </section>
@@ -436,64 +549,217 @@ export default async function ReviewPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* ============================================================
-           BUY CTA
-      ============================================================ */}
+{/* ============================================================
+            BUY CTA - Glassmorphism with Magnetic CTA
+       ============================================================ */}
       {review.affiliate_url && (
-        <section className="buy-sec" id="comprar">
-          <div className="buy-inner">
-            <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <section className="buy-sec" id="comprar" style={{ position: "relative", overflow: "hidden" }}>
+          {/* Glassmorphism background layers */}
+          <div className="pointer-events-none absolute inset-0 -z-10" style={{
+            background: `
+              radial-gradient(ellipse 50% 30% at 50% 50%, rgba(31,108,159,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse 40% 25% at 80% 20%, rgba(149,100,0,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse 30% 20% at 20% 80%, rgba(52,101,56,0.04) 0%, transparent 40%)
+            `
+          }} />
+          
+          {/* Glassmorphism card overlay */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 -z-5" style={{
+            background: "linear-gradient(to top, rgba(17,17,17,0.03) 0%, transparent 100%)",
+            backdropFilter: "blur(20px)",
+            borderTop: "1px solid rgba(255,255,255,0.1)",
+          }} />
+
+          <div className="buy-inner relative z-10">
+            <div className="reveal text-center mb-12" style={{ transitionDelay: "100ms" }}>
               <span className="sec-label">Oferta verificada</span>
               <h2 className="sec-h">Onde comprar pelo melhor preço</h2>
-              <p style={{ color: "var(--body)", fontWeight: 300, fontSize: "0.92rem" }}>Encontramos a melhor oferta disponível neste momento. Preço pode variar.</p>
+              <p style={{ color: "var(--body)", fontWeight: 300, fontSize: "0.95rem", maxWidth: 600, margin: "16px auto 0" }}>
+                Encontramos a melhor oferta disponível neste momento. Preço pode variar.
+              </p>
             </div>
 
-            <div className="buy-card">
-              <div className="buy-card-head">
+            {/* Glassmorphism buy card */}
+            <div className="buy-card relative magnetic" data-magnetic="true" style={{
+              willChange: "transform, box-shadow, border-color",
+              transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s, background 0.2s",
+              background: "rgba(255,255,255,0.7)",
+              backdropFilter: "blur(20px)",
+              border: "1px solid var(--border)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+            }}
+            onMouseOver={(e) => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.borderColor = "var(--blue)";
+              el.style.boxShadow = "0 20px 60px rgba(0,0,0,0.12), 0 0 0 1px rgba(31,108,159,0.2)";
+              el.style.transform = "translateY(-4px)";
+              el.style.background = "rgba(255,255,255,0.85)";
+            }}
+            onMouseOut={(e) => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.borderColor = "var(--border)";
+              el.style.boxShadow = "0 8px 32px rgba(0,0,0,0.08)";
+              el.style.transform = "translateY(0)";
+              el.style.background = "rgba(255,255,255,0.7)";
+            }}
+            onMouseDown={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = "translateY(-2px) scale(0.995)";
+            }}
+            onMouseUp={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
+            }}
+            >
+              <div className="buy-card-head" style={{
+                background: "linear-gradient(135deg, var(--cta) 0%, var(--cta-dk) 100%)",
+                borderBottom: "1px solid rgba(255,255,255,0.1)",
+              }}>
                 <span className="buy-card-head-title">🏅 Melhor Oferta Disponível — {review.marketplace || "Mercado Livre"}</span>
-                <span className="buy-card-head-badge">OFERTA VERIFICADA</span>
+                <span className="buy-card-head-badge" style={{ 
+                  background: "rgba(255,255,255,0.2)", 
+                  backdropFilter: "blur(8px)",
+                  border: "1px solid rgba(255,255,255,0.3)",
+                }}>OFERTA VERIFICADA</span>
               </div>
               <div className="buy-card-body">
                 <div>
                   <div className="buy-product-name">{review.product}</div>
                   <ul className="buy-features">
                     {topSpecs.slice(0, 6).map((spec, i) => (
-                      <li key={i}>{spec.label}: {spec.value}</li>
+                      <li key={i} style={{ 
+                        position: "relative",
+                        paddingLeft: "28px",
+                        fontSize: "0.88rem",
+                        color: "var(--body)",
+                        fontWeight: 300,
+                        marginBottom: "10px",
+                      }}>
+                        <span style={{ 
+                          position: "absolute", 
+                          left: 0, 
+                          top: "2px",
+                          color: "var(--green)", 
+                          fontWeight: 700,
+                          fontSize: "1rem",
+                        }}>✓</span>
+                        <strong style={{ color: "var(--ink)", fontWeight: 600 }}>{spec.label}:</strong> {spec.value}
+                      </li>
                     ))}
                   </ul>
-                  <div style={{ fontSize: "0.8rem", color: "var(--muted)", fontWeight: 300 }}>
-                    ✓ Venda verificada &nbsp;·&nbsp; ✓ Garantia inclusa
+                  <div style={{ fontSize: "0.8rem", color: "var(--muted)", fontWeight: 300, display: "flex", gap: "16px", flexWrap: "wrap" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>✓ Venda verificada</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>✓ Garantia inclusa</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>✓ Entrega rápida</span>
                   </div>
                 </div>
                 <div className="buy-price-block">
                   {review.price_old && (
-                    <div className="buy-old-price">De {review.price_old}</div>
+                    <div className="buy-old-price" style={{ textDecoration: "line-through", color: "var(--muted)" }}>De {review.price_old}</div>
                   )}
-                  <div className="buy-main-price">{review.price_new || "Consultar"}</div>
-                  <div className="buy-period">no Pix · ou parcele</div>
+                  <div className="buy-main-price" style={{ 
+                    fontFamily: "var(--font-display)", 
+                    fontSize: "clamp(2.5rem, 4vw, 3.5rem)", 
+                    color: "var(--cta)", 
+                    lineHeight: 1,
+                    fontWeight: 300,
+                    letterSpacing: "-0.02em",
+                  }}>
+                    {review.price_new || "Consultar"}
+                  </div>
+                  <div className="buy-period" style={{ fontSize: "0.8rem", color: "var(--muted)", fontWeight: 300, marginTop: "8px" }}>no Pix · ou parcele</div>
                   <a
                     href={review.affiliate_url}
                     target="_blank"
                     rel="noopener noreferrer sponsored"
-                    className="btn-buy"
+                    className="btn-buy magnetic"
+                    data-magnetic="true"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      background: "linear-gradient(135deg, var(--amber) 0%, #B8860B 100%)",
+                      color: "#111",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "18px 40px",
+                      fontFamily: "var(--font-heading)",
+                      fontWeight: 800,
+                      fontSize: "1rem",
+                      letterSpacing: "0.02em",
+                      textDecoration: "none",
+                      transition: "background 0.15s, transform 0.2s, box-shadow 0.2s",
+                      willChange: "transform, box-shadow",
+                      boxShadow: "0 4px 24px rgba(149,100,0,0.3), 0 0 0 1px rgba(255,255,255,0.1)",
+                      marginTop: "16px",
+                    }}
+                    onMouseOver={(e) => {
+                      const el = e.currentTarget as HTMLElement;
+                      el.style.background = "linear-gradient(135deg, #B8860B 0%, #956400 100%)";
+                      el.style.boxShadow = "0 8px 32px rgba(149,100,0,0.4), 0 0 0 1px rgba(255,255,255,0.2)";
+                      el.style.transform = "translateY(-2px)";
+                    }}
+                    onMouseOut={(e) => {
+                      const el = e.currentTarget as HTMLElement;
+                      el.style.background = "linear-gradient(135deg, var(--amber) 0%, #B8860B 100%)";
+                      el.style.boxShadow = "0 4px 24px rgba(149,100,0,0.3), 0 0 0 1px rgba(255,255,255,0.1)";
+                      el.style.transform = "translateY(0)";
+                    }}
+                    onMouseDown={(e) => {
+                      (e.currentTarget as HTMLElement).style.transform = "translateY(0) scale(0.98)";
+                    }}
+                    onMouseUp={(e) => {
+                      (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+                    }}
                   >
-                    Comprar Agora
+                    Comprar Agora no ML
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
                   </a>
-                  <div className="buy-note">Você será direcionado ao {review.marketplace || "Mercado Livre"}</div>
+                  <div className="buy-note" style={{ fontSize: "0.7rem", color: "var(--muted)", textAlign: "center", marginTop: "12px", fontWeight: 300 }}>Você será direcionado ao {review.marketplace || "Mercado Livre"}</div>
                 </div>
               </div>
-              <div className="guarantee-band">
-                <div className="guarantee-seal">🛡️</div>
+              
+              {/* Glassmorphism guarantee band */}
+              <div className="guarantee-band relative" style={{
+                background: "rgba(255,255,255,0.5)",
+                backdropFilter: "blur(20px)",
+                borderTop: "1px solid rgba(255,255,255,0.1)",
+                borderBottom: "1px solid rgba(255,255,255,0.1)",
+                marginTop: "24px",
+              }}>
+                <div className="guarantee-seal" style={{ 
+                  width: "56px", height: "56px", 
+                  background: "rgba(16,185,129,0.1)", 
+                  border: "2px solid rgba(16,185,129,0.3)",
+                  backdropFilter: "blur(8px)",
+                }}>🛡️</div>
                 <div className="guarantee-text">
-                  <h3>Compra 100% protegida</h3>
-                  <p>Garantia de devolução e produto original. Você conta com suporte completo.</p>
+                  <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.85rem", color: "var(--ink)", marginBottom: "3px" }}>Compra 100% protegida</h3>
+                  <p style={{ fontSize: "0.8rem", color: "var(--body)", fontWeight: 300, lineHeight: 1.6 }}>Garantia de devolução e produto original. Você conta com suporte completo.</p>
                 </div>
               </div>
             </div>
 
-            <div className="trust-row">
+            {/* Trust signals with glassmorphism */}
+            <div className="trust-row mt-8" style={{ 
+              background: "rgba(255,255,255,0.4)",
+              backdropFilter: "blur(20px)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "12px",
+              padding: "20px 24px",
+            }}>
               {["🔒 Pagamento seguro", "🚚 Frete grátis", "🏭 Produto original", "📋 Nota fiscal", "↩️ Devolução em 7 dias"].map((item) => (
-                <div key={item} className="trust-item">
+                <div key={item} className="trust-item" style={{ 
+                  display: "inline-flex", 
+                  alignItems: "center", 
+                  gap: "8px",
+                  fontFamily: "var(--font-heading)", 
+                  fontSize: "0.7rem", 
+                  fontWeight: 700, 
+                  color: "var(--muted)",
+                  padding: "0 8px",
+                  borderRight: "1px solid var(--border)",
+                }}>
                   {item}
                 </div>
               ))}
@@ -584,6 +850,54 @@ export default async function ReviewPage({ params }: PageProps) {
       )}
 
       <Footer />
+      
+      {/* Entrance Animations */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+              if (prefersReduced) {
+                document.querySelectorAll('.reveal, .reveal-word').forEach(el => {
+                  el.classList.add('in');
+                  el.style.opacity = '1';
+                  el.style.transform = 'none';
+                });
+                return;
+              }
+              
+              // Staggered word reveal
+              document.querySelectorAll('.reveal-word .word').forEach((el, i) => {
+                setTimeout(() => {
+                  el.style.opacity = '1';
+                  el.style.transform = 'none';
+                }, 100 + i * 80);
+              });
+              
+              // IntersectionObserver for scroll reveals
+              const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                  if (entry.isIntersecting) {
+                    entry.target.classList.add('in');
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'none';
+                    observer.unobserve(entry.target);
+                  }
+                });
+              }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+              
+              document.querySelectorAll('.reveal:not(.in), .reveal-word:not(.word)').forEach(el => {
+                observer.observe(el);
+              });
+              
+              // Stagger children
+              document.querySelectorAll('.reveal > *').forEach((el, i) => {
+                el.style.transitionDelay = (i * 80) + 'ms';
+              });
+            })();
+          `
+        }}
+      />
     </>
   );
 }
