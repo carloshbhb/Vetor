@@ -319,7 +319,7 @@ export default async function ReviewPage({ params }: PageProps) {
             <a href="#ficha-tecnica" className="btn-sec magnetic" data-magnetic="true" style={{
               fontFamily: "var(--font-heading)",
               fontSize: "0.85rem",
-              fontWeight: 700",
+              fontWeight: 700,
               color: "var(--blue)",
               textDecoration: "none",
               borderBottom: "2px solid var(--blue)",
