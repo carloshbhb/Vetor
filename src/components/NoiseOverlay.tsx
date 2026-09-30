@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 export default function NoiseOverlay({ opacity = 0.03 }: { opacity?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const canvas = canvasRef.current;

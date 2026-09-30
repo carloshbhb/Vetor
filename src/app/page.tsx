@@ -161,8 +161,8 @@ export default async function Home() {
                     gap: "10px",
                     willChange: "transform",
                   }}
-                  onMouseOver={(e) => (e.currentTarget as HTMLElement).style.background = "var(--cta-dk)"}
-                  onMouseOut={(e) => (e.currentTarget as HTMLElement).style.background = "var(--cta)"}
+                  data-hover={JSON.stringify({ background: "var(--cta-dk)" })}
+                  data-hover-base={JSON.stringify({ background: "var(--cta)" })}
                 >
                   Ver Comparativos 2026
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -299,10 +299,8 @@ export default async function Home() {
                 // Bento grid: first item spans 2 cols on lg
               }}>
                 {topReviews.map((review, i) => (
-                  <div key={review.slug} className="reveal" style={{ 
+                  <div key={review.slug} className={`reveal ${i === 0 ? "lg:col-span-2 lg:row-span-2" : ""}`} style={{ 
                     transitionDelay: `${100 + i * 80}ms`,
-                    gridColumn: i === 0 && window.innerWidth >= 1024 ? "span 2 / auto" : "auto",
-                    gridRow: i === 0 && window.innerWidth >= 1024 ? "span 2 / auto" : "auto",
                   }}>
                     <ReviewCard review={review} />
                   </div>
@@ -355,18 +353,16 @@ export default async function Home() {
                         transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
                         willChange: "transform, box-shadow, border-color",
                       }}
-                      onMouseOver={(e) => {
-                        const el = e.currentTarget as HTMLElement;
-                        el.style.borderColor = "var(--blue)";
-                        el.style.boxShadow = "0 8px 32px rgba(0,0,0,0.08)";
-                        el.style.transform = "translateY(-4px)";
-                      }}
-                      onMouseOut={(e) => {
-                        const el = e.currentTarget as HTMLElement;
-                        el.style.borderColor = "var(--border)";
-                        el.style.boxShadow = "none";
-                        el.style.transform = "translateY(0)";
-                      }}
+                      data-hover={JSON.stringify({
+                        "border-color": "var(--blue)",
+                        "box-shadow": "0 8px 32px rgba(0,0,0,0.08)",
+                        transform: "translateY(-4px)",
+                      })}
+                      data-hover-base={JSON.stringify({
+                        "border-color": "var(--border)",
+                        "box-shadow": "none",
+                        transform: "translateY(0)",
+                      })}
                     >
                       <div style={{ 
                         fontFamily: "var(--font-heading)", 
@@ -515,20 +511,18 @@ export default async function Home() {
                       transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s, background 0.2s",
                       willChange: "transform, box-shadow, border-color, background",
                     }}
-                    onMouseOver={(e) => {
-                      const el = e.currentTarget as HTMLElement;
-                      el.style.borderColor = "var(--blue)";
-                      el.style.boxShadow = "0 12px 40px rgba(0,0,0,0.08)";
-                      el.style.transform = "translateY(-6px) scale(1.01)";
-                      el.style.background = "var(--surface)";
-                    }}
-                    onMouseOut={(e) => {
-                      const el = e.currentTarget as HTMLElement;
-                      el.style.borderColor = "var(--border)";
-                      el.style.boxShadow = "none";
-                      el.style.transform = "translateY(0)";
-                      el.style.background = "var(--bg)";
-                    }}
+                    data-hover={JSON.stringify({
+                      "border-color": "var(--blue)",
+                      "box-shadow": "0 12px 40px rgba(0,0,0,0.08)",
+                      transform: "translateY(-6px) scale(1.01)",
+                      background: "var(--surface)",
+                    })}
+                    data-hover-base={JSON.stringify({
+                      "border-color": "var(--border)",
+                      "box-shadow": "none",
+                      transform: "translateY(0)",
+                      background: "var(--bg)",
+                    })}
                   >
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ 
                       background: "linear-gradient(135deg, var(--blue-lt) 0%, transparent 60%)",
@@ -597,16 +591,14 @@ export default async function Home() {
                   willChange: "transform",
                   boxShadow: "0 4px 24px rgba(149,100,0,0.3)",
                 }}
-                onMouseOver={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.background = "#B8860B";
-                  el.style.boxShadow = "0 8px 32px rgba(149,100,0,0.4)";
-                }}
-                onMouseOut={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.background = "var(--amber)";
-                  el.style.boxShadow = "0 4px 24px rgba(149,100,0,0.3)";
-                }}
+                data-hover={JSON.stringify({
+                  background: "#B8860B",
+                  "box-shadow": "0 8px 32px rgba(149,100,0,0.4)",
+                })}
+                data-hover-base={JSON.stringify({
+                  background: "var(--amber)",
+                  "box-shadow": "0 4px 24px rgba(149,100,0,0.3)",
+                })}
               >
                 Ver Comparativos Custo-Benefício →
               </a>

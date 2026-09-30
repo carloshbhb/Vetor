@@ -26,18 +26,16 @@ export default function ReviewCard({
         textDecoration: "none",
         willChange: "transform, box-shadow, border-color",
       }}
-      onMouseOver={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.borderColor = "var(--blue)";
-        el.style.boxShadow = featured ? "0 20px 60px rgba(0,0,0,0.12)" : "0 12px 40px rgba(0,0,0,0.08)";
-        el.style.transform = featured ? "translateY(-8px) scale(1.01)" : "translateY(-6px) scale(1.01)";
-      }}
-      onMouseOut={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.borderColor = "var(--border)";
-        el.style.boxShadow = "none";
-        el.style.transform = "translateY(0)";
-      }}
+      data-hover={JSON.stringify({
+        "border-color": "var(--blue)",
+        "box-shadow": featured ? "0 20px 60px rgba(0,0,0,0.12)" : "0 12px 40px rgba(0,0,0,0.08)",
+        transform: featured ? "translateY(-8px) scale(1.01)" : "translateY(-6px) scale(1.01)",
+      })}
+      data-hover-base={JSON.stringify({
+        "border-color": "var(--border)",
+        "box-shadow": "none",
+        transform: "translateY(0)",
+      })}
     >
       {/* Image with hover zoom */}
       {review.image_url && (
@@ -143,7 +141,7 @@ export default function ReviewCard({
           WebkitBoxOrient: "vertical",
           display: "-webkit-box",
         }}>
-          {review.hero_lead || review.description}
+          {review.hero_lead || review.meta_description}
         </p>
 
         {/* Meta bar */}

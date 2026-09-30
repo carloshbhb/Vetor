@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
-const megaMenuData = [
+type MegaMenuItem = { label: string; href: string; count?: number; badge?: string };
+
+const megaMenuData: Array<{ label: string; href: string; items: MegaMenuItem[] }> = [
   {
     label: "Reviews",
     href: "/reviews",
@@ -41,7 +43,7 @@ export default function Navbar() {
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
-  const navbarRef = useRef<HTMLHeaderElement>(null);
+  const navbarRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -82,7 +84,7 @@ export default function Navbar() {
     <>
       <header 
         ref={navbarRef}
-        className={`navbar ${scrolled ? "scrolled" : ""} ${!scrolled && window.scrollY > 100 ? "revealed" : ""}`}
+        className={`navbar ${scrolled ? "scrolled" : ""} ${!scrolled && typeof window !== "undefined" && window.scrollY > 100 ? "revealed" : ""}`}
         onMouseEnter={() => setScrolled(false)}
         onMouseLeave={() => {
           if (window.scrollY > 100) setScrolled(true);

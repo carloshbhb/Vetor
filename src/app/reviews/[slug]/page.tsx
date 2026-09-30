@@ -291,24 +291,18 @@ export default async function ReviewPage({ params }: PageProps) {
                   willChange: "transform",
                   boxShadow: "0 4px 24px rgba(0,0,0,0.15)",
                 }}
-                onMouseOver={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.background = "var(--cta-dk)";
-                  el.style.boxShadow = "0 8px 32px rgba(0,0,0,0.2)";
-                  el.style.transform = "scale(1.02)";
-                }}
-                onMouseOut={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.background = "var(--cta)";
-                  el.style.boxShadow = "0 4px 24px rgba(0,0,0,0.15)";
-                  el.style.transform = "scale(1)";
-                }}
-                onMouseDown={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = "scale(0.98)";
-                }}
-                onMouseUp={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = "scale(1.02)";
-                }}
+                data-hover={JSON.stringify({
+                  background: "var(--cta-dk)",
+                  "box-shadow": "0 8px 32px rgba(0,0,0,0.2)",
+                  transform: "scale(1.02)",
+                })}
+                data-hover-base={JSON.stringify({
+                  background: "var(--cta)",
+                  "box-shadow": "0 4px 24px rgba(0,0,0,0.15)",
+                  transform: "scale(1)",
+                })}
+                data-hover-down={JSON.stringify({ transform: "scale(0.98)" })}
+                data-hover-up={JSON.stringify({ transform: "scale(1.02)" })}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" style={{ width: 16, height: 16 }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
@@ -588,26 +582,20 @@ export default async function ReviewPage({ params }: PageProps) {
               border: "1px solid var(--border)",
               boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
             }}
-            onMouseOver={(e) => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.borderColor = "var(--blue)";
-              el.style.boxShadow = "0 20px 60px rgba(0,0,0,0.12), 0 0 0 1px rgba(31,108,159,0.2)";
-              el.style.transform = "translateY(-4px)";
-              el.style.background = "rgba(255,255,255,0.85)";
-            }}
-            onMouseOut={(e) => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.borderColor = "var(--border)";
-              el.style.boxShadow = "0 8px 32px rgba(0,0,0,0.08)";
-              el.style.transform = "translateY(0)";
-              el.style.background = "rgba(255,255,255,0.7)";
-            }}
-            onMouseDown={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = "translateY(-2px) scale(0.995)";
-            }}
-            onMouseUp={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
-            }}
+            data-hover={JSON.stringify({
+              "border-color": "var(--blue)",
+              "box-shadow": "0 20px 60px rgba(0,0,0,0.12), 0 0 0 1px rgba(31,108,159,0.2)",
+              transform: "translateY(-4px)",
+              background: "rgba(255,255,255,0.85)",
+            })}
+            data-hover-base={JSON.stringify({
+              "border-color": "var(--border)",
+              "box-shadow": "0 8px 32px rgba(0,0,0,0.08)",
+              transform: "translateY(0)",
+              background: "rgba(255,255,255,0.7)",
+            })}
+            data-hover-down={JSON.stringify({ transform: "translateY(-2px) scale(0.995)" })}
+            data-hover-up={JSON.stringify({ transform: "translateY(-4px)" })}
             >
               <div className="buy-card-head" style={{
                 background: "linear-gradient(135deg, var(--cta) 0%, var(--cta-dk) 100%)",
@@ -691,24 +679,18 @@ export default async function ReviewPage({ params }: PageProps) {
                       boxShadow: "0 4px 24px rgba(149,100,0,0.3), 0 0 0 1px rgba(255,255,255,0.1)",
                       marginTop: "16px",
                     }}
-                    onMouseOver={(e) => {
-                      const el = e.currentTarget as HTMLElement;
-                      el.style.background = "linear-gradient(135deg, #B8860B 0%, #956400 100%)";
-                      el.style.boxShadow = "0 8px 32px rgba(149,100,0,0.4), 0 0 0 1px rgba(255,255,255,0.2)";
-                      el.style.transform = "translateY(-2px)";
-                    }}
-                    onMouseOut={(e) => {
-                      const el = e.currentTarget as HTMLElement;
-                      el.style.background = "linear-gradient(135deg, var(--amber) 0%, #B8860B 100%)";
-                      el.style.boxShadow = "0 4px 24px rgba(149,100,0,0.3), 0 0 0 1px rgba(255,255,255,0.1)";
-                      el.style.transform = "translateY(0)";
-                    }}
-                    onMouseDown={(e) => {
-                      (e.currentTarget as HTMLElement).style.transform = "translateY(0) scale(0.98)";
-                    }}
-                    onMouseUp={(e) => {
-                      (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
-                    }}
+                    data-hover={JSON.stringify({
+                      background: "linear-gradient(135deg, #B8860B 0%, #956400 100%)",
+                      "box-shadow": "0 8px 32px rgba(149,100,0,0.4), 0 0 0 1px rgba(255,255,255,0.2)",
+                      transform: "translateY(-2px)",
+                    })}
+                    data-hover-base={JSON.stringify({
+                      background: "linear-gradient(135deg, var(--amber) 0%, #B8860B 100%)",
+                      "box-shadow": "0 4px 24px rgba(149,100,0,0.3), 0 0 0 1px rgba(255,255,255,0.1)",
+                      transform: "translateY(0)",
+                    })}
+                    data-hover-down={JSON.stringify({ transform: "translateY(0) scale(0.98)" })}
+                    data-hover-up={JSON.stringify({ transform: "translateY(-2px)" })}
                   >
                     Comprar Agora no ML
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

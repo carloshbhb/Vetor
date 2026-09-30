@@ -39,6 +39,7 @@ export default function CustomCursor() {
     animate();
 
     // Magnetic elements
+    const cleanupMagnetic: Array<() => void> = [];
     const magneticElements = document.querySelectorAll<HTMLElement>("[data-magnetic]");
     magneticElements.forEach((el) => {
       const handleMagneticMove = (e: MouseEvent) => {
@@ -56,15 +57,16 @@ export default function CustomCursor() {
       };
       el.addEventListener("mousemove", handleMagneticMove);
       el.addEventListener("mouseleave", handleMagneticLeave);
-    });
-
-    return () => {
-      document.removeEventListener("mousemove", handleMove);
-      magneticElements.forEach((el) => {
+      cleanupMagnetic.push(() => {
         el.removeEventListener("mousemove", handleMagneticMove);
         el.removeEventListener("mouseleave", handleMagneticLeave);
         el.style.transform = "";
       });
+    });
+
+    return () => {
+      document.removeEventListener("mousemove", handleMove);
+      cleanupMagnetic.forEach((cleanup) => cleanup());
     };
   }, []);
 

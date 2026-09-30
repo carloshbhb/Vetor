@@ -27,10 +27,11 @@ export default function EntranceAnimations() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add("in");
-            entry.target.style.opacity = "1";
-            entry.target.style.transform = "none";
-            observer.unobserve(entry.target);
+            const target = entry.target as HTMLElement;
+            target.classList.add("in");
+            target.style.opacity = "1";
+            target.style.transform = "none";
+            observer.unobserve(target);
           }
         });
       },

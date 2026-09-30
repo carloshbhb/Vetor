@@ -10,10 +10,8 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
     lenisRef.current = new Lenis({
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      direction: "vertical",
-      gestureDirection: "vertical",
-      smooth: true,
-      smoothTouch: false,
+      smoothWheel: true,
+      syncTouch: false,
       touchMultiplier: 2,
     });
 

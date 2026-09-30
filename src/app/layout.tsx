@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { OrganizationSchema, WebSiteSchema } from "@/components/SchemaMarkup";
+import HoverFX from "@/components/HoverFX";
 import { bebasNeue, syne, dmSans } from "@/lib/fonts";
 import "./globals.css";
 
@@ -63,7 +64,10 @@ export default function RootLayout({
           href="https://www.vetor.blog/feed.xml"
         />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <HoverFX />
+        {children}
+      </body>
     </html>
   );
 }

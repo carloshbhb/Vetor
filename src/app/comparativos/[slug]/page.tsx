@@ -195,8 +195,8 @@ export default async function ViralArticlePage({
                     gap: "10px",
                     willChange: "transform",
                   }}
-                  onMouseOver={(e) => (e.currentTarget as HTMLElement).style.background = "var(--cta-dk)"}
-                  onMouseOut={(e) => (e.currentTarget as HTMLElement).style.background = "var(--cta)"}
+                  data-hover={JSON.stringify({ background: "var(--cta-dk)" })}
+                  data-hover-base={JSON.stringify({ background: "var(--cta)" })}
                 >
                   Ver Melhor Preço no ML
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -299,16 +299,14 @@ export default async function ViralArticlePage({
                             borderRadius: "12px",
                             transition: "all 0.3s",
                           }}
-                          onMouseOver={(e) => {
-                            const el = e.currentTarget as HTMLElement;
-                            if (!winner) el.style.background = "rgba(255,255,255,0.05)";
-                            el.style.borderColor = "rgba(31,108,159,0.3)";
-                          }}
-                          onMouseOut={(e) => {
-                            const el = e.currentTarget as HTMLElement;
-                            el.style.background = winner ? "rgba(149,100,0,0.08)" : "rgba(255,255,255,0.02)";
-                            el.style.borderColor = winner ? "rgba(149,100,0,0.3)" : "rgba(255,255,255,0.06)";
-                          }}
+                          data-hover={JSON.stringify({
+                            "border-color": "rgba(31,108,159,0.3)",
+                            ...(winner ? {} : { background: "rgba(255,255,255,0.05)" }),
+                          })}
+                          data-hover-base={JSON.stringify({
+                            background: winner ? "rgba(149,100,0,0.08)" : "rgba(255,255,255,0.02)",
+                            "border-color": winner ? "rgba(149,100,0,0.3)" : "rgba(255,255,255,0.06)",
+                          })}
                         >
                           {winner && (
                             <span className="absolute -top-3 left-6 px-3 py-1 text-xs font-heading font-bold tracking-wider uppercase" style={{ 
@@ -370,16 +368,14 @@ export default async function ViralArticlePage({
                             flexShrink: 0,
                             willChange: "transform, box-shadow",
                           }}
-                          onMouseOver={(e) => {
-                            const el = e.currentTarget as HTMLElement;
-                            el.style.boxShadow = "0 20px 60px rgba(0,0,0,0.3)";
-                            el.style.transform = "translateY(-8px)";
-                          }}
-                          onMouseOut={(e) => {
-                            const el = e.currentTarget as HTMLElement;
-                            el.style.boxShadow = "none";
-                            el.style.transform = "translateY(0)";
-                          }}
+                          data-hover={JSON.stringify({
+                            "box-shadow": "0 20px 60px rgba(0,0,0,0.3)",
+                            transform: "translateY(-8px)",
+                          })}
+                          data-hover-base={JSON.stringify({
+                            "box-shadow": "none",
+                            transform: "translateY(0)",
+                          })}
                         >
                           {product.imageUrl && (
                             <div className="relative h-64 mb-4 overflow-hidden rounded-xl">
@@ -457,18 +453,16 @@ export default async function ViralArticlePage({
                         transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
                         willChange: "transform, box-shadow, border-color",
                       }}
-                      onMouseOver={(e) => {
-                        const el = e.currentTarget as HTMLElement;
-                        el.style.borderColor = "var(--blue)";
-                        el.style.boxShadow = "0 12px 40px rgba(0,0,0,0.08)";
-                        el.style.transform = "translateY(-6px) scale(1.01)";
-                      }}
-                      onMouseOut={(e) => {
-                        const el = e.currentTarget as HTMLElement;
-                        el.style.borderColor = "var(--border)";
-                        el.style.boxShadow = "none";
-                        el.style.transform = "translateY(0)";
-                      }}
+                      data-hover={JSON.stringify({
+                        "border-color": "var(--blue)",
+                        "box-shadow": "0 12px 40px rgba(0,0,0,0.08)",
+                        transform: "translateY(-6px) scale(1.01)",
+                      })}
+                      data-hover-base={JSON.stringify({
+                        "border-color": "var(--border)",
+                        "box-shadow": "none",
+                        transform: "translateY(0)",
+                      })}
                     >
                       {product.imageUrl && (
                         <div className="relative h-40 mb-4 overflow-hidden rounded-lg">
@@ -534,18 +528,16 @@ export default async function ViralArticlePage({
                       transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
                       willChange: "transform, box-shadow, border-color",
                     }}
-                    onMouseOver={(e) => {
-                      const el = e.currentTarget as HTMLElement;
-                      el.style.borderColor = "var(--blue)";
-                      el.style.boxShadow = "0 16px 48px rgba(0,0,0,0.1)";
-                      el.style.transform = "translateY(-6px)";
-                    }}
-                    onMouseOut={(e) => {
-                      const el = e.currentTarget as HTMLElement;
-                      el.style.borderColor = "var(--border)";
-                      el.style.boxShadow = "none";
-                      el.style.transform = "translateY(0)";
-                    }}
+                    data-hover={JSON.stringify({
+                      "border-color": "var(--blue)",
+                      "box-shadow": "0 16px 48px rgba(0,0,0,0.1)",
+                      transform: "translateY(-6px)",
+                    })}
+                    data-hover-base={JSON.stringify({
+                      "border-color": "var(--border)",
+                      "box-shadow": "none",
+                      transform: "translateY(0)",
+                    })}
                   >
                     {r.hero?.imageUrl && (
                       <div className="relative h-48 overflow-hidden">
@@ -598,16 +590,14 @@ export default async function ViralArticlePage({
                   willChange: "transform",
                   boxShadow: "0 4px 24px rgba(149,100,0,0.3)",
                 }}
-                onMouseOver={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.background = "#B8860B";
-                  el.style.boxShadow = "0 8px 32px rgba(149,100,0,0.4)";
-                }}
-                onMouseOut={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.background = "var(--amber)";
-                  el.style.boxShadow = "0 4px 24px rgba(149,100,0,0.3)";
-                }}
+                data-hover={JSON.stringify({
+                  background: "#B8860B",
+                  "box-shadow": "0 8px 32px rgba(149,100,0,0.4)",
+                })}
+                data-hover-base={JSON.stringify({
+                  background: "var(--amber)",
+                  "box-shadow": "0 4px 24px rgba(149,100,0,0.3)",
+                })}
               >
                 Ver Todos os Comparativos →
               </a>
