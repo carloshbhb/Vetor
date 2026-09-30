@@ -1,0 +1,33 @@
+{
+  "hooks": {
+    "postTask": [
+      {
+        "command": "node .claude/hooks/capture-lesson.js",
+        "args": ["$TASK_ID", "$TASK_DESCRIPTION", "$TASK_RESULT"]
+      }
+    ],
+    "postToolUse": [
+      {
+        "matcher": "Edit|Write|Bash",
+        "command": "node .claude/hooks/track-pattern.js",
+        "args": ["$TOOL_NAME", "$FILE_PATH", "$SUCCESS"]
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": "node .claude/hooks/consolidate-memory.js"
+      }
+    ]
+  },
+  "autoCapture": {
+    "enabled": true,
+    "minSuccessRate": 0.6,
+    "captureOn": [
+      "task_completion",
+      "error_resolution",
+      "performance_improvement",
+      "security_fix",
+      "user_feedback_positive"
+    ]
+  }
+}

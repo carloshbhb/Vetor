@@ -1,0 +1,30 @@
+{
+  "autoCapture": true,
+  "minSuccessRate": 0.6,
+  "retentionDays": 365,
+  "maxLessonsPerDomain": 100,
+  "encryptionAtRest": true,
+  "federationEnabled": false,
+  "agentdb": {
+    "dbPath": ".agentdb.db",
+    "enableLearning": true,
+    "enableReasoning": true,
+    "quantizationType": "scalar",
+    "cacheSize": 1000
+  },
+  "domains": [
+    "nextjs-performance",
+    "seo-optimization",
+    "conversion-optimization",
+    "mercadolivre-affiliate",
+    "code-quality",
+    "design-system",
+    "content-generation"
+  ],
+  "learningPlugins": {
+    "enabled": true,
+    "algorithms": ["decision-transformer", "q-learning", "actor-critic"],
+    "autoTrain": true,
+    "trainEpochs": 50
+  }
+}
