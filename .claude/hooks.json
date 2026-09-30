@@ -2,20 +2,20 @@
   "hooks": {
     "postTask": [
       {
-        "command": "node .claude/hooks/capture-lesson.js",
+        "command": "node .claude/hooks/capture-lesson.mjs",
         "args": ["$TASK_ID", "$TASK_DESCRIPTION", "$TASK_RESULT"]
       }
     ],
     "postToolUse": [
       {
         "matcher": "Edit|Write|Bash",
-        "command": "node .claude/hooks/track-pattern.js",
+        "command": "node .claude/hooks/track-pattern.mjs",
         "args": ["$TOOL_NAME", "$FILE_PATH", "$SUCCESS"]
       }
     ],
     "sessionEnd": [
       {
-        "command": "node .claude/hooks/consolidate-memory.js"
+        "command": "node .claude/hooks/consolidate-memory.mjs"
       }
     ]
   },

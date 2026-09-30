@@ -1,0 +1,42 @@
+name: Metrics GA4 Daily
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-ga4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch GA4 organic metrics
+        run: node scripts/metrics/fetch-ga4.mjs
+        env:
+          GA4_PROPERTY_ID: ${{ secrets.GA4_PROPERTY_ID }}
+          GA4_SERVICE_ACCOUNT_JSON: ${{ secrets.GA4_SERVICE_ACCOUNT_JSON }}
+
+      - name: Commit metrics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metrics/ga4-daily.json metrics/SUMMARY.md
+          if git diff --staged --quiet; then
+            echo "Sem mudancas em metrics/ — nada a commitar"
+          else
+            git commit -m "chore(metrics): GA4 organico $(date -u +%F)"
+            git push
+          fi
+          echo "- **Execucao**: fetch-ga4 OK" >> $GITHUB_STEP_SUMMARY
