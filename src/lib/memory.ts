@@ -1,4 +1,4 @@
-import { createAgentDBAdapter } from 'agentic-flow$reasoningbank';
+import { createAgentDBAdapter } from 'agentic-flow/reasoningbank';
 
 let adapterInstance: ReturnType<typeof createAgentDBAdapter> | null = null;
 
