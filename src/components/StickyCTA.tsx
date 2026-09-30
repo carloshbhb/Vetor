@@ -6,10 +6,12 @@ interface StickyCTAProps {
   price: string;
   affiliateUrl?: string;
   productName: string;
+  showOnDesktop?: boolean;
 }
 
-export default function StickyCTA({ price, affiliateUrl, productName }: StickyCTAProps) {
+export default function StickyCTA({ price, affiliateUrl, productName, showOnDesktop = true }: StickyCTAProps) {
   const [visible, setVisible] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,9 +21,22 @@ export default function StickyCTA({ price, affiliateUrl, productName }: StickyCT
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    checkDesktop();
+    window.addEventListener("resize", checkDesktop);
+    return () => window.removeEventListener("resize", checkDesktop);
+  }, []);
+
+  const shouldShow = visible && (showOnDesktop || !isDesktop);
+
+  if (!shouldShow) return null;
+
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden transition-opacity duration-300 ${
+      className={`fixed bottom-0 left-0 right-0 z-50 transition-opacity duration-300 ${
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >
