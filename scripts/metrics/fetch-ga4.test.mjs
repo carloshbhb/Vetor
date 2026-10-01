@@ -88,6 +88,9 @@ test('computeOrganicStats calcula deltas 7/28d e mantém anomaly=false sem salto
   assert.equal(stats.delta28d, 0.25);
   assert.equal(stats.anomaly, false);
   assert.equal(stats.effectiveEnd, END_DATE);
+  assert.equal(stats.stale, false);
+  assert.equal(stats.staleDays, 0);
+  assert.equal(stats.lastDataDate, END_DATE);
   assert.equal(stats.daily.length, 28);
   assert.equal(stats.newUsers, 0);
 });
@@ -107,13 +110,22 @@ test('computeOrganicStats não marca anomaly em dia zero de tráfego', () => {
   assert.equal(stats.effectiveEnd, addDays(END_DATE, -1));
 });
 
-test('computeOrganicStats falha com 0 sessões e com dados velhos', () => {
+test('computeOrganicStats sinaliza stale com 0 sessões e com dados velhos (sem falhar)', () => {
   const zero = seriesWithConstantLast7(56, 0, 0);
-  assert.throws(() => computeOrganicStats(zero), /0 sessões orgânicas/);
+  const z = computeOrganicStats(zero);
+  assert.equal(z.sessions, 0);
+  assert.equal(z.stale, true);
+  assert.equal(z.lastDataDate, null);
+  assert.equal(z.effectiveEnd, END_DATE);
+  assert.equal(z.anomaly, false);
 
   const stale = seriesWithConstantLast7(56, 10, 10);
   for (let i = stale.length - 5; i < stale.length; i++) stale[i].sessions = 0;
-  assert.throws(() => computeOrganicStats(stale), /desatualizados/);
+  const s = computeOrganicStats(stale);
+  assert.equal(s.stale, true);
+  assert.equal(s.staleDays, 5);
+  assert.equal(s.lastDataDate, addDays(END_DATE, -5));
+  assert.equal(s.effectiveEnd, addDays(END_DATE, -5));
 });
 
 test('computeTopPages ordena por sessões e calcula delta7d', () => {
@@ -341,24 +353,48 @@ test('run falha (sem gravar) quando a API retorna 403', async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('run falha com 0 sessões orgânicas (não grava lixo)', async () => {
+test('run grava arquivo com stale=true quando há 0 sessões orgânicas', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ga4-test-'));
   const { fetchImpl } = makeFetchMock({
     dailyRows: [],
     pageRows: [],
     prevPageRows: [],
   });
-  await assert.rejects(
-    run({
-      fetchImpl,
-      propertyId: '1',
-      serviceAccount: testServiceAccount(),
-      metricsDir: dir,
-      endDate: END_DATE,
-    }),
-    /0 sessões orgânicas/
-  );
-  assert.equal(fs.existsSync(path.join(dir, 'ga4-daily.json')), false);
+  const { data, jsonPath, summaryPath } = await run({
+    fetchImpl,
+    propertyId: '1',
+    serviceAccount: testServiceAccount(),
+    metricsDir: dir,
+    endDate: END_DATE,
+  });
+  assert.equal(data.organic.sessions, 0);
+  assert.equal(data.organic.stale, true);
+  assert.equal(data.organic.lastDataDate, null);
+  assert.equal(data.topPages.length, 0);
+  assert.equal(fs.existsSync(jsonPath), true);
+  const summary = fs.readFileSync(summaryPath, 'utf8');
+  assert.match(summary, /STALE: zero sessões orgânicas/);
+  assert.match(summary, /Zero sessões orgânicas em 7d/);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('run usa filtro IN_LIST da família orgânica do GA4', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ga4-test-'));
+  const { calls, fetchImpl } = makeFetchMock({ dailyRows: dailyReportRows() });
+  await run({
+    fetchImpl,
+    propertyId: '1',
+    serviceAccount: testServiceAccount(),
+    metricsDir: dir,
+    endDate: END_DATE,
+  });
+  const dailyCall = calls.find((c) => c.body.dimensions[0].name === 'date');
+  assert.deepEqual(dailyCall.body.dimensionFilter, {
+    filter: {
+      fieldName: 'sessionDefaultChannelGroup',
+      inListFilter: { values: ['Organic Search', 'Organic Social', 'Organic Shopping', 'Organic Video'] },
+    },
+  });
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

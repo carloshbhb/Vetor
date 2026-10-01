@@ -9,9 +9,11 @@ const ROOT = path.resolve(HERE, '..', '..');
 const SCHEMA_VERSION = 1;
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const ANALYTICS_URL = 'https://analyticsdata.googleapis.com/v1beta';
+// Família orgânica do GA4: o valor 'Organic' puro não existe no
+// sessionDefaultChannelGroup (padrão: 'Organic Search', 'Organic Social', ...).
 const ORGANIC_FILTER = {
   fieldName: 'sessionDefaultChannelGroup',
-  stringFilter: { matchType: 'EXACT', value: 'Organic' },
+  inListFilter: { values: ['Organic Search', 'Organic Social', 'Organic Shopping', 'Organic Video'] },
 };
 const HISTORY_RETENTION_DAYS = 90;
 const SERIES_DAYS = 56;
@@ -155,23 +157,21 @@ export function computeOrganicStats(series) {
   const end = series.length ? series[series.length - 1].date : null;
   if (!end) throw new Error('Série de sessões vazia');
 
-  let effectiveEnd = null;
+  let lastDataDate = null;
   for (let i = series.length - 1; i >= 0; i--) {
     if (series[i].sessions > 0) {
-      effectiveEnd = series[i].date;
+      lastDataDate = series[i].date;
       break;
     }
   }
-  if (!effectiveEnd) {
-    throw new Error('GA4 retornou 0 sessões orgânicas no período');
-  }
-
-  const ageDays = Math.round(
+  // Zero orgânico ou dado velho não falham: o zero é o dado real e o
+  // SUMMARY precisa nascer para alimentar o ciclo do agente. O estado
+  // vai em `stale`/`staleDays`/`lastDataDate`.
+  const effectiveEnd = lastDataDate || end;
+  const staleDays = Math.round(
     (new Date(`${end}T00:00:00Z`) - new Date(`${effectiveEnd}T00:00:00Z`)) / 86400000
   );
-  if (ageDays > MAX_DATA_AGE_DAYS) {
-    throw new Error(`Dados GA4 desatualizados: última sessão em ${effectiveEnd} (idade ${ageDays}d > ${MAX_DATA_AGE_DAYS}d)`);
-  }
+  const stale = lastDataDate === null || staleDays > MAX_DATA_AGE_DAYS;
 
   const last7From = addDays(effectiveEnd, -6);
   const prev7From = addDays(effectiveEnd, -13);
@@ -206,6 +206,9 @@ export function computeOrganicStats(series) {
     anomaly,
     daily,
     effectiveEnd,
+    stale,
+    staleDays,
+    lastDataDate,
   };
 }
 
@@ -248,6 +251,11 @@ export function buildSummary(data) {
   lines.push('# Métricas GA4 — resumo diário');
   lines.push('');
   lines.push(`- Execução: ${data.date} | dados até ${data.organic.daily.length ? data.organic.daily[data.organic.daily.length - 1].date : 'n/d'} (lag GA4 T-1)`);
+  if (data.organic.stale) {
+    lines.push(data.organic.lastDataDate
+      ? `- STALE: último dia com sessões orgânicas em ${data.organic.lastDataDate} (há ${data.organic.staleDays ?? '?'}d — além do lag T-1)`
+      : '- STALE: zero sessões orgânicas no período analisado (56d)');
+  }
   lines.push('## Tendência (sessões orgânicas)');
   lines.push(`- 7d: ${data.organic.sessions} sessões (Δ7d ${formatDelta(data.organic.delta7d)} | Δ28d ${formatDelta(data.organic.delta28d)})`);
   lines.push(`- Novos usuários (7d): ${data.organic.newUsers}`);
@@ -266,7 +274,9 @@ export function buildSummary(data) {
   lines.push(`- Maior queda: ${worst ? `\`${worst.path}\` ${formatDelta(worst.delta7d)}` : 'n/d'}`);
   lines.push(`- Maior subida: ${best ? `\`${best.path}\` ${formatDelta(best.delta7d)}` : 'n/d'}`);
   lines.push('## Perguntas em aberto');
-  if (data.organic.delta28d !== null && data.organic.delta28d < -0.1) {
+  if (data.organic.sessions === 0) {
+    lines.push('- Zero sessões orgânicas em 7d: priorizar indexação/base (P0/P1) antes de keywords novas (P4).');
+  } else if (data.organic.delta28d !== null && data.organic.delta28d < -0.1) {
     lines.push(`- Tendência 28d negativa (${formatDelta(data.organic.delta28d)}): qual página/perfil explica a queda?`);
   } else {
     lines.push(`- Monitorar Δ7d ${formatDelta(data.organic.delta7d)} e alertar se queda ≥ 20% em 7d.`);
@@ -345,6 +355,9 @@ export async function run(options = {}) {
       delta7d: organic.delta7d,
       delta28d: organic.delta28d,
       newUsers: organic.newUsers,
+      stale: organic.stale,
+      staleDays: organic.staleDays,
+      lastDataDate: organic.lastDataDate,
       daily: mergeHistory(
         validExisting ? existing.organic.daily : null,
         series,
