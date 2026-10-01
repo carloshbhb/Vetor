@@ -8,7 +8,7 @@ import AdPlacement from "@/components/AdPlacement";
 import { BreadcrumbSchema } from "@/components/SchemaMarkup";
 import { fetchViralArticleBySlug, fetchAllViralArticles, fetchReviewBySlug } from "@/lib/data";
 import { sanitizeHtml } from "@/lib/sanitize";
-import { generateViralArticleSchema } from "@/lib/seo";
+import { generateViralArticleSchema, resolveOgImage } from "@/lib/seo";
 import { primaryAuthor } from "@/data/authors";
 
 interface PageProps {
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       url,
       type: "article",
-      images: article.hero?.imageUrl ? [article.hero.imageUrl] : [],
+      images: [resolveOgImage(article.hero?.imageUrl)],
     },
     twitter: {
       card: "summary_large_image",

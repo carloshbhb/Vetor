@@ -12,6 +12,7 @@ import StickyBuyBar from "@/components/StickyBuyBar";
 import AdPlacement from "@/components/AdPlacement";
 import { ReviewSchema, FAQSchema, BreadcrumbSchema } from "@/components/SchemaMarkup";
 import { fetchReviewBySlug, fetchAllReviews } from "@/lib/data";
+import { resolveOgImage } from "@/lib/seo";
 import type { Review } from "@/lib/types";
 import AuthorBox from "@/components/AuthorBox";
 import { primaryAuthor } from "@/data/authors";
@@ -35,6 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     review.meta_description ||
     review.hero_lead ||
     `Review independente do ${review.product}: nota, prós, contras e onde comprar.`;
+  const ogImage = resolveOgImage(review.meta_og_image || review.image_url);
   return {
     title,
     description,
@@ -44,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       url,
       type: "article",
-      images: review.image_url ? [review.image_url] : [],
+      images: [ogImage],
     },
     twitter: {
       card: "summary_large_image",

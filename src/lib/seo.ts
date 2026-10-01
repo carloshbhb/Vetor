@@ -2,6 +2,15 @@ import type { Review, ViralArticle } from './types';
 
 const SITE_URL = 'https://www.vetor.blog';
 
+export const ORG_ID = `${SITE_URL}/#org`;
+export const DEFAULT_OG_IMAGE = `${SITE_URL}/og.png`;
+
+// og:image da página ou fallback (nunca 404 de og:image).
+export function resolveOgImage(pageImage?: string | null): string {
+  if (pageImage && pageImage.trim()) return pageImage;
+  return DEFAULT_OG_IMAGE;
+}
+
 export function seo(title: string, description: string) {
   return {
     title,
@@ -65,6 +74,9 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
         '@type': 'Person',
         name: 'Editor Vetor',
       },
+      publisher: {
+        '@id': ORG_ID,
+      },
       reviewBody: buildReviewBody(review),
     },
   };
@@ -120,9 +132,7 @@ export function generateViralArticleSchema(article: ViralArticle): Record<string
       name: 'Editor Vetor',
     },
     publisher: {
-      '@type': 'Organization',
-      name: 'vetor.blog',
-      url: SITE_URL,
+      '@id': ORG_ID,
     },
     mainEntity: {
       '@type': 'ItemList',
@@ -144,11 +154,12 @@ export function generateOrganizationSchema(): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
+    '@id': ORG_ID,
     name: 'vetor.blog',
     url: SITE_URL,
     description: 'Reviews profissionais, comparativos e recomendações de compra.',
     sameAs: [],
-    logo: `${SITE_URL}/favicon.ico`,
+    logo: DEFAULT_OG_IMAGE,
   };
 }
 
