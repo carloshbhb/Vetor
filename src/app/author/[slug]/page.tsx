@@ -60,9 +60,9 @@ export default async function AuthorPage({ params }: PageProps) {
 
   return (
     <>
-      <main>
-        <section className="hero" style={{ minHeight: "auto", paddingBottom: 0 }}>
-          <div className="hero-left" style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 32px 48px" }}>
+      <main id="conteudo">
+        <section className="hero">
+          <div className="container">
             <Breadcrumbs
               items={[
                 { label: "Início", href: "/" },
@@ -70,97 +70,67 @@ export default async function AuthorPage({ params }: PageProps) {
                 { label: author.name },
               ]}
             />
-            <span className="sec-label">Autor</span>
-            <h1 className="sec-h">{author.name.toUpperCase()}</h1>
-            <p style={{ color: "var(--body)", fontWeight: 300, fontSize: "1.05rem", maxWidth: 560 }}>
-              {author.role} do vetor.blog. {sorted.length > 0 ? `${sorted.length} artigo${sorted.length === 1 ? "" : "s"} publicado${sorted.length === 1 ? "" : "s"}.` : ""}
+            <span className="eyebrow">Autor</span>
+            <h1>{author.name}</h1>
+            <p className="hero-lead">
+              {author.role} do vetor.blog.{" "}
+              {sorted.length > 0
+                ? `${sorted.length} artigo${sorted.length === 1 ? "" : "s"} publicado${
+                    sorted.length === 1 ? "" : "s"
+                  }.`
+                : ""}
             </p>
           </div>
         </section>
 
-        <section className="content">
+        <section className="content-wrap">
           <div className="container">
-            <div
-              style={{
-                maxWidth: 680,
-                background: "var(--surface)",
-                border: "1.5px solid var(--border)",
-                borderRadius: 16,
-                padding: 32,
-                display: "flex",
-                flexDirection: "column",
-                gap: 20,
-                marginBottom: 56,
-              }}
-            >
-              <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
-                <div
-                  aria-hidden="true"
-                  style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: "50%",
-                    background: "var(--bg)",
-                    border: "1.5px solid var(--border)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 28,
-                    color: "var(--blue)",
-                    fontFamily: "'Syne',sans-serif",
-                    fontWeight: 800,
-                    flexShrink: 0,
-                  }}
-                >
-                  {initials}
-                </div>
-                <div>
-                  <h2 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: "1.3rem", color: "var(--ink)", marginBottom: 4 }}>
-                    {author.name}
-                  </h2>
-                  <p style={{ fontSize: "0.82rem", color: "var(--blue)", fontWeight: 700, fontFamily: "'Syne',sans-serif", letterSpacing: "0.03em", textTransform: "uppercase" }}>
-                    {author.role}
-                  </p>
-                </div>
+            <div className="author" style={{ maxWidth: 680, marginBottom: 56 }}>
+              <div
+                aria-hidden="true"
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: "50%",
+                  background: "#dfe5eb",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 28,
+                  color: "#556170",
+                  fontWeight: 800,
+                  flexShrink: 0,
+                }}
+              >
+                {initials}
               </div>
-              <p style={{ color: "var(--body)", fontWeight: 300, lineHeight: 1.8 }}>
-                {author.bio}
-              </p>
-              <ul style={{ display: "flex", flexDirection: "column", gap: 10, listStyle: "none", padding: 0, margin: 0 }}>
-                {author.credentials.map((line) => (
-                  <li
-                    key={line}
-                    style={{
-                      color: "var(--body)",
-                      fontWeight: 300,
-                      fontSize: "0.9rem",
-                      lineHeight: 1.6,
-                      paddingLeft: 18,
-                      position: "relative",
-                    }}
-                  >
-                    <span style={{ position: "absolute", left: 0, color: "var(--green)" }}>✓</span>
-                    {line}
-                  </li>
-                ))}
-              </ul>
+              <div>
+                <strong>{author.name}</strong>
+                <p>
+                  {author.role}. {author.bio}
+                </p>
+                <ul>
+                  {author.credentials.map((line) => (
+                    <li key={line}>✓ {line}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
-            <span className="sec-label">Artigos de {author.name}</span>
-            <h2 className="sec-h" style={{ marginBottom: 32 }}>
+            <h2 style={{ marginBottom: 32 }}>
               {sorted.length > 0 ? "Publicações recentes" : "Nenhum artigo ainda"}
             </h2>
 
             {sorted.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="home-card-grid">
                 {sorted.map((review) => (
                   <ReviewCard key={review.slug} review={review} />
                 ))}
               </div>
             ) : (
-              <p style={{ color: "var(--muted)", fontSize: "1rem", fontWeight: 300 }}>
+              <p style={{ color: "var(--muted)", fontSize: "1rem" }}>
                 Novos artigos em breve. Enquanto isso, confira todos os{" "}
-                <a href="/reviews" style={{ color: "var(--blue)" }}>reviews do vetor.blog</a>.
+                <a href="/reviews">reviews do vetor.blog</a>.
               </p>
             )}
           </div>

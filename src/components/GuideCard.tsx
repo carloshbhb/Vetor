@@ -7,7 +7,7 @@ export default function GuideCard({ guia, index }: { guia: Review; index: number
       <span className="home-guide-num">GUIA 0{index + 1}</span>
       <h3>{guia.product}</h3>
       <p>
-        Nota {String(guia.verdict_score).replace(".", ",")}/10 · {guia.category}
+        Nota {Number(guia.verdict_score).toFixed(1).replace(".", ",")}/10 · {guia.category}
       </p>
     </Link>
   );

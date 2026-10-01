@@ -159,7 +159,7 @@ export default async function Home() {
                 {smallReviews.map((r) => (
                   <Link key={r.slug} className="home-review-small" href={`/reviews/${r.slug}/`}>
                     <span className="tag">Review</span>
-                    <h3>{r.product} vale a pena?</h3>
+                    <h3>{r.meta_title || r.product}</h3>
                     <p>O que observar antes de comprar.</p>
                   </Link>
                 ))}

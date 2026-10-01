@@ -29,3 +29,22 @@
   outline: 3px solid #5f8dff;
   outline-offset: 3px;
 }
+
+/* Aliases LEGADOS — somente o /admin interno usa estes nomes.
+   Não usar em páginas públicas (novo design usa os tokens v2 acima). */
+:root {
+  --surface2: #fbfbfa;
+  --ink: #111111;
+  --body: #2f3437;
+  --blue: #1f6c9f;
+  --blue-lt: #e1f3fe;
+  --cta: #111111;
+  --cta-dk: #333333;
+  --amber: #956400;
+  --amber-bg: rgba(29, 78, 216, 0.04);
+  --border: #eaeaea;
+  --border2: #dfdfdf;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}

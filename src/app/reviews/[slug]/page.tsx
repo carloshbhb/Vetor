@@ -106,6 +106,16 @@ export default async function ReviewPage({ params }: PageProps) {
   const competitors = compareColumns.filter(Boolean).slice(1, 3);
   const updatedLong = formatDateLong(review.updated_at);
 
+  // Títulos sem duplicar "vale a pena?" quando o product já contém a pergunta.
+  const asksWorth = /vale a pena/i.test(review.product);
+  const reviewTitle = asksWorth
+    ? `${review.product} — Review completo, preço e alternativas`
+    : `${review.product} vale a pena? Review completo, preço e alternativas`;
+  const worthQuestion = asksWorth ? review.product : `${review.product} vale a pena?`;
+  const priceTitle = asksWorth
+    ? `${review.product} — Preço e custo-benefício`
+    : `${review.product} vale o preço?`;
+
   const toc = [
     { id: "resumo", label: "Resumo da análise" },
     { id: "criterios", label: "O que analisamos" },
@@ -143,7 +153,7 @@ export default async function ReviewPage({ params }: PageProps) {
             <div className="hero-grid">
               <div>
                 <span className="eyebrow">Análise Vetor</span>
-                <h1>{review.product} vale a pena? Review completo, preço e alternativas</h1>
+                <h1>{reviewTitle}</h1>
                 <p className="hero-lead">
                   Analisamos os principais pontos de <strong>{review.product}</strong> para mostrar onde ele
                   se destaca, onde fica devendo e para quem a compra realmente faz sentido.
@@ -206,6 +216,7 @@ export default async function ReviewPage({ params }: PageProps) {
 
               <AnswerBox
                 product={review.product}
+                question={worthQuestion}
                 verdictLabel={verdictLabel}
                 verdictText={verdictText}
                 score={score}
@@ -213,7 +224,7 @@ export default async function ReviewPage({ params }: PageProps) {
               />
 
               <section id="resumo">
-                <h2>{review.product} é bom? Resumo da análise</h2>
+                <h2>Resumo da análise</h2>
                 <p>
                   <strong>{verdictLabel}</strong>. {verdictText}
                 </p>
@@ -298,7 +309,7 @@ export default async function ReviewPage({ params }: PageProps) {
               />
 
               <section id="preco">
-                <h2>{review.product} vale o preço?</h2>
+                <h2>{priceTitle}</h2>
                 {review.price_new ? (
                   <p>
                     No momento da análise, encontramos <strong>{review.product}</strong> por aproximadamente{" "}
@@ -394,7 +405,7 @@ export default async function ReviewPage({ params }: PageProps) {
               )}
 
               <section id="publico">
-                <h2>Para quem {review.product} vale a pena?</h2>
+                <h2>Para quem {worthQuestion}</h2>
                 <div className="who-grid">
                   <div className="who-card">
                     <h3>Vale considerar se você...</h3>
@@ -421,7 +432,7 @@ export default async function ReviewPage({ params }: PageProps) {
               </section>
 
               <section>
-                <h2>Conclusão: {review.product} vale a pena?</h2>
+                <h2>Conclusão: {worthQuestion}</h2>
                 <p>
                   <strong>{review.product}</strong> — <strong>{verdictLabel}</strong>: {verdictText}
                 </p>

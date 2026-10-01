@@ -53,6 +53,32 @@ function pageNumbers(current: number, total: number): (number | "gap")[] {
   return items;
 }
 
+const chip = (active: boolean): React.CSSProperties => ({
+  display: "inline-block",
+  padding: "8px 18px",
+  borderRadius: 999,
+  fontSize: "0.78rem",
+  fontWeight: 800,
+  textDecoration: "none",
+  background: active ? "var(--dark)" : "#fff",
+  color: active ? "#fff" : "#354150",
+  border: active ? "1.5px solid var(--dark)" : "1.5px solid var(--line)",
+});
+
+const pageNum = (active: boolean): React.CSSProperties => ({
+  minWidth: 40,
+  textAlign: "center",
+  borderRadius: 10,
+  padding: "8px 12px",
+  fontSize: "0.82rem",
+  fontWeight: 800,
+  textDecoration: "none",
+  lineHeight: 1.4,
+  background: active ? "var(--dark)" : "#fff",
+  color: active ? "#fff" : "#354150",
+  border: active ? "1.5px solid var(--dark)" : "1.5px solid var(--line)",
+});
+
 export default async function ReviewsPage({ searchParams }: PageProps) {
   const { category, page } = await searchParams;
   const activeCategory = category?.trim() || null;
@@ -78,27 +104,6 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
     currentPage * PAGE_SIZE
   );
 
-  const chipBase: React.CSSProperties = {
-    display: "inline-block",
-    padding: "8px 18px",
-    borderRadius: 6,
-    fontFamily: "'Syne',sans-serif",
-    fontSize: "0.78rem",
-    fontWeight: 700,
-    textDecoration: "none",
-    transition: "border-color 0.15s",
-  };
-
-  const pageNumBase: React.CSSProperties = {
-    fontFamily: "'Syne',sans-serif",
-    fontSize: "0.8rem",
-    fontWeight: 700,
-    borderRadius: 6,
-    padding: "6px 12px",
-    textDecoration: "none",
-    lineHeight: 1.4,
-  };
-
   return (
     <>
       <ItemListSchema
@@ -107,15 +112,13 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
           url: `/reviews/${r.slug}`,
         }))}
       />
-      <main>
-        <section className="hero" style={{ minHeight: "auto", paddingBottom: 0 }}>
-          <div className="hero-left" style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 32px 48px" }}>
+      <main id="conteudo">
+        <section className="hero">
+          <div className="container">
             <Breadcrumbs items={[{ label: "Início", href: "/" }, { label: "Reviews" }]} />
-            <span className="sec-label">Reviews</span>
-            <h1 className="sec-h">
-              {activeCategory ? activeCategory.toUpperCase() : "TODOS OS REVIEWS"}
-            </h1>
-            <p style={{ color: "var(--body)", fontWeight: 300, fontSize: "1.05rem", maxWidth: 560 }}>
+            <span className="eyebrow">Reviews</span>
+            <h1>{activeCategory ?? "Todos os reviews"}</h1>
+            <p className="hero-lead">
               {activeCategory
                 ? `Análises da categoria ${activeCategory} para você escolher com confiança.`
                 : "Análises detalhadas para você escolher com confiança."}
@@ -123,21 +126,11 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
           </div>
         </section>
 
-        <section className="content">
+        <section className="content-wrap">
           <div className="container">
             {categories.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 36 }}>
-                <a
-                  href="/reviews"
-                  style={{
-                    ...chipBase,
-                    background: !activeCategory ? "var(--blue)" : "var(--surface)",
-                    color: !activeCategory ? "#fff" : "var(--body)",
-                    border: !activeCategory
-                      ? "1.5px solid var(--blue)"
-                      : "1.5px solid var(--border)",
-                  }}
-                >
+                <a href="/reviews" style={chip(!activeCategory)}>
                   Todos ({allReviews.length})
                 </a>
                 {categories.map((cat) => {
@@ -148,14 +141,7 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
                     <a
                       key={cat.name}
                       href={`/reviews/categoria/${encodeURIComponent(cat.name)}`}
-                      style={{
-                        ...chipBase,
-                        background: isActive ? "var(--blue)" : "var(--surface)",
-                        color: isActive ? "#fff" : "var(--body)",
-                        border: isActive
-                          ? "1.5px solid var(--blue)"
-                          : "1.5px solid var(--border)",
-                      }}
+                      style={chip(isActive)}
                     >
                       {cat.name} ({cat.count})
                     </a>
@@ -169,7 +155,7 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
                 <p style={{ color: "var(--muted)", fontSize: "1.05rem" }}>Nenhum review encontrado.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="home-card-grid">
                 {paginatedReviews.map((review) => (
                   <ReviewCard key={review.slug} review={review} />
                 ))}
@@ -191,13 +177,13 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
                 {currentPage > 1 ? (
                   <a
                     href={reviewsHref(currentPage - 1, activeCategory)}
-                    className="btn-sec"
+                    style={pageNum(false)}
                     rel="prev"
                   >
                     ← Anterior
                   </a>
                 ) : (
-                  <span className="btn-sec" style={{ opacity: 0.4 }} aria-disabled="true">
+                  <span style={{ ...pageNum(false), opacity: 0.4 }} aria-disabled="true">
                     ← Anterior
                   </span>
                 )}
@@ -212,56 +198,34 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
                       …
                     </span>
                   ) : item === currentPage ? (
-                    <span
-                      key={item}
-                      aria-current="page"
-                      style={{
-                        ...pageNumBase,
-                        background: "var(--blue)",
-                        color: "#fff",
-                        border: "1.5px solid var(--blue)",
-                      }}
-                    >
+                    <span key={item} aria-current="page" style={pageNum(true)}>
                       {item}
                     </span>
                   ) : (
                     <a
                       key={item}
                       href={reviewsHref(item, activeCategory)}
-                      style={{
-                        ...pageNumBase,
-                        background: "var(--surface)",
-                        color: "var(--body)",
-                        border: "1.5px solid var(--border)",
-                      }}
+                      style={pageNum(false)}
                     >
                       {item}
                     </a>
                   )
                 )}
 
-                <span
-                  style={{
-                    fontFamily: "'Syne',sans-serif",
-                    fontSize: "0.78rem",
-                    fontWeight: 700,
-                    color: "var(--muted)",
-                    padding: "0 6px",
-                  }}
-                >
+                <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--muted)", padding: "0 6px" }}>
                   Página {currentPage} de {totalPages}
                 </span>
 
                 {currentPage < totalPages ? (
                   <a
                     href={reviewsHref(currentPage + 1, activeCategory)}
-                    className="btn-sec"
+                    style={pageNum(false)}
                     rel="next"
                   >
                     Próxima →
                   </a>
                 ) : (
-                  <span className="btn-sec" style={{ opacity: 0.4 }} aria-disabled="true">
+                  <span style={{ ...pageNum(false), opacity: 0.4 }} aria-disabled="true">
                     Próxima →
                   </span>
                 )}

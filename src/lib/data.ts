@@ -124,16 +124,11 @@ export async function fetchReviewsByCategory(
   );
 }
 
-// Reviews que funcionam como guias (top-N, melhores-*, *-guia-de-compra).
+// Reviews que funcionam como guias (contêm "guia" ou prefixos top-N/melhores-*).
 // Usado pela home e pela rota /guias/ (aponta para /reviews/[slug], sem duplicar).
 export function isGuiaLike(review: Review): boolean {
   const s = review.slug.toLowerCase();
-  return (
-    s.includes('guia') ||
-    s.startsWith('melhores-') ||
-    s.startsWith('top-') ||
-    /^\d+-/.test(s)
-  );
+  return s.includes('guia') || s.startsWith('melhores-') || s.startsWith('top-');
 }
 
 export async function fetchGuias(): Promise<Review[]> {

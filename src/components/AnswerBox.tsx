@@ -1,5 +1,6 @@
 type AnswerBoxProps = {
   product: string;
+  question?: string;
   verdictLabel: string;
   verdictText: string;
   score: number;
@@ -8,10 +9,10 @@ type AnswerBoxProps = {
 
 const br = (n: number) => String(n).replace('.', ',');
 
-export default function AnswerBox({ product, verdictLabel, verdictText, score, affiliateSlug }: AnswerBoxProps) {
+export default function AnswerBox({ product, question, verdictLabel, verdictText, score, affiliateSlug }: AnswerBoxProps) {
   return (
     <div className="answer" id="resposta">
-      <h2>Resposta rápida: {product} vale a pena?</h2>
+      <h2>Resposta rápida: {question ?? `${product} vale a pena?`}</h2>
       <p>
         <strong>{verdictLabel}</strong>. {verdictText} Nota: <strong>{br(score)}/10</strong>.
       </p>

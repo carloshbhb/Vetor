@@ -33,6 +33,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+const chip = (active: boolean): React.CSSProperties => ({
+  display: "inline-block",
+  padding: "8px 18px",
+  borderRadius: 999,
+  fontSize: "0.78rem",
+  fontWeight: 800,
+  textDecoration: "none",
+  background: active ? "var(--dark)" : "#fff",
+  color: active ? "#fff" : "#354150",
+  border: active ? "1.5px solid var(--dark)" : "1.5px solid var(--line)",
+});
+
 export default async function CategoryHubPage({ params }: PageProps) {
   const { category: raw } = await params;
   const category = safeDecode(raw);
@@ -54,9 +66,9 @@ export default async function CategoryHubPage({ params }: PageProps) {
 
   return (
     <>
-      <main>
-        <section className="hero" style={{ minHeight: "auto", paddingBottom: 0 }}>
-          <div className="hero-left" style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 32px 48px" }}>
+      <main id="conteudo">
+        <section className="hero">
+          <div className="container">
             <Breadcrumbs
               items={[
                 { label: "Início", href: "/" },
@@ -64,33 +76,19 @@ export default async function CategoryHubPage({ params }: PageProps) {
                 { label: canonicalCategory },
               ]}
             />
-            <span className="sec-label">Categoria</span>
-            <h1 className="sec-h">{canonicalCategory.toUpperCase()}</h1>
-            <p style={{ color: "var(--body)", fontWeight: 300, fontSize: "1.05rem", maxWidth: 560 }}>
-              {filtered.length} review{filtered.length === 1 ? "" : "s"} em {canonicalCategory} para você escolher com confiança.
+            <span className="eyebrow">Categoria</span>
+            <h1>{canonicalCategory}</h1>
+            <p className="hero-lead">
+              {filtered.length} review{filtered.length === 1 ? "" : "s"} em {canonicalCategory} para você
+              escolher com confiança.
             </p>
           </div>
         </section>
 
-        <section className="content">
+        <section className="content-wrap">
           <div className="container">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 36 }}>
-              <a
-                href="/reviews"
-                style={{
-                  display: "inline-block",
-                  padding: "8px 18px",
-                  borderRadius: 6,
-                  fontFamily: "'Syne',sans-serif",
-                  fontSize: "0.78rem",
-                  fontWeight: 700,
-                  background: "var(--surface)",
-                  color: "var(--body)",
-                  border: "1.5px solid var(--border)",
-                  textDecoration: "none",
-                  transition: "border-color 0.15s",
-                }}
-              >
+              <a href="/reviews" style={chip(false)}>
                 Todos ({reviews.length})
               </a>
               {categories.map((cat) => {
@@ -100,21 +98,7 @@ export default async function CategoryHubPage({ params }: PageProps) {
                   <a
                     key={cat.name}
                     href={`/reviews/categoria/${encodeURIComponent(cat.name)}`}
-                    style={{
-                      display: "inline-block",
-                      padding: "8px 18px",
-                      borderRadius: 6,
-                      fontFamily: "'Syne',sans-serif",
-                      fontSize: "0.78rem",
-                      fontWeight: 700,
-                      background: isActive ? "var(--blue)" : "var(--surface)",
-                      color: isActive ? "#fff" : "var(--body)",
-                      border: isActive
-                        ? "1.5px solid var(--blue)"
-                        : "1.5px solid var(--border)",
-                      textDecoration: "none",
-                      transition: "border-color 0.15s",
-                    }}
+                    style={chip(isActive)}
                   >
                     {cat.name} ({cat.count})
                   </a>
@@ -122,7 +106,7 @@ export default async function CategoryHubPage({ params }: PageProps) {
               })}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="home-card-grid">
               {filtered.map((review) => (
                 <ReviewCard key={review.slug} review={review} />
               ))}

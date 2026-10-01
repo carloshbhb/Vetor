@@ -39,6 +39,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+const chip: React.CSSProperties = {
+  display: "inline-block",
+  padding: "8px 18px",
+  borderRadius: 999,
+  fontSize: "0.78rem",
+  fontWeight: 800,
+  background: "#fff",
+  color: "#354150",
+  border: "1.5px solid var(--line)",
+  textDecoration: "none",
+};
+
 export default async function TagHubPage({ params }: PageProps) {
   const { tag: raw } = await params;
   const slug = safeDecode(raw);
@@ -65,9 +77,9 @@ export default async function TagHubPage({ params }: PageProps) {
           url: `/reviews/${r.slug}`,
         }))}
       />
-      <main>
-        <section className="hero" style={{ minHeight: "auto", paddingBottom: 0 }}>
-          <div className="hero-left" style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 32px 48px" }}>
+      <main id="conteudo">
+        <section className="hero">
+          <div className="container">
             <Breadcrumbs
               items={[
                 { label: "Início", href: "/" },
@@ -75,59 +87,29 @@ export default async function TagHubPage({ params }: PageProps) {
                 { label: entry.tag },
               ]}
             />
-            <span className="sec-label">Tag</span>
-            <h1 className="sec-h">{entry.tag.toUpperCase()}</h1>
-            <p style={{ color: "var(--body)", fontWeight: 300, fontSize: "1.05rem", maxWidth: 560 }}>
-              {filtered.length} review{filtered.length === 1 ? "" : "s"} com a tag {entry.tag} para você escolher com confiança.
+            <span className="eyebrow">Tag</span>
+            <h1>{entry.tag}</h1>
+            <p className="hero-lead">
+              {filtered.length} review{filtered.length === 1 ? "" : "s"} com a tag {entry.tag} para você
+              escolher com confiança.
             </p>
           </div>
         </section>
 
-        <section className="content">
+        <section className="content-wrap">
           <div className="container">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 36 }}>
-              <a
-                href="/tags"
-                style={{
-                  display: "inline-block",
-                  padding: "8px 18px",
-                  borderRadius: 6,
-                  fontFamily: "'Syne',sans-serif",
-                  fontSize: "0.78rem",
-                  fontWeight: 700,
-                  background: "var(--blue)",
-                  color: "#fff",
-                  border: "1.5px solid var(--blue)",
-                  textDecoration: "none",
-                  transition: "border-color 0.15s",
-                }}
-              >
+              <a href="/tags" style={chip}>
                 Todas ({tags.length})
               </a>
               {related.map((tag) => (
-                <a
-                  key={tag.slug}
-                  href={`/tags/${tag.slug}`}
-                  style={{
-                    display: "inline-block",
-                    padding: "8px 18px",
-                    borderRadius: 6,
-                    fontFamily: "'Syne',sans-serif",
-                    fontSize: "0.78rem",
-                    fontWeight: 700,
-                    background: "var(--surface)",
-                    color: "var(--body)",
-                    border: "1.5px solid var(--border)",
-                    textDecoration: "none",
-                    transition: "border-color 0.15s",
-                  }}
-                >
+                <a key={tag.slug} href={`/tags/${tag.slug}`} style={chip}>
                   {tag.tag} ({tag.count})
                 </a>
               ))}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="home-card-grid">
               {filtered.map((review) => (
                 <ReviewCard key={review.slug} review={review} />
               ))}
