@@ -30,71 +30,39 @@ export default function AuthorBox({
   }
 
   return (
-    <div
-      style={{
-        background: 'var(--surface)',
-        border: '1.5px solid var(--border)',
-        borderRadius: '16px',
-        padding: '24px',
-        display: 'flex',
-        gap: '20px',
-        alignItems: 'flex-start',
-      }}
-    >
+    <div className="author">
       <div
+        aria-hidden="true"
         style={{
           width: '64px',
           height: '64px',
           borderRadius: '50%',
-          background: 'var(--surface2)',
+          flex: 'none',
+          background: '#dfe5eb',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '28px',
-          color: 'var(--blue)',
-          flexShrink: 0,
+          fontWeight: 800,
+          color: '#556170',
         }}
       >
         {name.charAt(0).toUpperCase()}
       </div>
       <div>
-        {slug ? (
-          <Link
-            href={`/author/${slug}`}
-            style={{
-              fontWeight: 'bold',
-              color: 'var(--ink)',
-              textDecoration: 'none',
-              display: 'inline-block',
-              marginBottom: '4px',
-            }}
-          >
-            {name}
-          </Link>
-        ) : (
-          <p style={{ fontWeight: 'bold', marginBottom: '4px' }}>{name}</p>
-        )}
-        {role && (
-          <p
-            style={{
-              color: 'var(--blue)',
-              fontSize: '12px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              marginBottom: '6px',
-            }}
-          >
-            {role}
+        <strong>
+          {slug ? <Link href={`/author/${slug}`}>{name}</Link> : name}
+        </strong>
+        <p>
+          {role ? `${role}. ` : ''}
+          {bio} <Link href="/como-avaliamos/">Como avaliamos</Link> ·{' '}
+          <Link href="/afiliados/">Política de afiliados</Link>
+        </p>
+        {(formattedDate || readTime) && (
+          <p>
+            {[formattedDate, readTime].filter(Boolean).join(' · ')}
           </p>
         )}
-        <p style={{ color: 'var(--muted)', fontSize: '14px', marginBottom: '8px' }}>
-          {bio}
-        </p>
-        <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--muted)' }}>
-          {formattedDate && <span>{formattedDate}</span>}
-          {readTime && <span>{readTime}</span>}
-        </div>
       </div>
     </div>
   );

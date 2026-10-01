@@ -9,7 +9,7 @@ export default function ReviewContent({ sections }: ReviewContentProps) {
   if (!sections || sections.length === 0) return null;
 
   return (
-    <div className="article-body">
+    <>
       {sections.map((section) => (
         <div key={section.id} id={section.id}>
           <h2>{section.heading}</h2>
@@ -39,6 +39,6 @@ export default function ReviewContent({ sections }: ReviewContentProps) {
           />
         </div>
       ))}
-    </div>
+    </>
   );
 }
