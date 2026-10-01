@@ -146,6 +146,9 @@ h1 {
 }
 .article h2 { font-size: clamp(1.6rem, 3vw, 2.35rem); line-height: 1.1; letter-spacing: -.035em; margin: 50px 0 18px; }
 .article h2:first-child { margin-top: 0; }
+/* REVERSÍVEL (2026-10-01): conforto de leitura — parágrafos do artigo em ~68ch.
+   Para voltar: `git revert <este-commit>` ou apagar este bloco. */
+.article p { max-width: 68ch; }
 .article h3 { font-size: 1.22rem; margin: 30px 0 10px; }
 .article p { color: #354150; }
 .article ul { padding-left: 20px; }
