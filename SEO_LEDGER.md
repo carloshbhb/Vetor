@@ -139,3 +139,8 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 - **Code:** `generateAffiliateUrl` (product-extractor) ML usa `matt_*` (fallback env `ML_TRACKING_ID`); scripts `tmp/test-ml-links.ts`, `tmp/fix-meli-links.ts`
 - Gate: `npm run lint` ✅ · `npm run build` ✅ 293 pages · **push** `65e8fec` · **deploy CLI** READY `www.vetor.blog`
 - **Status:** links de produto no padrão meli/tracking · bloqueios restantes: OAuth ML (interativo) p/ enriquecer via API, meli.la em massa só via painel/cookie (não oficial)
+
+### Ciclo 8 — 2026-10-01 (Fix git integration Vercel)
+- **Diagnóstico:** projeto `vetor-blog` (dono de `www.vetor.blog`) conectado ao repo morto `Vetor.blog` (último push mai/2026); pushes no repo ativo `Vetor` buildavam no projeto legado `vetor` (`vetor-pi.vercel.app`)
+- **Fix via CLI:** `vercel git connect https://github.com/carloshbhb/Vetor.git` no `vetor-blog` + `vercel git disconnect` no `vetor` (fim dos builds duplicados)
+- Deploy de teste deste commit deve disparar auto-deploy em `vetor-blog`
