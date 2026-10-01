@@ -123,3 +123,20 @@ export async function fetchReviewsByCategory(
     (r) => r.category.toLowerCase() === category.toLowerCase()
   );
 }
+
+// Reviews que funcionam como guias (top-N, melhores-*, *-guia-de-compra).
+// Usado pela home e pela rota /guias/ (aponta para /reviews/[slug], sem duplicar).
+export function isGuiaLike(review: Review): boolean {
+  const s = review.slug.toLowerCase();
+  return (
+    s.includes('guia') ||
+    s.startsWith('melhores-') ||
+    s.startsWith('top-') ||
+    /^\d+-/.test(s)
+  );
+}
+
+export async function fetchGuias(): Promise<Review[]> {
+  const reviews = await fetchAllReviews();
+  return reviews.filter(isGuiaLike);
+}
