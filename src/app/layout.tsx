@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { OrganizationSchema, WebSiteSchema } from "@/components/SchemaMarkup";
 import HoverFX from "@/components/HoverFX";
-import { bebasNeue, syne, dmSans } from "@/lib/fonts";
+import { inter } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -53,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${bebasNeue.variable} ${syne.variable} ${dmSans.variable}`}>
+    <html lang="pt-BR" className={inter.variable}>
       <head>
         <OrganizationSchema />
         <WebSiteSchema />

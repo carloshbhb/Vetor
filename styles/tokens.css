@@ -1,34 +1,19 @@
-:root {
-  --bg: #FFFFFF;
-  --surface: #F7F6F3;
-  --surface2: #FBFBFA;
-  --ink: #111111;
-  --body: #2F3437;
-  --muted: #787774;
-  --blue: #1F6C9F;
-  --blue-lt: #E1F3FE;
-  --cta: #111111;
-  --cta-dk: #333333;
-  --green: #346538;
-  --red: #9F2F2D;
-  --amber: #956400;
-  --border: #EAEAEA;
-  --border2: #DFDFDF;
-
-  --font-display: 'Lyon Text', 'Newsreader', 'Playfair Display', 'Instrument Serif', serif;
-  --font-heading: 'SF Pro Display', 'Geist Sans', 'Helvetica Neue', 'Switzer', sans-serif;
-  --font-body: 'SF Pro Display', 'Geist Sans', 'Helvetica Neue', 'Switzer', sans-serif;
-
-  /* Frequently used values */
-  --transition-fast: 0.15s;
-  --transition-normal: 0.3s;
-  --transition-slow: 0.5s;
-  --box-shadow-sm: 0 1px 8px rgba(0,0,0,0.06);
-  --box-shadow-none: none;
-  --border-radius-base: 8px;
-  --border-radius-sm: 4px;
-  --text: var(--ink);
-  --amber-bg: rgba(29,78,216,0.04);
+:root{
+  --bg:#071018;
+  --bg-2:#0d1722;
+  --surface:#ffffff;
+  --surface-2:#f5f7f9;
+  --text:#101722;
+  --muted:#637082;
+  --line:#dfe5eb;
+  --brand:#ffe600;
+  --brand-2:#f6ce00;
+  --green:#11b86a;
+  --red:#e84b4b;
+  --dark:#0c1118;
+  --radius:22px;
+  --shadow:0 18px 60px rgba(0,0,0,.12);
+  --max:1180px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -41,6 +26,6 @@
 }
 
 :focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 2px;
+  outline: 3px solid #5f8dff;
+  outline-offset: 3px;
 }
