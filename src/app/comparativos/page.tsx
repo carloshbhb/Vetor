@@ -1,5 +1,3 @@
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { ItemListSchema } from "@/components/SchemaMarkup";
 import { fetchAllViralArticles } from "@/lib/data";
@@ -25,7 +23,6 @@ export default async function ComparativosPage() {
           url: `/comparativos/${a.slug}`,
         }))}
       />
-      <Navbar />
       <main>
         <section className="hero" style={{ minHeight: "auto", paddingBottom: 0 }}>
           <div className="hero-left" style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 32px 48px" }}>
@@ -100,7 +97,6 @@ export default async function ComparativosPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

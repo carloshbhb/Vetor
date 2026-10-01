@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { OrganizationSchema, WebSiteSchema } from "@/components/SchemaMarkup";
 import HoverFX from "@/components/HoverFX";
+import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 import { inter } from "@/lib/fonts";
 import "./globals.css";
 
@@ -44,7 +46,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#FFFFFF",
+  themeColor: "#071018",
 };
 
 export default function RootLayout({
@@ -66,7 +68,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <HoverFX />
+        <SiteHeader />
         {children}
+        <SiteFooter />
       </body>
     </html>
   );

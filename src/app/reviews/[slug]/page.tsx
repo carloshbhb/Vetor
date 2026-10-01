@@ -1,7 +1,6 @@
 import SafeImage from "@/components/SafeImage";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import Footer from "@/components/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ProgressBar from "@/components/ProgressBar";
 import ScoreBars from "@/components/ScoreBars";
@@ -831,7 +830,6 @@ export default async function ReviewPage({ params }: PageProps) {
         </Reveal>
       )}
 
-      <Footer />
       
       {/* Entrance Animations */}
       <script

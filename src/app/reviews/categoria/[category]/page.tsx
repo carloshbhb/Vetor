@@ -1,7 +1,5 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import ReviewCard from "@/components/ReviewCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { fetchAllReviews, fetchCategories } from "@/lib/data";
@@ -56,7 +54,6 @@ export default async function CategoryHubPage({ params }: PageProps) {
 
   return (
     <>
-      <Navbar />
       <main>
         <section className="hero" style={{ minHeight: "auto", paddingBottom: 0 }}>
           <div className="hero-left" style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 32px 48px" }}>
@@ -133,7 +130,6 @@ export default async function CategoryHubPage({ params }: PageProps) {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

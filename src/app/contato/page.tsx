@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
 
 export const metadata: Metadata = {
@@ -13,7 +11,6 @@ export const metadata: Metadata = {
 export default function ContatoPage() {
   return (
     <>
-      <Navbar />
       <main>
         <section className="hero" style={{ minHeight: "auto", paddingBottom: 0 }}>
           <div className="hero-left" style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 32px 48px" }}>
@@ -58,7 +55,6 @@ export default function ContatoPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

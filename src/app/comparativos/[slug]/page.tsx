@@ -2,8 +2,6 @@ import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import AuthorBox from "@/components/AuthorBox";
 import ScoreBadge from "@/components/ScoreBadge";
@@ -70,7 +68,6 @@ export default async function ViralArticlePage({
           { name: article.title, url: `https://www.vetor.blog/comparativos/${article.slug}` },
         ]}
       />
-      <Navbar />
       <main style={{ minHeight: "100vh" }}>
         <Breadcrumbs
           items={[
@@ -605,7 +602,6 @@ export default async function ViralArticlePage({
           </div>
         </section>
       </main>
-      <Footer />
       
       {/* Entrance Animations */}
       <script

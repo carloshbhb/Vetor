@@ -1,5 +1,3 @@
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import ReviewCard from "@/components/ReviewCard";
 import SmoothScroll from "@/components/SmoothScroll";
 import CustomCursor from "@/components/CustomCursor";
@@ -28,7 +26,6 @@ export default async function Home() {
     <SmoothScroll>
       <NoiseOverlay opacity={0.025} />
       <CustomCursor />
-      <Navbar />
       <main className="relative z-10">
         {/* HERO - Full-bleed with word-level animation */}
         <section 
@@ -606,7 +603,6 @@ export default async function Home() {
           </div>
         </section>
       </main>
-      <Footer />
       <EntranceAnimations />
     </SmoothScroll>
   );
