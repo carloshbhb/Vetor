@@ -3,6 +3,8 @@ import { OrganizationSchema, WebSiteSchema } from "@/components/SchemaMarkup";
 import HoverFX from "@/components/HoverFX";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import AffiliateTracker from "@/components/AffiliateTracker";
+import Ga4 from "@/components/Ga4";
 import { inter } from "@/lib/fonts";
 import "./globals.css";
 
@@ -68,6 +70,8 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <HoverFX />
+        <Ga4 />
+        <AffiliateTracker />
         <SiteHeader />
         {children}
         <SiteFooter />
