@@ -15,16 +15,16 @@ Objetivo único: **crescer tráfego orgânico do vetor.blog**. Ciclo: medir → 
    - Arquivo com >2 dias → avisar "métricas desatualizadas" e seguir sem ele.
    - Sem arquivo → o workflow `metrics-daily.yml` ainda não rodou com credenciais.
 2. **Lições do domínio da tarefa** (busca semântica no `.agentdb.db`):
-   ```
-   node -e "import('.claude/lib/memory.mjs').then(async m=>{console.log(JSON.stringify(await m.queryLessons({task:'<tópico>',k:5}),null,2));await m.closeMemory()})"
-   ```
+    ```
+    node .claude/lib/memory-cli.mjs query "<tópico>" --k=5
+    ```
 3. Se `LEARNINGS.md` marcar `candidate: promote` (3ª ocorrência da mesma lição) → rodar `/learn` nesta sessão.
 
 ### Fim de sessão (fallback universal)
 
 Gravar 1 lição por erro ou decisão que valha reaproveitar:
 ```
-node -e "import('.claude/lib/memory.mjs').then(async m=>{await m.storeLesson({lesson:'<texto>',domain:'<domínio>',confidence:0.7,evidence:'<prova>'});await m.closeMemory()})"
+node .claude/lib/memory-cli.mjs store "<texto>" --domain=<domínio> --confidence=0.7 --evidence="<prova>"
 ```
 O espelho `LEARNINGS.md` é gravado junto automaticamente. Domínios válidos: `nextjs-performance`, `seo-optimization`, `conversion-optimization`, `mercadolivre-affiliate`, `code-quality`, `design-system`, `content-generation`.
 
