@@ -1,10 +1,9 @@
 import Link from 'next/link';
 import { fetchAllReviews, fetchAllViralArticles, fetchGuias } from '@/lib/data';
 import NewsletterForm from '@/components/NewsletterForm';
+import GuideCard from '@/components/GuideCard';
 
 export const revalidate = 300;
-
-const br = (n: number) => String(n).replace('.', ',');
 
 function AdPlaceholder({ label }: { label: string }) {
   return (
@@ -220,13 +219,7 @@ export default async function Home() {
 
             <div className="home-guide-grid">
               {guideCards.map((g, i) => (
-                <Link key={g.slug} className="home-guide" href={`/reviews/${g.slug}/`}>
-                  <span className="home-guide-num">GUIA 0{i + 1}</span>
-                  <h3>{g.product}</h3>
-                  <p>
-                    Nota {br(g.verdict_score)}/10 · {g.category}
-                  </p>
-                </Link>
+                <GuideCard key={g.slug} guia={g} index={i} />
               ))}
             </div>
           </div>
