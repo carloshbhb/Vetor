@@ -2,27 +2,34 @@
 
 import { useEffect, useRef, useState } from "react";
 
+export type AdFormat = "auto" | "horizontal" | "vertical" | "rectangle" | "fluid";
+
 interface AdSlotProps {
   slotId: string;
-  format?: "auto" | "horizontal" | "vertical" | "rectangle" | "fluid";
+  client?: string;
+  format?: AdFormat;
   className?: string;
   style?: React.CSSProperties;
+  ariaLabel?: string;
 }
 
-export default function AdSlot({ slotId, format = "auto", className = "", style }: AdSlotProps) {
+export default function AdSlot({ slotId, client, format = "auto", className = "", style, ariaLabel }: AdSlotProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [adsLoaded, setAdsLoaded] = useState(false);
   const [error, setError] = useState(false);
 
+  const clientId = client || process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "";
+
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!clientId) return;
 
     const loadAds = async () => {
       try {
         if (!window.adsbygoogle) {
           const script = document.createElement("script");
           script.async = true;
-          script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX";
+          script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`;
           script.crossOrigin = "anonymous";
           document.head.appendChild(script);
           await new Promise((resolve) => (script.onload = resolve));
@@ -39,9 +46,9 @@ export default function AdSlot({ slotId, format = "auto", className = "", style 
 
     const timer = setTimeout(loadAds, 1000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [clientId]);
 
-  if (error) return null;
+  if (error || !clientId) return null;
 
   const formatStyles: Record<string, React.CSSProperties> = {
     auto: { display: "block" },
@@ -52,11 +59,16 @@ export default function AdSlot({ slotId, format = "auto", className = "", style 
   };
 
   return (
-    <div ref={containerRef} className={className} style={{ ...formatStyles[format], ...style }}>
+    <div
+      ref={containerRef}
+      className={className}
+      style={{ ...formatStyles[format], ...style }}
+      aria-label={ariaLabel}
+    >
       <ins
         className="adsbygoogle"
         style={formatStyles[format]}
-        data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+        data-ad-client={clientId}
         data-ad-slot={slotId}
         data-ad-format={format}
         data-full-width-responsive="true"

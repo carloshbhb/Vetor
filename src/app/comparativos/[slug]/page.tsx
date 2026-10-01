@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import AuthorBox from "@/components/AuthorBox";
 import VsCards, { type VsProduct } from "@/components/VsCards";
+import AdPlacement from "@/components/AdPlacement";
 import { BreadcrumbSchema } from "@/components/SchemaMarkup";
 import { fetchViralArticleBySlug, fetchAllViralArticles, fetchReviewBySlug } from "@/lib/data";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -179,12 +180,11 @@ export default async function ViralArticlePage({ params }: PageProps) {
         </section>
 
         <div className="container">
-          <div className="ad-slot ad-slot--inline" aria-label="Publicidade">
-            <div>
-              <small>Publicidade</small>
-              <strong>AdSense: unidade responsiva</strong>
-            </div>
-          </div>
+          <AdPlacement
+            slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
+            className="ad-slot ad-slot--inline"
+            ariaLabel="Publicidade"
+          />
         </div>
 
         <section className="content-wrap">
@@ -262,12 +262,11 @@ export default async function ViralArticlePage({ params }: PageProps) {
                 </section>
               )}
 
-              <div className="ad-slot ad-slot--inline" aria-label="Publicidade">
-                <div>
-                  <small>Publicidade</small>
-                  <strong>AdSense: unidade responsiva</strong>
-                </div>
-              </div>
+              <AdPlacement
+                slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_INLINE}
+                className="ad-slot ad-slot--inline"
+                ariaLabel="Publicidade"
+              />
 
               <section id="detalhes">
                 <h2>As diferenças que realmente importam</h2>
@@ -354,12 +353,12 @@ export default async function ViralArticlePage({ params }: PageProps) {
                   <Link href="/afiliados/">Política de afiliados</Link>
                 </div>
               </div>
-              <div className="ad-slot" aria-label="Publicidade" style={{ minHeight: 280, margin: 0 }}>
-                <div>
-                  <small>Publicidade</small>
-                  <strong>AdSense: retângulo lateral</strong>
-                </div>
-              </div>
+              <AdPlacement
+                slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR}
+                className="ad-slot"
+                style={{ minHeight: 280, margin: 0 }}
+                ariaLabel="Publicidade"
+              />
             </aside>
           </div>
         </section>

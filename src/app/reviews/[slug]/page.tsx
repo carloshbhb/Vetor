@@ -9,6 +9,7 @@ import ScoreBarsStatic from "@/components/ScoreBarsStatic";
 import AnswerBox from "@/components/AnswerBox";
 import VerdictCard from "@/components/VerdictCard";
 import StickyBuyBar from "@/components/StickyBuyBar";
+import AdPlacement from "@/components/AdPlacement";
 import { ReviewSchema, FAQSchema, BreadcrumbSchema } from "@/components/SchemaMarkup";
 import { fetchReviewBySlug, fetchAllReviews } from "@/lib/data";
 import type { Review } from "@/lib/types";
@@ -180,12 +181,11 @@ export default async function ReviewPage({ params }: PageProps) {
         </section>
 
         <div className="container">
-          <div className="ad-slot" aria-label="Publicidade">
-            <div>
-              <small>Publicidade</small>
-              <strong>Espaço para Google AdSense — leaderboard responsivo</strong>
-            </div>
-          </div>
+          <AdPlacement
+            slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
+            className="ad-slot"
+            ariaLabel="Publicidade"
+          />
         </div>
 
         <section className="content-wrap">
@@ -289,12 +289,11 @@ export default async function ReviewPage({ params }: PageProps) {
                 </section>
               )}
 
-              <div className="ad-slot ad-slot--inline" aria-label="Publicidade">
-                <div>
-                  <small>Publicidade</small>
-                  <strong>Espaço para anúncio responsivo dentro do artigo</strong>
-                </div>
-              </div>
+              <AdPlacement
+                slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_INLINE}
+                className="ad-slot ad-slot--inline"
+                ariaLabel="Publicidade"
+              />
 
               <section id="preco">
                 <h2>{review.product} vale o preço?</h2>
@@ -517,12 +516,12 @@ export default async function ReviewPage({ params }: PageProps) {
                 </div>
               </div>
 
-              <div className="ad-slot" aria-label="Publicidade" style={{ minHeight: 280, margin: 0 }}>
-                <div>
-                  <small>Publicidade</small>
-                  <strong>AdSense — retângulo lateral</strong>
-                </div>
-              </div>
+              <AdPlacement
+                slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR}
+                className="ad-slot"
+                style={{ minHeight: 280, margin: 0 }}
+                ariaLabel="Publicidade"
+              />
             </aside>
           </div>
         </section>

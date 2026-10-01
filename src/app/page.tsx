@@ -2,21 +2,9 @@ import Link from 'next/link';
 import { fetchAllReviews, fetchAllViralArticles, fetchGuias } from '@/lib/data';
 import NewsletterForm from '@/components/NewsletterForm';
 import GuideCard from '@/components/GuideCard';
+import AdPlacement from '@/components/AdPlacement';
 
 export const revalidate = 300;
-
-function AdPlaceholder({ label }: { label: string }) {
-  return (
-    <div className="container">
-      <div className="ad-slot" aria-label="Publicidade">
-        <div>
-          <small>Publicidade</small>
-          <strong>{label}</strong>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default async function Home() {
   const [reviews, viralArticles, guias] = await Promise.all([
@@ -140,7 +128,13 @@ export default async function Home() {
         </div>
       </section>
 
-      <AdPlaceholder label="Espaço para Google AdSense — unidade responsiva" />
+      <div className="container">
+        <AdPlacement
+          slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
+          className="ad-slot"
+          aria-label="Publicidade"
+        />
+      </div>
 
       {mainReview && (
         <section className="home-section home-dark">
@@ -203,7 +197,13 @@ export default async function Home() {
         </section>
       )}
 
-      <AdPlaceholder label="Espaço para Google AdSense — unidade responsiva" />
+      <div className="container">
+        <AdPlacement
+          slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
+          className="ad-slot"
+          ariaLabel="Publicidade"
+        />
+      </div>
 
       {guideCards.length > 0 && (
         <section className="home-section home-dark">
