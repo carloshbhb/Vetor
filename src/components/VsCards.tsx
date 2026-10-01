@@ -1,4 +1,5 @@
 import SafeImage from './SafeImage';
+import { safeImageSrc } from '@/lib/images';
 
 export type VsProduct = {
   name: string;
@@ -31,7 +32,7 @@ export default function VsCards({ products }: { products: VsProduct[] }) {
             <span className="tag">{p.eyebrow}</span>
             {p.imageUrl && (
               <SafeImage
-                src={p.imageUrl}
+                src={safeImageSrc(p.imageUrl)}
                 width={600}
                 height={400}
                 alt={p.name}

@@ -26,6 +26,15 @@ const ALLOWED_ATTRS: Record<string, Set<string>> = {
   mark: new Set(['class']),
 };
 
+// Allowlist de esquemas: relativo (#, /, sem esquema) ou http/https/mailto/tel.
+// O JSDOM já decodifica entidades (&#58; etc.) antes de chegarmos aqui.
+function isSafeUrl(raw: string): boolean {
+  const val = raw.replace(/\s+/g, '').toLowerCase();
+  const schemeMatch = val.match(/^([a-z][a-z0-9+.-]*):/);
+  if (!schemeMatch) return true;
+  return ['http', 'https', 'mailto', 'tel'].includes(schemeMatch[1]);
+}
+
 function sanitizeNode(node: ChildNode, doc: Document): void {
   const el = node as Element;
   if (!el.tagName) return;
@@ -33,7 +42,10 @@ function sanitizeNode(node: ChildNode, doc: Document): void {
   const tag = el.tagName.toLowerCase();
 
   if (!ALLOWED_TAGS.has(tag)) {
-    el.replaceWith(...Array.from(el.childNodes));
+    // Sanitiza os filhos ANTES do unwrap (senão href malicioso sobrevive).
+    const moved = Array.from(el.childNodes);
+    el.replaceWith(...moved);
+    moved.forEach((child) => sanitizeNode(child, doc));
     return;
   }
 
@@ -46,8 +58,7 @@ function sanitizeNode(node: ChildNode, doc: Document): void {
       continue;
     }
     if (name === 'href' || name === 'src') {
-      const val = attr.value.toLowerCase().trim();
-      if (val.startsWith('javascript:') || val.startsWith('data:')) {
+      if (!isSafeUrl(attr.value)) {
         el.removeAttribute(attr.name);
       }
     }

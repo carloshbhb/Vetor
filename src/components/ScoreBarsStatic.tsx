@@ -2,11 +2,18 @@ type Bar = { label: string; pct: number; value: number };
 
 const clampPct = (pct: number) => Math.min(100, Math.max(0, Math.round(pct)));
 
+const validBar = (bar: Bar) =>
+  typeof bar?.label === 'string' &&
+  Number.isFinite(bar?.pct) &&
+  Number.isFinite(bar?.value) &&
+  (bar.value as number) > 0;
+
 export default function ScoreBarsStatic({ bars }: { bars: Bar[] }) {
-  if (!bars || bars.length === 0) return null;
+  const valid = Array.isArray(bars) ? bars.filter(validBar) : [];
+  if (valid.length === 0) return null;
   return (
     <div className="bars" role="list">
-      {bars.map((bar, i) => (
+      {valid.map((bar, i) => (
         <div className="bar" role="listitem" key={i}>
           <span>{bar.label}</span>
           <i>

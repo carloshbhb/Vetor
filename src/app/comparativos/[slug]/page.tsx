@@ -74,8 +74,11 @@ export default async function ViralArticlePage({ params }: PageProps) {
       review: p.slug ? await fetchReviewBySlug(p.slug) : null,
     }))
   );
-  const reviewed = enriched.filter((e) => e.review);
-  const bestScore = Math.max(0, ...reviewed.map((e) => e.review?.verdict_score ?? 0));
+  type EnrichedWithReview = { product: (typeof products)[number]; review: NonNullable<Awaited<ReturnType<typeof fetchReviewBySlug>>> };
+  const reviewed: EnrichedWithReview[] = enriched.filter(
+    (e): e is EnrichedWithReview => e.review !== null
+  );
+  const bestScore = Math.max(0, ...reviewed.map((e) => e.review.verdict_score ?? 0));
 
   const vsProducts: VsProduct[] = enriched.map(({ product: p, review }, i) => {
     const score = review?.verdict_score ?? 0;
@@ -120,21 +123,24 @@ export default async function ViralArticlePage({ params }: PageProps) {
       ? [
           {
             label: "Preço",
-            values: reviewed.map((e) => e.review?.price_new || "—"),
+            values: reviewed.map((e) => e.review.price_new || "—"),
             winIdx: -1,
           },
           {
             label: "Nota Vetor",
             values: reviewed.map((e) =>
-              (e.review?.verdict_score ?? 0) > 0 ? br(e.review!.verdict_score) : "—"
+              (e.review.verdict_score ?? 0) > 0 ? br(e.review.verdict_score) : "—"
             ),
-            winIdx: reviewed.findIndex((e) => (e.review?.verdict_score ?? 0) === bestScore),
+            winIdx: reviewed.findIndex((e) => (e.review.verdict_score ?? 0) === bestScore),
           },
         ]
       : [];
 
   const updatedLong = formatDateLong(article.updated_at || article.published_at);
-  const articleSchema = generateViralArticleSchema(article);
+  const articleSchema = generateViralArticleSchema(
+    article,
+    new Set(reviewed.map((e) => e.review.slug))
+  );
 
   return (
     <>
@@ -216,8 +222,8 @@ export default async function ViralArticlePage({ params }: PageProps) {
                 {reviewed.length > 0 && (
                   <p>
                     {reviewed.map((e) => (
-                      <span key={e.review!.slug}>
-                        <Link href={`/reviews/${e.review!.slug}/`}>Review do {e.product.name}</Link>
+                      <span key={e.review.slug}>
+                        <Link href={`/reviews/${e.review.slug}/`}>Review do {e.product.name}</Link>
                         {" · "}
                       </span>
                     ))}
@@ -310,9 +316,9 @@ export default async function ViralArticlePage({ params }: PageProps) {
                   <p>
                     Quer ver cada um em detalhe? Leia{" "}
                     {reviewed.map((e, i) => (
-                      <span key={e.review!.slug}>
+                      <span key={e.review.slug}>
                         {i > 0 && " e "}
-                        <Link href={`/reviews/${e.review!.slug}/`}>o review do {e.product.name}</Link>
+                        <Link href={`/reviews/${e.review.slug}/`}>o review do {e.product.name}</Link>
                       </span>
                     ))}
                     .

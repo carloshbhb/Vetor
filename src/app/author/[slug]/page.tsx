@@ -41,6 +41,8 @@ export default async function AuthorPage({ params }: PageProps) {
   const author = getAuthorBySlug(slug);
   if (!author) notFound();
 
+  // Site single-author: todos os reviews pertencem ao autor. Se um dia houver
+  // múltiplos autores, filtrar por campo de autoria no review antes de contar.
   const reviews = await fetchAllReviews();
   const sorted = [...reviews]
     .sort(

@@ -27,12 +27,18 @@ export default function AdSlot({ slotId, client, format = "auto", className = ""
     const loadAds = async () => {
       try {
         if (!window.adsbygoogle) {
-          const script = document.createElement("script");
-          script.async = true;
-          script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`;
-          script.crossOrigin = "anonymous";
-          document.head.appendChild(script);
-          await new Promise((resolve) => (script.onload = resolve));
+          const existing = document.querySelector('script[src*="adsbygoogle.js"]');
+          if (!existing) {
+            const script = document.createElement("script");
+            script.async = true;
+            script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`;
+            script.crossOrigin = "anonymous";
+            document.head.appendChild(script);
+            await new Promise((resolve, reject) => {
+              script.onload = resolve;
+              script.onerror = reject;
+            });
+          }
         }
 
         if (containerRef.current) {

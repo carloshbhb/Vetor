@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import SafeImage from "@/components/SafeImage";
 import { getAllProductLinks, type ProductLink } from "@/lib/product-links";
+import { safeImageSrc } from "@/lib/images";
 
 export const revalidate = 3600;
 
@@ -20,19 +21,6 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image" },
 };
-
-// Domínios permitidos em next.config.ts — fora deles, usa placeholder (next/image rejeita).
-const ALLOWED_IMAGE_HOSTS = new Set(["http2.mlstatic.com", "www.vetor.blog", "images.unsplash.com"]);
-
-function safeImageSrc(src: string | null | undefined): string {
-  if (!src) return "/images/placeholder.svg";
-  try {
-    const host = new URL(src, "https://www.vetor.blog").hostname;
-    return ALLOWED_IMAGE_HOSTS.has(host) ? src : "/images/placeholder.svg";
-  } catch {
-    return "/images/placeholder.svg";
-  }
-}
 
 function brl(price: number | null): string | null {
   if (price === null || price === undefined) return null;
@@ -70,7 +58,7 @@ function OfferCard({ offer }: { offer: ProductLink }) {
           </a>
         ) : (
           offer.product_url && (
-            <a href={offer.product_url} target="_blank" rel="noopener">
+            <a href={offer.product_url} target="_blank" rel="nofollow noopener">
               Ver na loja →
             </a>
           )
@@ -114,8 +102,8 @@ export default async function OfertasPage() {
             <div className="article">
               <h2>Sem ofertas no momento</h2>
               <p>
-                Estamos atualizando a lista. Enquanto isso, explore os <a href="/reviews/">reviews</a> e{" "}
-                <a href="/comparativos/">comparativos</a>.
+                Estamos atualizando a lista. Enquanto isso, explore os{" "}
+                <Link href="/reviews/">reviews</Link> e <Link href="/comparativos/">comparativos</Link>.
               </p>
             </div>
           )}

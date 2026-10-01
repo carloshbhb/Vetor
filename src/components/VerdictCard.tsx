@@ -1,4 +1,5 @@
 import SafeImage from './SafeImage';
+import { safeImageSrc } from '@/lib/images';
 
 type VerdictCardProps = {
   product: string;
@@ -25,7 +26,7 @@ function Stars({ score }: { score: number }) {
   const full = Math.floor(five);
   const half = five - full >= 0.5;
   return (
-    <div className="stars" aria-label={`Avaliação editorial: ${br(score)} de 10`}>
+    <div className="stars" role="img" aria-label={`Avaliação editorial: ${br(score)} de 10`}>
       {'★'.repeat(full)}
       {half ? '½' : ''}
     </div>
@@ -46,7 +47,7 @@ export default function VerdictCard({
     <aside className="verdict" id="veredito" aria-label="Resumo da avaliação">
       {imageUrl && (
         <SafeImage
-          src={imageUrl}
+          src={safeImageSrc(imageUrl)}
           width={600}
           height={400}
           alt={`${product}: foto do produto analisado`}

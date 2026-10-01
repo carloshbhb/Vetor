@@ -121,7 +121,10 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
   return schema;
 }
 
-export function generateViralArticleSchema(article: ViralArticle): Record<string, unknown> {
+export function generateViralArticleSchema(
+  article: ViralArticle,
+  existingReviewSlugs?: Set<string>
+): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -136,16 +139,23 @@ export function generateViralArticleSchema(article: ViralArticle): Record<string
     },
     mainEntity: {
       '@type': 'ItemList',
-      itemListElement: article.products.map((product, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        item: {
-          '@type': 'Product',
-          name: product.name,
-          url: `${SITE_URL}/reviews/${product.slug}`,
-          image: product.imageUrl,
-        },
-      })),
+      itemListElement: article.products.map((product, index) => {
+        // Só aponta para /reviews/ quando o review existe (sem 404 no JSON-LD).
+        const url =
+          existingReviewSlugs?.has(product.slug) === false
+            ? `${SITE_URL}/comparativos/${article.slug}#escolha`
+            : `${SITE_URL}/reviews/${product.slug}`;
+        return {
+          '@type': 'ListItem',
+          position: index + 1,
+          item: {
+            '@type': 'Product',
+            name: product.name,
+            url,
+            image: product.imageUrl,
+          },
+        };
+      }),
     },
   };
 }

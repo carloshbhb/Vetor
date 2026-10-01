@@ -41,7 +41,7 @@ export default function StickyBuyBar({ affiliateSlug, label = 'Ver preço atuali
   }, []);
 
   return (
-    <div className="mobile-cta" aria-label="Ação de compra">
+    <div className="mobile-cta" role="complementary" aria-label="Ação de compra">
       <a
         className="cta"
         href={`/go/${affiliateSlug}/`}

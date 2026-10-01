@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import GuideCard from "@/components/GuideCard";
 import { ItemListSchema } from "@/components/SchemaMarkup";
@@ -60,7 +61,8 @@ export default async function GuiasPage() {
                 <h2>Nenhum guia publicado ainda</h2>
                 <p>
                   Estamos preparando os primeiros guias. Enquanto isso, explore os{" "}
-                  <a href="/reviews/">reviews</a> e <a href="/comparativos/">comparativos</a>.
+                  <Link href="/reviews/">reviews</Link> e{" "}
+                  <Link href="/comparativos/">comparativos</Link>.
                 </p>
               </div>
             )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 declare global {
   interface Window {
@@ -20,6 +21,8 @@ function track(name: string, params: GtagParams) {
 // Funciona com links adicionados depois; sem gtag, é no-op. Sem JS, os links
 // continuam navegando (progressive enhancement).
 export default function AffiliateTracker() {
+  // Reseta scroll_depth a cada navegação SPA (o componente monta uma vez no layout).
+  const pathname = usePathname();
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const el = e.target as HTMLElement | null;
@@ -52,7 +55,8 @@ export default function AffiliateTracker() {
       document.removeEventListener('click', onClick);
       window.removeEventListener('scroll', onScroll);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return null;
 }
