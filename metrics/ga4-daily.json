@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-01",
+  "property": "properties/458038617",
+  "organic": {
+    "sessions": 0,
+    "delta7d": null,
+    "delta28d": null,
+    "newUsers": 0,
+    "stale": true,
+    "staleDays": 0,
+    "lastDataDate": null,
+    "daily": [
+      {
+        "date": "2026-08-07",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-08",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-09",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-10",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-11",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-12",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-13",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-14",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-15",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-16",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-17",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-18",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-19",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-20",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-21",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-22",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-23",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-24",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-25",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-26",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-27",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-28",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-29",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-30",
+        "sessions": 0
+      },
+      {
+        "date": "2026-08-31",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-01",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-02",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-03",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-04",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-05",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-06",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-07",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-08",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-09",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-10",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-11",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-12",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-13",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-14",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-15",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-16",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-17",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-18",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-19",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-20",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-21",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-22",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-23",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-24",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-25",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-26",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-27",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-28",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-29",
+        "sessions": 0
+      },
+      {
+        "date": "2026-09-30",
+        "sessions": 0
+      },
+      {
+        "date": "2026-10-01",
+        "sessions": 0
+      }
+    ]
+  },
+  "topPages": [],
+  "anomaly": false,
+  "fetchedAt": "2026-10-01T11:50:54.919Z"
+}
