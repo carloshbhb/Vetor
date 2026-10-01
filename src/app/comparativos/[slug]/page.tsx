@@ -1,4 +1,4 @@
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -235,7 +235,7 @@ export default async function ViralArticlePage({
                 transformOrigin: "center bottom",
               }}
             >
-              <Image
+              <SafeImage
                 src={article.hero.imageUrl}
                 alt={article.title}
                 fill
@@ -379,7 +379,7 @@ export default async function ViralArticlePage({
                         >
                           {product.imageUrl && (
                             <div className="relative h-64 mb-4 overflow-hidden rounded-xl">
-                              <Image
+                              <SafeImage
                                 src={product.imageUrl}
                                 alt={product.name}
                                 fill
@@ -466,7 +466,7 @@ export default async function ViralArticlePage({
                     >
                       {product.imageUrl && (
                         <div className="relative h-40 mb-4 overflow-hidden rounded-lg">
-                          <Image
+                          <SafeImage
                             src={product.imageUrl}
                             alt={product.name}
                             fill
@@ -541,7 +541,7 @@ export default async function ViralArticlePage({
                   >
                     {r.hero?.imageUrl && (
                       <div className="relative h-48 overflow-hidden">
-                        <Image src={r.hero.imageUrl} alt={r.title} fill sizes="(max-width: 640px) 100vw, 340px" className="object-cover transition-transform duration-600 group-hover:scale-105" />
+                        <SafeImage src={r.hero.imageUrl} alt={r.title} fill sizes="(max-width: 640px) 100vw, 340px" className="object-cover transition-transform duration-600 group-hover:scale-105" />
                       </div>
                     )}
                     <div className="p-6">

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Footer from "@/components/Footer";
@@ -166,7 +166,7 @@ export default async function ReviewPage({ params }: PageProps) {
           />
           <div style={{ display: "flex", alignItems: "center", gap: 20, margin: "16px 0" }}>
             {review.image_url && (
-              <Image
+              <SafeImage
                 src={review.image_url}
                 alt={review.product}
                 width={80}
@@ -807,7 +807,7 @@ export default async function ReviewPage({ params }: PageProps) {
                     >
                       {r.image_url && (
                         <div style={{ position: "relative", height: 180, overflow: "hidden" }}>
-                          <Image src={r.image_url} alt={r.product} fill style={{ objectFit: "cover" }} sizes="(max-width: 640px) 100vw, 340px" />
+                          <SafeImage src={r.image_url} alt={r.product} fill style={{ objectFit: "cover" }} sizes="(max-width: 640px) 100vw, 340px" />
                         </div>
                       )}
                       <div style={{ padding: 20 }}>

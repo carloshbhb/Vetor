@@ -5,7 +5,7 @@ export async function resolveProductImage(url: string): Promise<string> {
 
   try {
     if (!url || url === 'unknown') {
-      const fallback = `https://www.vetor.blog/images/placeholder.webp`;
+      const fallback = `/images/placeholder.svg`;
       IMAGE_CACHE[url] = fallback;
       return fallback;
     }
@@ -19,7 +19,7 @@ export async function resolveProductImage(url: string): Promise<string> {
     // ignore
   }
 
-  const fallback = `https://www.vetor.blog/images/placeholder.webp`;
+  const fallback = `/images/placeholder.svg`;
   IMAGE_CACHE[url] = fallback;
   return fallback;
 }

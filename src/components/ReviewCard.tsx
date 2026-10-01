@@ -1,4 +1,4 @@
-import Image from "next/image";
+import SafeImage from "./SafeImage";
 import Link from "next/link";
 import type { Review } from "@/lib/types";
 
@@ -45,7 +45,7 @@ export default function ReviewCard({
           overflow: "hidden",
           background: "var(--surface)",
         }}>
-          <Image
+          <SafeImage
             src={review.image_url}
             alt={review.product}
             fill

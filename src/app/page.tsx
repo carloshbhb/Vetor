@@ -411,7 +411,7 @@ export default async function Home() {
                               transition: "border-color 0.2s"
                             }}>
                               {bar.imageUrl && (
-                                <img src={bar.imageUrl} alt={bar.label} className="w-10 h-10 object-cover rounded" style={{ border: "1px solid var(--border)" }} />
+                                <img src={bar.imageUrl} alt={bar.label} className="w-10 h-10 object-cover rounded" style={{ border: "1px solid var(--border)" }} onError={(e) => { e.currentTarget.src = "/images/placeholder.svg"; }} />
                               )}
                               <div>
                                 <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--ink)", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "140px" }}>
