@@ -185,13 +185,12 @@ export default async function ViralArticlePage({ params }: PageProps) {
           </div>
         </section>
 
-        <div className="container">
-          <AdPlacement
-            slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
-            className="ad-slot ad-slot--inline"
-            ariaLabel="Publicidade"
-          />
-        </div>
+        <AdPlacement
+          slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
+          className="ad-slot ad-slot--inline"
+          ariaLabel="Publicidade"
+          wrapperClassName="container"
+        />
 
         <section className="content-wrap">
           <div className="container layout">

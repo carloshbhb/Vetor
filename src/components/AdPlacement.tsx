@@ -7,14 +7,15 @@ type AdPlacementProps = {
   className?: string;
   style?: CSSProperties;
   ariaLabel?: string;
+  wrapperClassName?: string;
 };
 
 // Server component. Sem client/slot configurados, não renderiza nada
 // (evita caixas "Publicidade" vazias em produção).
-export default function AdPlacement({ slot, format = "auto", className = "", style, ariaLabel }: AdPlacementProps) {
+export default function AdPlacement({ slot, format = "auto", className = "", style, ariaLabel, wrapperClassName }: AdPlacementProps) {
   const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
   if (!client || !slot) return null;
-  return (
+  const slotNode = (
     <AdSlot
       slotId={slot}
       client={client}
@@ -24,4 +25,5 @@ export default function AdPlacement({ slot, format = "auto", className = "", sty
       ariaLabel={ariaLabel}
     />
   );
+  return wrapperClassName ? <div className={wrapperClassName}>{slotNode}</div> : slotNode;
 }

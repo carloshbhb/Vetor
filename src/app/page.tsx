@@ -3,6 +3,8 @@ import { fetchAllReviews, fetchAllViralArticles, fetchGuias } from '@/lib/data';
 import NewsletterForm from '@/components/NewsletterForm';
 import GuideCard from '@/components/GuideCard';
 import AdPlacement from '@/components/AdPlacement';
+import SafeImage from '@/components/SafeImage';
+import { safeImageSrc } from '@/lib/images';
 
 export const revalidate = 300;
 
@@ -56,6 +58,14 @@ export default async function Home() {
           {featured && (
             <aside className="home-feature">
               <span className="feature-label">Análise em destaque</span>
+              <SafeImage
+                src={safeImageSrc(featured.image_url)}
+                width={600}
+                height={338}
+                alt={`${featured.product}: foto do produto analisado`}
+                sizes="(max-width: 900px) 100vw, 40vw"
+                className="home-feature-img"
+              />
               <h2>{featured.product}: vale a pena? Review completo</h2>
               <p>{featured.hero_lead}</p>
 
@@ -128,13 +138,12 @@ export default async function Home() {
         </div>
       </section>
 
-      <div className="container">
-        <AdPlacement
-          slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
-          className="ad-slot"
-          aria-label="Publicidade"
-        />
-      </div>
+      <AdPlacement
+        slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
+        className="ad-slot"
+        aria-label="Publicidade"
+        wrapperClassName="container"
+      />
 
       {mainReview && (
         <section className="home-section home-dark">
@@ -150,6 +159,14 @@ export default async function Home() {
 
             <div className="home-review-grid">
               <Link className="home-review-main" href={`/reviews/${mainReview.slug}/`}>
+                <SafeImage
+                  src={safeImageSrc(mainReview.image_url)}
+                  width={600}
+                  height={338}
+                  alt={`${mainReview.product}: foto do produto analisado`}
+                  sizes="(max-width: 768px) 100vw, 55vw"
+                  className="home-review-img"
+                />
                 <span className="tag">Review completo</span>
                 <h3>{mainReview.meta_title || `${mainReview.product}: review completo`}</h3>
                 <p>{mainReview.hero_lead}</p>
@@ -158,9 +175,19 @@ export default async function Home() {
               <div className="home-small-stack">
                 {smallReviews.map((r) => (
                   <Link key={r.slug} className="home-review-small" href={`/reviews/${r.slug}/`}>
-                    <span className="tag">Review</span>
-                    <h3>{r.meta_title || r.product}</h3>
-                    <p>O que observar antes de comprar.</p>
+                    <SafeImage
+                      src={safeImageSrc(r.image_url)}
+                      width={96}
+                      height={72}
+                      alt={`${r.product}: foto do produto`}
+                      sizes="96px"
+                      className="home-thumb"
+                    />
+                    <div className="home-review-small-body">
+                      <span className="tag">Review</span>
+                      <h3>{r.meta_title || r.product}</h3>
+                      <p>O que observar antes de comprar.</p>
+                    </div>
                   </Link>
                 ))}
               </div>
@@ -197,13 +224,12 @@ export default async function Home() {
         </section>
       )}
 
-      <div className="container">
-        <AdPlacement
-          slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
-          className="ad-slot"
-          ariaLabel="Publicidade"
-        />
-      </div>
+      <AdPlacement
+        slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
+        className="ad-slot"
+        ariaLabel="Publicidade"
+        wrapperClassName="container"
+      />
 
       {guideCards.length > 0 && (
         <section className="home-section home-dark">
@@ -237,6 +263,14 @@ export default async function Home() {
             <div className="pick-grid">
               {picks.map((p) => (
                 <Link key={p.slug} className="pick" href={`/reviews/${p.slug}/`}>
+                  <SafeImage
+                    src={safeImageSrc(p.image_url)}
+                    width={600}
+                    height={400}
+                    alt={`${p.product}: foto do produto recomendado`}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="pick-img"
+                  />
                   <span className="tag">{p.category}</span>
                   <h3>{p.product}</h3>
                   <p>{p.hero_lead}</p>
