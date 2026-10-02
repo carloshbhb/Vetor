@@ -62,6 +62,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={inter.variable}>
       <head>
+        <meta name="google-site-verification" content="M3d89AYWh1qAFUV3Od0Za5Es5Ymp-4a5pyCeBvxxEOM" />
         <OrganizationSchema />
         <WebSiteSchema />
         <link
