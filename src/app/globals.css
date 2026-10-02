@@ -148,10 +148,10 @@ h1 {
 .article h2:first-child { margin-top: 0; }
 /* REVERSÍVEL (2026-10-01): conforto de leitura — parágrafos do artigo em ~68ch.
    Para voltar: `git revert <este-commit>` ou apagar este bloco. */
-.article p { max-width: 68ch; }
+.article p { max-width: 68ch; margin: 0 0 1.1em; line-height: 1.7; font-size: 1.02rem; }
 .article h3 { font-size: 1.22rem; margin: 30px 0 10px; }
 .article p { color: #354150; }
-.article ul { padding-left: 20px; }
+.article ul { padding-left: 20px; margin: 0 0 1.2em; }
 .article li { margin: 8px 0; color: #354150; }
 .toc { background: var(--surface-2); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin: 0 0 34px; }
 .toc strong { display: block; margin-bottom: 10px; }
@@ -295,6 +295,10 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
   background: #f4f6f8; border: 1px solid var(--line); border-radius: 10px;
   padding: 9px 10px; font-size: .75rem; font-weight: 800; color: #556170;
 }
+.home-feature-img {
+  display: block; width: 100%; height: auto; aspect-ratio: 16 / 9;
+  object-fit: cover; border-radius: 12px; background: #f4f6f8; margin-top: 14px;
+}
 .home-strip { background: #fff; border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); }
 .home-strip-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
 .home-strip-item { padding: 20px 16px; text-align: center; border-right: 1px solid var(--line); }
@@ -333,6 +337,16 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
 .home-review-main h3 { font-size: 2rem; line-height: 1.05; letter-spacing: -.04em; margin: 18px 0 10px; }
 .home-review-small h3 { font-size: 1.12rem; line-height: 1.15; margin: 12px 0 0; }
 .home-review-main p, .home-review-small p { font-size: .88rem; color: var(--muted); }
+.home-review-img {
+  display: block; width: 100%; height: auto; aspect-ratio: 16 / 9;
+  object-fit: cover; border-radius: 12px; background: #f4f6f8; margin-bottom: 18px;
+}
+.home-review-small { display: flex; align-items: center; gap: 14px; }
+.home-review-small .home-thumb {
+  width: 96px; height: 72px; flex: 0 0 auto;
+  object-fit: cover; border-radius: 10px; background: #f4f6f8;
+}
+.home-review-small-body { min-width: 0; }
 .home-small-stack { display: grid; gap: 18px; }
 .home-compare-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .home-compare {
@@ -362,6 +376,10 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
 .pick .tag { align-self: flex-start; }
 .pick h3 { font-size: 1.2rem; line-height: 1.15; margin: 12px 0 8px; }
 .pick p { font-size: .88rem; color: var(--muted); margin: 0 0 16px; }
+.pick-img {
+  display: block; width: 100%; height: auto; aspect-ratio: 3 / 2;
+  object-fit: cover; border-radius: 12px; background: #f4f6f8; margin-bottom: 14px;
+}
 .pick strong:last-child { margin-top: auto; font-size: .88rem; }
 .news { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 34px; display: flex; gap: 30px; justify-content: space-between; align-items: center; }
 .news h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); line-height: 1.05; letter-spacing: -.035em; margin: 0 0 8px; }
