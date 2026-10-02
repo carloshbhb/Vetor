@@ -5,6 +5,7 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import AffiliateTracker from "@/components/AffiliateTracker";
 import Ga4 from "@/components/Ga4";
+import CookieBanner from "@/components/CookieBanner";
 import { inter } from "@/lib/fonts";
 import "./globals.css";
 
@@ -18,6 +19,10 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.vetor.blog"),
   alternates: {
     canonical: "/",
+    languages: {
+      "pt-BR": "https://www.vetor.blog",
+      "x-default": "https://www.vetor.blog",
+    },
   },
   openGraph: {
     title: "vetor.blog",
@@ -63,6 +68,10 @@ export default function RootLayout({
     <html lang="pt-BR" className={inter.variable}>
       <head>
         <meta name="google-site-verification" content="M3d89AYWh1qAFUV3Od0Za5Es5Ymp-4a5pyCeBvxxEOM" />
+        <meta name="geo.region" content="BR" />
+        <meta name="geo.placename" content="São Paulo" />
+        <meta name="geo.position" content="-23.5505;-46.6333" />
+        <meta name="ICBM" content="-23.5505, -46.6333" />
         <OrganizationSchema />
         <WebSiteSchema />
         <link
@@ -79,6 +88,7 @@ export default function RootLayout({
         <SiteHeader />
         {children}
         <SiteFooter />
+        <CookieBanner />
       </body>
     </html>
   );
