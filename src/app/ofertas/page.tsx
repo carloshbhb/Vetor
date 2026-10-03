@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "Ofertas: preços e disponibilidade",
   description:
     "Ofertas acompanhadas pelo Vetor.blog, com preço, loja e link para o review completo quando existir.",
-  alternates: { canonical: "https://www.vetor.blog/ofertas" },
+  alternates: { canonical: "https://www.vetor.blog/ofertas/" },
   openGraph: {
     title: "Ofertas: preços e disponibilidade",
     description: "Preços acompanhados pelo Vetor.blog.",
