@@ -4,6 +4,8 @@ import ReviewCard from "@/components/ReviewCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { fetchAllReviews, fetchCategories, normalizeCategoryName } from "@/lib/data";
 import { ItemListSchema } from "@/components/SchemaMarkup";
+import Link from "next/link";
+import { buildBuyingGuideCategories, buildBuyingIntentPages, getBuyingIntentDescription, getBuyingIntentLabel } from "@/lib/buying";
 
 interface PageProps {
   params: Promise<{ category: string }>;
@@ -57,6 +59,12 @@ export default async function CategoryHubPage({ params }: PageProps) {
   ]);
 
   const filtered = reviews.filter((r) => r.category === canonicalCategory);
+  const buyingGuide = buildBuyingGuideCategories(reviews, 3).find(
+    (item) => item.name === canonicalCategory
+  );
+  const buyingIntents = buildBuyingIntentPages(reviews, 4).filter(
+    (item) => item.categoryName === canonicalCategory
+  );
 
   if (filtered.length === 0) notFound();
 
@@ -113,6 +121,40 @@ export default async function CategoryHubPage({ params }: PageProps) {
                 );
               })}
             </div>
+
+            {(buyingGuide || buyingIntents.length > 0) && (
+              <section className="buying-intent-section" aria-labelledby="comprar-categoria-heading">
+                <div className="section-kicker">Próximo passo</div>
+                <h2 id="comprar-categoria-heading">Quer comparar antes de comprar?</h2>
+                <p>
+                  Estes reviews ajudam na pesquisa. Se você já está na etapa de escolha, veja a seleção da categoria
+                  e, quando houver dados suficientes, compare por preço ou custo-benefício.
+                </p>
+                <div className="buying-intent-section-links">
+                  {buyingGuide && (
+                    <Link className="cta" href={"/melhores/" + buyingGuide.slug + "/"}>
+                      Ver melhores {canonicalCategory} →
+                    </Link>
+                  )}
+                </div>
+                {buyingIntents.length > 0 && (
+                  <div className="buying-intent-grid">
+                    {buyingIntents.map((item) => (
+                      <Link
+                        key={item.intent}
+                        className="buying-intent-card"
+                        href={"/melhores/" + item.categorySlug + "/" + item.intent + "/"}
+                      >
+                        <span>{getBuyingIntentLabel(item.intent)}</span>
+                        <strong>{getBuyingIntentLabel(item.intent)} em {canonicalCategory}</strong>
+                        <small>{getBuyingIntentDescription(item.intent, canonicalCategory)}</small>
+                        <b>Ver seleção →</b>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
 
             <div className="home-card-grid">
               {filtered.map((review) => (
