@@ -116,14 +116,15 @@ export default async function ReviewPage({ params }: PageProps) {
     ? `${review.product} — Preço e custo-benefício`
     : `${review.product} vale o preço?`;
 
+  const isGuia = /guia/i.test(review.slug);
   const toc = [
     { id: "resumo", label: "Resumo da análise" },
-    { id: "criterios", label: "O que analisamos" },
+    { id: "criterios", label: isGuia ? "O que analisamos neste guia" : "O que analisamos" },
     ...sections.map((s) => ({ id: s.id, label: s.tocLabel || s.heading })),
     ...(specs.length > 0 ? [{ id: "ficha-tecnica", label: "Ficha técnica" }] : []),
-    { id: "preco", label: "Preço e custo-benefício" },
-    ...(compareRows.length > 0 ? [{ id: "comparativo", label: "Comparativo com alternativas" }] : []),
-    { id: "publico", label: "Para quem vale a pena" },
+    ...(!isGuia ? [{ id: "preco", label: "Preço e custo-benefício" }] : []),
+    ...(!isGuia && compareRows.length > 0 ? [{ id: "comparativo", label: "Comparativo com alternativas" }] : []),
+    ...(!isGuia ? [{ id: "publico", label: "Para quem vale a pena" }] : []),
     ...(faq.length > 0 ? [{ id: "faq", label: "Perguntas frequentes" }] : []),
   ];
 
@@ -256,7 +257,7 @@ export default async function ReviewPage({ params }: PageProps) {
               )}
 
               <section id="criterios">
-                <h2>O que analisamos neste review</h2>
+                <h2>{isGuia ? "O que analisamos neste guia" : "O que analisamos neste review"}</h2>
                 <p>
                   Para chegar à avaliação, o Vetor.blog considera os pontos que mais influenciam a decisão de
                   compra dentro desta categoria:
@@ -307,6 +308,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 ariaLabel="Publicidade"
               />
 
+              {!isGuia && (
               <section id="preco">
                 <h2>{priceTitle}</h2>
                 {review.price_new ? (
@@ -362,8 +364,9 @@ export default async function ReviewPage({ params }: PageProps) {
                   </a>
                 )}
               </section>
+              )}
 
-              {compareRows.length > 0 && (
+              {!isGuia && compareRows.length > 0 && (
                 <section id="comparativo">
                   <h2>{review.product} vs. concorrentes: qual a diferença?</h2>
                   <p>
@@ -403,6 +406,8 @@ export default async function ReviewPage({ params }: PageProps) {
                 </section>
               )}
 
+              {!isGuia && (
+              <>
               <section id="publico">
                 <h2>Para quem {worthQuestion}</h2>
                 <div className="who-grid">
@@ -453,6 +458,8 @@ export default async function ReviewPage({ params }: PageProps) {
                   </a>
                 )}
               </section>
+              </>
+              )}
 
               {faq.length > 0 && (
                 <section id="faq">
