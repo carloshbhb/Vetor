@@ -559,7 +559,7 @@ export default async function ReviewPage({ params }: PageProps) {
         </section>
       </main>
 
-      {review.affiliate_url && <StickyBuyBar affiliateSlug={review.slug} />}
+      {review.affiliate_url && <StickyBuyBar affiliateSlug={review.slug} price={review.price_new} />}
     </>
   );
 }
