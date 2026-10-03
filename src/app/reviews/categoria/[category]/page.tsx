@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import ReviewCard from "@/components/ReviewCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { fetchAllReviews, fetchCategories } from "@/lib/data";
+import { ItemListSchema } from "@/components/SchemaMarkup";
 
 interface PageProps {
   params: Promise<{ category: string }>;
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `Melhores ${category} — Reviews e Comparativos`,
     description: `Reviews independentes de ${category}. Análises com prós, contras, notas e links para as melhores ofertas.`,
     alternates: {
-      canonical: `/reviews/categoria/${encodeURIComponent(category)}`,
+      canonical: `/reviews/categoria/${encodeURIComponent(category)}/`,
     },
   };
 }
@@ -66,6 +67,12 @@ export default async function CategoryHubPage({ params }: PageProps) {
 
   return (
     <>
+      <ItemListSchema
+        items={filtered.map((review) => ({
+          name: review.product,
+          url: `https://www.vetor.blog/reviews/${review.slug}`,
+        }))}
+      />
       <main id="conteudo">
         <section className="hero">
           <div className="container">
@@ -88,7 +95,7 @@ export default async function CategoryHubPage({ params }: PageProps) {
         <section className="content-wrap">
           <div className="container">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 36 }}>
-              <a href="/reviews" style={chip(false)}>
+              <a href="/reviews/" style={chip(false)}>
                 Todos ({reviews.length})
               </a>
               {categories.map((cat) => {
@@ -97,7 +104,7 @@ export default async function CategoryHubPage({ params }: PageProps) {
                 return (
                   <a
                     key={cat.name}
-                    href={`/reviews/categoria/${encodeURIComponent(cat.name)}`}
+                    href={`/reviews/categoria/${encodeURIComponent(cat.name)}/`}
                     style={chip(isActive)}
                   >
                     {cat.name} ({cat.count})
