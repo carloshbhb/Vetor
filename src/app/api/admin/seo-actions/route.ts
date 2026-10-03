@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
     const synced = await syncSeoActions(actions);
     const resolved = await markMissingSeoActionsResolved(actions.map((action) => action.fingerprint || ""));
     const history = await listSeoActions();
-    return NextResponse.json({ synced: synced.length, history });
+    return NextResponse.json({ synced: synced.length, resolved, history });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erro ao sincronizar histórico." },

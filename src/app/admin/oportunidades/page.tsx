@@ -159,6 +159,9 @@ type SeoActionRecord = {
   impact_status: "waiting" | "measured" | "no_data" | null;
   impact_period_days: number | null;
   impact_measured_at: string | null;
+  cycle_status: "new" | "active" | "persistent" | "recurring" | "resolved_signal" | "waiting_impact";
+  recurrence_count: number;
+  resolved_signal_at: string | null;
 };
 
 const numberFormatter = new Intl.NumberFormat("pt-BR");
@@ -281,7 +284,28 @@ export default function OpportunitiesPage() {
       inProgress: history.filter((item) => item.status === "in_progress").length,
       done: history.filter((item) => item.status === "done").length,
       dismissed: history.filter((item) => item.status === "dismissed").length,
+      recurring: history.filter((item) => item.cycle_status === "recurring").length,
+      persistent: history.filter((item) => item.cycle_status === "persistent").length,
+      resolved: history.filter((item) => item.cycle_status === "resolved_signal").length,
+      waitingImpact: history.filter((item) => item.impact_status === "waiting").length,
     }),
+    [history]
+  );
+
+  const cycleAlerts = useMemo(
+    () =>
+      history
+        .filter((item) =>
+          item.cycle_status === "recurring" ||
+          item.cycle_status === "persistent" ||
+          item.impact_status === "waiting"
+        )
+        .sort((a, b) => {
+          const weight = (item: SeoActionRecord) =>
+            item.cycle_status === "recurring" ? 3 : item.cycle_status === "persistent" ? 2 : 1;
+          return weight(b) - weight(a) || b.impressions - a.impressions;
+        })
+        .slice(0, 8),
     [history]
   );
 
@@ -309,7 +333,7 @@ export default function OpportunitiesPage() {
       <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--amber)] font-bold">
-            Fase 8
+            Fase 11
           </p>
           <h1 className="font-display text-3xl mt-1">Oportunidades SEO</h1>
           <p className="text-sm text-[var(--muted)] mt-2">
@@ -563,6 +587,67 @@ export default function OpportunitiesPage() {
           </div>
         ) : (
           <p className="text-sm text-[var(--muted)]">Nenhum histórico registrado ainda.</p>
+        )}
+      </section>
+
+      <section className="bg-[var(--surface)] border border-border rounded-xl p-5 mb-8">
+        <div className="mb-4">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--amber)] font-bold">
+            Fase 11 · ciclo SEO
+          </p>
+          <h2 className="font-heading font-bold text-xl mt-1">Tendência e alertas operacionais</h2>
+          <p className="text-xs text-[var(--muted)] mt-1 max-w-3xl">
+            O painel usa o histórico do Vetor.blog para destacar recorrências, sinais persistentes e medições que ainda aguardam dados. Não são classificações do Google.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+          {[
+            ["Recorrentes", historySummary.recurring],
+            ["Persistentes", historySummary.persistent],
+            ["Sinais resolvidos", historySummary.resolved],
+            ["Aguardando impacto", historySummary.waitingImpact],
+          ].map(([label, value]) => (
+            <div key={String(label)} className="rounded-lg border border-border/70 p-4">
+              <p className="text-xs text-[var(--muted)]">{label}</p>
+              <p className="text-2xl font-display mt-1">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {cycleAlerts.length ? (
+          <div className="space-y-3">
+            {cycleAlerts.map((item) => {
+              const recurring = item.cycle_status === "recurring";
+              const waiting = item.impact_status === "waiting";
+              const label = recurring ? "Recorrente" : item.cycle_status === "persistent" ? "Persistente" : "Aguardando impacto";
+              const action = recurring
+                ? "Reabrir e revisar a implementação; o mesmo sinal voltou ao histórico."
+                : waiting
+                  ? "Aguardar dados suficientes e medir novamente."
+                  : "Verificar se a ação foi aplicada e reavaliar o sinal atual.";
+              return (
+                <div key={item.id} className="rounded-lg border border-border/70 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--amber)] font-bold">{label}</span>
+                        {item.recurrence_count > 0 ? (
+                          <span className="text-[10px] text-[var(--muted)]">{item.recurrence_count} retorno(s)</span>
+                        ) : null}
+                      </div>
+                      <p className="font-medium mt-1">{item.title}</p>
+                      <p className="text-xs text-[var(--muted)] mt-1">{numberFormatter.format(item.impressions)} impressões registradas</p>
+                    </div>
+                    <a href={item.href} className="text-xs text-[var(--amber)] hover:underline">Abrir página</a>
+                  </div>
+                  <p className="text-xs mt-3 text-[var(--muted)]">{action}</p>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">Nenhum alerta operacional no histórico atual.</p>
         )}
       </section>
 
