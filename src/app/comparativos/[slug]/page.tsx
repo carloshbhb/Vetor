@@ -5,7 +5,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import AuthorBox from "@/components/AuthorBox";
 import VsCards, { type VsProduct } from "@/components/VsCards";
 import AdPlacement from "@/components/AdPlacement";
-import { BreadcrumbSchema } from "@/components/SchemaMarkup";
+import { BreadcrumbSchema, ItemListSchema } from "@/components/SchemaMarkup";
 import { fetchViralArticleBySlug, fetchAllViralArticles, fetchReviewBySlug } from "@/lib/data";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { generateViralArticleSchema, resolveOgImage } from "@/lib/seo";
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const article = await fetchViralArticleBySlug(slug);
   if (!article) return { title: "Comparativo não encontrado" };
-  const url = `https://www.vetor.blog/comparativos/${article.slug}`;
+  const url = `https://www.vetor.blog/comparativos/${article.slug}/`;
   const title = article.title.includes("Comparativo") ? article.title : `Comparativo: ${article.title}`;
   const description =
     article.description ||
@@ -155,6 +155,15 @@ export default async function ViralArticlePage({ params }: PageProps) {
           { name: article.title, url: `https://www.vetor.blog/comparativos/${article.slug}` },
         ]}
       />
+
+      {reviewed.length > 0 && (
+        <ItemListSchema
+          items={reviewed.map((e) => ({
+            name: e.product.name,
+            url: \`/reviews/\${e.review.slug}/\`,
+          }))}
+        />
+      )}
 
       <main id="conteudo">
         <section className="hero">
@@ -312,16 +321,23 @@ export default async function ViralArticlePage({ params }: PageProps) {
                   ))}
                 </div>
                 {reviewed.length > 0 && (
-                  <p>
-                    Quer ver cada um em detalhe? Leia{" "}
-                    {reviewed.map((e, i) => (
-                      <span key={e.review.slug}>
-                        {i > 0 && " e "}
-                        <Link href={`/reviews/${e.review.slug}/`}>o review do {e.product.name}</Link>
-                      </span>
-                    ))}
-                    .
-                  </p>
+                  <div className="compare-context">
+                    <div>
+                      <span className="eyebrow-small">Aprofunde a pesquisa</span>
+                      <h3>Veja os produtos em páginas independentes</h3>
+                      <p>Confira a análise completa, critérios, especificações e preço consultado de cada produto que também possui review no Vetor.blog.</p>
+                    </div>
+                    <div className="compare-context-links">
+                      {reviewed.map((e) => (
+                        <Link key={e.review.slug} href={\`/reviews/\${e.review.slug}/\`}>
+                          {e.product.name} <span>→</span>
+                        </Link>
+                      ))}
+                      <Link href={\`/reviews/categoria/\${encodeURIComponent(article.category)}/\`}>
+                        Mais reviews de {article.category} <span>→</span>
+                      </Link>
+                    </div>
+                  </div>
                 )}
               </section>
 
