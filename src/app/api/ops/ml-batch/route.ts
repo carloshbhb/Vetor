@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "ADMIN_PASSWORD not configured" }, { status: 500 });
   }
 
-  const origin = new URL(request.url).origin;
+  const origin = "https://www.vetor.blog";
   const cookie = createAdminSessionCookie(adminPassword);
   const cookieHeader = cookie.name + "=" + encodeURIComponent(cookie.value);
 
