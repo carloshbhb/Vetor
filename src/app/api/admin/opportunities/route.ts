@@ -3,6 +3,7 @@ import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { fetchAllReviews, fetchAllViralArticles } from "@/lib/data";
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from "@/lib/buying";
 import { fetchSearchConsoleRows } from "@/lib/search-console";
+import { createSeoActionFingerprint } from "@/lib/seo-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -360,6 +361,11 @@ export async function GET(request: Request) {
       action: "Comparar o title atual com a intenção da query e testar uma versão mais específica.",
       source: "Search Console + regra Fase 5",
       href: item.page,
+      fingerprint: createSeoActionFingerprint({
+        type: "CTR",
+        detail: item.query,
+        href: item.page,
+      }),
       impressions: item.impressions,
       brief: {
         objective: "Aumentar a clareza e a atratividade do resultado para a consulta que já gera impressões.",
@@ -377,6 +383,11 @@ export async function GET(request: Request) {
       action: item.action,
       source: "Search Console + regra Fase 5",
       href: item.page,
+      fingerprint: createSeoActionFingerprint({
+        type: "POSIÇÃO",
+        detail: item.page,
+        href: item.page,
+      }),
       impressions: item.impressions,
       brief: {
         objective: "Reforçar a capacidade da página de responder à intenção já observada.",
@@ -394,6 +405,11 @@ export async function GET(request: Request) {
       action: item.action,
       source: "Search Console + regra Fase 5",
       href: item.pages[0]?.page || "",
+      fingerprint: createSeoActionFingerprint({
+        type: "CANIBALIZAÇÃO",
+        detail: item.query,
+        href: item.pages[0]?.page || "",
+      }),
       impressions: item.impressions,
       brief: {
         objective: "Entender se múltiplas URLs estão atendendo a mesma intenção e decidir uma diferenciação editorial.",
@@ -411,6 +427,11 @@ export async function GET(request: Request) {
       action: item.signal + " Rota sugerida: " + item.suggestedRoute,
       source: "Search Console + regra Fase 5",
       href: item.suggestedRoute,
+      fingerprint: createSeoActionFingerprint({
+        type: "LACUNA",
+        detail: item.query,
+        href: item.suggestedRoute,
+      }),
       impressions: item.impressions,
       brief: {
         objective: "Avaliar a criação ou expansão de uma página alinhada à intenção comercial detectada.",

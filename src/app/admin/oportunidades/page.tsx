@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type SearchConsoleQuery = {
   query: string;
@@ -57,6 +57,7 @@ type DashboardData = {
     action: string;
     source: string;
     href: string;
+    fingerprint: string;
     impressions: number;
     brief: {
       objective: string;
@@ -120,6 +121,35 @@ type DashboardData = {
   };
 };
 
+type SeoActionStatus = "open" | "in_progress" | "done" | "dismissed";
+
+type SeoActionRecord = {
+  id: string;
+  fingerprint: string;
+  signal_type: string;
+  priority: "Alta" | "Média";
+  title: string;
+  detail: string;
+  evidence: string;
+  action: string;
+  source: string;
+  href: string;
+  impressions: number;
+  brief: {
+    objective: string;
+    contentAction: string;
+    suggestedTitle: string;
+    validation: string;
+  };
+  status: SeoActionStatus;
+  notes: string;
+  first_seen_at: string;
+  last_seen_at: string;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 const numberFormatter = new Intl.NumberFormat("pt-BR");
 
 async function fetchDashboardData(): Promise<DashboardData> {
@@ -130,29 +160,98 @@ async function fetchDashboardData(): Promise<DashboardData> {
 
 export default function OpportunitiesPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [history, setHistory] = useState<SeoActionRecord[]>([]);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
+  const [updatingAction, setUpdatingAction] = useState<string | null>(null);
+
+  const loadDashboard = async () => {
+    const dashboard = await fetchDashboardData();
+    setData(dashboard);
+
+    const syncResponse = await fetch("/api/admin/seo-actions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({ actions: dashboard.actionQueue }),
+    });
+
+    if (!syncResponse.ok) {
+      throw new Error("Dashboard carregado, mas não foi possível sincronizar o histórico SEO.");
+    }
+
+    const syncData = await syncResponse.json();
+    setHistory(Array.isArray(syncData.history) ? syncData.history : []);
+  };
 
   useEffect(() => {
-    fetchDashboardData()
-      .then(setData)
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : "Erro ao carregar.")
-      );
+    loadDashboard().catch((err) =>
+      setError(err instanceof Error ? err.message : "Erro ao carregar.")
+    );
   }, []);
 
   const refreshDashboard = async () => {
     setRefreshing(true);
     setError("");
     try {
-      setData(await fetchDashboardData());
+      await loadDashboard();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao atualizar.");
     } finally {
       setRefreshing(false);
     }
   };
+
+  const updateActionStatus = async (id: string, status: SeoActionStatus) => {
+    setUpdatingAction(id);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/seo-actions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ id, status }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || "Não foi possível atualizar a ação.");
+      }
+      if (payload.item) {
+        setHistory((current) =>
+          current.map((item) => (item.id === id ? payload.item : item))
+        );
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar ação.");
+    } finally {
+      setUpdatingAction(null);
+    }
+  };
+
+  const historyByFingerprint = useMemo(
+    () => new Map(history.map((item) => [item.fingerprint, item])),
+    [history]
+  );
+
+  const activeQueue = useMemo(
+    () =>
+      data?.actionQueue.filter((item) => {
+        const record = historyByFingerprint.get(item.fingerprint);
+        return !record || (record.status !== "done" && record.status !== "dismissed");
+      }) || [],
+    [data?.actionQueue, historyByFingerprint]
+  );
+
+  const historySummary = useMemo(
+    () => ({
+      open: history.filter((item) => item.status === "open").length,
+      inProgress: history.filter((item) => item.status === "in_progress").length,
+      done: history.filter((item) => item.status === "done").length,
+      dismissed: history.filter((item) => item.status === "dismissed").length,
+    }),
+    [history]
+  );
 
   if (error) {
     return (
@@ -178,7 +277,7 @@ export default function OpportunitiesPage() {
       <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--amber)] font-bold">
-            Fase 4.4
+            Fase 8
           </p>
           <h1 className="font-display text-3xl mt-1">Oportunidades SEO</h1>
           <p className="text-sm text-[var(--muted)] mt-2">
@@ -231,13 +330,23 @@ export default function OpportunitiesPage() {
             </p>
           </div>
           <span className="text-xs text-[var(--muted)]">
-            {data.actionQueue.length} tarefas abertas
+            {activeQueue.length} tarefas abertas
           </span>
         </div>
 
-        {data.actionQueue.length ? (
+        <div className="flex flex-wrap gap-2 mb-4 text-[10px] uppercase tracking-[0.12em]">
+          <span className="rounded-full border border-border px-2 py-1">Abertas: {historySummary.open}</span>
+          <span className="rounded-full border border-border px-2 py-1">Em andamento: {historySummary.inProgress}</span>
+          <span className="rounded-full border border-border px-2 py-1">Concluídas: {historySummary.done}</span>
+          <span className="rounded-full border border-border px-2 py-1">Dispensadas: {historySummary.dismissed}</span>
+        </div>
+
+        {activeQueue.length ? (
           <div className="space-y-3">
-            {data.actionQueue.map((item, index) => (
+            {activeQueue.map((item, index) => { 
+              const record = historyByFingerprint.get(item.fingerprint);
+              const status = record?.status || "open";
+              return (
               <div
                 key={item.type + "|" + item.detail + "|" + index}
                 className="rounded-lg border border-border/70 p-4"
@@ -302,14 +411,118 @@ export default function OpportunitiesPage() {
                     </div>
                   </div>
                 )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {status === "open" && (
+                    <button
+                      type="button"
+                      onClick={() => updateActionStatus(record!.id, "in_progress")}
+                      disabled={updatingAction === record?.id}
+                      className="px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-[var(--surface2)] disabled:opacity-50"
+                    >
+                      Iniciar
+                    </button>
+                  )}
+                  {status === "in_progress" && (
+                    <button
+                      type="button"
+                      onClick={() => updateActionStatus(record!.id, "done")}
+                      disabled={updatingAction === record?.id}
+                      className="px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-[var(--surface2)] disabled:opacity-50"
+                    >
+                      Marcar concluída
+                    </button>
+                  )}
+                  {status !== "done" && (
+                    <button
+                      type="button"
+                      onClick={() => updateActionStatus(record!.id, "dismissed")}
+                      disabled={updatingAction === record?.id}
+                      className="px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-[var(--surface2)] disabled:opacity-50"
+                    >
+                      Dispensar
+                    </button>
+                  )}
+                  <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--muted)] self-center">
+                    {status === "open" ? "Aberta" : "Em andamento"}
+                  </span>
+                </div>
                 <p className="text-[10px] text-[var(--muted)] mt-2">{item.source}</p>
               </div>
-            ))}
+            );
+            })}
           </div>
         ) : (
           <p className="text-sm text-[var(--muted)]">
             Nenhuma tarefa automática disponível no corte atual.
           </p>
+        )}
+      </section>
+
+      <section className="bg-[var(--surface)] border border-border rounded-xl p-5 mb-8">
+        <div className="mb-4">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--amber)] font-bold">
+            Fase 8 · acompanhamento
+          </p>
+          <h2 className="font-heading font-bold text-xl mt-1">Histórico de ações SEO</h2>
+          <p className="text-xs text-[var(--muted)] mt-1">
+            Registra quando um sinal apareceu, quando foi revisado e qual foi o estado operacional escolhido.
+          </p>
+        </div>
+
+        {history.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[var(--muted)] border-b border-border">
+                  <th className="py-3 pr-4">Ação</th>
+                  <th className="py-3 pr-4">Tipo</th>
+                  <th className="py-3 pr-4">Estado</th>
+                  <th className="py-3 pr-4">Última ocorrência</th>
+                  <th className="py-3">Controle</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.slice(0, 50).map((item) => (
+                  <tr key={item.id} className="border-b border-border/60 align-top">
+                    <td className="py-3 pr-4 min-w-[260px]">
+                      <p className="font-medium">{item.title}</p>
+                      <p className="text-xs text-[var(--muted)] mt-1">{item.detail}</p>
+                      <p className="text-xs text-[var(--muted)] mt-1">{item.evidence}</p>
+                    </td>
+                    <td className="py-3 pr-4 text-xs">{item.signal_type}</td>
+                    <td className="py-3 pr-4">
+                      <span className="text-xs uppercase tracking-[0.08em] font-bold">
+                        {item.status === "open"
+                          ? "Aberta"
+                          : item.status === "in_progress"
+                            ? "Em andamento"
+                            : item.status === "done"
+                              ? "Concluída"
+                              : "Dispensada"}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4 text-xs text-[var(--muted)]">
+                      {new Date(item.last_seen_at).toLocaleString("pt-BR")}
+                    </td>
+                    <td className="py-3">
+                      {item.status === "done" || item.status === "dismissed" ? (
+                        <button
+                          type="button"
+                          onClick={() => updateActionStatus(item.id, "open")}
+                          disabled={updatingAction === item.id}
+                          className="text-xs text-[var(--amber)] hover:underline disabled:opacity-50"
+                        >
+                          Reabrir
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">Nenhum histórico registrado ainda.</p>
         )}
       </section>
 
