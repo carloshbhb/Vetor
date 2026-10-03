@@ -43,10 +43,22 @@ export default function AffiliateTracker() {
       const linkText = (a.textContent || '').trim().slice(0, 100);
 
       if (sponsored) {
+        const affPos = a.dataset.affPos || 'inline';
+        let destination = href;
+        try {
+          const target = new URL(href, location.origin);
+          if (target.origin === location.origin && target.pathname.startsWith('/go/')) {
+            destination = target.pathname;
+          }
+        } catch {
+          // Mantém o href original se a URL não puder ser analisada.
+        }
+
         track('affiliate_click', {
-          link_url: href,
+          link_url: destination,
           link_text: linkText,
-          position: a.dataset.affPos || 'inline',
+          position: affPos,
+          cta_type: 'affiliate',
           page_path: location.pathname,
         });
         return;
