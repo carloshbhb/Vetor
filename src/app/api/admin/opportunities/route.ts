@@ -350,6 +350,61 @@ export async function GET(request: Request) {
     )
     .slice(0, 20);
 
+  const actionQueue = [
+    ...ctrOpportunities.slice(0, 10).map((item) => ({
+      type: "CTR",
+      priority: item.impressions >= 100 ? "Alta" : "Média",
+      title: "Revisar título e snippet",
+      detail: item.query,
+      evidence: `${item.impressions} impressões · CTR ${item.ctr}% · posição ${item.position}`,
+      action: "Comparar o title atual com a intenção da query e testar uma versão mais específica.",
+      source: "Search Console + regra Fase 5",
+      href: item.page,
+      impressions: item.impressions,
+    })),
+    ...positionOpportunities.slice(0, 10).map((item) => ({
+      type: "POSIÇÃO",
+      priority: item.impressions >= 100 ? "Alta" : "Média",
+      title: "Reforçar página",
+      detail: item.page,
+      evidence: `${item.impressions} impressões · posição média ${item.avgPosition}`,
+      action: item.action,
+      source: "Search Console + regra Fase 5",
+      href: item.page,
+      impressions: item.impressions,
+    })),
+    ...cannibalization.slice(0, 8).map((item) => ({
+      type: "CANIBALIZAÇÃO",
+      priority: item.impressions >= 100 ? "Alta" : "Média",
+      title: "Investigar sobreposição de URLs",
+      detail: item.query,
+      evidence: `${item.impressions} impressões · ${item.pages.length} URLs · líder ${item.leaderShare}%`,
+      action: item.action,
+      source: "Search Console + regra Fase 5",
+      href: item.pages[0]?.page || "",
+      impressions: item.impressions,
+    })),
+    ...contentGaps.slice(0, 10).map((item) => ({
+      type: "LACUNA",
+      priority: item.impressions >= 100 ? "Alta" : "Média",
+      title: "Avaliar expansão de conteúdo",
+      detail: item.query,
+      evidence: `${item.impressions} impressões · posição média ${item.avgPosition}`,
+      action: item.signal + " Rota sugerida: " + item.suggestedRoute,
+      source: "Search Console + regra Fase 5",
+      href: item.suggestedRoute,
+      impressions: item.impressions,
+    })),
+  ]
+    .sort((a, b) => {
+      const priority = { Alta: 2, Média: 1 };
+      const byPriority =
+        priority[b.priority as keyof typeof priority] -
+        priority[a.priority as keyof typeof priority];
+      return byPriority || b.impressions - a.impressions;
+    })
+    .slice(0, 25);
+
   const queryOpportunities = searchConsole.rows
     .filter((row) => {
       const impressions = row.impressions || 0;
@@ -465,6 +520,7 @@ export async function GET(request: Request) {
       cannibalization,
       contentGaps,
     },
+    actionQueue,
     contentOpportunities: {
       thinCategories,
       missingIntent,

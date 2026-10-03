@@ -48,6 +48,17 @@ type DashboardData = {
     action: string;
   }>;
   pages: SearchConsolePage[];
+  actionQueue: Array<{
+    type: string;
+    priority: "Alta" | "Média";
+    title: string;
+    detail: string;
+    evidence: string;
+    action: string;
+    source: string;
+    href: string;
+    impressions: number;
+  }>;
   intelligence: {
     ctrOpportunities: Array<{
       query: string;
@@ -105,21 +116,36 @@ type DashboardData = {
 
 const numberFormatter = new Intl.NumberFormat("pt-BR");
 
+async function fetchDashboardData(): Promise<DashboardData> {
+  const response = await fetch("/api/admin/opportunities", { cache: "no-store" });
+  if (!response.ok) throw new Error("Não foi possível carregar o dashboard.");
+  return response.json();
+}
+
 export default function OpportunitiesPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetch("/api/admin/opportunities", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Não foi possível carregar o dashboard.");
-        return response.json();
-      })
+    fetchDashboardData()
       .then(setData)
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Erro ao carregar.")
       );
   }, []);
+
+  const refreshDashboard = async () => {
+    setRefreshing(true);
+    setError("");
+    try {
+      setData(await fetchDashboardData());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   if (error) {
     return (
@@ -152,8 +178,18 @@ export default function OpportunitiesPage() {
             Search Console + inventário editorial + intenção comercial.
           </p>
         </div>
-        <div className="text-xs text-[var(--muted)]">
-          Período: {data.period.startDate} → {data.period.endDate}
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-[var(--muted)]">
+            Período: {data.period.startDate} → {data.period.endDate}
+          </div>
+          <button
+            type="button"
+            onClick={refreshDashboard}
+            disabled={refreshing}
+            className="px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-[var(--surface2)] disabled:opacity-50"
+          >
+            {refreshing ? "Atualizando..." : "Atualizar dados"}
+          </button>
         </div>
       </div>
 
@@ -175,6 +211,66 @@ export default function OpportunitiesPage() {
           </div>
         ))}
       </div>
+
+      <section className="bg-[var(--surface)] border border-border rounded-xl p-5 mb-8">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--amber)] font-bold">
+              Fase 6 · operação SEO
+            </p>
+            <h2 className="font-heading font-bold text-xl mt-1">Fila de execução</h2>
+            <p className="text-xs text-[var(--muted)] mt-1 max-w-3xl">
+              Sinais da Fase 5 transformados em tarefas de investigação e melhoria. A prioridade é uma regra operacional do Vetor.blog, não uma recomendação do Google.
+            </p>
+          </div>
+          <span className="text-xs text-[var(--muted)]">
+            {data.actionQueue.length} tarefas abertas
+          </span>
+        </div>
+
+        {data.actionQueue.length ? (
+          <div className="space-y-3">
+            {data.actionQueue.map((item, index) => (
+              <div
+                key={item.type + "|" + item.detail + "|" + index}
+                className="rounded-lg border border-border/70 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                        {item.type}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--amber)]">
+                        Prioridade {item.priority}
+                      </span>
+                    </div>
+                    <p className="font-heading font-bold mt-1">{item.title}</p>
+                    <p className="text-sm mt-1 break-words">{item.detail}</p>
+                    <p className="text-xs text-[var(--muted)] mt-2">{item.evidence}</p>
+                  </div>
+                  {item.href ? (
+                    <a
+                      href={item.href}
+                      target={item.href.startsWith("http") ? "_blank" : undefined}
+                      rel={item.href.startsWith("http") ? "noreferrer" : undefined}
+                      className="shrink-0 px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-[var(--surface2)]"
+                    >
+                      Abrir referência
+                    </a>
+                  ) : null}
+                </div>
+                <p className="text-xs text-[var(--amber)] mt-3">{item.action}</p>
+                <p className="text-[10px] text-[var(--muted)] mt-2">{item.source}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">
+            Nenhuma tarefa automática disponível no corte atual.
+          </p>
+        )}
+      </section>
 
       {!data.searchConsole.configured && (
         <div className="mb-6 rounded-xl border border-border bg-[var(--surface)] p-5">
