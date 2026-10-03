@@ -45,16 +45,17 @@ export default function VsCards({ products }: { products: VsProduct[] }) {
             {p.ctaHref &&
               (p.external ? (
                 <a
-                  className="cta"
+                  className="cta cta--primary-buy"
                   href={p.ctaHref}
                   data-aff-pos={p.ctaPos ?? 'hero-vs'}
                   target="_blank"
                   rel="sponsored nofollow noopener"
+                  aria-label={p.ctaLabel ? p.ctaLabel + " — " + p.name : "Ver preço de " + p.name}
                 >
                   {p.ctaLabel ?? 'Ver preço'}
                 </a>
               ) : (
-                <a className="cta" href={p.ctaHref}>
+                <a className="cta" href={p.ctaHref} aria-label={(p.ctaLabel ?? "Ler review") + " — " + p.name}>
                   {p.ctaLabel ?? 'Ler review'}
                 </a>
               ))}

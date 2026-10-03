@@ -3,7 +3,8 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import SafeImage from "@/components/SafeImage";
 import { safeImageSrc } from "@/lib/images";
 import { ItemListSchema } from "@/components/SchemaMarkup";
-import { fetchAllViralArticles } from "@/lib/data";
+import { fetchAllReviews, fetchAllViralArticles, normalizeCategoryName } from "@/lib/data";
+import { buildBuyingGuideCategories } from "@/lib/buying";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -16,7 +17,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function ComparativosPage() {
-  const articles = await fetchAllViralArticles();
+  const [articles, reviews] = await Promise.all([fetchAllViralArticles(), fetchAllReviews()]);
+  const guides = new Map(buildBuyingGuideCategories(reviews, 3).map((category) => [category.name, category.slug]));
 
   return (
     <>
@@ -66,6 +68,13 @@ export default async function ComparativosPage() {
                         <span>Comparação lado a lado</span>
                         <Link href={"/comparativos/" + article.slug + "/"}>Ver comparativo →</Link>
                       </div>
+                      {guides.has(normalizeCategoryName(article.category)) && (
+                        <div className="comparison-card-links">
+                          <Link href={"/melhores/" + guides.get(normalizeCategoryName(article.category)) + "/"}>
+                            Guia de compra da categoria →
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   </article>
                 ))}

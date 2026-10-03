@@ -6,7 +6,14 @@ import AuthorBox from "@/components/AuthorBox";
 import VsCards, { type VsProduct } from "@/components/VsCards";
 import AdPlacement from "@/components/AdPlacement";
 import { BreadcrumbSchema, ItemListSchema } from "@/components/SchemaMarkup";
-import { fetchViralArticleBySlug, fetchAllViralArticles, fetchReviewBySlug } from "@/lib/data";
+import {
+  fetchViralArticleBySlug,
+  fetchAllViralArticles,
+  fetchAllReviews,
+  fetchReviewBySlug,
+  normalizeCategoryName,
+} from "@/lib/data";
+import { buildBuyingGuideCategories, buildBuyingIntentPages } from "@/lib/buying";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { generateViralArticleSchema, resolveOgImage } from "@/lib/seo";
 import { primaryAuthor } from "@/data/authors";
@@ -63,8 +70,17 @@ export default async function ViralArticlePage({ params }: PageProps) {
 
   if (!article) notFound();
 
-  const related = await fetchAllViralArticles();
-  const relatedFiltered = related.filter((a) => a.slug !== article.slug).slice(0, 2);
+  const [related, allReviews] = await Promise.all([fetchAllViralArticles(), fetchAllReviews()]);
+  const normalizedCategory = normalizeCategoryName(article.category);
+  const guide = buildBuyingGuideCategories(allReviews, 3).find((item) => item.name === normalizedCategory);
+  const intentPages = buildBuyingIntentPages(allReviews, 4).filter((item) => item.categorySlug === guide?.slug);
+  const sameCategoryComparisons = related.filter(
+    (a) => a.slug !== article.slug && normalizeCategoryName(a.category) === normalizedCategory
+  );
+  const relatedFiltered = [
+    ...sameCategoryComparisons,
+    ...related.filter((a) => a.slug !== article.slug && normalizeCategoryName(a.category) !== normalizedCategory),
+  ].slice(0, 3);
 
   // Enriquece produtos com reviews existentes (preço, nota) — sem dado, sem bloco.
   const products = article.products ?? [];
@@ -302,11 +318,12 @@ export default async function ViralArticlePage({ params }: PageProps) {
                       </ul>
                       {p.product_url ? (
                         <a
-                          className="cta"
+                          className="cta cta--primary-buy"
                           href={`/go/${article.slug}-p${i + 1}/`}
                           data-aff-pos={i === 0 ? "escolha-a" : "escolha-b"}
                           target="_blank"
                           rel="sponsored nofollow noopener"
+                          aria-label={`Ver preço de ${p.name}`}
                         >
                           Ver preço
                         </a>
@@ -333,9 +350,14 @@ export default async function ViralArticlePage({ params }: PageProps) {
                           {e.product.name} <span>→</span>
                         </Link>
                       ))}
-                      <Link href={`/reviews/categoria/${encodeURIComponent(article.category)}/`}>
-                        Mais reviews de {article.category} <span>→</span>
+                      <Link href={`/reviews/categoria/${encodeURIComponent(normalizedCategory)}/`}>
+                        Mais reviews de {normalizedCategory} <span>→</span>
                       </Link>
+                      {guide && (
+                        <Link href={`/melhores/${guide.slug}/`}>
+                          Guia de compra de {normalizedCategory} <span>→</span>
+                        </Link>
+                      )}
                     </div>
                   </div>
                 )}
@@ -349,6 +371,32 @@ export default async function ViralArticlePage({ params }: PageProps) {
                 avatar={primaryAuthor.avatar}
                 date={article.updated_at}
               />
+
+              {(guide || intentPages.length > 0) && (
+                <section className="buying-intent-section" aria-labelledby="proximo-passo-compra-heading">
+                  <div className="section-kicker">Próximo passo</div>
+                  <h2 id="proximo-passo-compra-heading">Continue a pesquisa antes de comprar</h2>
+                  <p>
+                    Depois de comparar os produtos, use a página da categoria para revisar alternativas, notas e preços consultados. Quando houver dados suficientes, também há seleções por intenção de compra.
+                  </p>
+                  <div className="buying-intent-section-links">
+                    {guide && <Link className="cta" href={`/melhores/${guide.slug}/`}>Ver guia de compra →</Link>}
+                    <Link href={`/reviews/categoria/${encodeURIComponent(normalizedCategory)}/`}>Ver reviews da categoria →</Link>
+                  </div>
+                  {intentPages.length > 0 && (
+                    <div className="buying-intent-grid">
+                      {intentPages.map((item) => (
+                        <Link key={item.intent} className="buying-intent-card" href={`/melhores/${item.categorySlug}/${item.intent}/`}>
+                          <span>{item.intent === 'baratos' ? 'Mais baratos' : 'Custo-benefício'}</span>
+                          <strong>Seleção por intenção</strong>
+                          <small>{item.count} opções com preço consultado.</small>
+                          <b>Ver seleção →</b>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
 
               {relatedFiltered.length > 0 && (
                 <section>
