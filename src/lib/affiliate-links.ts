@@ -182,49 +182,136 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return 0;
 
-  const [{ data: reviews, error: reviewsError }, { data: existing, error: existingError }] = await Promise.all([
+  const [
+    { data: existing, error: existingError },
+    { data: reviews, error: reviewsError },
+    { data: productLinks, error: productLinksError },
+    { data: articles, error: articlesError },
+  ] = await Promise.all([
+    supabase.from("affiliate_links").select("slug"),
     supabase
       .from("reviews")
       .select("slug,product,category,marketplace,affiliate_url")
       .eq("status", "published")
       .not("affiliate_url", "is", null),
-    supabase.from("affiliate_links").select("slug"),
+    supabase
+      .from("product_links")
+      .select("id,slug,product_name,category,marketplace,affiliate_url,status,priority,notes,tags,created_at,updated_at"),
+    supabase
+      .from("viral_articles")
+      .select("slug,category,products"),
   ]);
 
-  if (reviewsError || existingError || !reviews) return 0;
+  if (existingError) return 0;
 
   const existingSlugs = new Set((existing || []).map((row) => String(row.slug)));
   const rows: Array<Record<string, unknown>> = [];
-  for (const review of reviews) {
-    const slug = String(review.slug || "").trim();
-    const destination = String(review.affiliate_url || "").trim();
-    if (!slug || !destination || existingSlugs.has(slug)) continue;
 
-    try {
-      rows.push({
-        slug,
-        name: String(review.product || slug),
-        marketplace: String(review.marketplace || "Outro"),
-        category: String(review.category || ""),
-        source_type: "review",
-        source_ref: slug,
-        destination_url: validateAffiliateDestination(destination),
-        status: "active",
-        priority: 100,
-        notes: "Criado automaticamente a partir de um review publicado.",
-        tags: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+  const addRow = (row: Record<string, unknown>) => {
+    const slug = String(row.slug || "").trim();
+    if (!slug || existingSlugs.has(slug)) return;
+    existingSlugs.add(slug);
+    rows.push(row);
+  };
+
+  if (!reviewsError && reviews) {
+    for (const review of reviews) {
+      const slug = String(review.slug || "").trim();
+      const destination = String(review.affiliate_url || "").trim();
+      if (!slug || !destination) continue;
+
+      try {
+        addRow({
+          slug,
+          name: String(review.product || slug),
+          marketplace: String(review.marketplace || "Outro"),
+          category: String(review.category || ""),
+          source_type: "review",
+          source_ref: slug,
+          destination_url: validateAffiliateDestination(destination),
+          status: "active",
+          priority: 100,
+          notes: "Criado automaticamente a partir de um review publicado.",
+          tags: [],
+        });
+      } catch {
+        // Uma URL inválida não deve interromper a sincronização das demais.
+      }
+    }
+  }
+
+  if (!productLinksError && productLinks) {
+    for (const productLink of productLinks) {
+      const slug = String(productLink.slug || "").trim();
+      const destination = String(productLink.affiliate_url || "").trim();
+      if (!slug || !destination) continue;
+
+      try {
+        addRow({
+          slug,
+          name: String(productLink.product_name || slug),
+          marketplace: String(productLink.marketplace || "Outro"),
+          category: String(productLink.category || ""),
+          source_type: "product_link",
+          source_ref: "legacy-product-link:" + String(productLink.id || ""),
+          destination_url: validateAffiliateDestination(destination),
+          status: String(productLink.status || "").toLowerCase() === "archived" ? "archived" : "active",
+          priority: Number(productLink.priority || 0),
+          notes:
+            "Migrado automaticamente de public.product_links." +
+            (String(productLink.notes || "").trim()
+              ? " " + String(productLink.notes).trim()
+              : ""),
+          tags: normalizeTags(productLink.tags),
+          created_at: productLink.created_at || undefined,
+          updated_at: productLink.updated_at || undefined,
+        });
+      } catch {
+        // Uma URL inválida não deve interromper a sincronização das demais.
+      }
+    }
+  }
+
+  if (!articlesError && articles) {
+    for (const article of articles) {
+      const articleSlug = String(article.slug || "").trim();
+      const products = Array.isArray(article.products) ? article.products : [];
+      if (!articleSlug) continue;
+
+      products.forEach((product: Record<string, unknown>, index: number) => {
+        const destination = String(product.product_url || "").trim();
+        if (!destination) return;
+
+        const slug = articleSlug + "-p" + String(index + 1);
+        try {
+          addRow({
+            slug,
+            name: String(product.name || "Produto " + String(index + 1)),
+            marketplace: "Mercado Livre",
+            category: String(article.category || ""),
+            source_type: "comparison_product",
+            source_ref: "comparativo:" + articleSlug + "#" + String(index + 1),
+            destination_url: validateAffiliateDestination(destination),
+            status: "active",
+            priority: 50,
+            notes: "Migrado automaticamente do comparativo. Edite o destino na Central de Afiliados.",
+            tags: ["comparativo"],
+          });
+        } catch {
+          // Uma URL inválida não deve interromper a sincronização das demais.
+        }
       });
-    } catch {
-      // Um review com URL inválida não deve interromper a sincronização dos demais.
     }
   }
 
   if (!rows.length) return 0;
-  const { error } = await supabase.from("affiliate_links").insert(rows);
-  if (error) return 0;
-  return rows.length;
+  const { data, error } = await supabase
+    .from("affiliate_links")
+    .insert(rows)
+    .select("id");
+
+  if (error || !data) return 0;
+  return data.length;
 }
 
 export async function createAffiliateLink(input: {

@@ -116,6 +116,7 @@ export default function AffiliateCenterClient({
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [marketplace, setMarketplace] = useState("");
+  const [sourceType, setSourceType] = useState("");
   const [health, setHealth] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -134,8 +135,9 @@ export default function AffiliateCenterClient({
       if (search.trim()) qs.set("search", search.trim());
       if (status) qs.set("status", status);
       if (marketplace) qs.set("marketplace", marketplace);
+      if (sourceType) qs.set("source_type", sourceType);
       if (health) qs.set("health_status", health);
-      qs.set("limit", "200");
+      qs.set("limit", "500");
       const response = await fetch("/api/admin/affiliates?" + qs.toString(), { cache: "no-store" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Não foi possível carregar os links.");
@@ -147,7 +149,7 @@ export default function AffiliateCenterClient({
     } finally {
       setLoading(false);
     }
-  }, [search, status, marketplace, health]);
+  }, [search, status, marketplace, sourceType, health]);
 
   const didMount = useRef(false);
 
@@ -315,7 +317,7 @@ export default function AffiliateCenterClient({
       </div>
 
       <div className="bg-[var(--surface)] border border-border rounded-xl p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -332,6 +334,10 @@ export default function AffiliateCenterClient({
           <select value={marketplace} onChange={(e) => setMarketplace(e.target.value)} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
             <option value="">Todos os marketplaces</option>
             {Array.from(new Set([...MARKETPLACES, ...marketplaces])).map((item) => <option key={item}>{item}</option>)}
+          </select>
+          <select value={sourceType} onChange={(e) => setSourceType(e.target.value)} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
+            <option value="">Todas as origens</option>
+            {Object.entries(SOURCE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
           <select value={health} onChange={(e) => setHealth(e.target.value)} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
             <option value="">Toda saúde</option>

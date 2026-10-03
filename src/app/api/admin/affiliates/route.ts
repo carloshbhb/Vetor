@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   const health_status = searchParams.get("health_status") as AffiliateHealthStatus | null;
   const marketplace = searchParams.get("marketplace") || undefined;
   const search = searchParams.get("search") || undefined;
-  const limitRaw = Number(searchParams.get("limit") || 120);
+  const limitRaw = Number(searchParams.get("limit") || 500);
   const offsetRaw = Number(searchParams.get("offset") || 0);
 
   const filters: Parameters<typeof listAffiliateLinks>[0] = {

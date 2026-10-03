@@ -25,7 +25,7 @@ export default async function AffiliateCenterPage() {
   await syncPublishedReviewAffiliateLinks();
 
   const [links, stats, marketplaces] = await Promise.all([
-    listAffiliateLinks({ limit: 200 }),
+    listAffiliateLinks({ limit: 500 }),
     getAffiliateLinkStats(),
     getAffiliateMarketplaceOptions(),
   ]);
