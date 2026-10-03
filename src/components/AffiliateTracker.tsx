@@ -17,23 +17,55 @@ function track(name: string, params: GtagParams) {
   }
 }
 
-// Delegação global: cliques em afiliados + profundidade de leitura (GA4).
-// Funciona com links adicionados depois; sem gtag, é no-op. Sem JS, os links
-// continuam navegando (progressive enhancement).
+function internalEvent(path: string): string | null {
+  if (path.startsWith('/melhores/')) return 'buying_guide_click';
+  if (path.startsWith('/reviews/')) return 'review_click';
+  if (path.startsWith('/comparativos/')) return 'comparative_click';
+  if (path.startsWith('/guias/')) return 'guide_click';
+  if (path.startsWith('/ofertas/')) return 'offers_click';
+  if (path.startsWith('/autor/') || path.startsWith('/author/')) return 'author_click';
+  return null;
+}
+
+// Delegação global: mede afiliados, navegação comercial e profundidade de leitura.
+// Sem gtag, é no-op. Sem JS, os links continuam navegando normalmente.
 export default function AffiliateTracker() {
-  // Reseta scroll_depth a cada navegação SPA (o componente monta uma vez no layout).
   const pathname = usePathname();
+
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const el = e.target as HTMLElement | null;
-      const a = el?.closest?.('a[rel~="sponsored"]') as HTMLAnchorElement | null;
+      const a = el?.closest?.('a') as HTMLAnchorElement | null;
       if (!a) return;
-      track('affiliate_click', {
-        link_url: a.href,
-        link_text: (a.textContent || '').trim().slice(0, 100),
-        position: a.dataset.affPos || 'inline',
-        page_path: location.pathname,
-      });
+
+      const sponsored = a.matches('[rel~="sponsored"]');
+      const href = a.href || '';
+      const linkText = (a.textContent || '').trim().slice(0, 100);
+
+      if (sponsored) {
+        track('affiliate_click', {
+          link_url: href,
+          link_text: linkText,
+          position: a.dataset.affPos || 'inline',
+          page_path: location.pathname,
+        });
+        return;
+      }
+
+      try {
+        const target = new URL(href, location.origin);
+        if (target.origin !== location.origin) return;
+        const eventName = internalEvent(target.pathname);
+        if (eventName) {
+          track(eventName, {
+            link_url: target.pathname,
+            link_text: linkText,
+            page_path: location.pathname,
+          });
+        }
+      } catch {
+        // Links inválidos não devem interromper a navegação.
+      }
     };
 
     const marks = [25, 50, 75, 90];
@@ -55,7 +87,6 @@ export default function AffiliateTracker() {
       document.removeEventListener('click', onClick);
       window.removeEventListener('scroll', onScroll);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   return null;
