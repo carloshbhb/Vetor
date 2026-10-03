@@ -68,25 +68,75 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Status de geração inválido." }, { status: 400 });
   }
 
+  const { data: current, error: currentError } = await supabase
+    .from("affiliate_link_ml_matches")
+    .select("id,affiliate_link_id,generated_affiliate_url,previous_destination_url")
+    .eq("id", body.id)
+    .single();
+
+  if (currentError || !current) {
+    return NextResponse.json({ error: currentError?.message || "Registro não encontrado." }, { status: 404 });
+  }
+
+  const generatedValue =
+    body.generatedAffiliateUrl === undefined
+      ? String(current.generated_affiliate_url || "").trim()
+      : String(body.generatedAffiliateUrl || "").trim();
+
+  if (generatedValue && !isHttps(generatedValue)) {
+    return NextResponse.json({ error: "O link de afiliado precisa usar HTTPS." }, { status: 400 });
+  }
+
+  const requestedStatus = generationStatus || (generatedValue ? "generated" : "pending");
+
+  if (requestedStatus === "applied" && !generatedValue) {
+    return NextResponse.json({ error: "Cole um link de afiliado antes de aplicar." }, { status: 400 });
+  }
+
+  let previousDestination = current.previous_destination_url ? String(current.previous_destination_url) : null;
+
+  if (requestedStatus === "applied") {
+    const { data: affiliate, error: affiliateError } = await supabase
+      .from("affiliate_links")
+      .select("id,destination_url")
+      .eq("id", current.affiliate_link_id)
+      .single();
+
+    if (affiliateError || !affiliate) {
+      return NextResponse.json({ error: affiliateError?.message || "Link central não encontrado." }, { status: 400 });
+    }
+
+    if (!previousDestination) previousDestination = String(affiliate.destination_url || "");
+
+    const { error: centralError } = await supabase
+      .from("affiliate_links")
+      .update({
+        destination_url: generatedValue,
+        health_status: "unknown",
+        last_checked_at: null,
+        http_status: null,
+        final_url: null,
+        last_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", affiliate.id);
+
+    if (centralError) {
+      return NextResponse.json({ error: "Não foi possível aplicar o novo destino: " + centralError.message }, { status: 400 });
+    }
+  }
+
   const patch: Record<string, unknown> = {
+    affiliate_generation_status: requestedStatus,
+    generated_affiliate_url: generatedValue || null,
     updated_at: new Date().toISOString(),
+    previous_destination_url: previousDestination,
   };
 
-  if (generationStatus) patch.affiliate_generation_status = generationStatus;
-
-  if (body.generatedAffiliateUrl !== undefined) {
-    const value = String(body.generatedAffiliateUrl || "").trim();
-    if (value && !isHttps(value)) {
-      return NextResponse.json({ error: "O link de afiliado precisa usar HTTPS." }, { status: 400 });
-    }
-    patch.generated_affiliate_url = value || null;
-    if (value) {
-      patch.generated_at = new Date().toISOString();
-      patch.affiliate_generation_status = generationStatus || "generated";
-    } else if (!generationStatus) {
-      patch.affiliate_generation_status = "pending";
-      patch.generated_at = null;
-    }
+  if (generatedValue) {
+    patch.generated_at = current.generated_affiliate_url ? undefined : new Date().toISOString();
+  } else {
+    patch.generated_at = null;
   }
 
   if (body.generationNotes !== undefined) {
@@ -101,7 +151,7 @@ export async function PATCH(request: NextRequest) {
     .single();
 
   if (error || !data) {
-    return NextResponse.json({ error: error?.message || "Registro não encontrado." }, { status: 400 });
+    return NextResponse.json({ error: error?.message || "Não foi possível salvar o estado da fila." }, { status: 400 });
   }
 
   return NextResponse.json({ data });
