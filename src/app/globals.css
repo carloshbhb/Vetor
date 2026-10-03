@@ -647,3 +647,28 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
   .buying-choice-actions .cta { width: 100%; min-width: 0; }
   .buying-guide-footer-links { flex-direction: column; }
 }
+
+/* Phase 2 — páginas de intenção de compra. */
+.buying-intent-section { margin-top: 42px; padding: 26px; background: #f7f9fb; border: 1px solid var(--line); border-radius: 20px; }
+.buying-intent-section > h2 { margin: 7px 0 7px; font-size: clamp(1.45rem, 3vw, 2rem); line-height: 1.08; letter-spacing: -.03em; }
+.buying-intent-section > p { margin: 0 0 20px; max-width: 76ch; color: var(--muted); font-size: .9rem; }
+.buying-intent-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.buying-intent-card { display: grid; gap: 7px; padding: 18px; background: #fff; border: 1px solid var(--line); border-radius: 16px; text-decoration: none; color: #17212d; transition: .18s ease; }
+.buying-intent-card:hover { border-color: #cbd3dc; box-shadow: 0 12px 30px rgba(16,23,34,.07); transform: translateY(-1px); }
+.buying-intent-card > span { width: fit-content; padding: 5px 8px; border-radius: 999px; background: #f0f3f6; color: #52606e; font-size: .68rem; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.buying-intent-card > strong { font-size: 1rem; }
+.buying-intent-card > small { color: var(--muted); font-size: .76rem; line-height: 1.5; }
+.buying-intent-card > b { margin-top: 5px; font-size: .78rem; }
+.buying-intent-page-intro { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; padding: 24px; margin-bottom: 24px; background: #f7f9fb; border: 1px solid var(--line); border-radius: 20px; }
+.buying-intent-page-intro h2 { margin: 7px 0 8px; font-size: clamp(1.4rem, 2.8vw, 1.9rem); line-height: 1.08; letter-spacing: -.03em; }
+.buying-intent-page-intro p { margin: 0; max-width: 82ch; color: var(--muted); font-size: .9rem; }
+.buying-intent-page-actions { display: grid; gap: 8px; min-width: 210px; }
+.buying-intent-page-actions a:not(.cta) { text-align: center; padding: 9px; color: #4a5664; text-decoration: none; font-weight: 800; font-size: .78rem; }
+.buying-intent-stat { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.buying-intent-stat span { padding: 7px 9px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: #4f5c6b; font-size: .72rem; font-weight: 800; }
+@media (max-width: 720px) {
+  .buying-intent-section { padding: 20px; }
+  .buying-intent-grid { grid-template-columns: 1fr; }
+  .buying-intent-page-intro { grid-template-columns: 1fr; padding: 20px; }
+  .buying-intent-page-actions { min-width: 0; }
+}

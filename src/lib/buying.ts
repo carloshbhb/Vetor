@@ -17,6 +17,18 @@ export interface BuyingGuideCategory {
   featured: Review[];
 }
 
+export type BuyingIntent = 'baratos' | 'custo-beneficio';
+
+export interface BuyingIntentPage {
+  categoryName: string;
+  categorySlug: string;
+  intent: BuyingIntent;
+  count: number;
+  reviews: Review[];
+}
+
+export const BUYING_INTENTS: BuyingIntent[] = ['baratos', 'custo-beneficio'];
+
 const MARKETPLACE_LABELS: Record<string, string> = {
   mercadolivre: 'Mercado Livre',
   amazon: 'Amazon',
@@ -88,8 +100,117 @@ export function buildBuyingGuideCategories(reviews: Review[], minimum = 3): Buyi
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'pt-BR'));
 }
 
+function rankByIntent(reviews: Review[], intent: BuyingIntent): Review[] {
+  const withPrice = reviews.filter(
+    (review) => reviewScore(review) > 0 && parseReviewPrice(review.price_new) !== null
+  );
+
+  if (intent === 'baratos') {
+    return [...withPrice].sort((a, b) => {
+      const aPrice = parseReviewPrice(a.price_new) ?? Number.POSITIVE_INFINITY;
+      const bPrice = parseReviewPrice(b.price_new) ?? Number.POSITIVE_INFINITY;
+      return (
+        aPrice - bPrice ||
+        reviewScore(b) - reviewScore(a) ||
+        new Date(b.updated_at || b.created_at).getTime() -
+          new Date(a.updated_at || a.created_at).getTime()
+      );
+    });
+  }
+
+  return [...withPrice].sort((a, b) => {
+    const aPrice = parseReviewPrice(a.price_new) ?? Number.POSITIVE_INFINITY;
+    const bPrice = parseReviewPrice(b.price_new) ?? Number.POSITIVE_INFINITY;
+    const aIndex = (reviewScore(a) * 1000) / aPrice;
+    const bIndex = (reviewScore(b) * 1000) / bPrice;
+    return bIndex - aIndex || reviewScore(b) - reviewScore(a) || aPrice - bPrice;
+  });
+}
+
+export function buildBuyingIntentPages(
+  reviews: Review[],
+  minimum = 4
+): BuyingIntentPage[] {
+  const groups = new Map<string, Review[]>();
+
+  for (const review of reviews) {
+    if (
+      review.status !== 'published' ||
+      isGuideLikeSlug(review.slug) ||
+      reviewScore(review) <= 0
+    ) {
+      continue;
+    }
+
+    const list = groups.get(review.category) || [];
+    list.push(review);
+    groups.set(review.category, list);
+  }
+
+  const pages: BuyingIntentPage[] = [];
+
+  for (const [categoryName, items] of groups.entries()) {
+    const priced = items.filter((review) => parseReviewPrice(review.price_new) !== null);
+    if (priced.length < minimum) continue;
+
+    const categorySlug = buyingCategorySlug(categoryName);
+
+    for (const intent of BUYING_INTENTS) {
+      const ranked = rankByIntent(items, intent).slice(0, 10);
+      if (ranked.length >= minimum) {
+        pages.push({
+          categoryName,
+          categorySlug,
+          intent,
+          count: ranked.length,
+          reviews: ranked,
+        });
+      }
+    }
+  }
+
+  return pages;
+}
+
+export function getBuyingIntentLabel(intent: BuyingIntent): string {
+  return intent === 'baratos' ? 'Mais baratos' : 'Custo-benefício';
+}
+
+export function getBuyingIntentDescription(
+  intent: BuyingIntent,
+  categoryName: string
+): string {
+  if (intent === 'baratos') {
+    return (
+      'Ordenação pelo menor preço consultado entre análises com preço disponível. ' +
+      'O valor pode mudar por loja, versão, promoção e data da consulta.'
+    );
+  }
+
+  return (
+    'Ordenação por índice de valor: nota Vetor × 1.000 ÷ preço consultado. ' +
+    'É uma referência matemática, não uma escolha universal.'
+  );
+}
+
 function formatNumericPrice(value: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+}
+
+export function parseReviewPrice(raw: string | null | undefined): number | null {
+  if (!raw) return null;
+  const cleaned = raw.replace(/[^0-9.,]/g, '').trim();
+  if (!cleaned) return null;
+
+  let normalized = cleaned;
+  if (normalized.includes(',')) {
+    normalized = normalized.replace(/\./g, '').replace(',', '.');
+  } else if (/^\d{1,3}(?:\.\d{3})+$/.test(normalized)) {
+    normalized = normalized.replace(/\./g, '');
+  }
+
+  const value = Number(normalized);
+  return Number.isFinite(value) && value > 0 ? value : null;
 }
 
 function parseOfferPrice(raw: string): number | null {

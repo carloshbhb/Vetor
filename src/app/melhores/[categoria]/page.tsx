@@ -6,7 +6,14 @@ import { ItemListSchema } from '@/components/SchemaMarkup';
 import BuyingChoiceCard from '@/components/BuyingChoiceCard';
 import EditorialEvidence from '@/components/EditorialEvidence';
 import { fetchAllReviews } from '@/lib/data';
-import { buildBuyingGuideCategories, rankBuyingReviews, reviewScore } from '@/lib/buying';
+import {
+  buildBuyingGuideCategories,
+  buildBuyingIntentPages,
+  getBuyingIntentDescription,
+  getBuyingIntentLabel,
+  rankBuyingReviews,
+  reviewScore,
+} from '@/lib/buying';
 
 interface PageProps {
   params: Promise<{ categoria: string }>;
@@ -53,9 +60,11 @@ export default async function BestCategoryPage({ params }: PageProps) {
 
   if (!category) notFound();
 
-  const ranked = rankBuyingReviews(
-    reviews.filter((review) => review.category === category.name)
-  ).slice(0, 10);
+  const categoryReviews = reviews.filter((review) => review.category === category.name);
+  const ranked = rankBuyingReviews(categoryReviews).slice(0, 10);
+  const intentPages = buildBuyingIntentPages(reviews, 4).filter(
+    (item) => item.categorySlug === category.slug
+  );
 
   if (ranked.length < 3) notFound();
 
@@ -141,6 +150,30 @@ export default async function BestCategoryPage({ params }: PageProps) {
                 </table>
               </div>
             </section>
+
+            {intentPages.length > 0 && (
+              <section className="buying-intent-section" aria-labelledby="intencoes-compra-heading">
+                <div className="section-kicker">Pesquise por intenção</div>
+                <h2 id="intencoes-compra-heading">Encontre uma lista para o seu tipo de compra</h2>
+                <p>
+                  Essas páginas usam critérios diferentes da seleção principal e só aparecem quando há dados suficientes para sustentar a comparação.
+                </p>
+                <div className="buying-intent-grid">
+                  {intentPages.map((item) => (
+                    <Link
+                      key={item.intent}
+                      href={'/melhores/' + item.categorySlug + '/' + item.intent + '/'}
+                      className="buying-intent-card"
+                    >
+                      <span>{getBuyingIntentLabel(item.intent)}</span>
+                      <strong>{item.count} opções com preço consultado</strong>
+                      <small>{getBuyingIntentDescription(item.intent, category.name)}</small>
+                      <b>Abrir seleção →</b>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <EditorialEvidence />
 
