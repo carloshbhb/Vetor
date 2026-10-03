@@ -148,6 +148,17 @@ type SeoActionRecord = {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  before_impressions: number | null;
+  after_impressions: number | null;
+  before_clicks: number | null;
+  after_clicks: number | null;
+  before_ctr: number | null;
+  after_ctr: number | null;
+  before_position: number | null;
+  after_position: number | null;
+  impact_status: "waiting" | "measured" | "no_data" | null;
+  impact_period_days: number | null;
+  impact_measured_at: string | null;
 };
 
 const numberFormatter = new Intl.NumberFormat("pt-BR");
@@ -165,6 +176,7 @@ export default function OpportunitiesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [updatingAction, setUpdatingAction] = useState<string | null>(null);
+  const [measuringImpact, setMeasuringImpact] = useState(false);
 
   const loadDashboard = async () => {
     const dashboard = await fetchDashboardData();
@@ -226,6 +238,26 @@ export default function OpportunitiesPage() {
       setError(err instanceof Error ? err.message : "Erro ao atualizar ação.");
     } finally {
       setUpdatingAction(null);
+    }
+  };
+
+  const measureImpact = async () => {
+    setMeasuringImpact(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/seo-actions", {
+        method: "PUT",
+        cache: "no-store",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || "Não foi possível medir o impacto.");
+      }
+      setHistory(Array.isArray(payload.history) ? payload.history : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao medir impacto.");
+    } finally {
+      setMeasuringImpact(false);
     }
   };
 
@@ -295,6 +327,14 @@ export default function OpportunitiesPage() {
             className="px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-[var(--surface2)] disabled:opacity-50"
           >
             {refreshing ? "Atualizando..." : "Atualizar dados"}
+          </button>
+          <button
+            type="button"
+            onClick={measureImpact}
+            disabled={measuringImpact || historySummary.done === 0}
+            className="px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-[var(--surface2)] disabled:opacity-50"
+          >
+            {measuringImpact ? "Medindo..." : "Medir impacto"}
           </button>
         </div>
       </div>
@@ -523,6 +563,91 @@ export default function OpportunitiesPage() {
           </div>
         ) : (
           <p className="text-sm text-[var(--muted)]">Nenhum histórico registrado ainda.</p>
+        )}
+      </section>
+
+      <section className="bg-[var(--surface)] border border-border rounded-xl p-5 mb-8">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--amber)] font-bold">
+              Fase 9 · medição de impacto
+            </p>
+            <h2 className="font-heading font-bold text-xl mt-1">Antes × depois</h2>
+            <p className="text-xs text-[var(--muted)] mt-1 max-w-3xl">
+              Compara períodos equivalentes do Search Console a partir da conclusão da ação. A variação é um sinal temporal e não prova causalidade.
+            </p>
+          </div>
+          <span className="text-xs text-[var(--muted)]">
+            {history.filter((item) => item.impact_status === "measured").length} medições disponíveis
+          </span>
+        </div>
+
+        {history.some((item) => item.status === "done") ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[var(--muted)] border-b border-border">
+                  <th className="py-3 pr-4">Ação</th>
+                  <th className="py-3 pr-4">Período</th>
+                  <th className="py-3 pr-4">Impressões</th>
+                  <th className="py-3 pr-4">Cliques</th>
+                  <th className="py-3 pr-4">CTR</th>
+                  <th className="py-3">Posição</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.filter((item) => item.status === "done").slice(0, 25).map((item) => {
+                  const imprPair = item.before_impressions != null && item.after_impressions != null;
+                  const clickPair = item.before_clicks != null && item.after_clicks != null;
+                  const ctrPair = item.before_ctr != null && item.after_ctr != null;
+                  const posPair = item.before_position != null && item.after_position != null;
+                  const imprDelta = imprPair ? item.after_impressions! - item.before_impressions! : null;
+                  const clickDelta = clickPair ? item.after_clicks! - item.before_clicks! : null;
+                  const ctrDelta = ctrPair ? item.after_ctr! - item.before_ctr! : null;
+                  const posDelta = posPair ? item.after_position! - item.before_position! : null;
+                  const imprPct = imprPair && item.before_impressions !== 0 ? (imprDelta! / item.before_impressions!) * 100 : null;
+                  const clickPct = clickPair && item.before_clicks !== 0 ? (clickDelta! / item.before_clicks!) * 100 : null;
+                  const statusLabel =
+                    item.impact_status === "measured" ? "Medido" :
+                    item.impact_status === "waiting" ? "Aguardando dados" :
+                    item.impact_status === "no_data" ? "Sem dados" : "Não medido";
+                  return (
+                    <tr key={item.id} className="border-b border-border/60 align-top">
+                      <td className="py-3 pr-4 min-w-[250px]">
+                        <p className="font-medium">{item.title}</p>
+                        <p className="text-xs text-[var(--muted)] mt-1">{item.detail}</p>
+                        <p className="text-xs text-[var(--amber)] mt-1">{statusLabel}</p>
+                      </td>
+                      <td className="py-3 pr-4 text-xs text-[var(--muted)]">
+                        {item.impact_period_days ? item.impact_period_days + " dias" : "—"}
+                        {item.impact_measured_at ? <p className="mt-1">medido {new Date(item.impact_measured_at).toLocaleDateString("pt-BR")}</p> : null}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {imprPair ? numberFormatter.format(item.before_impressions!) + " → " + numberFormatter.format(item.after_impressions!) : "—"}
+                        {imprDelta != null ? <p className="text-xs text-[var(--muted)] mt-1">{imprDelta >= 0 ? "+" : ""}{numberFormatter.format(imprDelta)}{imprPct != null ? " (" + (imprPct >= 0 ? "+" : "") + imprPct.toFixed(1) + "%)" : ""}</p> : null}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {clickPair ? numberFormatter.format(item.before_clicks!) + " → " + numberFormatter.format(item.after_clicks!) : "—"}
+                        {clickDelta != null ? <p className="text-xs text-[var(--muted)] mt-1">{clickDelta >= 0 ? "+" : ""}{numberFormatter.format(clickDelta)}{clickPct != null ? " (" + (clickPct >= 0 ? "+" : "") + clickPct.toFixed(1) + "%)" : ""}</p> : null}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {ctrPair ? item.before_ctr!.toFixed(2) + "% → " + item.after_ctr!.toFixed(2) + "%" : "—"}
+                        {ctrDelta != null ? <p className="text-xs text-[var(--muted)] mt-1">{ctrDelta >= 0 ? "+" : ""}{ctrDelta.toFixed(2)} pp</p> : null}
+                      </td>
+                      <td className="py-3">
+                        {posPair ? item.before_position!.toFixed(1) + " → " + item.after_position!.toFixed(1) : "—"}
+                        {posDelta != null ? <p className="text-xs text-[var(--muted)] mt-1">{posDelta > 0 ? "+" : ""}{posDelta.toFixed(1)}</p> : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">
+            Marque uma ação como concluída e use “Medir impacto” quando houver pelo menos 7 dias completos de dados posteriores.
+          </p>
         )}
       </section>
 

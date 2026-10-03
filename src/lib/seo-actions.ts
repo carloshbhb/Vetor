@@ -33,6 +33,17 @@ export type SeoActionRecord = SeoActionInput & {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  before_impressions: number | null;
+  after_impressions: number | null;
+  before_clicks: number | null;
+  after_clicks: number | null;
+  before_ctr: number | null;
+  after_ctr: number | null;
+  before_position: number | null;
+  after_position: number | null;
+  impact_status: "waiting" | "measured" | "no_data" | null;
+  impact_period_days: number | null;
+  impact_measured_at: string | null;
 };
 
 export function createSeoActionFingerprint(action: Pick<SeoActionInput, "type" | "detail" | "href">): string {
@@ -63,6 +74,22 @@ function toRecord(row: Record<string, unknown>): SeoActionRecord {
     completed_at: row.completed_at ? String(row.completed_at) : null,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
+    before_impressions: row.before_impressions == null ? null : Number(row.before_impressions),
+    after_impressions: row.after_impressions == null ? null : Number(row.after_impressions),
+    before_clicks: row.before_clicks == null ? null : Number(row.before_clicks),
+    after_clicks: row.after_clicks == null ? null : Number(row.after_clicks),
+    before_ctr: row.before_ctr == null ? null : Number(row.before_ctr),
+    after_ctr: row.after_ctr == null ? null : Number(row.after_ctr),
+    before_position: row.before_position == null ? null : Number(row.before_position),
+    after_position: row.after_position == null ? null : Number(row.after_position),
+    impact_status:
+      row.impact_status === "waiting" ||
+      row.impact_status === "measured" ||
+      row.impact_status === "no_data"
+        ? row.impact_status
+        : null,
+    impact_period_days: row.impact_period_days == null ? null : Number(row.impact_period_days),
+    impact_measured_at: row.impact_measured_at ? String(row.impact_measured_at) : null,
   };
 }
 
@@ -147,6 +174,48 @@ export async function updateSeoActionStatus(
   const { data, error } = await supabase
     .from("seo_action_history")
     .update(patch)
+    .eq("id", id)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  return data ? toRecord(data as Record<string, unknown>) : null;
+}
+
+
+export async function updateSeoActionImpact(
+  id: string,
+  input: {
+    beforeImpressions: number | null;
+    afterImpressions: number | null;
+    beforeClicks: number | null;
+    afterClicks: number | null;
+    beforeCtr: number | null;
+    afterCtr: number | null;
+    beforePosition: number | null;
+    afterPosition: number | null;
+    impactStatus: "waiting" | "measured" | "no_data";
+    impactPeriodDays: number | null;
+  }
+): Promise<SeoActionRecord | null> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return null;
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("seo_action_history")
+    .update({
+      before_impressions: input.beforeImpressions,
+      after_impressions: input.afterImpressions,
+      before_clicks: input.beforeClicks,
+      after_clicks: input.afterClicks,
+      before_ctr: input.beforeCtr,
+      after_ctr: input.afterCtr,
+      before_position: input.beforePosition,
+      after_position: input.afterPosition,
+      impact_status: input.impactStatus,
+      impact_period_days: input.impactPeriodDays,
+      impact_measured_at: now,
+      updated_at: now,
+    })
     .eq("id", id)
     .select("*")
     .maybeSingle();
