@@ -5,6 +5,7 @@ import { fetchAllReviews, fetchAllViralArticles, fetchGuias } from '@/lib/data';
 import NewsletterForm from '@/components/NewsletterForm';
 import GuideCard from '@/components/GuideCard';
 import AdPlacement from '@/components/AdPlacement';
+import { buildBuyingGuideCategories } from '@/lib/buying';
 import SafeImage from '@/components/SafeImage';
 import { safeImageSrc } from '@/lib/images';
 
@@ -32,6 +33,7 @@ export default async function Home() {
   const smallReviews = latestReviews.slice(1, 3);
   const compares = viralArticles.slice(0, 4);
   const guideCards = guias.slice(0, 4);
+  const buyingCategories = buildBuyingGuideCategories(reviews, 3).slice(0, 6);
   const categoryCounts = Array.from(
     reviews.reduce((map, review) => {
       map.set(review.category, (map.get(review.category) ?? 0) + 1);
@@ -161,6 +163,41 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {buyingCategories.length > 0 && (
+        <section className="home-section">
+          <div className="container">
+            <div className="home-section-head">
+              <span className="eyebrow-small">Guias de compra</span>
+              <h2>Compare antes de escolher</h2>
+              <p>
+                Veja as opções mais bem avaliadas de cada categoria e, quando houver dados suficientes,
+                compare também por preço e custo-benefício.
+              </p>
+            </div>
+
+            <div className="home-category-grid">
+              {buyingCategories.map((category) => (
+                <Link
+                  key={category.slug}
+                  className="home-category"
+                  href={"/melhores/" + category.slug + "/"}
+                >
+                  <span>{category.name}</span>
+                  <strong>{category.count} reviews usados na seleção</strong>
+                  <b>Ver melhores →</b>
+                </Link>
+              ))}
+            </div>
+
+            <div className="home-actions" style={{ marginTop: 24 }}>
+              <Link className="cta" href="/melhores/">
+                Ver todos os guias de compra
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {categoryCounts.length > 0 && (
         <section className="home-section home-categories">
