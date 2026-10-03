@@ -11,8 +11,9 @@ export const metadata: Metadata = {
 
 export default function AfiliadosPage() {
   return (
-    <BreadcrumbSchema items={[{ name: 'Início', url: 'https://www.vetor.blog/' }, { name: 'Afiliados', url: 'https://www.vetor.blog/afiliados/' }]} />
-    <main id="conteudo">
+    <>
+      <BreadcrumbSchema items={[{ name: 'Início', url: 'https://www.vetor.blog/' }, { name: 'Afiliados', url: 'https://www.vetor.blog/afiliados/' }]} />
+      <main id="conteudo">
       <section className="hero">
         <div className="container">
           <Breadcrumbs items={[{ label: "Início", href: "/" }, { label: "Afiliados" }]} />
@@ -64,6 +65,7 @@ export default function AfiliadosPage() {
           </article>
         </div>
       </section>
-    </main>
+      </main>
+    </>
   );
 }
