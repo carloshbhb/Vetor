@@ -30,45 +30,48 @@ function brl(price: number | null): string | null {
 function OfferCard({ offer }: { offer: ProductLink }) {
   const price = brl(offer.price);
   return (
-    <div className="home-card" style={{ minHeight: 0 }}>
-      <SafeImage
-        src={safeImageSrc(offer.image_url)}
-        width={600}
-        height={400}
-        alt={offer.product_name}
-        loading="lazy"
-        style={{ width: "100%", height: "auto", aspectRatio: "3/2", objectFit: "contain", background: "#f4f6f8", borderRadius: 12, marginBottom: 14 }}
-      />
-      <span className="home-card-label">{offer.category || offer.marketplace}</span>
-      <h3>{offer.product_name}</h3>
-      {price && (
-        <p>
-          <strong>{price}</strong>
-        </p>
-      )}
-      <div className="home-card-bottom" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        {offer.affiliate_url ? (
-          <a
-            href={`/go/${offer.slug}/`}
-            data-aff-pos="ofertas"
-            target="_blank"
-            rel="sponsored nofollow noopener"
-          >
-            Ver oferta →
-          </a>
-        ) : (
-          offer.product_url && (
-            <a href={offer.product_url} target="_blank" rel="nofollow noopener">
-              Ver na loja →
-            </a>
-          )
-        )}
-        {offer.has_review && offer.review_slug && (
-          <Link href={`/reviews/${offer.review_slug}/`}>
-            <span>Ler review</span>
-          </Link>
-        )}
+    <article className="offer-card">
+      <div className="offer-card-media">
+        <SafeImage
+          src={safeImageSrc(offer.image_url)}
+          width={600}
+          height={400}
+          alt={offer.product_name}
+          loading="lazy"
+          sizes="(max-width: 720px) 100vw, 33vw"
+        />
+        <span className="offer-card-badge">{offer.category || offer.marketplace}</span>
       </div>
+      <div className="offer-card-body">
+        <h2>{offer.product_name}</h2>
+        {price ? <div className="offer-price">{price}</div> : <div className="offer-price offer-price-muted">Preço variável</div>}
+        <p className="offer-card-note">Confira o valor final, prazo e condições na loja.</p>
+        <div className="offer-card-actions">
+          {offer.affiliate_url ? (
+            <a
+              className="cta"
+              href={"/go/" + offer.slug + "/"}
+              data-aff-pos="ofertas"
+              target="_blank"
+              rel="sponsored nofollow noopener"
+            >
+              Ver oferta →
+            </a>
+          ) : (
+            offer.product_url && (
+              <a className="cta" href={offer.product_url} target="_blank" rel="nofollow noopener">
+                Ver na loja →
+              </a>
+            )
+          )}
+          {offer.has_review && offer.review_slug && (
+            <Link href={"/reviews/" + offer.review_slug + "/"} className="offer-review-link">
+              Ler review completo
+            </Link>
+          )}
+        </div>
+      </div>
+    </article>>
     </div>
   );
 }
@@ -93,7 +96,7 @@ export default async function OfertasPage() {
       <section className="content-wrap">
         <div className="container">
           {offers.length > 0 ? (
-            <div className="home-card-grid">
+            <div className="offer-card-grid">
               {offers.map((offer) => (
                 <OfferCard key={offer.id} offer={offer} />
               ))}

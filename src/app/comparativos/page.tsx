@@ -1,4 +1,7 @@
+import Link from "next/link";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import SafeImage from "@/components/SafeImage";
+import { safeImageSrc } from "@/lib/images";
 import { ItemListSchema } from "@/components/SchemaMarkup";
 import { fetchAllViralArticles } from "@/lib/data";
 import type { Metadata } from "next";
@@ -42,18 +45,31 @@ export default async function ComparativosPage() {
                 </p>
               </div>
             ) : (
-              <div className="home-compare-grid">
+              <div className="comparison-card-grid">
                 {articles.map((article) => (
-                  <a
-                    key={article.slug}
-                    className="home-compare"
-                    href={`/comparativos/${article.slug}/`}
-                  >
-                    <div>
+                  <article key={article.slug} className="comparison-card">
+                    <Link href={"/comparativos/" + article.slug + "/"} className="comparison-card-media">
+                      <SafeImage
+                        src={safeImageSrc(article.hero.imageUrl)}
+                        width={600}
+                        height={400}
+                        alt={article.title}
+                        loading="lazy"
+                        sizes="(max-width: 720px) 100vw, 50vw"
+                      />
+                    </Link>
+                    <div className="comparison-card-body">
                       <span className="tag">{article.category}</span>
-                      <h3>{article.title}</h3>
+                      <h2>{article.title}</h2>
                       <p>{article.description}</p>
+                      <div className="comparison-card-footer">
+                        <span>Comparação lado a lado</span>
+                        <Link href={"/comparativos/" + article.slug + "/"}>Ver comparativo →</Link>
+                      </div>
                     </div>
+                  </article>
+                ))}
+              </div>
                     <span className="home-arrow">→</span>
                   </a>
                 ))}
