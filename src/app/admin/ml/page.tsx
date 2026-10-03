@@ -175,6 +175,7 @@ export default function MercadoLivreAdminPage() {
     });
   }, [status, search, statusFilter]);
 
+  // Reprocessamento manual: permite repetir buscas mesmo quando a fila pendente chegou a zero.
   if (loading) {
     return <div className="py-20 text-center text-[var(--muted)]">Carregando integração Mercado Livre...</div>;
   }
