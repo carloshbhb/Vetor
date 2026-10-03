@@ -361,6 +361,12 @@ export async function GET(request: Request) {
       source: "Search Console + regra Fase 5",
       href: item.page,
       impressions: item.impressions,
+      brief: {
+        objective: "Aumentar a clareza e a atratividade do resultado para a consulta que já gera impressões.",
+        contentAction: "Revisar title e, quando disponível no projeto, a descrição da página. Preservar a intenção principal e evitar promessas não sustentadas.",
+        suggestedTitle: item.titleSuggestion,
+        validation: "Comparar CTR e posição após a próxima coleta de dados; não tratar uma variação isolada como causalidade.",
+      },
     })),
     ...positionOpportunities.slice(0, 10).map((item) => ({
       type: "POSIÇÃO",
@@ -372,6 +378,12 @@ export async function GET(request: Request) {
       source: "Search Console + regra Fase 5",
       href: item.page,
       impressions: item.impressions,
+      brief: {
+        objective: "Reforçar a capacidade da página de responder à intenção já observada.",
+        contentAction: "Revisar cobertura do tema, hierarquia dos headings, trechos que respondem diretamente à intenção e links internos contextuais.",
+        suggestedTitle: "",
+        validation: "Verificar evolução de posição, impressões e cliques no mesmo período de comparação.",
+      },
     })),
     ...cannibalization.slice(0, 8).map((item) => ({
       type: "CANIBALIZAÇÃO",
@@ -383,6 +395,12 @@ export async function GET(request: Request) {
       source: "Search Console + regra Fase 5",
       href: item.pages[0]?.page || "",
       impressions: item.impressions,
+      brief: {
+        objective: "Entender se múltiplas URLs estão atendendo a mesma intenção e decidir uma diferenciação editorial.",
+        contentAction: "Comparar títulos, intenção, cobertura e links internos das URLs. Diferenciar, fortalecer uma página principal ou consolidar somente após revisão editorial.",
+        suggestedTitle: "",
+        validation: "Registrar a decisão adotada e acompanhar as mesmas queries nas próximas coletas.",
+      },
     })),
     ...contentGaps.slice(0, 10).map((item) => ({
       type: "LACUNA",
@@ -394,6 +412,12 @@ export async function GET(request: Request) {
       source: "Search Console + regra Fase 5",
       href: item.suggestedRoute,
       impressions: item.impressions,
+      brief: {
+        objective: "Avaliar a criação ou expansão de uma página alinhada à intenção comercial detectada.",
+        contentAction: "Validar a intenção, checar cobertura existente e somente então criar ou expandir a rota sugerida.",
+        suggestedTitle: buildTitleSuggestion(item.query),
+        validation: "Confirmar que a nova página tem conteúdo substancial e não duplica a intenção de uma URL existente.",
+      },
     })),
   ]
     .sort((a, b) => {

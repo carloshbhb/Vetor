@@ -58,6 +58,12 @@ type DashboardData = {
     source: string;
     href: string;
     impressions: number;
+    brief: {
+      objective: string;
+      contentAction: string;
+      suggestedTitle: string;
+      validation: string;
+    };
   }>;
   intelligence: {
     ctrOpportunities: Array<{
@@ -126,6 +132,7 @@ export default function OpportunitiesPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedTask, setExpandedTask] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData()
@@ -261,6 +268,40 @@ export default function OpportunitiesPage() {
                   ) : null}
                 </div>
                 <p className="text-xs text-[var(--amber)] mt-3">{item.action}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const key = item.type + "|" + item.detail + "|" + index;
+                    setExpandedTask(expandedTask === key ? null : key);
+                  }}
+                  className="mt-3 px-3 py-2 rounded-lg bg-[var(--surface2)] border border-border text-xs font-medium hover:bg-[var(--bg)]"
+                >
+                  {expandedTask === item.type + "|" + item.detail + "|" + index
+                    ? "Ocultar briefing"
+                    : "Abrir briefing editorial"}
+                </button>
+                {expandedTask === item.type + "|" + item.detail + "|" + index && (
+                  <div className="mt-3 rounded-lg bg-[var(--surface2)] p-4 text-xs space-y-3">
+                    <div>
+                      <p className="font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Objetivo</p>
+                      <p className="mt-1">{item.brief.objective}</p>
+                    </div>
+                    <div>
+                      <p className="font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Ação editorial</p>
+                      <p className="mt-1">{item.brief.contentAction}</p>
+                    </div>
+                    {item.brief.suggestedTitle && (
+                      <div>
+                        <p className="font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Title sugerido</p>
+                        <p className="mt-1">{item.brief.suggestedTitle}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Validação</p>
+                      <p className="mt-1">{item.brief.validation}</p>
+                    </div>
+                  </div>
+                )}
                 <p className="text-[10px] text-[var(--muted)] mt-2">{item.source}</p>
               </div>
             ))}
