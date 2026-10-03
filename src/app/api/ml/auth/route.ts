@@ -1,15 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAuthorizationUrl, hasValidSession, getSessionInfo } from '@/lib/mercadolivre-auth';
+import { NextRequest, NextResponse } from "next/server";
+import { verifyAdminAuth } from "@/lib/admin-auth";
+import {
+  createOAuthState,
+  getAuthorizationUrl,
+  getMercadoLivreRedirectUri,
+  hasValidSession,
+  getSessionInfo,
+  ML_OAUTH_STATE_COOKIE,
+} from "@/lib/mercadolivre-auth";
 
-/**
- * Mercado Livre OAuth 2.0 - Start Authorization Flow
- * GET /api/ml/auth - Returns authorization URL
- * GET /api/ml/auth?status=true - Returns current session status
- */
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
+
   const searchParams = request.nextUrl.searchParams;
 
-  if (searchParams.get('status') === 'true') {
+  if (searchParams.get("status") === "true") {
     const hasSession = await hasValidSession();
     const session = await getSessionInfo();
 
@@ -20,12 +28,23 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const redirectUri = 'https://www.vetor.blog/api/ml/callback';
-  const authUrl = getAuthorizationUrl(redirectUri);
+  const redirectUri = getMercadoLivreRedirectUri();
+  const state = createOAuthState();
+  const authUrl = getAuthorizationUrl(redirectUri, state);
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     authorizationUrl: authUrl,
     redirectUri,
-    message: 'Visit the authorizationUrl to authorize the application',
+    message: "Visit the authorizationUrl to authorize the application",
   });
+
+  response.cookies.set(ML_OAUTH_STATE_COOKIE, state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/api/ml",
+    maxAge: 10 * 60,
+  });
+
+  return response;
 }
