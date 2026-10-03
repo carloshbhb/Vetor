@@ -503,7 +503,8 @@ export default async function ReviewPage({ params }: PageProps) {
                   </div>
                 </section>
               )}
-              </>}
+              </>
+              )}
             </article>
 
             <aside className="sidebar" aria-label="Conteúdo complementar">
