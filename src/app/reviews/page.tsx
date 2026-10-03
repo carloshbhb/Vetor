@@ -21,7 +21,7 @@ export async function generateMetadata({
     description:
       "Reviews independentes com notas, prós e contras de wearables, fones, notebooks e mais. Filtre por categoria e encontre o melhor produto.",
     alternates: {
-      canonical: safePage > 1 ? `/reviews?page=${safePage}` : "/reviews",
+      canonical: safePage > 1 ? `/reviews/?page=${safePage}` : "/reviews/",
     },
   };
 }
@@ -33,7 +33,7 @@ function reviewsHref(pageNumber: number, category: string | null): string {
   if (category) params.set("category", category);
   if (pageNumber > 1) params.set("page", String(pageNumber));
   const query = params.toString();
-  return query ? `/reviews?${query}` : "/reviews";
+  return query ? `/reviews/?${query}` : "/reviews/";
 }
 
 function pageNumbers(current: number, total: number): (number | "gap")[] {
