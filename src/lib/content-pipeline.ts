@@ -1,4 +1,5 @@
 import { generateReview } from './generate';
+import { generateAffiliateUrl } from './product-extractor';
 import { createReview } from './supabase';
 import { validateGeneratedReview } from './content-quality';
 import type { ProductLink } from './product-links';
@@ -9,6 +10,7 @@ export interface PipelineProductInput {
   price: string | number;
   image: string;
   product_url?: string;
+  affiliate_url?: string;
   marketplace?: string;
 }
 
@@ -29,7 +31,8 @@ export function productLinkToPipelineInput(link: ProductLink): PipelineProductIn
     category: link.category?.trim() || 'Geral',
     price,
     image: link.image_url || '',
-    product_url: link.product_url || link.affiliate_url || undefined,
+    product_url: link.product_url || undefined,
+    affiliate_url: link.affiliate_url || undefined,
     marketplace: link.marketplace || 'mercadolivre',
   };
 }
@@ -60,6 +63,18 @@ export async function runReviewPipeline(
     };
   }
 
+  const marketplace =
+    product.marketplace === 'amazon' ||
+    product.marketplace === 'shopee' ||
+    product.marketplace === 'mercadolivre'
+      ? product.marketplace
+      : 'unknown';
+  const affiliateUrl =
+    product.affiliate_url ||
+    (product.product_url
+      ? generateAffiliateUrl(product.product_url, marketplace)
+      : undefined);
+
   const payload = {
     slug: review.slug,
     product: review.title,
@@ -86,7 +101,7 @@ export async function runReviewPipeline(
     hero_headline_em: review.hero_headline_em,
     faq: review.faq,
     marketplace: product.marketplace || 'mercadolivre',
-    affiliate_url: product.product_url || review.image,
+    affiliate_url: affiliateUrl || '',
   };
 
   const validation = validateGeneratedReview(payload, { source, slug: review.slug });

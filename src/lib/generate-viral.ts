@@ -14,20 +14,12 @@ interface ViralArticleOutput {
   seo_description: string;
 }
 
-function deterministicScore(name: string): number {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  return 7 + (hash % 3);
-}
-
 function buildHeroBars(topic: {
   comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
 }): Array<{ label: string; value: string; imageUrl: string; product_url?: string }> {
   return topic.comparisonProducts.map((p) => ({
     label: p.name,
-    value: `${deterministicScore(p.name)}/10`,
+    value: '—',
     imageUrl: p.imageUrl,
     product_url: p.product_url,
   }));

@@ -75,13 +75,16 @@ function normalizeStaticReviews(): Review[] {
 }
 
 export async function fetchAllReviews(): Promise<Review[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return normalizeStaticReviews();
+
   try {
     const reviews = await getAllReviews();
-    if (reviews && reviews.length > 0) return reviews.map(normalizeReviewCategory);
-  } catch {
-    // Supabase not available, fall back to static
+    return reviews.map(normalizeReviewCategory);
+  } catch (error) {
+    console.error('[Data] getAllReviews failed:', error);
+    return [];
   }
-  return normalizeStaticReviews();
 }
 
 export async function fetchReviewBySlug(slug: string): Promise<Review | null> {

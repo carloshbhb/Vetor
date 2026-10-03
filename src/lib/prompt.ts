@@ -63,6 +63,10 @@ Responda APENAS em JSON válido com esta estrutura exata:
 
 Regras:
 - content deve ser HTML válido com <h2>, <p>, <ul>, <li>, <table>
+- Use somente fatos que você consegue sustentar a partir dos dados fornecidos e conhecimento verificável; nunca invente teste presencial, benchmark, defeito recorrente, autonomia medida, avaliação de comprador ou especificação.
+- Se uma informação importante não estiver disponível, deixe a limitação explícita em vez de preencher com um palpite.
+- Não use frases que insinuem experiência prática ("testamos", "em nossos testes") quando essa experiência não foi fornecida.
+- Cada nota e conclusão deve ser explicada por critérios observáveis no próprio conteúdo.
 - hero_bars deve ter 3-5 barras com pct (0-100) e value (0-10)
 - specs deve ter 4-8 especificações
 - sections deve ter 4-6 seções com conteúdo HTML

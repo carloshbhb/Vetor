@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/metodologia',
+        destination: '/como-avaliamos/',
+        permanent: true,
+      },
+      {
         source: '/review/:slug',
         destination: '/reviews/:slug/',
         permanent: true,

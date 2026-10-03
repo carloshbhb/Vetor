@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: true },
   title: "Metodologia de Review — Como Avaliamos Produtos",
   description:
     "Como fazemos os reviews do vetor.blog: critérios públicos, notas de 0 a 10, prós e contras e independência em relação a afiliados e patrocínios.",
-  alternates: { canonical: "/metodologia" },
+  alternates: { canonical: "https://www.vetor.blog/como-avaliamos/" },
 };
 
 export default function MetodologiaPage() {

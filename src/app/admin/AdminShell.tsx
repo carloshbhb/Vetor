@@ -27,13 +27,29 @@ export default function AdminShell({
       setChecking(false);
       return;
     }
-    const auth = localStorage.getItem("vetor_admin_auth");
-    if (auth) {
-      setAuthorized(true);
-    } else {
-      window.location.href = "/admin/login";
-    }
-    setChecking(false);
+
+    localStorage.removeItem("vetor_admin_auth");
+
+    let active = true;
+    fetch("/api/admin/auth", { cache: "no-store" })
+      .then((res) => {
+        if (!active) return;
+        if (res.ok) {
+          setAuthorized(true);
+        } else {
+          window.location.href = "/admin/login";
+        }
+      })
+      .catch(() => {
+        if (active) window.location.href = "/admin/login";
+      })
+      .finally(() => {
+        if (active) setChecking(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [pathname]);
 
   if (checking) {

@@ -1,3 +1,4 @@
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllReviews, getAllViralArticles } from '@/lib/supabase';
 import { generateVideoScript } from '@/lib/script-generator';
@@ -139,12 +140,8 @@ async function generateComparisonVideoJob(article: {
 }
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(request);
+  if (authError) return authError;
 
   try {
     const results: VideoJobResult[] = [];

@@ -8,9 +8,13 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem("vetor_admin_auth")) {
-      window.location.href = "/admin";
-    }
+    fetch("/api/admin/auth", { cache: "no-store" })
+      .then((res) => {
+        if (res.ok) window.location.href = "/admin";
+      })
+      .catch(() => {
+        // Login continua disponível mesmo se a checagem falhar.
+      });
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -26,7 +30,7 @@ export default function AdminLoginPage() {
       });
 
       if (res.ok) {
-        localStorage.setItem("vetor_admin_auth", password);
+        localStorage.removeItem("vetor_admin_auth");
         window.location.href = "/admin";
       } else {
         setError("Senha incorreta.");

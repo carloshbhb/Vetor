@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Como avaliamos — Metodologia do Vetor.blog",
   description:
     "Critérios, notas de 0 a 10, checagem de preços e política de independência: entenda exatamente como o Vetor.blog avalia produtos.",
-  alternates: { canonical: "https://www.vetor.blog/como-avaliamos" },
+  alternates: { canonical: "https://www.vetor.blog/como-avaliamos/" },
 };
 
 export default function ComoAvaliamosPage() {
