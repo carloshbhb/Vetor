@@ -79,7 +79,7 @@ export default function VerdictCard({
           target="_blank"
           rel="sponsored nofollow noopener"
         >
-          Ver preço no site oficial
+          Ver preço e disponibilidade
         </a>
       )}
       {price && priceCheckedAt && formatDateBR(priceCheckedAt) && (
