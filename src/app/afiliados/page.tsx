@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { BreadcrumbSchema } from "@/components/SchemaMarkup";
 
 export const metadata: Metadata = {
   title: "Política de afiliados — Vetor.blog",
   description:
     "Como funcionam os links de afiliado do Vetor.blog: identificação, redirect /go/ e zero influência editorial.",
-  alternates: { canonical: "https://www.vetor.blog/afiliados" },
+  alternates: { canonical: "/afiliados/" },
 };
 
 export default function AfiliadosPage() {
   return (
+    <BreadcrumbSchema items={[{ name: 'Início', url: 'https://www.vetor.blog/' }, { name: 'Afiliados', url: 'https://www.vetor.blog/afiliados/' }]} />
     <main id="conteudo">
       <section className="hero">
         <div className="container">
