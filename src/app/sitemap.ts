@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { fetchAllReviews, fetchAllViralArticles, fetchCategories } from '@/lib/data';
 import { authors } from '@/data/authors';
 import { buildTagIndex } from '@/lib/tags';
+import { buildBuyingGuideCategories } from '@/lib/buying';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [reviews, viralArticles, categories] = await Promise.all([
@@ -21,6 +22,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/reviews/`,
       changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/melhores/`,
+      changeFrequency: 'weekly',
       priority: 0.9,
     },
     {
@@ -105,6 +111,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  const buyingGuidePages: MetadataRoute.Sitemap = buildBuyingGuideCategories(reviews, 3).map((category) => ({
+    url: `${baseUrl}/melhores/${category.slug}/`,
+    changeFrequency: 'weekly' as const,
+    priority: 0.85,
+  }));
+
   const authorPages: MetadataRoute.Sitemap = authors.map((a) => ({
     url: `${baseUrl}/author/${a.slug}/`,
     changeFrequency: 'weekly' as const,
@@ -123,6 +135,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...reviewPages,
     ...viralPages,
     ...categoryPages,
+    ...buyingGuidePages,
     ...authorPages,
     ...tagPages,
   ];

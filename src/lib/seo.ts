@@ -104,6 +104,28 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
   if (modified) reviewNode.dateModified = modified;
   reviewNode.url = `${SITE_URL}/reviews/${review.slug}/`;
 
+  if (review.pros?.length) {
+    reviewNode.positiveNotes = {
+      '@type': 'ItemList',
+      itemListElement: review.pros.slice(0, 5).map((note, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: note,
+      })),
+    };
+  }
+
+  if (review.cons?.length) {
+    reviewNode.negativeNotes = {
+      '@type': 'ItemList',
+      itemListElement: review.cons.slice(0, 5).map((note, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: note,
+      })),
+    };
+  }
+
   if (score !== null) {
     reviewNode.reviewRating = {
       '@type': 'Rating',

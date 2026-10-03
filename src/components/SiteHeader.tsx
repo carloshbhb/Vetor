@@ -9,6 +9,7 @@ export default function SiteHeader() {
         <nav className="nav-links" aria-label="Navegação principal">
           <a href="/reviews/">Reviews</a>
           <a href="/comparativos/">Comparativos</a>
+          <a href="/melhores/">Melhores</a>
           <a href="/guias/">Guias</a>
           <a href="/ofertas/">Ofertas</a>
         </nav>

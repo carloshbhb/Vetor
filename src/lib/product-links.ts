@@ -76,6 +76,26 @@ export async function getAllProductLinks(filters?: {
   }
 }
 
+export async function getProductLinksByReviewSlug(reviewSlug: string): Promise<ProductLink[]> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('product_links')
+      .select('*')
+      .eq('review_slug', reviewSlug)
+      .neq('status', 'archived')
+      .order('priority', { ascending: false })
+      .order('updated_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((row) => ({ ...row, tags: parseJsonArray(row.tags) })) as ProductLink[];
+  } catch {
+    return [];
+  }
+}
+
 export async function getProductLinkById(id: string): Promise<ProductLink | null> {
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return null;

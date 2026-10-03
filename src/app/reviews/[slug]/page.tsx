@@ -16,6 +16,10 @@ import { resolveOgImage } from "@/lib/seo";
 import type { Review } from "@/lib/types";
 import AuthorBox from "@/components/AuthorBox";
 import { primaryAuthor } from "@/data/authors";
+import BuyingEngine from "@/components/BuyingEngine";
+import EditorialEvidence from "@/components/EditorialEvidence";
+import { getProductLinksByReviewSlug } from "@/lib/product-links";
+import { buildMarketplaceOffers } from "@/lib/buying";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -94,7 +98,11 @@ export default async function ReviewPage({ params }: PageProps) {
     ? `${review.meta_reading_time} min`
     : `${Math.max(3, Math.ceil(totalContentLength / 1000))} min`;
 
-  const allReviews = await fetchAllReviews();
+  const [allReviews, productLinks] = await Promise.all([
+    fetchAllReviews(),
+    getProductLinksByReviewSlug(review.slug),
+  ]);
+  const buyingOffers = buildMarketplaceOffers(review, productLinks);
   const related = allReviews
     .filter((r) => r.category === review.category && r.slug !== review.slug)
     .slice(0, 3);
@@ -129,6 +137,7 @@ export default async function ReviewPage({ params }: PageProps) {
 
   const toc = [
     { id: "resumo", label: "Resumo da análise" },
+    ...(buyingOffers.length > 0 ? [{ id: "onde-comprar", label: "Onde comprar" }] : []),
     { id: "criterios", label: isGuia ? "O que analisamos neste guia" : "O que analisamos" },
     ...sections.map((s) => ({ id: s.id, label: s.tocLabel || s.heading })),
     ...(specs.length > 0 ? [{ id: "ficha-tecnica", label: "Ficha técnica" }] : []),
@@ -242,6 +251,10 @@ export default async function ReviewPage({ params }: PageProps) {
                 </div>
               </section>
 
+              {buyingOffers.length > 0 && (
+                <BuyingEngine review={review} offers={buyingOffers} />
+              )}
+
               {heroBars.length > 0 && (
                 <section aria-labelledby="nota-criterios">
                   <h3 id="nota-criterios">Por que demos essa nota?</h3>
@@ -302,6 +315,8 @@ export default async function ReviewPage({ params }: PageProps) {
                     preços na data indicada. <Link href="/como-avaliamos/">Veja como avaliamos</Link>.
                   </p>
                 </div>
+
+                <EditorialEvidence updatedAt={review.updated_at} />
               </section>
 
               <div className="review-flow">
