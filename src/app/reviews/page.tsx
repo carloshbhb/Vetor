@@ -130,7 +130,7 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
           <div className="container">
             {categories.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 36 }}>
-                <a href="/reviews" style={chip(!activeCategory)}>
+                <a href="/reviews/" style={chip(!activeCategory)}>
                   Todos ({allReviews.length})
                 </a>
                 {categories.map((cat) => {
@@ -140,7 +140,7 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
                   return (
                     <a
                       key={cat.name}
-                      href={`/reviews/categoria/${encodeURIComponent(cat.name)}`}
+                      href={`/reviews/categoria/${encodeURIComponent(cat.name)}/`}
                       style={chip(isActive)}
                     >
                       {cat.name} ({cat.count})
