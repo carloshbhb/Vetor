@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import Link from "next/link";
+import { BreadcrumbSchema } from "@/components/SchemaMarkup";
 import { fetchCategories } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -14,6 +16,7 @@ export default async function CategoriesIndexPage() {
 
   return (
     <>
+      <BreadcrumbSchema items={[{ name: "Início", url: "https://www.vetor.blog/" }, { name: "Reviews", url: "https://www.vetor.blog/reviews/" }, { name: "Categorias", url: "https://www.vetor.blog/reviews/categoria/" }]} />
       <main id="conteudo">
         <section className="hero">
           <div className="container">
@@ -34,6 +37,10 @@ export default async function CategoriesIndexPage() {
 
         <section className="content-wrap">
           <div className="container">
+            <div className="buying-guide-intro">
+              <div><span className="eyebrow-small">Comparação de compra</span><h2>Quer ir além dos reviews individuais?</h2><p>Os guias do Vetor reúnem produtos já analisados e organizam a pesquisa por categoria e intenção de compra.</p></div>
+              <Link className="cta" href="/melhores/">Abrir guias de compra →</Link>
+            </div>
             {categories.length === 0 ? (
               <div style={{ textAlign: "center", padding: "80px 0" }}>
                 <p style={{ color: "var(--muted)", fontSize: "1.05rem" }}>

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
+import Link from "next/link";
 import ReviewCard from "@/components/ReviewCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { ItemListSchema } from "@/components/SchemaMarkup";
+import { BreadcrumbSchema, ItemListSchema } from "@/components/SchemaMarkup";
 import { fetchAllReviews, fetchCategories, normalizeCategoryName } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -124,6 +125,7 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
 
   return (
     <>
+      <BreadcrumbSchema items={[{ name: "Início", url: "https://www.vetor.blog/" }, { name: "Reviews", url: "https://www.vetor.blog/reviews/" }]} />
       <ItemListSchema
         items={reviews.map((r) => ({
           name: r.product,
@@ -146,6 +148,10 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
 
         <section className="content-wrap">
           <div className="container">
+            <div className="buying-guide-intro">
+              <div><span className="eyebrow-small">Próximo passo</span><h2>Já está escolhendo o que comprar?</h2><p>Use os guias de compra para comparar produtos por categoria, nota editorial e, quando houver dados suficientes, por preço ou custo-benefício.</p></div>
+              <Link className="cta" href="/melhores/">Ver guias de compra →</Link>
+            </div>
             {categories.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 36 }}>
                 <a href="/reviews/" style={chip(!activeCategory)}>

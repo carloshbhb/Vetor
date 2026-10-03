@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import Link from "next/link";
+import { BreadcrumbSchema } from "@/components/SchemaMarkup";
 import SafeImage from "@/components/SafeImage";
 import { getAllProductLinks, type ProductLink } from "@/lib/product-links";
 import { safeImageSrc } from "@/lib/images";
@@ -79,7 +81,9 @@ export default async function OfertasPage() {
   const offers = await getAllProductLinks({ status: 'reviewed', has_review: true, limit: 60 });
 
   return (
-    <main id="conteudo">
+    <>
+      <BreadcrumbSchema items={[{ name: "Início", url: "https://www.vetor.blog/" }, { name: "Ofertas", url: "https://www.vetor.blog/ofertas/" }]} />
+      <main id="conteudo">
       <section className="hero">
         <div className="container">
           <Breadcrumbs items={[{ label: "Início", href: "/" }, { label: "Ofertas" }]} />
@@ -89,6 +93,7 @@ export default async function OfertasPage() {
             Ofertas vinculadas a reviews publicados pelo Vetor.blog, com o preço disponível no momento do acompanhamento.
             Confirme sempre o valor final, frete e condições na loja antes de fechar a compra.
           </p>
+          <Link className="cta" href="/melhores/">Comparar antes de comprar →</Link>
         </div>
       </section>
 
@@ -112,5 +117,6 @@ export default async function OfertasPage() {
         </div>
       </section>
     </main>
+    </>
   );
 }
