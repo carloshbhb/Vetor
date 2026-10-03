@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { parseReviewPrice } from '@/lib/buying';
 import type { Review } from '@/lib/types';
 import type { MarketplaceOffer } from '@/lib/buying';
 
@@ -23,8 +24,8 @@ export default function BuyingEngine({
     .sort((a, b) => new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime());
   const latestDate = datedOffers[0]?.checkedAt;
   const numericPrices = offers
-    .map((offer) => Number(offer.price.replace(/[^0-9,]/g, '').replace(',', '.')))
-    .filter((price) => Number.isFinite(price) && price > 0);
+    .map((offer) => parseReviewPrice(offer.price))
+    .filter((price): price is number => price !== null);
   const hasMultiplePrices = numericPrices.length > 1;
 
   return (

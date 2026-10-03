@@ -67,10 +67,7 @@ export async function getAllProductLinks(filters?: {
 
     if (error || !data) return [];
 
-    return data.map((row) => ({
-      ...row,
-      tags: parseJsonArray(row.tags),
-    })) as ProductLink[];
+    return data.map(normalizeProductLink);
   } catch {
     return [];
   }
@@ -90,7 +87,7 @@ export async function getProductLinksByReviewSlug(reviewSlug: string): Promise<P
       .order('updated_at', { ascending: false });
 
     if (error || !data) return [];
-    return data.map((row) => ({ ...row, tags: parseJsonArray(row.tags) })) as ProductLink[];
+    return data.map(normalizeProductLink);
   } catch {
     return [];
   }
@@ -109,7 +106,7 @@ export async function getProductLinkById(id: string): Promise<ProductLink | null
 
     if (error || !data) return null;
 
-    return { ...data, tags: parseJsonArray(data.tags) } as ProductLink;
+    return normalizeProductLink(data);
   } catch {
     return null;
   }
@@ -128,7 +125,7 @@ export async function getProductLinkBySlug(slug: string): Promise<ProductLink | 
 
     if (error || !data) return null;
 
-    return { ...data, tags: parseJsonArray(data.tags) } as ProductLink;
+    return normalizeProductLink(data);
   } catch {
     return null;
   }
@@ -180,7 +177,7 @@ export async function createProductLink(
     return { data: null, error: error.message };
   }
 
-  return { data: result as ProductLink, error: null };
+  return { data: normalizeProductLink(result), error: null };
 }
 
 export async function updateProductLink(
@@ -240,7 +237,7 @@ export async function getNextReviewProductLink(): Promise<ProductLink | null> {
 
     if (error || !data) return null;
 
-    return { ...data, tags: parseJsonArray(data.tags) } as ProductLink;
+    return normalizeProductLink(data);
   } catch {
     return null;
   }
@@ -365,6 +362,34 @@ export async function getProductLinksByCategory(): Promise<
   } catch {
     return [];
   }
+}
+
+
+function normalizeProductLink(row: any): ProductLink {
+  return {
+    ...row,
+    price: parseProductLinkPrice(row?.price),
+    tags: parseJsonArray(row?.tags),
+  } as ProductLink;
+}
+
+function parseProductLinkPrice(raw: unknown): number | null {
+  if (typeof raw === 'number') {
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+  }
+  if (typeof raw !== 'string') return null;
+  const cleaned = raw.replace(/[^0-9.,]/g, '').trim();
+  if (!cleaned) return null;
+
+  let normalized = cleaned;
+  if (normalized.includes(',')) {
+    normalized = normalized.replace(/\./g, '').replace(',', '.');
+  } else if (/^\d{1,3}(?:\.\d{3})+$/.test(normalized)) {
+    normalized = normalized.replace(/\./g, '');
+  }
+
+  const value = Number(normalized);
+  return Number.isFinite(value) && value > 0 ? value : null;
 }
 
 function parseJsonArray(val: unknown): any[] {

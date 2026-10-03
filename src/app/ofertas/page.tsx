@@ -76,7 +76,7 @@ function OfferCard({ offer }: { offer: ProductLink }) {
 }
 
 export default async function OfertasPage() {
-  const offers = await getAllProductLinks({ limit: 60 });
+  const offers = await getAllProductLinks({ has_review: true, limit: 60 });
 
   return (
     <main id="conteudo">
@@ -86,8 +86,8 @@ export default async function OfertasPage() {
           <span className="eyebrow">Ofertas Vetor</span>
           <h1>Ofertas acompanhadas de perto</h1>
           <p className="hero-lead">
-            Preços e disponibilidade monitorados pelo Vetor.blog. Confirme sempre o valor final na loja antes
-            de fechar a compra.
+            Ofertas vinculadas a reviews publicados pelo Vetor.blog, com o preço disponível no momento do acompanhamento.
+            Confirme sempre o valor final, frete e condições na loja antes de fechar a compra.
           </p>
         </div>
       </section>
