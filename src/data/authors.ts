@@ -16,10 +16,10 @@ export const authors: Author[] = [
     avatar: '/images/authors/editora-chefe.webp',
     tagline:
       'Editor-chefe do vetor.blog — reviews independentes com critérios claros e notas de 0 a 10.',
-    bio: 'À frente da redação do vetor.blog, escreve e revisa as análises do site com foco em wearables, fones de ouvido e notebooks. Cada texto segue o mesmo padrão: critérios públicos, comparação com concorrentes na mesma faixa de preço, prós e contras honestos e um veredicto direto — em português, sem achismo.',
+    bio: 'À frente da redação do vetor.blog, escreve e revisa as análises do site com foco em wearables, fones de ouvido e notebooks. Cada texto segue o mesmo padrão: critérios públicos, comparação com concorrentes relevantes, prós e contras claros e um veredicto explicado — em português, com transparência sobre limites e fontes.'
     credentials: [
       'Cobertura editorial de wearables, áudio e notebooks desde a fundação do vetor.blog',
-      'Avaliações baseadas em uso real e comparação direta com concorrentes',
+      'Avaliações baseadas em informações verificáveis, critérios públicos e comparação com concorrentes relevantes',
       'Nota e veredicto definidos sem influência de patrocínio ou comissão de afiliado',
     ],
   },

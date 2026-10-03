@@ -304,6 +304,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 </div>
               </section>
 
+              <div className="review-flow">
               <ReviewContent sections={sections} />
 
               {specs.length > 0 && (
@@ -509,6 +510,7 @@ export default async function ReviewPage({ params }: PageProps) {
               )}
               </>
               )}
+              </div>
             </article>
 
             <aside className="sidebar" aria-label="Conteúdo complementar">

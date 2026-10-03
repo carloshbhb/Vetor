@@ -65,7 +65,9 @@ Regras:
 - content deve ser HTML válido com <h2>, <p>, <ul>, <li>, <table>
 - Use somente fatos que você consegue sustentar a partir dos dados fornecidos e conhecimento verificável; nunca invente teste presencial, benchmark, defeito recorrente, autonomia medida, avaliação de comprador ou especificação.
 - Se uma informação importante não estiver disponível, deixe a limitação explícita em vez de preencher com um palpite.
-- Não use frases que insinuem experiência prática ("testamos", "em nossos testes") quando essa experiência não foi fornecida.
+- Não use frases que insinuem experiência prática ("testamos", "em nossos testes", "medimos") quando essa experiência não foi fornecida.
+- Não use linguagem absoluta ou promocional como "escolha definitiva", "padrão ouro", "líder do mercado", "compra certa", "deve ser evitado" ou "não tem rivais à altura"; prefira comparar características, limitações e perfis de uso.
+- Não apresente recursos de saúde como "nível médico" ou "clinicamente útil". Descreva o recurso e seus limites conforme a informação verificável.
 - Cada nota e conclusão deve ser explicada por critérios observáveis no próprio conteúdo.
 - hero_bars deve ter 3-5 barras com pct (0-100) e value (0-10)
 - specs deve ter 4-8 especificações

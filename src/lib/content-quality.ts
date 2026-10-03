@@ -7,6 +7,32 @@ const MIN_PROS = 3;
 const MIN_CONS = 3;
 const MIN_FAQ = 3;
 
+const FORBIDDEN_REVIEW_EDITORIAL_SIGNALS = [
+  'temos um claro vencedor',
+  'claro vencedor',
+  'em nossos testes',
+  'nos nossos testes',
+  'testamos',
+  'medimos',
+  'benchmark feito por nos',
+  'garantimos',
+  'padrão ouro',
+  'escolha definitiva',
+  'líder do mercado',
+  'nao tem rivais a altura',
+  'compra certa',
+  'deve ser evitado',
+  'nível médico',
+  'clinicamente útil',
+  'garante visibilidade perfeita',
+  'funcionam sem falhas',
+  'sem engasgos',
+];
+
+function normalizeReviewEditorialText(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
 function visibleTextLength(html: string): number {
   return html
     .replace(/<[^>]+>/g, ' ')
@@ -48,6 +74,25 @@ export const generatedReviewQualitySchema = z
       .min(MIN_FAQ, `faq must contain at least ${MIN_FAQ} questions`),
     hero_overall_score: z.number().min(0).max(10).optional(),
     verdict_score: z.number().min(0).max(10).optional(),
+    meta_title: z.string().trim().optional(),
+    meta_description: z.string().trim().optional(),
+    verdict_label: z.string().trim().optional(),
+    verdict_text: z.string().trim().optional(),
+    verdict_note: z.string().trim().optional(),
+    compare_table: z
+      .object({
+        rows: z.array(
+          z.object({
+            feature: z.string().trim(),
+            values: z.array(z.string()),
+            winner: z.number().int(),
+          })
+        ),
+        caption: z.string().trim(),
+        columns: z.array(z.string()),
+        winnerCol: z.number().int(),
+      })
+      .optional(),
   })
   .superRefine((val, ctx) => {
     if (visibleTextLength(val.content) < MIN_CONTENT_LENGTH) {
@@ -71,6 +116,32 @@ export const generatedReviewQualitySchema = z
           code: 'custom',
           path: ['content'],
           message: `generic fallback phrase detected: "${phrase}"`,
+        });
+      }
+    }
+
+    const editorialCorpus = [
+      val.content,
+      val.hero_lead,
+      val.meta_title,
+      val.meta_description,
+      val.verdict_label,
+      val.verdict_text,
+      val.verdict_note,
+      ...(val.pros ?? []),
+      ...(val.cons ?? []),
+      ...(val.sections ?? []).flatMap((section) => [section.heading, section.content]),
+      ...(val.faq ?? []).flatMap((item) => [item.question, item.answer]),
+      JSON.stringify(val.compare_table ?? {}),
+    ].filter(Boolean).join(' ');
+
+    const normalizedEditorial = normalizeReviewEditorialText(editorialCorpus);
+    for (const phrase of FORBIDDEN_REVIEW_EDITORIAL_SIGNALS) {
+      if (normalizedEditorial.includes(normalizeReviewEditorialText(phrase))) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['content'],
+          message: `unsupported editorial signal detected: "${phrase}"`,
         });
       }
     }
