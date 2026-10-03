@@ -78,6 +78,9 @@ export default async function BuyingIntentPage({ params }: PageProps) {
   const label = getBuyingIntentLabel(page.intent);
   const guideHref = '/melhores/' + page.categorySlug + '/';
   const categoryHref = '/reviews/categoria/' + encodeURIComponent(page.categoryName) + '/';
+  const siblingIntent = buildBuyingIntentPages(reviews, 4).find(
+    (item) => item.categorySlug === page.categorySlug && item.intent !== page.intent
+  );
   const latestUpdated = page.reviews.reduce((latest, review) => {
     const current = new Date(review.updated_at || review.created_at).getTime();
     const previous = latest ? new Date(latest).getTime() : 0;
@@ -150,6 +153,26 @@ export default async function BuyingIntentPage({ params }: PageProps) {
               </div>
             </div>
 
+            {siblingIntent && (
+              <section className="buying-intent-section" aria-labelledby="outra-intencao-heading">
+                <div className="section-kicker">Outra forma de comparar</div>
+                <h2 id="outra-intencao-heading">Também veja esta categoria por outra intenção</h2>
+                <p>
+                  Se o critério desta página não for o que você procura, compare os mesmos produtos usando
+                  {` ${getBuyingIntentLabel(siblingIntent.intent).toLowerCase()}`}.
+                </p>
+                <Link
+                  className="buying-intent-card"
+                  href={'/melhores/' + siblingIntent.categorySlug + '/' + siblingIntent.intent + '/'}
+                >
+                  <span>{getBuyingIntentLabel(siblingIntent.intent)}</span>
+                  <strong>{getBuyingIntentLabel(siblingIntent.intent)} em {page.categoryName}</strong>
+                  <small>{getBuyingIntentDescription(siblingIntent.intent, page.categoryName)}</small>
+                  <b>Ver seleção →</b>
+                </Link>
+              </section>
+            )}
+
             <div className="buying-choice-grid">
               {page.reviews.map((review, index) => (
                 <BuyingChoiceCard key={review.slug} review={review} rank={index + 1} intent={page.intent} />
@@ -189,6 +212,11 @@ export default async function BuyingIntentPage({ params }: PageProps) {
 
             <div className="buying-guide-footer-links">
               <Link href={guideHref}>← Guia de {page.categoryName}</Link>
+              {siblingIntent && (
+                <Link href={'/melhores/' + siblingIntent.categorySlug + '/' + siblingIntent.intent + '/'}>
+                  {getBuyingIntentLabel(siblingIntent.intent)} →
+                </Link>
+              )}
               <Link href="/melhores/">Todos os guias →</Link>
             </div>
           </div>
