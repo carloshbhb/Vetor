@@ -1,0 +1,221 @@
+{
+  "meta_title": "Xiaomi Mi Camera 2K Vale a Pena em 2026? Análise Completa",
+  "meta_description": "Avaliação detalhada da Xiaomi Mi Camera 2K no Brasil. Descubra se a resolução, visão noturna e app Mi Home compensam o investimento.",
+  "hero_lead": "A Xiaomi Mi Camera 2K consolida-se no mercado brasileiro como uma das opções mais equilibradas para quem busca monitoramento interno de alta definição sem gastar uma fortuna. Com resolução nítida, visão noturna infravermelha eficiente e integração nativa com o aplicativo Mi Home, o dispositivo atende tanto quem deseja segurança residencial básica quanto quem quer automatizar a rotina.",
+  "verdict_score": 8.6,
+  "verdict_label": "EXCELENTE CUSTO-BENEFÍCIO EM 2026",
+  "verdict_text": "A Xiaomi Mi Camera 2K entrega exatamente o que promete: imagens nítidas em 2K, detecção de movimento confiável e excelente ecossistema por um preço extremamente competitivo no Brasil. Apesar de exigir alimentação cabeada constante e não ser recomendada para ambientes externos, sua performance diária supera a de concorrentes diretos na mesma faixa de preço, tornando-se uma compra altamente recomendada.",
+  "hero_bars": [
+    {
+      "label": "Desempenho",
+      "value": 8.8,
+      "pct": 88
+    },
+    {
+      "label": "Construção",
+      "value": 8,
+      "pct": 80
+    },
+    {
+      "label": "Facilidade de Uso",
+      "value": 9.2,
+      "pct": 92
+    },
+    {
+      "label": "Recursos",
+      "value": 8.5,
+      "pct": 85
+    },
+    {
+      "label": "Custo-Benefício",
+      "value": 9.3,
+      "pct": 93
+    }
+  ],
+  "specs": [
+    {
+      "label": "Resolução",
+      "value": "2K (2304 x 1296 pixels)",
+      "highlight": true
+    },
+    {
+      "label": "Ângulo de Visão",
+      "value": "125 graus",
+      "highlight": false
+    },
+    {
+      "label": "Conectividade",
+      "value": "Wi-Fi IEEE 802.11b/g/n 2.4GHz",
+      "highlight": false
+    },
+    {
+      "label": "Armazenamento",
+      "value": "MicroSD (até 32GB) e Nuvem",
+      "highlight": true
+    },
+    {
+      "label": "Compatibilidade",
+      "value": "Android, iOS, Google Assistant, Alexa",
+      "highlight": true
+    },
+    {
+      "label": "Garantia Brasil",
+      "value": "12 meses oficial",
+      "highlight": true
+    }
+  ],
+  "pros": [
+    "Resolução 2K superior ao padrão 1080p tradicional",
+    "Visão noturna infravermelha clara de 940nm sem luz vermelha visível",
+    "Áudio bidirecional com microfone e alto-falante integrados",
+    "Excelente integração com o aplicativo Mi Home e assistentes de voz",
+    "Base magnética versátil que facilita a instalação em diferentes superfícies"
+  ],
+  "cons": [
+    "Não possui certificação para uso em ambientes externos",
+    "Suporte a cartão MicroSD limitado oficialmente a 32GB",
+    "Exige cabo de alimentação conectado permanentemente na tomada",
+    "Falta suporte nativo à frequência Wi-Fi de 5GHz"
+  ],
+  "compare_table": {
+    "columns": [
+      "Critério",
+      "Xiaomi Mi Camera 2K",
+      "Intelbras iM4 C",
+      "TP-Link Tapo C200"
+    ],
+    "rows": [
+      {
+        "feature": "Faixa de Preço",
+        "values": [
+          "R$ 219,90",
+          "R$ 289,00",
+          "R$ 239,00"
+        ],
+        "winner": 0
+      },
+      {
+        "feature": "Resolução",
+        "values": [
+          "2K (1296p)",
+          "Full HD (1080p)",
+          "Full HD (1080p)"
+        ],
+        "winner": 0
+      },
+      {
+        "feature": "Ângulo de Visão",
+        "values": [
+          "125 graus",
+          "360 graus (Pan/Tilt)",
+          "360 graus (Pan/Tilt)"
+        ],
+        "winner": 1
+      }
+    ],
+    "caption": "Comparativo técnico entre câmeras de segurança internas populares no Brasil",
+    "winnerCol": 0
+  },
+  "faq": [
+    {
+      "question": "A Xiaomi Mi Camera 2K funciona sem internet?",
+      "answer": "Ela precisa de conexão Wi-Fi para transmitir imagens ao vivo e enviar notificações para o celular. No entanto, se houver um cartão MicroSD inserido, ela continua gravando os eventos localmente mesmo se a internet cair."
+    },
+    {
+      "question": "A câmera possui bateria interna?",
+      "answer": "Não, este modelo funciona exclusivamente conectado à tomada por meio de um cabo USB e adaptador de energia bivolt que acompanha na caixa."
+    },
+    {
+      "question": "Posso visualizar as imagens pelo computador?",
+      "answer": "Oficialmente o aplicativo Mi Home é voltado para smartphones Android e iOS. Para visualizar no PC, é necessário utilizar emuladores de Android ou recorrer a integrações avançadas de automação residencial."
+    },
+    {
+      "question": "O produto possui garantia no Brasil?",
+      "answer": "Sim, quando adquirido através de canais oficiais ou distribuidores autorizados no Brasil, o produto conta com garantia de 12 meses contra defeitos de fabricação."
+    }
+  ],
+  "sections": [
+    {
+      "id": "visao-geral",
+      "heading": "Visão Geral e Posicionamento no Mercado",
+      "tocLabel": "Visão Geral",
+      "tocEmoji": "🔍",
+      "content": "A **Xiaomi Mi Camera 2K** chega ao mercado brasileiro consolidada como uma das escolhas mais racionais para quem busca segurança residencial inteligente sem desembolsar valores elevados. Posicionada estrategicamente acima das câmeras de entrada com resolução Full HD 1080p e abaixo dos modelos corporativos mais robustos, esta câmera busca atender o consumidor moderno que valoriza a nitidez de imagem e a facilidade de configuração.\n\nNo cenário de automação residencial no Brasil em 2026, a marca chinesa mantém sua reputação de entregar hardware refinado com software acessível. A proposta central da Mi Camera 2K é oferecer monitoramento interno com qualidade superior de zoom digital, permitindo identificar rostos, placas de veículos na rua através da janela ou pequenos detalhes em cômodos amplos com muito mais clareza do que seus antecessores diretos.\n\nA quem se destina este dispositivo? O perfil ideal abrange desde moradores de apartamentos que desejam monitorar pets enquanto estão no trabalho até donos de pequenos comércios que precisam de um olho extra no caixa ou no estoque durante a noite. A versatilidade do ecossistema Mi Home atrai tanto entusiastas de tecnologia quanto usuários leigos que buscam uma instalação rápida e sem complicações técnicas.\n\n> 'A evolução para a resolução 2K em câmeras de segurança residenciais deixou de ser um luxo desnecessário e passou a ser o padrão de exigência para quem realmente precisa ler detalhes em gravações de segurança.'\n\nAo analisar o mercado nacional, percebe-se que a concorrência é acirrada com marcas tradicionais de segurança eletrônica e outras gigantes da tecnologia de consumo. No entanto, a Xiaomi aposta na fluidez do seu aplicativo e no design minimalista para conquistar espaço nas residências brasileiras. A relação entre o preço sugerido e a densidade de pixels entregue coloca este modelo em uma posição de destaque absoluto nos guias de compra atuais."
+    },
+    {
+      "id": "design-construcao",
+      "heading": "Design, Acabamento e Conforto no Uso Contínuo",
+      "tocLabel": "Design e Construção",
+      "tocEmoji": "🎨",
+      "content": "O projeto visual da **Xiaomi Mi Camera 2K** segue à risca a filosofia de design minimalista escandinavo que a marca adota globalmente. Construída em plástico ABS fosco de alta qualidade na cor branca, a câmera evita o acúmulo excessivo de marcas de dedos e integra-se com extrema facilidade a qualquer estilo de decoração de interiores, seja em uma sala de estar moderna ou em um escritório corporativo.\n\nEm termos de ergonomia física e instalação, o dispositivo destaca-se pela sua **base magnética inovadora** acompanhada de um adesivo dupla face reforçado e parafusos de fixação. Essa base permite que a câmera seja fixada não apenas sobre estantes e mesas, mas também em paredes invertidas ou tetos, oferecendo flexibilidade de posicionamento que poucas concorrentes diretas conseguem igualar sem acessórios adicionais.\n\nO corpo principal da câmera possui uma articulação esférica que permite o ajuste manual do ângulo de inclinação e rotação após a fixação. Embora não seja um modelo motorizado com rotação de 360 graus por aplicativo (Pan/Tilt), o **lente grande angular de 125 graus** cobre uma faixa bastante ampla de visão, sendo suficiente para monitorar integralmente cômodos de tamanho médio a grande quando posicionada em um canto estratégico.\n\nA durabilidade percebida dos materiais é excelente para um produto voltado ao uso interno. Os encaixes são firmes, o conector de alimentação na parte traseira é robusto e o peso reduzido garante que o suporte magnético mantenha a estrutura perfeitamente estável ao longo dos meses, mesmo com leves vibrações estruturais na residência.\n\n> 'O acabamento fosco e o formato compacto transformam a câmera em um objeto discreto que passa despercebido no ambiente, garantindo monitoramento sem poluição visual.'\n\nNa prática diária no Brasil, onde a poeira e a umidade podem variar bastante dependendo da região, o corpo selado da Mi Camera 2K demonstra boa resistência passiva, desde que mantida estritamente dentro de ambientes cobertos, longe de intempéries climáticas diretas."
+    },
+    {
+      "id": "desempenho-pratica",
+      "heading": "Desempenho e Performance na Prática",
+      "tocLabel": "Desempenho",
+      "tocEmoji": "⚡",
+      "content": "O grande diferencial técnico da **Xiaomi Mi Camera 2K** reside justamente no seu sensor de imagem capaz de capturar vídeos na resolução de **2304 x 1296 pixels**. Na prática diária, essa densidade superior de pixels faz toda a diferença quando é necessário aplicar zoom digital em uma gravação para examinar rostos, objetos distantes ou placas de identificação.\n\nA nitidez das cores durante o dia é surpreendentemente natural, com bom balanço de branco e gerenciamento eficiente de áreas com alto contraste, como janelas ensolaradas. O algoritmo de processamento de imagem da Xiaomi consegue evitar o efeito 'estourado' nas áreas mais iluminadas, preservando detalhes importantes no fundo da cena.\n\nQuando a luminosidade cai, o **sistema de visão noturna infravermelha de 940nm** entra em ação de forma automática. Diferente de modelos mais baratos que utilizam LEDs vermelhos visíveis no escuro (o que pode denunciar a presença da câmera), a Mi Camera 2K opera de forma totalmente discreta, iluminando ambientes na completa escuridão com clareza impressionante até uma distância de cerca de nove metros.\n\nA detecção de movimento baseada em inteligência artificial é outro ponto forte do hardware. O sistema é capaz de diferenciar movimentos irrelevantes, como a passagem de insetos ou cortinas balançando com o vento, focando em alertas reais de presença humana, o que reduz drasticamente o número de falsos positivos recebidos no smartphone do usuário.\n\n> 'A capacidade de identificar rostos com clareza mesmo em condições de iluminação desafiadoras eleva o patamar de segurança que um dispositivo doméstico acessível pode entregar.'\n\nA taxa de quadros por segundo mantém-se estável em torno de 20fps, garantindo fluidez suficiente para acompanhar movimentos rápidos sem engasgos perceptíveis na transmissão ao vivo ou nas gravações armazenadas."
+    },
+    {
+      "id": "experiencia-dia-a-dia",
+      "heading": "Experiência de Uso no Cotidiano Brasileiro",
+      "tocLabel": "Experiência Diária",
+      "tocEmoji": "🏠",
+      "content": "Integrar a **Xiaomi Mi Camera 2K** à rotina de uma residência brasileira é um processo que evidencia o foco da fabricante na usabilidade. Desde o momento da retirada da caixa até a primeira visualização de imagem no celular, o fluxo de configuração leva menos de cinco minutos, exigindo apenas a leitura de um código QR exibido pelo aplicativo Mi Home e a conexão à rede Wi-Fi local de 2.4GHz.\n\nNo dia a dia, a função de **áudio bidirecional** mostra-se extremamente útil nas mais diversas situações. Seja para conversar com os filhos que acabaram de chegar da escola, dar comandos para um cachorro que subiu no sofá ou emitir um aviso sonoro para afastar intrusos, o microfone e o alto-falante integrados possuem volume adequado e clareza surpreendente para o pequeno porte do aparelho.\n\nUm aspecto crucial no Brasil é o comportamento do dispositivo diante de quedas de energia e instabilidades na internet — problemas comuns em várias regiões do país. A câmera reinicia automaticamente assim que a energia érestabelecida, reconectando-se à rede Wi-Fi sem necessidade de intervenção manual ou nova configuração, um alívio para quem viaja com frequência.\n\nO aquecimento do corpo da câmera durante o funcionamento contínuo é mínimo, mantendo a estabilidade operacional mesmo em dias quentes de verão nas capitais brasileiras. O consumo de energia é extremamente baixo, tendo impacto irrelevante na conta de luz ao final do mês, mesmo operando 24 horas por dia.\n\n> 'A simplicidade com que o aplicativo gerencia múltiplas câmeras simultaneamente transforma o monitoramento doméstico em uma tarefa fluida e livre de estresse.'\n\nA organização das gravações por linha do tempo no aplicativo facilita imensamente a busca por eventos específicos, permitindo pular diretamente para os momentos em que houve detecção de movimento sem a necessidade de assistir a horas de vídeo ininterrupto."
+    },
+    {
+      "id": "bateria-ou-recurso-chave",
+      "heading": "Recursos Tecnológicos e Sistema de Armazenamento",
+      "tocLabel": "Recursos e Armazenamento",
+      "tocEmoji": "💾",
+      "content": "Por se tratar de um modelo projetado para alta performance contínua, a **Xiaomi Mi Camera 2K** dispensa o uso de baterias internas, operando exclusivamente conectada à energia através de um cabo USB tipo C e adaptador bivolt. Essa escolha técnica elimina qualquer preocupação com recargas periódicas, garantindo vigilância ininterrupta ao longo de 365 dias por ano.\n\nNo quesito armazenamento de dados, o dispositivo oferece duas vias principais para o usuário brasileiro. A primeira é o uso de **cartões de memória MicroSD** (com suporte oficial até 32GB, embora muitos usuários utilizem capacidades maiores com formatação adequada), permitindo gravação em loop contínuo ou apenas detecção de eventos, o que economiza espaço valioso.\n\nA segunda via é o armazenamento em **nuvem oficial da Xiaomi**, serviço opcional que garante segurança extra contra roubo físico da câmera, uma vez que as gravações ficam armazenadas remotamente em servidores criptografados. Para quem prefere privacidade total e custo zero mensal, o cartão local atende perfeitamente às necessidades básicas.\n\nOutro recurso tecnológico de grande relevância é a **tecnologia de codificação de vídeo H.265**. Esse padrão avançado de compressão reduz drasticamente o tamanho dos arquivos de vídeo gerados pela resolução 2K sem perda perceptível de qualidade, permitindo que um cartão de memória pequeno armazene vários dias de histórico de gravação.\n\n> 'A adoção do codec H.265 é um diferencial técnico indispensável, pois otimiza o espaço do cartão MicroSD e garante streaming fluido mesmo em conexões Wi-Fi instáveis.'\n\nA criptografia de dados ponta a ponta reforça a segurança da privacidade do usuário, impedindo que acessos não autorizados interceptem o fluxo de vídeo transmitido entre a câmera, o roteador e o smartphone."
+    },
+    {
+      "id": "conectividade-software",
+      "heading": "Conectividade, Aplicativo e Ecossistema",
+      "tocLabel": "Conectividade e App",
+      "tocEmoji": "🌐",
+      "content": "O ecossistema de software é tradicionalmente um dos pontos mais fortes da Xiaomi, e a **Mi Camera 2K** brilha nesse quesito. O controle central é realizado através do aplicativo **Mi Home**, disponível gratuitamente para plataformas Android e iOS, reconhecido por sua interface limpa, tradução adequada para o português e atualizações frequentes de segurança.\n\nA conectividade sem fio é garantida pelo módulo **Wi-Fi de 2.4GHz**, escolha técnica padrão que prioriza o alcance e a capacidade de penetração de sinal através de paredes em residências. Embora a ausência de suporte à faixa de 5GHz possa desapontar entusiastas de redes ultrarrápidas, a largura de banda exigida pela câmera é perfeitamente atendida pela frequência de 2.4GHz sem engasgos.\n\nNo campo da automação residencial avançada, a câmera integra-se com perfeição ao **Google Assistant** e à **Amazon Alexa**, permitindo comandos de voz práticos como exibir a imagem da câmera diretamente em smart displays compatíveis, como o Google Nest Hub ou o Amazon Echo Show, facilitando o monitoramento rápido enquanto o usuário está ocupado na cozinha.\n\nO compartilhamento de acesso com outros membros da família é outro recurso implementado com elegância. O administrador principal pode conceder permissões para que o cônjuge ou familiares também visualizem o feed da câmera em seus respectivos smartphones, cada um com controle personalizado de notificações.\n\n> 'A fluidez do aplicativo Mi Home e sua integração com assistentes de voz colocam esta câmera em um patamar tecnológico superior ao de concorrentes tradicionais do mercado de segurança.'\n\nAs notificações push enviadas ao celular em caso de detecção de movimento chegam com atraso mínimo de poucos segundos, garantindo que o morador seja alertado prontamente sobre qualquer anormalidade detectada no interior da residência."
+    },
+    {
+      "id": "comparativo-concorrentes",
+      "heading": "Análise Comparativa com Concorrentes Diretos",
+      "tocLabel": "Comparativo",
+      "tocEmoji": "⚖️",
+      "content": "Para avaliar com precisão o real valor da **Xiaomi Mi Camera 2K** no mercado brasileiro, é fundamental colocá-la lado a lado com suas principais concorrentes diretas: a **Intelbras iM4 C** e a **TP-Link Tapo C200**, duas câmeras internas extremamente populares e encontradas com facilidade nas principais lojas do país.\n\nQuando o assunto é qualidade de imagem pura, a Xiaomi leva vantagem evidente. Enquanto a Intelbras iM4 C e a TP-Link Tapo C200 operam na resolução tradicional **Full HD (1080p)**, a Mi Camera 2K entrega imagens em **2K (1296p)**. Essa diferença numérica traduz-se em maior nitidez ao aplicar zoom digital nas gravações, permitindo distinguir pequenos detalhes com muito mais precisão.\n\nPor outro lado, em termos de movimentação física, as concorrentes da Intelbras e da TP-Link possuem motores internos que permitem **rotação de 360 graus** controlada por aplicativo (Pan/Tilt). A Xiaomi Mi Camera 2K, em contrapartida, possui corpo estático com ajuste manual na base, contando com um ângulo fixo amplo de 125 graus. Se a sua prioridade é cobrir uma sala inteira girando a lente à distância, as concorrentes oferecem essa vantagem mecânica.\n\nNo quesito preço e ecossistema, a Xiaomi destaca-se pelo custo agressivo e pela integração unificada no Mi Home, ideal para quem já possui outros gadgets da marca, como robôs aspiradores ou lâmpadas inteligentes. A Intelbras aposta forte no suporte técnico nacional e em aplicativos próprios focados em segurança corporativa, enquanto a TP-Link brilha pela facilidade do ecossistema Tapo.\n\n> 'A escolha entre a Xiaomi e suas concorrentes resume-se a uma balança clara: resolução superior e ecossistema unificado versus motorização de 360 graus com resolução Full HD.'\n\nAnalisando o conjunto da obra para o usuário residencial comum, a superioridade visual da resolução 2K aliada ao preço competitivo faz com que a opção da Xiaomi saia na frente na maioria dos cenários de uso interno fixo."
+    },
+    {
+      "id": "mercado-brasil-custo-beneficio",
+      "heading": "Preço, Disponibilidade e Custo-Benefício no Brasil",
+      "tocLabel": "Custo-Benefício",
+      "tocEmoji": "💰",
+      "content": "No atual mercado brasileiro de tecnologia e automação residencial, a **Xiaomi Mi Camera 2K** posiciona-se em uma faixa de preço extremamente atraente, girando em torno de **R$ 219,90**. Este patamar financeiro coloca o dispositivo como um investimento de baixo risco para quem deseja testar ou expandir um sistema de segurança inteligente sem comprometer o orçamento mensal.\n\nA disponibilidade do produto no país é excelente. Grandes varejistas e plataformas de e-commerce consolidadas, como **Mercado Livre** e **Amazon**, contam com estoque constante do modelo, muitas vezes oferecendo opções de frete rápido (como o envio Full) e facilidades de parcelamento sem juros no cartão de crédito.\n\nAo adquirir o produto, é importante que o consumidor verifique a procedência e a garantia oferecida. Comprar de distribuidores oficiais ou lojas com boa reputação garante o suporte técnico nacional de **12 meses contra defeitos de fabricação**, oferecendo tranquilidade caso ocorra qualquer imprevisto com o hardware.\n\nO adaptador de energia que acompanha o produto na caixa já vem no padrão brasileiro de tomadas (compatível com o formato de pinos redondos), eliminando a necessidade de adaptadores volumosos e garantindo instalação limpa e segura diretamente na tomada da parede.\n\n> 'Por pouco mais de duzentos reais, adquirir uma câmera com resolução 2K, visão noturna avançada e ecossistema integrado representa um dos melhores retornos sobre investimento em segurança residencial.'\n\nEm termos de custo-benefício puro, a Mi Camera 2K supera a grande maioria das câmeras analógicas tradicionais e bate de frente com concorrentes IP da mesma categoria, justificando plenamente sua alta popularidade nos lares brasileiros."
+    },
+    {
+      "id": "para-quem-vale-a-pena",
+      "heading": "Perfil de Compra: Para Quem Vale a Pena e Quem Deve Evitar",
+      "tocLabel": "Para Quem Vale a Pena",
+      "tocEmoji": "🎯",
+      "content": "A **Xiaomi Mi Camera 2K** é um produto altamente versátil, mas como qualquer tecnologia, possui cenários onde brilha intensamente e situações onde pode não atender às expectativas. Compreender o seu próprio perfil de uso é o passo fundamental para garantir uma compra assertiva e totalmente satisfatória.\n\n**Para quem vale a pena:**\n- Moradores de apartamentos ou casas que buscam monitorar ambientes internos específicos, como salas, corredores ou quartos.\n- Donos de pets que desejam verificar o comportamento dos animais de estimação enquanto estão ausentes no trabalho.\n- Usuários que já utilizam o aplicativo Mi Home e desejam centralizar todos os dispositivos inteligentes em uma única interface.\n- Pessoas que exigem alta nitidez de imagem (resolução 2K) para identificar detalhes cruciais em gravações.\n\n**Quem deve evitar:**\n- Quem precisa de monitoramento externo sob chuva, sol forte e intempéries (a câmera não possui certificação de resistência climática IP).\n- Usuários que fazem questão de controlar o movimento horizontal e vertical da lente em 360 graus através do aplicativo.\n- Pessoas cujas residências não possuem cobertura de rede Wi-Fi estável na frequência de 2.4GHz no local onde a câmera será instalada.\n\n> 'Conhecer as limitações físicas de uma câmera interna fixa evita frustrações e garante que o dispositivo seja posicionado exatamente onde sua performance será maximizada.'\n\nPara o público geral que se encaixa no perfil de uso interno, a Mi Camera 2K entrega muito mais do que o preço sugere, tornando-se uma aquisição certeira."
+    },
+    {
+      "id": "veredito-final-analise",
+      "heading": "Veredito e Considerações Finais",
+      "tocLabel": "Veredito Final",
+      "tocEmoji": "🏆",
+      "content": "A **Xiaomi Mi Camera 2K** reafirma o compromisso da marca em entregar tecnologia refinada por preços justos. Ao longo desta análise detalhada, ficou evidente que o dispositivo cumpre com maestria a sua proposta principal: oferecer monitoramento interno em alta definição, com excelente visão noturna, recursos inteligentes de detecção e um ecossistema de software maduro.\n\nA superioridade da resolução 2K em relação aos modelos Full HD tradicionais é um ganho real e perceptível no dia a dia, facilitando a identificação de detalhes importantes nas gravações. A facilidade de instalação através da base magnética e a integração fluida com o aplicativo Mi Home tornam a experiência de uso agradável mesmo para quem não tem familiaridade avançada com tecnologia.\n\nEmbora existam limitações pontuais, como a ausência de motorização para rotação completa de 360 graus e a restrição ao uso estritamente interno, essas características são perfeitamente justificadas pela faixa de preço sugerida de R$ 219,90, que posiciona o produto como um dos reis do custo-benefício na categoria.\n\n> 'Se você procura uma câmera de segurança interna confiável, moderna, com imagem nítida e suporte a assistentes de voz, a Xiaomi Mi Camera 2K é uma escolha sem erro em 2026.'\n\nCom nota técnica sólida e recomendação entusiasta da nossa redação especializada, este modelo garante tranquilidade e segurança para o seu lar sem pesar no bolso."
+    }
+  ],
+  "slug": "xiaomi-mi-camera-2k",
+  "product": "Xiaomi Mi Camera 2K",
+  "category": "Câmeras de Segurança",
+  "affiliate_url": "https://meli.la/19FuEsY",
+  "image_url": "https://http2.mlstatic.com/D_NQ_NP_784660-MLB83249400138_042025-O.webp",
+  "price_new": "R$ 219,90",
+  "status": "published",
+  "marketplace": "mercadolivre",
+  "ads_enabled": true,
+  "schema_rating_value": 4.3,
+  "schema_review_count": 1,
+  "totalChars": 17970
+}

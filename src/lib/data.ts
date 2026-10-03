@@ -4,6 +4,7 @@ import {
   getAllViralArticles,
   getViralArticleBySlug,
   getCategories,
+  getSupabaseClient,
 } from './supabase';
 import { reviews as staticReviews } from '@/data/reviews';
 import type { Review, ViralArticle, Category } from './types';
@@ -63,11 +64,8 @@ export async function fetchAllReviews(): Promise<Review[]> {
 }
 
 export async function fetchReviewBySlug(slug: string): Promise<Review | null> {
-  try {
-    const review = await getReviewBySlug(slug);
-    if (review) return review;
-  } catch {
-    // Supabase not available
+  if (getSupabaseClient()) {
+    return getReviewBySlug(slug);
   }
   const staticReview = staticReviews.find((r) => r.slug === slug);
   if (!staticReview) return null;

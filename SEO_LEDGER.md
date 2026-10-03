@@ -26,6 +26,9 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 - [x] **P0-7** Unificar www em `src/`, `tmp/`, `scripts/` ✅ 2026-09-23 — **follow-up:** confirmar `NEXT_PUBLIC_SITE_URL` no Vercel
 - [x] **P0-8** Remover 3 font preloads hardcoded de `layout.tsx` ✅ 2026-09-23
 - [x] **P0-9** Homepage `revalidate = 300` ✅ 2026-09-23
+- [x] **P0-10** Reviews-spam com slug/título-lixo publicadas e linkadas na home (ex.: `20-mais-vendidor-669r-4965225-offfrete-grtis-...` → title `20º MAIS VENDIDOR$ 669R$ 4965225% OFFFrete grátis…`, sem `noindex`) → despublicar ou `noindex` + tirar do feed da home + normalizar slugs restantes com 301 📅 2026-10-01 — verificado em produção; lição memória #6 (regex de vitrine)
+  - **done 2026-10-01:** 5 reviews → `draft` (2 spam + 3 finas de P1-8; backup `tmp/backup-p0-10-2026-10-01.json`); 2 × 301 em `next.config.ts` → `/reviews/categoria`; **bugfix `src/lib/data.ts`: `fetchReviewBySlug` só cai no fallback estático se o Supabase não estiver configurado** (antes `staticReviews` renderizava `airpods-pro-2`/`redmi-watch-5` mesmo com draft → 200). Evidência prod: spam 308→200, drafts 404, home 0 links alvo, sitemap 0 URLs exatas, publicada (`eufy`) 200. Categoria `Eletrônicos` ficou vazia (só as 2 spam tinham) → hub 404 correto.
+  - **novo achado:** categorias duplicadas por caixa/acentos (`Eletroportateis`/`Eletroportáteis`, `Wearables`/`Wearables / Smartbands`, `Acessorios Gamer`/`Acessórios para Games`, `Mercado Livre Frete Grátis`/`mercado livre frete gratis`) → hub interno dividido.
 
 ### P1 — Schema & dados estruturados
 
@@ -36,6 +39,10 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 - [x] **P1-5** SearchAction removido do WebSite schema (sem rota `/search`) ✅ 2026-09-23
 - [x] **P1-6** `generateMetadata.ts` mortos deletados (×2) ✅ 2026-09-23
 - [x] **P1-7** Comparativo 404 → `notFound()` ✅ 2026-09-23
+- [x] **P1-8** 5 reviews finas <300 chars (`airpods-pro-2`, `redmi-watch-5`, `sony-wf-1000xm5`, 2 de marketplace) → gerar 1.500+ palavras com seções padrão (design/desempenho/bateria/prós-contras/veredito) — rewrite pula por design; precisa de geração 📅 2026-10-01 — risco Helpful Content
+  - **done 2026-10-01 (mudança de premissa, decisão do usuário):** os 3 finos eram **duplicatas do mesmo produto** de reviews já publicadas (`airpods-pro-2-review-2026`, `xiaomi-redmi-watch-5`, `sony-wf-1000xm5-fone-anc-premium`) → gerar conteúdo criaria canibalização. Resolvido com **301** (3 regras em `next.config.ts`) em vez de geração; as 2 finas de marketplace já resolvidas no P0-10 (301 → `/reviews/categoria`). Evidência prod: 3 cadeias 308 → 200 nas publicadas do mesmo produto. Não republicar estes slugs.
+- [x] **P1-9** Home sem `<img>` no HTML (0 imgs vs 31 links; reviews têm `SafeImage`+`_next/image`) → investigar feed/`ReviewCard` (imageUrl ausente?) para descoberta de imagem 📅 2026-10-01
+  - **done 2026-10-01:** causa = a home **não usa `ReviewCard`**; seus blocos (`home-feature`, `home-review-main/small`, `pick`) eram só texto. Adicionado `SafeImage`+`safeImageSrc` em 7 pontos (featured, main, 2 thumbs, 3 picks) com `aspect-ratio` fixo (zero CLS) + `sizes`. Evidência prod: home SSR com **7 `<img>`** (era 0), todas → 200. **Não é bug de dados:** 137/137 publicadas têm `image_url`. Follow-ups: (a) 8/137 publicadas com `image_url` = placeholder (ex.: `apple-watch-series-9`) → completar imagem no CMS; (b) listagens `/reviews`, tags e categorias seguem sem `<img>` (só texto) → estender imagem ao `ReviewCard` se valer.
 
 ### P2 — Arquitetura de conteúdo
 
@@ -44,6 +51,9 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 - [x] **P2-3** RSS `/feed.xml` (20 items, link no layout) ✅ 2026-09-23
 - [x] **P2-4** Author pages `/author/[slug]` (E-A-T) ✅ 2026-09-23
 - [x] **P2-5** Tag pages (se fizer sentido com dados) ✅ 2026-09-23 — 90 tags com ≥2 reviews a partir de `meta_keywords`
+- [ ] **P2-6** `author: Person` no JSON-LD das reviews (páginas de autor existem; auditor não detectou author no schema) + conferir `datePublished`/`dateModified` (AW9 saiu vazio) 📅 2026-10-01 — E-E-A-T
+- [ ] **P2-7** Política de refresh de artigos antigos (AW9 rebrand "2026"): `dateModified` real ou URL nova, evitar duplicação com guias "melhores … 2026"; title AW9 com marca duplicada (`| Vetor Blog | vetor.blog`) 📅 2026-10-01
+- [ ] **P2-8** Categorias duplicadas por caixa/acentos (`Eletroportateis`/`Eletroportáteis`, `Wearables`/`Wearables / Smartbands`, `Acessorios Gamer`/`Acessórios para Games`, `Mercado Livre Frete Grátis`/`mercado livre frete gratis`) → hubs internos divididos, contagens/fracasso de internal link 📅 2026-10-01 — normalizar `reviews.category` + 301 dos hubs antigos
 
 ### P3 — Pipeline de escala com qualidade
 
@@ -144,3 +154,8 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 - **Diagnóstico:** projeto `vetor-blog` (dono de `www.vetor.blog`) conectado ao repo morto `Vetor.blog` (último push mai/2026); pushes no repo ativo `Vetor` buildavam no projeto legado `vetor` (`vetor-pi.vercel.app`)
 - **Fix via CLI:** `vercel git connect https://github.com/carloshbhb/Vetor.git` no `vetor-blog` + `vercel git disconnect` no `vetor` (fim dos builds duplicados)
 - Deploy de teste deste commit deve disparar auto-deploy em `vetor-blog`
+
+### Ciclo 9 — 2026-10-01 (Auditoria externa → backlog)
+- **Confirmado:** slug/título-lixo publicado e linkado na home (→ P0-10) · home sem `<img>` no HTML (→ P1-9) · 5 reviews finas (→ P1-8) · author/Person não detectado no schema + datas vazias AW9 (→ P2-6) · rebadge de ano AW9 (→ P2-7)
+- **Refutado:** "home com apenas 3 links / JS-renderizada" — produção tem **31 `<a>`** server-rendered com cards de artigo no HTML inicial
+- **Métricas:** zero sessões orgânicas 56d (`metrics/SUMMARY.md`) → prioridade em base/indexação (P0/P1), não em P4

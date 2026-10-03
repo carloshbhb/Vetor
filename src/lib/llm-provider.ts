@@ -53,7 +53,7 @@ function createGroqProvider(): LLMProvider | null {
     baseURL: 'https://api.groq.com/openai/v1',
   });
 
-  return { client, model: 'groq/compound', provider: 'groq' };
+  return { client, model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b', provider: 'groq' };
 }
 
 function createOpenAIProvider(): LLMProvider | null {
@@ -65,11 +65,28 @@ function createOpenAIProvider(): LLMProvider | null {
   return { client, model: 'gpt-4o', provider: 'openai' };
 }
 
+function createNvidiaProvider(): LLMProvider | null {
+  const apiKey = process.env.NVIDIA_API_KEY;
+  if (!apiKey) return null;
+
+  const client = new OpenAI({
+    apiKey,
+    baseURL: 'https://integrate.api.nvidia.com/v1',
+  });
+
+  return {
+    client,
+    model: process.env.NVIDIA_MODEL || 'meta/muse-glimmer-30b',
+    provider: 'nvidia',
+  };
+}
+
 const providerFactories = [
   createOpenRouterProvider,
   createGeminiProvider,
   createGroqProvider,
   createOpenAIProvider,
+  createNvidiaProvider,
 ];
 
 let cachedProvider: LLMProvider | null = null;
@@ -97,9 +114,11 @@ export async function chatCompletion(params: {
   temperature?: number;
   maxTokens?: number;
   responseFormat?: { type: 'json_object' };
+  model?: string;
 }): Promise<string> {
   const provider = getLLMProvider();
-  const { client, model } = provider;
+  const { client } = provider;
+  const model = params.model || provider.model;
 
   const createParams: {
     model: string;
