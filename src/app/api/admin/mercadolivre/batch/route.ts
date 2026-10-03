@@ -4,7 +4,7 @@ import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 import { searchMercadoLivreProduct } from "@/lib/mercadolivre-search";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const SITE_ID = "MLB";
 
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     body = {};
   }
 
-  const limit = Math.min(Math.max(Number(body.limit || 8), 1), 12);
+  const limit = Math.min(Math.max(Number(body.limit || 8), 1), 20);
   const refresh = Boolean(body.refresh);
 
   const [{ data: links, error: linksError }, { data: matches, error: matchesError }] = await Promise.all([
