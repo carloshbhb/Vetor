@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { BreadcrumbSchema } from "@/components/SchemaMarkup";
 
 export const metadata: Metadata = {
   title: "Política editorial — Vetor.blog",
   description:
     "Independência, correções, uso de dados e limites do conteúdo: a política editorial do Vetor.blog.",
-  alternates: { canonical: "https://www.vetor.blog/politica-editorial" },
+  alternates: { canonical: "/politica-editorial/" },
 };
 
 export default function PoliticaEditorialPage() {
   return (
+    <BreadcrumbSchema items={[{ name: 'Início', url: 'https://www.vetor.blog/' }, { name: 'Política editorial', url: 'https://www.vetor.blog/politica-editorial/' }]} />
     <main id="conteudo">
       <section className="hero">
         <div className="container">
