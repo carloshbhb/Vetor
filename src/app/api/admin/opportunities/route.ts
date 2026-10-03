@@ -92,6 +92,9 @@ export async function GET(request: Request) {
   const published = reviews.filter((review) => review.status === "published");
   const guides = buildBuyingGuideCategories(reviews, 3);
   const intents = buildBuyingIntentPages(reviews, 4);
+  const intentSet = new Set(
+    intents.map((item) => item.categorySlug + ":" + item.intent)
+  );
 
   const querySummary = new Map<string, SummaryItem>();
   const pageSummary = new Map<string, SummaryItem>();
