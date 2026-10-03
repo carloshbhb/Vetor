@@ -1,12 +1,14 @@
 /**
  * Mercado Livre OAuth 2.0 Authentication
- * Documentation: https://developers.mercadolivre.com.br/en_us/authentication-and-authorization
+ * Documentation: https://developers.mercadolivre.com.br/pt_br/mensagens-post-venda/autenticacao-e-autorizacao
  */
 
-import { getSupabaseServiceKeyClient } from './supabase';
+import { randomBytes, timingSafeEqual } from "node:crypto";
+import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 
-const ML_AUTH_URL = 'https://auth.mercadolivre.com.br';
-const ML_TOKEN_URL = 'https://api.mercadolibre.com/oauth/token';
+const ML_AUTH_URL = "https://auth.mercadolivre.com.br";
+const ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token";
+export const ML_OAUTH_STATE_COOKIE = "vetor_ml_oauth_state";
 
 export interface MLTokenResponse {
   access_token: string;
@@ -25,26 +27,36 @@ export interface MLSession {
   scope?: string;
 }
 
-/**
- * Generate the authorization URL for OAuth 2.0 flow
- */
-export function getAuthorizationUrl(redirectUri: string): string {
+export function getMercadoLivreRedirectUri(): string {
+  const value = process.env.ML_REDIRECT_URI?.trim();
+  return value || "https://www.vetor.blog/api/ml/callback";
+}
+
+export function createOAuthState(): string {
+  return randomBytes(32).toString("hex");
+}
+
+export function safeCompareState(received: string, expected: string): boolean {
+  const left = Buffer.from(received);
+  const right = Buffer.from(expected);
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
+export function getAuthorizationUrl(redirectUri: string, state: string): string {
   const clientId = process.env.ML_CLIENT_ID;
-  const state = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+  if (!clientId) throw new Error("ML_CLIENT_ID must be set.");
 
   const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: clientId || '',
+    response_type: "code",
+    client_id: clientId,
     redirect_uri: redirectUri,
     state,
   });
 
-  return `${ML_AUTH_URL}/authorization?${params.toString()}`;
+  return ML_AUTH_URL + "/authorization?" + params.toString();
 }
 
-/**
- * Exchange authorization code for access token
- */
 export async function exchangeCodeForToken(
   code: string,
   redirectUri: string
@@ -53,213 +65,163 @@ export async function exchangeCodeForToken(
   const clientSecret = process.env.ML_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    throw new Error('ML_CLIENT_ID and ML_CLIENT_SECRET must be set');
+    throw new Error("ML_CLIENT_ID and ML_CLIENT_SECRET must be set");
   }
 
-  console.log('[ML Auth] Exchanging code for token...');
-  const credentials = btoa(`${clientId}:${clientSecret}`);
+  const credentials = btoa(clientId + ":" + clientSecret);
   const response = await fetch(ML_TOKEN_URL, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
-      'Authorization': `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+      Authorization: "Basic " + credentials,
     },
     body: new URLSearchParams({
-      grant_type: 'authorization_code',
+      grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,
     }),
+    cache: "no-store",
   });
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Failed to exchange code: ${response.status} - ${error}`);
+    throw new Error("Failed to exchange code: " + response.status + " - " + error);
   }
 
-  const data = await response.json();
-  // ML sometimes omits refresh_token on first exchange
-  if (!data.refresh_token) {
-    console.warn('[ML Auth] No refresh_token in token response');
-    data.refresh_token = '';
-  }
+  const data = (await response.json()) as MLTokenResponse;
+  if (!data.refresh_token) data.refresh_token = "";
   return data;
 }
 
-/**
- * Refresh an expired access token
- */
 export async function refreshAccessToken(refreshToken: string): Promise<MLTokenResponse> {
   const clientId = process.env.ML_CLIENT_ID;
   const clientSecret = process.env.ML_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    throw new Error('ML_CLIENT_ID and ML_CLIENT_SECRET must be set');
+    throw new Error("ML_CLIENT_ID and ML_CLIENT_SECRET must be set");
   }
 
-  const credentials = btoa(`${clientId}:${clientSecret}`);
+  const credentials = btoa(clientId + ":" + clientSecret);
   const response = await fetch(ML_TOKEN_URL, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
-      'Authorization': `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+      Authorization: "Basic " + credentials,
     },
     body: new URLSearchParams({
-      grant_type: 'refresh_token',
+      grant_type: "refresh_token",
       refresh_token: refreshToken,
     }),
+    cache: "no-store",
   });
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Failed to refresh token: ${response.status} - ${error}`);
+    throw new Error("Failed to refresh code: " + response.status + " - " + error);
   }
 
-  return response.json();
+  return (await response.json()) as MLTokenResponse;
 }
 
-/**
- * Fetch user ID from ML API using access token
- */
 async function fetchUserId(accessToken: string): Promise<number | null> {
   try {
-    console.log('[ML Auth] Fetching user ID from API...');
-    const response = await fetch('https://api.mercadolibre.com/users/me', {
+    const response = await fetch("https://api.mercadolibre.com/users/me", {
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
+        Authorization: "Bearer " + accessToken,
+        Accept: "application/json",
       },
+      cache: "no-store",
     });
 
-    if (!response.ok) {
-      console.error('[ML Auth] Failed to fetch user ID:', response.status, await response.text());
-      return null;
-    }
-
+    if (!response.ok) return null;
     const data = await response.json();
-    console.log('[ML Auth] Got user ID:', data.id);
-    return data.id;
-  } catch (error) {
-    console.error('[ML Auth] Error fetching user ID:', error);
+    return data.id == null ? null : Number(data.id);
+  } catch {
     return null;
   }
 }
 
-/**
- * Save session to Supabase
- */
 export async function saveSession(tokenResponse: MLTokenResponse): Promise<MLSession> {
   let userId = tokenResponse.user_id;
-
-  // If user_id not in token response, fetch it from API
-  if (!userId) {
-    userId = await fetchUserId(tokenResponse.access_token) || undefined;
-  }
+  if (!userId) userId = (await fetchUserId(tokenResponse.access_token)) || undefined;
 
   const session: MLSession = {
     accessToken: tokenResponse.access_token,
-    refreshToken: tokenResponse.refresh_token || '',
+    refreshToken: tokenResponse.refresh_token || "",
     expiresAt: Date.now() + tokenResponse.expires_in * 1000,
     userId,
     scope: tokenResponse.scope,
   };
 
-  if (session.userId) {
-    console.log('[ML Auth] Saving session for user:', session.userId);
-    const supabase = getSupabaseServiceKeyClient();
-    if (!supabase) {
-      throw new Error('[ML Auth] Supabase client not available');
-    }
-    const { data, error } = await supabase
-      .from('ml_tokens')
-      .upsert({
-        user_id: session.userId,
-        access_token: session.accessToken,
-        refresh_token: session.refreshToken || '',
-        expires_at: new Date(session.expiresAt).toISOString(),
-        scope: session.scope || null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' })
-      .select();
-
-    if (error) {
-      console.error('[ML Auth] Failed to save session to Supabase:', JSON.stringify(error));
-      throw new Error(`Failed to save ML session: ${error.message}`);
-    }
-    console.log('[ML Auth] Session saved to Supabase for user:', session.userId);
-  } else {
-    console.error('[ML Auth] Could not determine user ID');
-    throw new Error('[ML Auth] Could not determine ML user ID');
+  if (!session.userId) {
+    throw new Error("Could not determine ML user ID");
   }
 
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) throw new Error("Supabase client not available");
+
+  const { error } = await supabase.from("ml_tokens").upsert({
+    user_id: session.userId,
+    access_token: session.accessToken,
+    refresh_token: session.refreshToken,
+    expires_at: new Date(session.expiresAt).toISOString(),
+    scope: session.scope || null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id" });
+
+  if (error) throw new Error("Failed to save ML session: " + error.message);
   return session;
 }
 
-/**
- * Load session from Supabase
- */
 async function loadSessionFromSupabase(): Promise<MLSession | null> {
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('ml_tokens')
-    .select('*')
-    .order('updated_at', { ascending: false })
+    .from("ml_tokens")
+    .select("*")
+    .order("updated_at", { ascending: false })
     .limit(1)
     .single();
 
-  if (error || !data) {
-    return null;
-  }
+  if (error || !data) return null;
 
   return {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token || '',
-    expiresAt: new Date(data.expires_at).getTime(),
-    userId: data.user_id,
-    scope: data.scope || undefined,
+    accessToken: String(data.access_token),
+    refreshToken: String(data.refresh_token || ""),
+    expiresAt: new Date(String(data.expires_at)).getTime(),
+    userId: data.user_id == null ? undefined : Number(data.user_id),
+    scope: data.scope ? String(data.scope) : undefined,
   };
 }
 
-/**
- * Get valid access token (refreshes if needed)
- */
 export async function getValidAccessToken(): Promise<string> {
-  // Try to load from Supabase if no in-memory session
-  let session = await loadSessionFromSupabase();
+  const session = await loadSessionFromSupabase();
 
   if (!session) {
-    throw new Error('No ML session available. Please complete OAuth flow first.');
+    throw new Error("No ML session available. Please complete OAuth flow first.");
   }
 
-  // Check if token is expired (with 5 min buffer)
-  if (Date.now() > session.expiresAt - 5 * 60 * 1000) {
-    if (!session.refreshToken) {
-      throw new Error('ML access token expired and no refresh_token available. Please re-authorize.');
-    }
-    console.log('[ML Auth] Token expired, refreshing...');
-    const tokenResponse = await refreshAccessToken(session.refreshToken);
-    const newSession = await saveSession(tokenResponse);
-    return newSession.accessToken;
+  if (Date.now() <= session.expiresAt - 5 * 60 * 1000) {
+    return session.accessToken;
   }
 
-  return session.accessToken;
+  if (!session.refreshToken) {
+    throw new Error("ML access token expired and no refresh_token is available. Please re-authorize.");
+  }
+
+  const tokenResponse = await refreshAccessToken(session.refreshToken);
+  return (await saveSession(tokenResponse)).accessToken;
 }
 
-/**
- * Check if we have a valid session
- */
 export async function hasValidSession(): Promise<boolean> {
   const session = await loadSessionFromSupabase();
   if (!session) return false;
   return Date.now() < session.expiresAt - 5 * 60 * 1000;
 }
 
-/**
- * Get current session info
- */
 export async function getSessionInfo(): Promise<MLSession | null> {
   return loadSessionFromSupabase();
 }
