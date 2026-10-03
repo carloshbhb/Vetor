@@ -139,12 +139,7 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
       '@type': 'Offer',
       price,
       priceCurrency: 'BRL',
-      ...(review.affiliate_url
-        ? {
-            url: review.affiliate_url,
-            availability: 'https://schema.org/InStock',
-          }
-        : {}),
+      ...(review.affiliate_url ? { url: review.affiliate_url } : {}),
     };
   }
 
@@ -184,17 +179,22 @@ export function generateViralArticleSchema(
           existingReviewSlugs?.has(product.slug) === false
             ? `${SITE_URL}/comparativos/${article.slug}#escolha`
             : `${SITE_URL}/reviews/${product.slug}/`;
+        const item: Record<string, unknown> = {
+          '@type': 'Product',
+          name: product.name,
+          url,
+        };
+
+        if (product.imageUrl?.trim()) {
+          item.image = product.imageUrl.startsWith('http')
+            ? product.imageUrl
+            : `${SITE_URL}${product.imageUrl}`;
+        }
+
         return {
           '@type': 'ListItem',
           position: index + 1,
-          item: {
-            '@type': 'Product',
-            name: product.name,
-            url,
-              image: product.imageUrl?.startsWith('http')
-                ? product.imageUrl
-                : `${SITE_URL}${product.imageUrl}`,
-          },
+          item,
         };
       }),
     },

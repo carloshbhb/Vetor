@@ -26,8 +26,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { category: raw } = await params;
   const category = normalizeCategoryName(safeDecode(raw));
   return {
-    title: `Melhores ${category} — Reviews e Comparativos`,
-    description: `Reviews independentes de ${category}. Análises com prós, contras, notas e links para as melhores ofertas.`,
+    title: `Reviews de ${category} — análises e comparativos`,
+    description: `Veja reviews de ${category}, com notas, prós, contras, especificações, comparativos e links para ofertas quando disponíveis.`,
     alternates: {
       canonical: `/reviews/categoria/${encodeURIComponent(category)}/`,
     },

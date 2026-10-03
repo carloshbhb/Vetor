@@ -92,6 +92,21 @@ function formatNumericPrice(value: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
+function parseOfferPrice(raw: string): number | null {
+  const cleaned = raw.replace(/[^0-9.,]/g, '').trim();
+  if (!cleaned) return null;
+
+  let normalized = cleaned;
+  if (normalized.includes(',')) {
+    normalized = normalized.replace(/\./g, '').replace(',', '.');
+  } else if (/^\d{1,3}(?:\.\d{3})+$/.test(normalized)) {
+    normalized = normalized.replace(/\./g, '');
+  }
+
+  const value = Number(normalized);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 function isFinitePrice(value: number | null | undefined): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }
@@ -140,8 +155,21 @@ export function buildMarketplaceOffers(review: Review, links: ProductLink[]): Ma
   }
 
   return offers.sort((a, b) => {
-    const aPrice = Number(a.price.replace(/[^0-9,]/g, '').replace(',', '.')) || Number.POSITIVE_INFINITY;
-    const bPrice = Number(b.price.replace(/[^0-9,]/g, '').replace(',', '.')) || Number.POSITIVE_INFINITY;
-    return aPrice - bPrice || (a.label === marketplaceLabel(review.marketplace) ? -1 : 1);
+    const aPrice = parseOfferPrice(a.price);
+    const bPrice = parseOfferPrice(b.price);
+
+    if (aPrice === null && bPrice !== null) return 1;
+    if (aPrice !== null && bPrice === null) return -1;
+    if (aPrice !== null && bPrice !== null && aPrice !== bPrice) {
+      return aPrice - bPrice;
+    }
+
+    const aPrimary = a.label === marketplaceLabel(review.marketplace);
+    const bPrimary = b.label === marketplaceLabel(review.marketplace);
+    if (aPrimary !== bPrimary) return aPrimary ? -1 : 1;
+
+    return (
+      new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime()
+    );
   });
 }

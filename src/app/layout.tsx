@@ -68,10 +68,6 @@ export default function RootLayout({
     <html lang="pt-BR" className={inter.variable}>
       <head>
         <meta name="google-site-verification" content="M3d89AYWh1qAFUV3Od0Za5Es5Ymp-4a5pyCeBvxxEOM" />
-        <meta name="geo.region" content="BR" />
-        <meta name="geo.placename" content="São Paulo" />
-        <meta name="geo.position" content="-23.5505;-46.6333" />
-        <meta name="ICBM" content="-23.5505, -46.6333" />
         <OrganizationSchema />
         <WebSiteSchema />
         <link

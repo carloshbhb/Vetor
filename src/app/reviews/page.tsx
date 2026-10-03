@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { permanentRedirect } from "next/navigation";
 import ReviewCard from "@/components/ReviewCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { ItemListSchema } from "@/components/SchemaMarkup";
-import { fetchAllReviews, fetchCategories } from "@/lib/data";
+import { fetchAllReviews, fetchCategories, normalizeCategoryName } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ interface PageProps {
 export async function generateMetadata({
   searchParams,
 }: PageProps): Promise<Metadata> {
-  const { page } = await searchParams;
+  const { page, category } = await searchParams;
   const pageNum = Number.parseInt(page ?? "1", 10);
   const safePage = Number.isNaN(pageNum) || pageNum < 1 ? 1 : pageNum;
   return {
@@ -23,6 +24,11 @@ export async function generateMetadata({
     alternates: {
       canonical: safePage > 1 ? `/reviews/?page=${safePage}` : "/reviews/",
     },
+    robots: category
+      ? { index: false, follow: true }
+      : safePage > 1
+        ? { index: false, follow: true }
+        : { index: true, follow: true },
   };
 }
 
@@ -87,6 +93,18 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
     fetchAllReviews(),
     fetchCategories(),
   ]);
+
+  if (activeCategory) {
+    const normalizedCategory = normalizeCategoryName(activeCategory);
+    const hasCanonicalCategory = categories.some(
+      (item) => item.name.toLowerCase() === normalizedCategory.toLowerCase()
+    );
+    if (hasCanonicalCategory) {
+      permanentRedirect(
+        `/reviews/categoria/${encodeURIComponent(normalizedCategory)}/`
+      );
+    }
+  }
 
   const reviews = activeCategory
     ? allReviews.filter(
