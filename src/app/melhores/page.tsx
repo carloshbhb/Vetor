@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { ItemListSchema } from '@/components/SchemaMarkup';
+import { BreadcrumbSchema, ItemListSchema } from '@/components/SchemaMarkup';
 import { fetchAllReviews } from '@/lib/data';
 import {
   buildBuyingGuideCategories,
@@ -24,6 +24,12 @@ export default async function BestProductsPage() {
 
   return (
     <>
+      <BreadcrumbSchema
+        items={[
+          { name: 'Início', url: 'https://www.vetor.blog/' },
+          { name: 'Melhores produtos', url: 'https://www.vetor.blog/melhores/' },
+        ]}
+      />
       <ItemListSchema
         items={categories.map((category) => ({
           name: 'Melhores ' + category.name,

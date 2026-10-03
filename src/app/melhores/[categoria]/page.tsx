@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { ItemListSchema } from '@/components/SchemaMarkup';
+import { BreadcrumbSchema, ItemListSchema } from '@/components/SchemaMarkup';
 import BuyingChoiceCard from '@/components/BuyingChoiceCard';
 import EditorialEvidence from '@/components/EditorialEvidence';
 import { fetchAllReviews } from '@/lib/data';
@@ -70,6 +70,13 @@ export default async function BestCategoryPage({ params }: PageProps) {
 
   return (
     <>
+      <BreadcrumbSchema
+        items={[
+          { name: 'Início', url: 'https://www.vetor.blog/' },
+          { name: 'Melhores produtos', url: 'https://www.vetor.blog/melhores/' },
+          { name: category.name, url: 'https://www.vetor.blog/melhores/' + category.slug + '/' },
+        ]}
+      />
       <ItemListSchema
         items={ranked.map((review) => ({
           name: review.product,
