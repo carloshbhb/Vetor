@@ -453,7 +453,8 @@ export default async function ReviewPage({ params }: PageProps) {
                       </details>
                     ))}
                   </div>
-  
+                </section>
+              )}
 
               <section>
                 <h2>Conclusão: {worthQuestion}</h2>
@@ -517,6 +518,12 @@ export default async function ReviewPage({ params }: PageProps) {
                     <span>Preço consultado</span>
                     <strong>{review.price_new}</strong>
                   </div>
+                )}
+                <p className="buy-card-summary">{verdictText}</p>
+                {review.updated_at && (
+                  <p className="buy-card-meta">
+                    Valor verificado em {formatDateLong(review.updated_at)}. O preço pode mudar.
+                  </p>
                 )}
                 {review.affiliate_url && (
                   <a
