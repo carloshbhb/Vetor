@@ -18,7 +18,8 @@ import AuthorBox from "@/components/AuthorBox";
 import { primaryAuthor } from "@/data/authors";
 import BuyingEngine from "@/components/BuyingEngine";
 import EditorialEvidence from "@/components/EditorialEvidence";
-import { getProductLinksByReviewSlug } from "@/lib/product-links";
+import RelatedCommercialProducts from "@/components/RelatedCommercialProducts";
+import { getProductLinksByReviewSlug, getReviewedProductLinksByCategory } from "@/lib/product-links";
 import { buildMarketplaceOffers } from "@/lib/buying";
 
 interface PageProps {
@@ -98,11 +99,26 @@ export default async function ReviewPage({ params }: PageProps) {
     ? `${review.meta_reading_time} min`
     : `${Math.max(3, Math.ceil(totalContentLength / 1000))} min`;
 
-  const [allReviews, productLinks] = await Promise.all([
+  const [allReviews, productLinks, relatedCommercialLinks] = await Promise.all([
     fetchAllReviews(),
     getProductLinksByReviewSlug(review.slug),
+    getReviewedProductLinksByCategory(review.category, review.slug, 6),
   ]);
   const buyingOffers = buildMarketplaceOffers(review, productLinks);
+  const reviewBySlug = new Map(allReviews.map((item) => [item.slug, item]));
+  const relatedCommercial = relatedCommercialLinks
+    .map((link) => ({
+      link,
+      review: link.review_slug ? reviewBySlug.get(link.review_slug) : undefined,
+    }))
+    .filter((item): item is { link: typeof relatedCommercialLinks[number]; review: Review } => Boolean(item.review))
+    .sort(
+      (a, b) =>
+        (b.review.verdict_score || b.review.hero_overall_score || 0) -
+        (a.review.verdict_score || a.review.hero_overall_score || 0) ||
+        b.link.priority - a.link.priority
+    )
+    .slice(0, 3);
   const related = allReviews
     .filter((r) => r.category === review.category && r.slug !== review.slug)
     .slice(0, 3);
@@ -391,6 +407,10 @@ export default async function ReviewPage({ params }: PageProps) {
                   </a>
                 )}
               </section>
+              )}
+
+              {!isGuia && relatedCommercial.length > 0 && (
+                <RelatedCommercialProducts items={relatedCommercial} />
               )}
 
               {!isGuia && compareRows.length > 0 && (

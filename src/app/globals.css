@@ -672,3 +672,79 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
   .buying-intent-page-intro { grid-template-columns: 1fr; padding: 20px; }
   .buying-intent-page-actions { min-width: 0; }
 }
+
+/* Ponte comercial no review: alternativas com review publicado e oferta cadastrada. */
+.related-commercial {
+  margin-top: 50px;
+  padding: 24px;
+  background: #f7f9fb;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.related-commercial > p {
+  max-width: 72ch;
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.related-commercial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.related-commercial-card {
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.related-commercial-card .tag {
+  width: fit-content;
+  margin-bottom: 9px;
+}
+.related-commercial-card h3 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  line-height: 1.18;
+}
+.related-commercial-facts {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+.related-commercial-facts span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: .74rem;
+  color: var(--muted);
+}
+.related-commercial-facts strong {
+  color: #17212d;
+  text-align: right;
+}
+.related-commercial-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: auto;
+}
+.related-commercial-review {
+  padding: 9px;
+  text-align: center;
+  text-decoration: none;
+  color: #4f5c6b;
+  font-size: .78rem;
+  font-weight: 900;
+}
+.related-commercial-actions .cta {
+  width: 100%;
+}
+@media (max-width: 980px) {
+  .related-commercial-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  .related-commercial { padding: 20px; }
+  .related-commercial-grid { grid-template-columns: 1fr; }
+}

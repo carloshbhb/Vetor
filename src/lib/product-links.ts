@@ -335,6 +335,46 @@ export async function getProductLinksStats(): Promise<{
   }
 }
 
+export async function getReviewedProductLinksByCategory(
+  category: string,
+  excludeReviewSlug?: string,
+  limit = 6
+): Promise<ProductLink[]> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return [];
+
+  try {
+    let query = supabase
+      .from('product_links')
+      .select('*')
+      .eq('category', category)
+      .eq('has_review', true)
+      .eq('status', 'reviewed')
+      .not('review_slug', 'is', null)
+      .order('priority', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .limit(Math.max(limit * 2, limit));
+
+    if (excludeReviewSlug) {
+      query = query.neq('review_slug', excludeReviewSlug);
+    }
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    const unique = new Map<string, ProductLink>();
+    for (const row of data) {
+      const link = normalizeProductLink(row);
+      if (!link.review_slug || !link.affiliate_url) continue;
+      if (!unique.has(link.review_slug)) unique.set(link.review_slug, link);
+    }
+
+    return Array.from(unique.values()).slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
 export async function getProductLinksByCategory(): Promise<
   { category: string; count: number }[]
 > {
