@@ -6,6 +6,12 @@ import { fetchSearchConsoleRows } from "@/lib/search-console";
 
 export const dynamic = "force-dynamic";
 
+type SummaryItem = {
+  impressions: number;
+  clicks: number;
+  positionWeighted: number;
+};
+
 function normalizeText(value: string): string {
   return value
     .normalize("NFD")
