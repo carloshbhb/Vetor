@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const review = await fetchReviewBySlug(slug);
   if (!review) return { title: "Review não encontrado" };
-  const url = `https://www.vetor.blog/reviews/${review.slug}`;
+  const url = `https://www.vetor.blog/reviews/${review.slug}/`;
   const title = review.meta_title || `Review: ${review.product}`;
   const description =
     review.meta_description ||
@@ -141,8 +141,8 @@ export default async function ReviewPage({ params }: PageProps) {
       <BreadcrumbSchema
         items={[
           { name: "Início", url: "https://www.vetor.blog/" },
-          { name: "Reviews", url: "https://www.vetor.blog/reviews" },
-          { name: review.product, url: `https://www.vetor.blog/reviews/${review.slug}` },
+          { name: "Reviews", url: "https://www.vetor.blog/reviews/" },
+          { name: review.product, url: `https://www.vetor.blog/reviews/${review.slug}/` },
         ]}
       />
 
