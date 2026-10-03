@@ -362,3 +362,47 @@ $$;
 revoke execute on function public.increment_affiliate_link_click(uuid) from public, anon, authenticated;
 grant execute on function public.increment_affiliate_link_click(uuid) to service_role;
 
+
+
+-- Mercado Livre match and affiliate generation queue
+CREATE TABLE IF NOT EXISTS public.affiliate_link_ml_matches (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  affiliate_link_id uuid UNIQUE NOT NULL REFERENCES public.affiliate_links(id) ON DELETE CASCADE,
+  search_query text NOT NULL,
+  marketplace_site text NOT NULL DEFAULT 'MLB',
+  matched_item_id text,
+  matched_product_id text,
+  matched_title text,
+  matched_url text,
+  sold_quantity integer,
+  rank_position integer,
+  match_score numeric(6,5),
+  match_status text NOT NULL DEFAULT 'pending'
+    CHECK (match_status IN ('pending','matched','review','no_match','error')),
+  checked_at timestamptz,
+  error_message text,
+  candidate_data jsonb NOT NULL DEFAULT '[]'::jsonb,
+  affiliate_generation_status text NOT NULL DEFAULT 'pending'
+    CHECK (affiliate_generation_status IN ('pending','generated','applied','skipped')),
+  generated_affiliate_url text,
+  generated_at timestamptz,
+  generation_notes text,
+  previous_destination_url text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.affiliate_link_ml_matches ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.affiliate_link_ml_matches FROM anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.affiliate_link_ml_matches TO service_role;
+
+CREATE INDEX IF NOT EXISTS affiliate_link_ml_matches_status_idx
+  ON public.affiliate_link_ml_matches (match_status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS affiliate_link_ml_matches_sold_idx
+  ON public.affiliate_link_ml_matches (sold_quantity DESC NULLS LAST);
+CREATE INDEX IF NOT EXISTS affiliate_link_ml_matches_checked_idx
+  ON public.affiliate_link_ml_matches (checked_at DESC);
+CREATE INDEX IF NOT EXISTS affiliate_link_ml_matches_affiliate_status_idx
+  ON public.affiliate_link_ml_matches (affiliate_generation_status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS affiliate_link_ml_matches_query_idx
+  ON public.affiliate_link_ml_matches (search_query);
