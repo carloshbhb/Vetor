@@ -5,6 +5,7 @@ import {
   syncSeoActions,
   updateSeoActionStatus,
   updateSeoActionImpact,
+  markMissingSeoActionsResolved,
   type SeoActionInput,
   type SeoActionStatus,
   type SeoActionRecord,
@@ -199,6 +200,7 @@ export async function POST(request: NextRequest) {
     })).filter((item: SeoActionInput) => item.type && item.title && item.detail);
 
     const synced = await syncSeoActions(actions);
+    const resolved = await markMissingSeoActionsResolved(actions.map((action) => action.fingerprint || ""));
     const history = await listSeoActions();
     return NextResponse.json({ synced: synced.length, history });
   } catch (error) {

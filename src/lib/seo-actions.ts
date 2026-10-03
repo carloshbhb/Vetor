@@ -44,6 +44,9 @@ export type SeoActionRecord = SeoActionInput & {
   impact_status: "waiting" | "measured" | "no_data" | null;
   impact_period_days: number | null;
   impact_measured_at: string | null;
+  cycle_status: "new" | "active" | "persistent" | "recurring" | "resolved_signal" | "waiting_impact";
+  recurrence_count: number;
+  resolved_signal_at: string | null;
 };
 
 export function createSeoActionFingerprint(action: Pick<SeoActionInput, "type" | "detail" | "href">): string {
@@ -90,6 +93,17 @@ function toRecord(row: Record<string, unknown>): SeoActionRecord {
         : null,
     impact_period_days: row.impact_period_days == null ? null : Number(row.impact_period_days),
     impact_measured_at: row.impact_measured_at ? String(row.impact_measured_at) : null,
+    cycle_status:
+      row.cycle_status === "new" ||
+      row.cycle_status === "active" ||
+      row.cycle_status === "persistent" ||
+      row.cycle_status === "recurring" ||
+      row.cycle_status === "resolved_signal" ||
+      row.cycle_status === "waiting_impact"
+        ? row.cycle_status
+        : "active",
+    recurrence_count: Number(row.recurrence_count || 0),
+    resolved_signal_at: row.resolved_signal_at ? String(row.resolved_signal_at) : null,
   };
 }
 
@@ -117,6 +131,18 @@ export async function syncSeoActions(actions: SeoActionInput[]): Promise<SeoActi
   const rows = normalized.map((action) => {
     const old = existingMap.get(action.fingerprint);
     const oldStatus = String(old?.status || "open") as SeoActionStatus;
+    const oldCycle = String(old?.cycle_status || "active");
+    const oldLastSeen = old?.last_seen_at ? new Date(String(old.last_seen_at)) : null;
+    const nowDate = new Date(now);
+    const gapDays = oldLastSeen && !Number.isNaN(oldLastSeen.getTime())
+      ? Math.floor((nowDate.getTime() - oldLastSeen.getTime()) / 86400000)
+      : 0;
+    const recurrence = gapDays >= 14 && (oldCycle === "resolved_signal" || oldStatus === "done" || oldStatus === "dismissed");
+    const cycleStatus = recurrence
+      ? "recurring"
+      : oldStatus === "done"
+        ? "persistent"
+        : oldCycle || "active";
     return {
       fingerprint: action.fingerprint,
       signal_type: action.type,
@@ -133,7 +159,10 @@ export async function syncSeoActions(actions: SeoActionInput[]): Promise<SeoActi
       notes: String(old?.notes || ""),
       first_seen_at: String(old?.first_seen_at || now),
       last_seen_at: now,
-      completed_at: old?.completed_at || null,
+      completed_at: recurrence ? null : old?.completed_at || null,
+      cycle_status: cycleStatus,
+      recurrence_count: Number(old?.recurrence_count || 0) + (recurrence ? 1 : 0),
+      resolved_signal_at: recurrence ? null : old?.resolved_signal_at || null,
       updated_at: now,
     };
   });
@@ -221,4 +250,31 @@ export async function updateSeoActionImpact(
     .maybeSingle();
   if (error) throw error;
   return data ? toRecord(data as Record<string, unknown>) : null;
+}
+
+
+export async function markMissingSeoActionsResolved(
+  activeFingerprints: string[]
+): Promise<number> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return 0;
+  const { data, error } = await supabase
+    .from("seo_action_history")
+    .select("id, fingerprint, status, cycle_status")
+    .not("status", "in", "(done,dismissed)");
+  if (error) throw error;
+  const active = new Set(activeFingerprints);
+  const missing = (data || []).filter((row) => !active.has(String(row.fingerprint)));
+  if (!missing.length) return 0;
+  const now = new Date().toISOString();
+  const { error: updateError } = await supabase
+    .from("seo_action_history")
+    .update({
+      cycle_status: "resolved_signal",
+      resolved_signal_at: now,
+      updated_at: now,
+    })
+    .in("id", missing.map((row) => String(row.id)));
+  if (updateError) throw updateError;
+  return missing.length;
 }
