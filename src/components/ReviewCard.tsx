@@ -1,4 +1,5 @@
 import SafeImage from "./SafeImage";
+import { safeImageSrc } from "@/lib/images";
 import Link from "next/link";
 import type { Review } from "@/lib/types";
 
@@ -7,11 +8,20 @@ export default function ReviewCard({ review }: { review: Review; featured?: bool
 
   return (
     <Link
-      href={`/reviews/${review.slug}`}
+      href={`/reviews/${review.slug}/`}
       className="home-card"
       data-hover={JSON.stringify({ "border-color": "#cbd3dc" })}
       data-hover-base={JSON.stringify({ "border-color": "var(--line)" })}
     >
+      <SafeImage
+        src={safeImageSrc(review.image_url)}
+        width={600}
+        height={400}
+        alt={review.product + ": foto do produto analisado"}
+        sizes="(max-width: 768px) 100vw, 33vw"
+        loading="lazy"
+        className="review-card-img"
+      />
       <span className="home-card-label">{review.category}</span>
       <h3>{review.product}</h3>
       <p>{review.hero_lead || review.meta_description}</p>
