@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "Guias de compra: qual escolher em 2026",
   description:
     "Guias do Vetor.blog para diferentes necessidades, orçamentos e critérios de compra. Conteúdo amplo que leva aos reviews e comparativos.",
-  alternates: { canonical: "https://www.vetor.blog/guias" },
+  alternates: { canonical: "https://www.vetor.blog/guias/" },
   openGraph: {
     title: "Guias de compra: qual escolher em 2026",
     description: "Critérios, perfis e alternativas antes de comprar.",
@@ -33,7 +33,7 @@ export default async function GuiasPage() {
       <ItemListSchema
         items={guias.map((g) => ({
           name: g.product,
-          url: `https://www.vetor.blog/reviews/${g.slug}`,
+          url: `https://www.vetor.blog/reviews/${g.slug}/`,
         }))}
       />
       <main id="conteudo">
