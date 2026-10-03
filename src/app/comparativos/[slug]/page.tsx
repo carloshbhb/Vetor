@@ -160,7 +160,7 @@ export default async function ViralArticlePage({ params }: PageProps) {
         <ItemListSchema
           items={reviewed.map((e) => ({
             name: e.product.name,
-            url: \`/reviews/\${e.review.slug}/\`,
+            url: `/reviews/${e.review.slug}/`,
           }))}
         />
       )}
@@ -329,11 +329,11 @@ export default async function ViralArticlePage({ params }: PageProps) {
                     </div>
                     <div className="compare-context-links">
                       {reviewed.map((e) => (
-                        <Link key={e.review.slug} href={\`/reviews/\${e.review.slug}/\`}>
+                        <Link key={e.review.slug} href={`/reviews/${e.review.slug}/`}>
                           {e.product.name} <span>→</span>
                         </Link>
                       ))}
-                      <Link href={\`/reviews/categoria/\${encodeURIComponent(article.category)}/\`}>
+                      <Link href={`/reviews/categoria/${encodeURIComponent(article.category)}/`}>
                         Mais reviews de {article.category} <span>→</span>
                       </Link>
                     </div>
