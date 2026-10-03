@@ -14,8 +14,12 @@ function base64Url(value: string | Buffer): string {
   return Buffer.from(value).toString("base64url");
 }
 
+function getServiceAccountEmail(): string | undefined {
+  return process.env.GSC_CLIENT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+}
+
 async function getAccessToken(): Promise<string | null> {
-  const email = process.env.GSC_CLIENT_EMAIL;
+  const email = getServiceAccountEmail();
   const privateKey = process.env.GSC_PRIVATE_KEY?.replace(/\\n/g, "\n");
   if (!email || !privateKey) return null;
 
@@ -65,7 +69,8 @@ export async function fetchSearchConsoleRows(): Promise<{
   error?: string;
 }> {
   const siteUrl = process.env.GSC_SITE_URL;
-  const configured = Boolean(siteUrl && process.env.GSC_CLIENT_EMAIL && process.env.GSC_PRIVATE_KEY);
+  const email = getServiceAccountEmail();
+  const configured = Boolean(siteUrl && email && process.env.GSC_PRIVATE_KEY);
   const endDate = dateDaysAgo(2);
   const startDate = dateDaysAgo(29);
 
