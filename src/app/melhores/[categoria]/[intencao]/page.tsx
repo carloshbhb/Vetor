@@ -152,7 +152,7 @@ export default async function BuyingIntentPage({ params }: PageProps) {
 
             <div className="buying-choice-grid">
               {page.reviews.map((review, index) => (
-                <BuyingChoiceCard key={review.slug} review={review} rank={index + 1} />
+                <BuyingChoiceCard key={review.slug} review={review} rank={index + 1} intent={page.intent} />
               ))}
             </div>
 

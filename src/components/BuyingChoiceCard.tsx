@@ -2,7 +2,7 @@ import Link from 'next/link';
 import SafeImage from './SafeImage';
 import { safeImageSrc } from '@/lib/images';
 import type { Review } from '@/lib/types';
-import { marketplaceLabel, reviewScore } from '@/lib/buying';
+import { getBuyingIntentLabel, marketplaceLabel, reviewScore, type BuyingIntent } from '@/lib/buying';
 
 const br = (n: number) => String(n).replace('.', ',');
 
@@ -12,9 +12,16 @@ export default function BuyingChoiceCard({
 }: {
   review: Review;
   rank: number;
+  intent?: BuyingIntent;
 }) {
   const score = reviewScore(review);
-  const label = rank === 1 ? 'Destaque da seleção' : rank === 2 ? 'Alternativa em destaque' : 'Outra opção';
+  const label = intent
+    ? `${getBuyingIntentLabel(intent)} · posição ${rank}`
+    : rank === 1
+      ? 'Destaque da seleção'
+      : rank === 2
+        ? 'Alternativa em destaque'
+        : 'Outra opção';
   const canBuy = Boolean(review.affiliate_url);
 
   return (
@@ -49,7 +56,7 @@ export default function BuyingChoiceCard({
             <a
               className="cta"
               href={'/go/' + review.slug + '/'}
-              data-aff-pos={'melhores-' + rank}
+              data-aff-pos={'melhores-' + (intent || 'geral') + '-' + rank}
               target="_blank"
               rel="sponsored nofollow noopener"
             >

@@ -19,8 +19,9 @@ import { primaryAuthor } from "@/data/authors";
 import BuyingEngine from "@/components/BuyingEngine";
 import EditorialEvidence from "@/components/EditorialEvidence";
 import RelatedCommercialProducts from "@/components/RelatedCommercialProducts";
+import ReviewPurchaseIntentLinks from "@/components/ReviewPurchaseIntentLinks";
 import { getProductLinksByReviewSlug, getReviewedProductLinksByCategory } from "@/lib/product-links";
-import { buildMarketplaceOffers } from "@/lib/buying";
+import { buildBuyingIntentPages, buildMarketplaceOffers } from "@/lib/buying";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -119,6 +120,9 @@ export default async function ReviewPage({ params }: PageProps) {
         b.link.priority - a.link.priority
     )
     .slice(0, 3);
+  const buyingIntentPages = buildBuyingIntentPages(allReviews, 4).filter(
+    (item) => item.categoryName === review.category
+  );
   const related = allReviews
     .filter((r) => r.category === review.category && r.slug !== review.slug)
     .slice(0, 3);
@@ -269,6 +273,10 @@ export default async function ReviewPage({ params }: PageProps) {
 
               {buyingOffers.length > 0 && (
                 <BuyingEngine review={review} offers={buyingOffers} />
+              )}
+
+              {!isGuia && buyingIntentPages.length > 0 && (
+                <ReviewPurchaseIntentLinks categoryName={review.category} pages={buyingIntentPages} />
               )}
 
               {heroBars.length > 0 && (
