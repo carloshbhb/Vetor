@@ -21,7 +21,7 @@ import EditorialEvidence from "@/components/EditorialEvidence";
 import RelatedCommercialProducts from "@/components/RelatedCommercialProducts";
 import ReviewPurchaseIntentLinks from "@/components/ReviewPurchaseIntentLinks";
 import { getProductLinksByReviewSlug, getReviewedProductLinksByCategory } from "@/lib/product-links";
-import { buildBuyingIntentPages, buildMarketplaceOffers } from "@/lib/buying";
+import { buildBuyingIntentPages, buildMarketplaceOffers, isGuideLikeSlug, reviewScore } from "@/lib/buying";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -124,7 +124,20 @@ export default async function ReviewPage({ params }: PageProps) {
     (item) => item.categoryName === review.category
   );
   const related = allReviews
-    .filter((r) => r.category === review.category && r.slug !== review.slug)
+    .filter(
+      (r) =>
+        r.status === "published" &&
+        r.category === review.category &&
+        r.slug !== review.slug &&
+        !isGuideLikeSlug(r.slug)
+    )
+    .sort(
+      (a, b) =>
+        reviewScore(b) - reviewScore(a) ||
+        new Date(b.updated_at || b.created_at).getTime() -
+          new Date(a.updated_at || a.created_at).getTime() ||
+        a.slug.localeCompare(b.slug)
+    )
     .slice(0, 3);
 
   const heroBars = Array.isArray(review.hero_bars) ? review.hero_bars : [];
@@ -175,6 +188,10 @@ export default async function ReviewPage({ params }: PageProps) {
         items={[
           { name: "Início", url: "https://www.vetor.blog/" },
           { name: "Reviews", url: "https://www.vetor.blog/reviews/" },
+          {
+            name: review.category,
+            url: `https://www.vetor.blog/reviews/categoria/${encodeURIComponent(review.category)}/`,
+          },
           { name: review.product, url: `https://www.vetor.blog/reviews/${review.slug}/` },
         ]}
       />
@@ -186,6 +203,10 @@ export default async function ReviewPage({ params }: PageProps) {
               items={[
                 { label: "Início", href: "/" },
                 { label: "Reviews", href: "/reviews/" },
+                {
+                  label: review.category,
+                  href: `/reviews/categoria/${encodeURIComponent(review.category)}/`,
+                },
                 { label: review.product },
               ]}
             />

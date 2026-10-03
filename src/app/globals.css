@@ -659,6 +659,9 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
 .buying-intent-card > strong { font-size: 1rem; }
 .buying-intent-card > small { color: var(--muted); font-size: .76rem; line-height: 1.5; }
 .buying-intent-card > b { margin-top: 5px; font-size: .78rem; }
+.buying-intent-section-links { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.buying-intent-section-links > a:not(.cta) { color: #4a5664; text-decoration: none; font-size: .78rem; font-weight: 800; }
+.buying-intent-section-links > a:not(.cta):hover { color: #17212d; text-decoration: underline; }
 .buying-intent-page-intro { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; padding: 24px; margin-bottom: 24px; background: #f7f9fb; border: 1px solid var(--line); border-radius: 20px; }
 .buying-intent-page-intro h2 { margin: 7px 0 8px; font-size: clamp(1.4rem, 2.8vw, 1.9rem); line-height: 1.08; letter-spacing: -.03em; }
 .buying-intent-page-intro p { margin: 0; max-width: 82ch; color: var(--muted); font-size: .9rem; }
@@ -667,6 +670,8 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
 .buying-intent-stat { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .buying-intent-stat span { padding: 7px 9px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: #4f5c6b; font-size: .72rem; font-weight: 800; }
 @media (max-width: 720px) {
+  .buying-intent-section-links { align-items: stretch; flex-direction: column; }
+  .buying-intent-section-links .cta, .buying-intent-section-links > a:not(.cta) { width: 100%; text-align: center; }
   .buying-intent-section { padding: 20px; }
   .buying-intent-grid { grid-template-columns: 1fr; }
   .buying-intent-page-intro { grid-template-columns: 1fr; padding: 20px; }

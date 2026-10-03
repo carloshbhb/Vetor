@@ -24,6 +24,15 @@ export default function ReviewPurchaseIntentLinks({
         de reviews com preço disponível.
       </p>
 
+      <div className="buying-intent-section-links">
+        <Link className="cta" href={'/melhores/' + pages[0].categorySlug + '/'}>
+          Ver guia de compra →
+        </Link>
+        <Link href={'/reviews/categoria/' + encodeURIComponent(categoryName) + '/'}>
+          Ver todos os reviews da categoria
+        </Link>
+      </div>
+
       <div className="buying-intent-grid">
         {pages.map((page) => {
           const label = getBuyingIntentLabel(page.intent);
