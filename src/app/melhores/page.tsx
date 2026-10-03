@@ -3,7 +3,12 @@ import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { ItemListSchema } from '@/components/SchemaMarkup';
 import { fetchAllReviews } from '@/lib/data';
-import { buildBuyingGuideCategories } from '@/lib/buying';
+import {
+  buildBuyingGuideCategories,
+  buildBuyingIntentPages,
+  getBuyingIntentDescription,
+  getBuyingIntentLabel,
+} from '@/lib/buying';
 
 export const metadata: Metadata = {
   title: 'Melhores Produtos em 2026 — Guias de Compra',
@@ -15,6 +20,7 @@ export const metadata: Metadata = {
 export default async function BestProductsPage() {
   const reviews = await fetchAllReviews();
   const categories = buildBuyingGuideCategories(reviews, 3);
+  const intentPages = buildBuyingIntentPages(reviews, 4);
 
   return (
     <>
@@ -78,6 +84,30 @@ export default async function BestProductsPage() {
                 </Link>
               ))}
             </div>
+
+            {intentPages.length > 0 && (
+              <section className="buying-intent-section" aria-labelledby="atalhos-intencao-heading">
+                <div className="section-kicker">Atalhos de compra</div>
+                <h2 id="atalhos-intencao-heading">Pesquise por intenção, sem sair da hub</h2>
+                <p>
+                  Acesse diretamente as listas de menor preço e custo-benefício quando já houver dados suficientes para comparar a categoria.
+                </p>
+                <div className="buying-intent-grid">
+                  {intentPages.map((item) => (
+                    <Link
+                      key={item.categorySlug + '-' + item.intent}
+                      href={'/melhores/' + item.categorySlug + '/' + item.intent + '/'}
+                      className="buying-intent-card"
+                    >
+                      <span>{getBuyingIntentLabel(item.intent)}</span>
+                      <strong>{item.categoryName}</strong>
+                      <small>{getBuyingIntentDescription(item.intent, item.categoryName)}</small>
+                      <b>Ver seleção →</b>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {categories.length === 0 && (
               <div className="side-card">
