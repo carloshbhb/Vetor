@@ -7,7 +7,9 @@ export const DEFAULT_OG_IMAGE = `${SITE_URL}/og.png`;
 
 // og:image da página ou fallback (nunca 404 de og:image).
 export function resolveOgImage(pageImage?: string | null): string {
-  if (pageImage && pageImage.trim()) return pageImage;
+  if (pageImage && pageImage.trim()) {
+    return pageImage.startsWith('http') ? pageImage : `${SITE_URL}${pageImage}`;
+  }
   return DEFAULT_OG_IMAGE;
 }
 
@@ -82,7 +84,9 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
   };
 
   if (review.image_url) {
-    schema.image = review.image_url;
+    schema.image = review.image_url.startsWith('http')
+      ? review.image_url
+      : `${SITE_URL}${review.image_url}`;
   }
 
   const reviewNode = schema.review as Record<string, unknown>;
@@ -152,7 +156,9 @@ export function generateViralArticleSchema(
             '@type': 'Product',
             name: product.name,
             url,
-            image: product.imageUrl,
+              image: product.imageUrl?.startsWith('http')
+                ? product.imageUrl
+                : `${SITE_URL}${product.imageUrl}`,
           },
         };
       }),
