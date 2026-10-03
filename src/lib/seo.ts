@@ -233,6 +233,8 @@ export function generateItemListSchema(
   return {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
+    numberOfItems: items.length,
+    itemListOrder: 'https://schema.org/ItemListOrderAscending',
     itemListElement: items.map((item, index) => ({
       '@type': 'ListItem',
       position: index + 1,
