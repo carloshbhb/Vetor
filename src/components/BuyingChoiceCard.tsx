@@ -9,6 +9,7 @@ const br = (n: number) => String(n).replace('.', ',');
 export default function BuyingChoiceCard({
   review,
   rank,
+  intent,
 }: {
   review: Review;
   rank: number;
