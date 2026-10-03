@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+import { ItemListSchema } from '@/components/SchemaMarkup';
 import { fetchAllReviews, fetchAllViralArticles, fetchGuias } from '@/lib/data';
 import NewsletterForm from '@/components/NewsletterForm';
 import GuideCard from '@/components/GuideCard';
@@ -7,6 +9,13 @@ import SafeImage from '@/components/SafeImage';
 import { safeImageSrc } from '@/lib/images';
 
 export const revalidate = 300;
+
+export const metadata: Metadata = {
+  title: 'Reviews, Comparativos e Guias de Compra',
+  description:
+    'Reviews, comparativos e guias de compra para pesquisar produtos, entender diferenças e escolher com mais clareza.',
+  alternates: { canonical: '/' },
+};
 
 export default async function Home() {
   const [reviews, viralArticles, guias] = await Promise.all([
@@ -23,6 +32,19 @@ export default async function Home() {
   const smallReviews = latestReviews.slice(1, 3);
   const compares = viralArticles.slice(0, 4);
   const guideCards = guias.slice(0, 4);
+  const categoryCounts = Array.from(
+    reviews.reduce((map, review) => {
+      map.set(review.category, (map.get(review.category) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>())
+  ).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const listItems = [...latestReviews.slice(0, 6).map((r) => ({
+    name: r.product,
+    url: `https://www.vetor.blog/reviews/${r.slug}`,
+  })), ...guideCards.slice(0, 3).map((g) => ({
+    name: g.product,
+    url: `https://www.vetor.blog/reviews/${g.slug}`,
+  }))];
 
   return (
     <main id="conteudo">
@@ -84,6 +106,8 @@ export default async function Home() {
         </div>
       </section>
 
+      <ItemListSchema items={listItems} />
+
       <div className="home-strip">
         <div className="container home-strip-grid">
           <div className="home-strip-item">
@@ -137,6 +161,31 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {categoryCounts.length > 0 && (
+        <section className="home-section home-categories">
+          <div className="container">
+            <div className="home-section-head">
+              <span className="eyebrow-small">Explore por categoria</span>
+              <h2>Pesquise pelo tipo de produto</h2>
+              <p>Encontre reviews relacionados sem depender de uma busca específica.</p>
+            </div>
+            <div className="home-category-grid">
+              {categoryCounts.map(([category, count]) => (
+                <Link
+                  key={category}
+                  className="home-category"
+                  href={`/reviews/?categoria=${encodeURIComponent(category)}`}
+                >
+                  <span>{category}</span>
+                  <strong>{count} {count === 1 ? 'análise' : 'análises'}</strong>
+                  <b>Explorar →</b>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <AdPlacement
         slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
