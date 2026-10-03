@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         suggestedTitle: String(item.brief?.suggestedTitle || ""),
         validation: String(item.brief?.validation || ""),
       },
-    })).filter((item) => item.type && item.title && item.detail);
+    })).filter((item: SeoActionInput) => item.type && item.title && item.detail);
 
     const synced = await syncSeoActions(actions);
     const history = await listSeoActions();
