@@ -20,13 +20,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     },
     {
-      url: `${baseUrl}/reviews`,
+      url: `${baseUrl}/reviews/`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/comparativos`,
+      url: `${baseUrl}/comparativos/`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
@@ -56,12 +56,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.4,
     },
     {
-      url: `${baseUrl}/reviews/categoria`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
-    {
       url: `${baseUrl}/author`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
@@ -74,13 +68,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     },
     {
-      url: `${baseUrl}/guias`,
+      url: `${baseUrl}/guias/`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/ofertas`,
+      url: `${baseUrl}/ofertas/`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.7,
@@ -112,28 +106,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const reviewPages: MetadataRoute.Sitemap = reviews.map((r) => ({
-    url: `${baseUrl}/reviews/${r.slug}`,
+    url: `${baseUrl}/reviews/${r.slug}/`,
     lastModified: new Date(r.updated_at || r.created_at),
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }));
 
   const viralPages: MetadataRoute.Sitemap = viralArticles.map((a) => ({
-    url: `${baseUrl}/comparativos/${a.slug}`,
+    url: `${baseUrl}/comparativos/${a.slug}/`,
     lastModified: new Date(a.updated_at || a.created_at),
     changeFrequency: 'weekly' as const,
     priority: 0.7,
   }));
 
   const categoryPages: MetadataRoute.Sitemap = categories.map((c) => ({
-    url: `${baseUrl}/reviews/categoria/${encodeURIComponent(c.name)}`,
+    url: `${baseUrl}/reviews/categoria/${encodeURIComponent(c.name)}/`,
     lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.7,
   }));
 
   const authorPages: MetadataRoute.Sitemap = authors.map((a) => ({
-    url: `${baseUrl}/author/${a.slug}`,
+    url: `${baseUrl}/author/${a.slug}/`,
     lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.6,
@@ -141,7 +135,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const tagIndex = buildTagIndex(reviews);
   const tagPages: MetadataRoute.Sitemap = tagIndex.map((t) => ({
-    url: `${baseUrl}/tags/${t.slug}`,
+    url: `${baseUrl}/tags/${t.slug}/`,
     lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.5,
