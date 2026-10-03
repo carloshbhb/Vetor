@@ -70,10 +70,6 @@ export default async function ComparativosPage() {
                   </article>
                 ))}
               </div>
-                    <span className="home-arrow">→</span>
-                  </a>
-                ))}
-              </div>
             )}
           </div>
         </section>

@@ -71,8 +71,7 @@ function OfferCard({ offer }: { offer: ProductLink }) {
           )}
         </div>
       </div>
-    </article>>
-    </div>
+    </article>
   );
 }
 
