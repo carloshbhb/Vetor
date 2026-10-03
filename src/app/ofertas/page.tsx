@@ -76,7 +76,7 @@ function OfferCard({ offer }: { offer: ProductLink }) {
 }
 
 export default async function OfertasPage() {
-  const offers = await getAllProductLinks({ has_review: true, limit: 60 });
+  const offers = await getAllProductLinks({ status: 'reviewed', has_review: true, limit: 60 });
 
   return (
     <main id="conteudo">
