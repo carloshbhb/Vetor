@@ -31,6 +31,36 @@ export async function GET(request: NextRequest) {
   const batches: Array<Record<string, unknown>> = [];
   let processed = 0;
 
+  if (request.nextUrl.searchParams.get("mode") === "status") {
+    const response = await fetch(origin + "/api/admin/mercadolivre/batch", {
+      headers: { cookie: cookieHeader },
+      cache: "no-store",
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return NextResponse.json({ ok: false, error: payload.error || "Falha ao consultar status." }, { status: 502, headers: { "Cache-Control": "no-store" } });
+    }
+    return NextResponse.json({
+      ok: true,
+      total: payload.total ?? 0,
+      checked: payload.checked ?? 0,
+      remaining: payload.remaining ?? 0,
+      counts: payload.counts ?? {},
+      sample: Array.isArray(payload.matches) ? payload.matches.slice(0, 5).map((m: Record<string, unknown>) => ({
+        search_query: m.search_query,
+        matched_item_id: m.matched_item_id,
+        matched_product_id: m.matched_product_id ?? null,
+        matched_title: m.matched_title,
+        matched_url: m.matched_url,
+        sold_quantity: m.sold_quantity,
+        match_score: m.match_score,
+        match_status: m.match_status,
+        checked_at: m.checked_at,
+      })) : [],
+      ranAt: new Date().toISOString(),
+    }, { headers: { "Cache-Control": "no-store" } });
+  }
+
   for (let i = 0; i < 5; i += 1) {
     const response = await fetch(origin + "/api/admin/mercadolivre/batch", {
       method: "POST",
