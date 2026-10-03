@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "Comparativos de Produtos — Qual Vale Mais a Pena?",
   description:
     "Comparativos lado a lado de fones, smartwatches, celulares e outros produtos. Veja especificações, preços e o veredicto de cada disputa.",
-  alternates: { canonical: "/comparativos" },
+  alternates: { canonical: "/comparativos/" },
 };
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export default async function ComparativosPage() {
       <ItemListSchema
         items={articles.map((a) => ({
           name: a.title,
-          url: `/comparativos/${a.slug}`,
+          url: `/comparativos/${a.slug}/`,
         }))}
       />
       <main id="conteudo">
@@ -47,7 +47,7 @@ export default async function ComparativosPage() {
                   <a
                     key={article.slug}
                     className="home-compare"
-                    href={`/comparativos/${article.slug}`}
+                    href={`/comparativos/${article.slug}/`}
                   >
                     <div>
                       <span className="tag">{article.category}</span>
