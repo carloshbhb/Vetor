@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import Link from "next/link";
 import { BreadcrumbSchema } from "@/components/SchemaMarkup";
 import SafeImage from "@/components/SafeImage";
 import { getAllProductLinks, type ProductLink } from "@/lib/product-links";
