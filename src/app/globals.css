@@ -416,13 +416,25 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
   .quick-summary, .who-grid, .fact-grid, .related, .sidebar { grid-template-columns: 1fr; }
   .article { padding: 24px 18px; border-radius: 18px; }
   .mobile-cta {
-    display: block; position: fixed; left: 10px; right: 10px; bottom: 10px; z-index: 999;
-    background: #0c1118; border: 1px solid rgba(255, 255, 255, .12); padding: 10px; border-radius: 16px;
+    display: flex; align-items: center; gap: 10px;
+    position: fixed; left: 10px; right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom)); z-index: 999;
+    background: #0c1118; border: 1px solid rgba(255, 255, 255, .12);
+    padding: 10px; border-radius: 16px;
     box-shadow: 0 18px 50px rgba(0, 0, 0, .28);
-    transform: translateY(150%);
+    transform: translateY(150%); transition: transform .25s ease;
   }
   .mobile-cta.show { transform: none; }
-  .mobile-cta .cta { padding: 13px; }
+  .mobile-cta-info {
+    min-width: 78px; display: flex; flex-direction: column; gap: 2px;
+    color: #fff; line-height: 1.05;
+  }
+  .mobile-cta-info span {
+    color: #9eabb8; font-size: .68rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .mobile-cta-info strong { font-size: .9rem; white-space: nowrap; }
+  .mobile-cta .cta { flex: 1; padding: 13px 12px; }
   footer { padding-bottom: 110px; }
   .bar { grid-template-columns: 110px 1fr 36px; }
   .home-hero { padding: 44px 0 52px; }
