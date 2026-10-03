@@ -22,9 +22,6 @@ export default function AdminViralPage() {
     try {
       const res = await fetch(`/api/admin/viral?slug=${encodeURIComponent(slug)}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("vetor_admin_auth") || ""}`,
-        },
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

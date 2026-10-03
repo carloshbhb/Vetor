@@ -151,8 +151,8 @@ export default async function ViralArticlePage({ params }: PageProps) {
       <BreadcrumbSchema
         items={[
           { name: "Início", url: "https://www.vetor.blog/" },
-          { name: "Comparativos", url: "https://www.vetor.blog/comparativos" },
-          { name: article.title, url: `https://www.vetor.blog/comparativos/${article.slug}` },
+          { name: "Comparativos", url: "https://www.vetor.blog/comparativos/" },
+          { name: article.title, url: `https://www.vetor.blog/comparativos/${article.slug}/` },
         ]}
       />
 

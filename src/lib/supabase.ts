@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Review, ViralArticle, Category } from './types';
+import { validateGeneratedViralArticle } from './content-quality';
 
 let client: SupabaseClient | null = null;
 let serviceClient: SupabaseClient | null = null;
@@ -133,6 +134,17 @@ export async function createViralArticle(data: {
   seo_title: string;
   seo_description: string;
 }): Promise<{ data: ViralArticle | null; error: string | null }> {
+  const validation = validateGeneratedViralArticle(data, {
+    source: 'persistence',
+    slug: data.slug,
+  });
+  if (!validation.ok) {
+    return {
+      data: null,
+      error: `Quality validation failed: ${validation.issues.join(' | ')}`,
+    };
+  }
+
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
     return { data: { ...data, id: 'mock-' + Date.now(), published_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_at: new Date().toISOString() } as ViralArticle, error: null };

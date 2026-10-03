@@ -161,7 +161,7 @@ export function generateViralArticleSchema(
         const url =
           existingReviewSlugs?.has(product.slug) === false
             ? `${SITE_URL}/comparativos/${article.slug}#escolha`
-            : `${SITE_URL}/reviews/${product.slug}`;
+            : `${SITE_URL}/reviews/${product.slug}/`;
         return {
           '@type': 'ListItem',
           position: index + 1,

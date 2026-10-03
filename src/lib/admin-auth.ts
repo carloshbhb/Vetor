@@ -1,11 +1,17 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
 export const ADMIN_SESSION_COOKIE = "vetor_admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 8;
 
-function sessionToken(password: string): string {
-  return createHash("sha256").update(password, "utf8").digest("hex");
+function sessionSecret(): string | null {
+  return process.env.ADMIN_SESSION_SECRET || process.env.CRON_SECRET || null;
+}
+
+function sessionToken(password: string): string | null {
+  const secret = sessionSecret();
+  if (!secret) return null;
+  return createHmac("sha256", secret).update(password, "utf8").digest("hex");
 }
 
 function cookieValue(request: Request): string | null {
@@ -24,7 +30,7 @@ function safeEqual(a: string, b: string): boolean {
 export function createAdminSessionCookie(password: string) {
   return {
     name: ADMIN_SESSION_COOKIE,
-    value: sessionToken(password),
+    value: sessionToken(password) || "",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
@@ -38,11 +44,10 @@ export function isAdminAuthenticated(request: Request): boolean {
   if (!envPassword) return false;
 
   const expectedSession = sessionToken(envPassword);
-  const session = cookieValue(request);
-  if (session && safeEqual(session, expectedSession)) return true;
+  if (!expectedSession) return false;
 
-  // Compatibilidade temporária com clientes antigos que ainda enviam Bearer.
-  return request.headers.get("authorization") === `Bearer ${envPassword}`;
+  const session = cookieValue(request);
+  return Boolean(session && safeEqual(session, expectedSession));
 }
 
 export function verifyAdminAuth(request: Request): NextResponse | null {

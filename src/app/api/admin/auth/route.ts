@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import {
-  ADMIN_SESSION_COOKIE,
   createAdminSessionCookie,
   isAdminAuthenticated,
 } from "@/lib/admin-auth";
@@ -34,15 +33,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
 
+  if (!process.env.ADMIN_SESSION_SECRET && !process.env.CRON_SECRET) {
+    return NextResponse.json(
+      { error: "Server misconfiguration: ADMIN_SESSION_SECRET or CRON_SECRET not set" },
+      { status: 500 }
+    );
+  }
+
   const response = NextResponse.json({ success: true }, { status: 200 });
   response.cookies.set(createAdminSessionCookie(password));
-  // Garante explicitamente o mesmo nome para facilitar auditoria/remoção futura.
-  response.cookies.set(ADMIN_SESSION_COOKIE, createAdminSessionCookie(password).value, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 8,
-  });
   return response;
 }

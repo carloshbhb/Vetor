@@ -30,7 +30,6 @@ export default function AdminLoginPage() {
       });
 
       if (res.ok) {
-        localStorage.removeItem("vetor_admin_auth");
         window.location.href = "/admin";
       } else {
         setError("Senha incorreta.");

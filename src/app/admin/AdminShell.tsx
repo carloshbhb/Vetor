@@ -28,8 +28,6 @@ export default function AdminShell({
       return;
     }
 
-    localStorage.removeItem("vetor_admin_auth");
-
     let active = true;
     fetch("/api/admin/auth", { cache: "no-store" })
       .then((res) => {

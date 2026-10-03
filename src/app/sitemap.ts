@@ -15,85 +15,71 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
-      lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1,
     },
     {
       url: `${baseUrl}/reviews/`,
-      lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
     },
     {
       url: `${baseUrl}/comparativos/`,
-      lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
       url: `${baseUrl}/sobre/`,
-      lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.5,
     },
     {
       url: `${baseUrl}/privacidade/`,
-      lastModified: new Date(),
       changeFrequency: 'yearly',
       priority: 0.3,
     },
     {
       url: `${baseUrl}/contato/`,
-      lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
       url: `${baseUrl}/author/`,
-      lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.5,
     },
     {
       url: `${baseUrl}/tags/`,
-      lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.6,
     },
     {
       url: `${baseUrl}/guias/`,
-      lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
       url: `${baseUrl}/ofertas/`,
-      lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.7,
     },
     {
       url: `${baseUrl}/como-avaliamos/`,
-      lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.5,
     },
     {
       url: `${baseUrl}/politica-editorial/`,
-      lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
       url: `${baseUrl}/afiliados/`,
-      lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
       url: `${baseUrl}/termos/`,
-      lastModified: new Date(),
       changeFrequency: 'yearly',
       priority: 0.3,
     },
@@ -115,14 +101,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const categoryPages: MetadataRoute.Sitemap = categories.map((c) => ({
     url: `${baseUrl}/reviews/categoria/${encodeURIComponent(c.name)}/`,
-    lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.7,
   }));
 
   const authorPages: MetadataRoute.Sitemap = authors.map((a) => ({
     url: `${baseUrl}/author/${a.slug}/`,
-    lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.6,
   }));
@@ -130,7 +114,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const tagIndex = buildTagIndex(reviews);
   const tagPages: MetadataRoute.Sitemap = tagIndex.map((t) => ({
     url: `${baseUrl}/tags/${t.slug}/`,
-    lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.5,
   }));

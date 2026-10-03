@@ -24,9 +24,6 @@ export default function AdminVideosPage() {
   const fetchJobs = async () => {
     try {
       const res = await fetch("/api/admin/videos", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("vetor_admin_auth") || ""}`,
-        },
       });
       const data = await res.json();
       setJobs(data.jobs || []);
@@ -42,7 +39,6 @@ export default function AdminVideosPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("vetor_admin_auth") || ""}`,
         },
         body: JSON.stringify({ type: "all" }),
       });

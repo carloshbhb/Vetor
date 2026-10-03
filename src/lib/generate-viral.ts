@@ -1,6 +1,7 @@
 import { buildViralPrompt } from './prompt';
 import { seo } from './seo';
 import { chatCompletion } from './llm-provider';
+import { validateGeneratedViralArticle } from './content-quality';
 
 interface ViralArticleOutput {
   slug: string;
@@ -30,65 +31,74 @@ export async function generateViralArticle(topic: {
   category: string;
   comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
 }): Promise<ViralArticleOutput> {
+  if (topic.comparisonProducts.length < 2) {
+    throw new Error('[viral-generator] comparison requires at least 2 products');
+  }
+
+  let parsed: Record<string, any>;
   try {
     const prompt = buildViralPrompt(topic);
-
-    const content = await chatCompletion({
-      systemPrompt: 'Você é um gerador de artigos virais para vetor.blog. Responda APENAS em JSON válido, sem texto adicional.',
+    const response = await chatCompletion({
+      systemPrompt:
+        'Você é um editor de comparativos do vetor.blog. Responda APENAS em JSON válido, sem texto adicional.',
       userPrompt: prompt,
-      temperature: 0.9,
-      maxTokens: 5000,
+      temperature: 0.8,
+      maxTokens: 6500,
     });
 
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : content;
+    const jsonMatch = response.match(/\\{[\\s\\S]*\\}/);
+    if (!jsonMatch) throw new Error('LLM did not return a JSON object');
 
-    const generatedTitle = parsed.title || topic.title;
-    const generatedDescription = parsed.description || `Comparativo completo de ${topic.category} em 2026.`;
-    const generatedContent = parsed.content || generateDefaultViralContent(topic);
-
-    const { title: seoTitle, description: seoDesc } = seo(generatedTitle, generatedDescription);
-
-    const heroBars = buildHeroBars(topic);
-
-    return {
-      slug: generatedTitle.toLowerCase().replace(/[^a-z0-9\s\-]/g, '').replace(/\s+/g, '-'),
-      title: generatedTitle,
-      description: generatedDescription,
-      content: generatedContent,
-      category: topic.category,
-      hero: {
-        imageUrl: topic.comparisonProducts[0].imageUrl,
-        bars: heroBars,
-      },
-      products: topic.comparisonProducts,
-      seo_title: seoTitle,
-      seo_description: seoDesc,
-    };
-  } catch {
-    const heroBars = buildHeroBars(topic);
-
-    return {
-      slug: topic.title.toLowerCase().replace(/[^a-z0-9\s\-]/g, '').replace(/\s+/g, '-'),
-      title: topic.title,
-      description: `Comparativo completo de ${topic.category} em 2026.`,
-      content: generateDefaultViralContent(topic),
-      category: topic.category,
-      hero: {
-        imageUrl: topic.comparisonProducts[0].imageUrl,
-        bars: heroBars,
-      },
-      products: topic.comparisonProducts,
-      seo_title: topic.title,
-      seo_description: `Comparativo completo de ${topic.category} em 2026.`,
-    };
+    const candidate = JSON.parse(jsonMatch[0]);
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      throw new Error('LLM returned an invalid JSON object');
+    }
+    parsed = candidate;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`[viral-generator] generation failed: ${message}`);
   }
-}
 
-function generateDefaultViralContent(topic: { title: string; category: string }): string {
-  return `<h2>Introdução</h2><p>O ${topic.category} está em ebulição em 2026. Neste comparativo viral, vamos analisar os melhores contenders do mercado para você tomar a melhor decisão de compra.</p>
-<h2>Comparativo Detalhado</h2><p>A tabela abaixo mostra os pontos fortes e fracos de cada produto, ajudando você a identificar o melhor custo-benefício.</p>
-<h2>Veredicto Final</h2><p>Após análise completa, temos um claro vencedor para a categoria de ${topic.category} que oferece o melhor equilíbrio entre preço e performance.</p>`;
+  const generatedTitle =
+    typeof parsed.title === 'string' && parsed.title.trim() ? parsed.title.trim() : topic.title;
+  const generatedDescription =
+    typeof parsed.description === 'string' && parsed.description.trim()
+      ? parsed.description.trim()
+      : `Comparativo de ${topic.category} com critérios claros para pesquisar antes da compra.`;
+  const generatedContent = typeof parsed.content === 'string' ? parsed.content.trim() : '';
+  const { title: seoTitle, description: seoDesc } = seo(generatedTitle, generatedDescription);
+
+  const output: ViralArticleOutput = {
+    slug: generatedTitle
+      .normalize('NFD')
+      .replace(/[\\u0300-\\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\\s-]/g, '')
+      .replace(/\\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, ''),
+    title: generatedTitle,
+    description: generatedDescription,
+    content: generatedContent,
+    category: topic.category,
+    hero: {
+      imageUrl: topic.comparisonProducts[0].imageUrl,
+      bars: buildHeroBars(topic),
+    },
+    products: topic.comparisonProducts,
+    seo_title: seoTitle,
+    seo_description: seoDesc,
+  };
+
+  const validation = validateGeneratedViralArticle(output, {
+    source: 'generator',
+    slug: output.slug,
+  });
+  if (!validation.ok) {
+    throw new Error(`[viral-generator] quality validation failed: ${validation.issues.join(' | ')}`);
+  }
+
+  return output;
 }
 
 export async function generateViralArticles(topics: Array<{

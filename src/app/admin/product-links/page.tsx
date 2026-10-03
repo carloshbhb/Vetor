@@ -56,9 +56,6 @@ const EMPTY_FORM: Omit<ProductLink, "id" | "created_at" | "updated_at"> = {
   tags: [],
 };
 
-function getAuth() {
-  return localStorage.getItem("vetor_admin_auth") || "";
-}
 
 const MARKETPLACES = [
   { value: "mercadolivre", label: "Mercado Livre" },
@@ -176,7 +173,6 @@ export default function AdminProductLinksPage() {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${getAuth()}`,
           },
           body: JSON.stringify(form),
         });
@@ -186,7 +182,6 @@ export default function AdminProductLinksPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${getAuth()}`,
           },
           body: JSON.stringify(form),
         });
@@ -248,7 +243,6 @@ export default function AdminProductLinksPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getAuth()}`,
         },
         body: JSON.stringify({ items }),
       });

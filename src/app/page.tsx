@@ -40,10 +40,10 @@ export default async function Home() {
   ).sort((a, b) => b[1] - a[1]).slice(0, 6);
   const listItems = [...latestReviews.slice(0, 6).map((r) => ({
     name: r.product,
-    url: `https://www.vetor.blog/reviews/${r.slug}`,
+    url: `https://www.vetor.blog/reviews/${r.slug}/`,
   })), ...guideCards.slice(0, 3).map((g) => ({
     name: g.product,
-    url: `https://www.vetor.blog/reviews/${g.slug}`,
+    url: `https://www.vetor.blog/reviews/${g.slug}/`,
   }))];
 
   return (

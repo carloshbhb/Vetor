@@ -3,11 +3,6 @@
 import { useEffect, useState } from "react";
 import type { Review } from "@/lib/types";
 
-function getAuthHeaders(): Record<string, string> {
-  return {
-    Authorization: `Bearer ${localStorage.getItem("vetor_admin_auth") || ""}`,
-  };
-}
 
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);

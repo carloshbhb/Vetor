@@ -8,11 +8,6 @@ interface GenerationResult {
   count?: number;
 }
 
-function getAuthHeaders(): Record<string, string> {
-  return {
-    Authorization: `Bearer ${localStorage.getItem("vetor_admin_auth") || ""}`,
-  };
-}
 
 export default function AdminGeneratePage() {
   const [generating, setGenerating] = useState(false);

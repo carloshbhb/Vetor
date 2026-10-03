@@ -110,6 +110,12 @@ O content HTML deve incluir:
 6. FAQ section
 7. CTA de compra
 
-Tom: envolvente, persuasivo, urgente.
+Tom: claro, informativo e comparativo. Persuasão somente quando sustentada pelos dados fornecidos.
+- Não invente testes presenciais, benchmarks, medições, autonomia, defeitos recorrentes, avaliações de compradores ou especificações.
+- Não use "testamos", "em nossos testes" ou equivalentes sem experiência explícita fornecida.
+- Só declare vencedor quando a evidência apresentada permitir uma conclusão clara; caso contrário, compare perfis de uso e limitações sem fabricar um vencedor.
+- content deve ter pelo menos 6 seções com <h2>/<h3>, 8 parágrafos, uma tabela comparativa, análises individuais dos produtos, pelo menos 3 perguntas frequentes e uma CTA objetiva de preço/oferta.
+- Mencione os nomes reais de todos os produtos comparados.
+- Não use conteúdo genérico ou texto de preenchimento.
 Idioma: português brasileiro.`;
 }
