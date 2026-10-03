@@ -111,8 +111,14 @@ export default function AdminDashboardPage() {
         <h2 className="font-heading text-sm font-bold tracking-wider uppercase text-[var(--muted)] mb-4">Ações Rápidas</h2>
         <div className="flex flex-wrap gap-3">
           <a
-            href="/admin/generate"
+            href="/admin/afiliados"
             className="bg-[var(--amber)] text-black text-sm font-heading font-extrabold px-6 py-3 rounded-xl hover:bg-white transition-colors"
+          >
+            Central de Afiliados
+          </a>
+          <a
+            href="/admin/generate"
+            className="border border-border text-[var(--text)] text-sm font-heading font-bold px-6 py-3 rounded-xl hover:bg-[var(--surface2)] transition-colors"
           >
             Gerar Conteúdo
           </a>
