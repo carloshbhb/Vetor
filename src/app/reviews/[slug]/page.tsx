@@ -37,6 +37,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     review.hero_lead ||
     `Review independente do ${review.product}: nota, prós, contras e onde comprar.`;
   const ogImage = resolveOgImage(review.meta_og_image || review.image_url);
+  const publishedTime = review.created_at || undefined;
+  const modifiedTime = review.updated_at || publishedTime;
   return {
     title,
     description,
@@ -46,6 +48,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       url,
       type: "article",
+      ...(publishedTime ? { publishedTime } : {}),
+      ...(modifiedTime ? { modifiedTime } : {}),
       images: [ogImage],
     },
     twitter: {

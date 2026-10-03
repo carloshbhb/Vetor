@@ -29,12 +29,12 @@ const nextConfig: NextConfig = {
       // P0-10: reviews-spam de scraping (title-lixo) → índice de categorias
       {
         source: '/reviews/20-mais-vendidor-669r-4965225-offfrete-grtis-micro-ondas-mondial-21l-1200w-mo-01-21-e-espelhado',
-        destination: '/reviews/',
+        destination: '/reviews/categoria',
         permanent: true,
       },
       {
         source: '/reviews/8-mais-vendidor-299r-15647-offfrete-grtis-parafusadeira-e-furadeira-impacto-the-black-tools-tb-',
-        destination: '/reviews/',
+        destination: '/reviews/categoria',
         permanent: true,
       },
       // P1-8: drafts finos do MESMO produto de review publicada → canibalização evitada

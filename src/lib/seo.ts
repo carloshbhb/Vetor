@@ -48,6 +48,12 @@ function scoreToFiveScale(score: number | null | undefined): number | null {
   return Math.round((score / 2) * 10) / 10;
 }
 
+function validIsoDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 function buildReviewBody(review: Review): string {
   const lead = (review.hero_lead || '').trim();
   const firstSection = (review.sections?.[0]?.content || '')
@@ -65,6 +71,8 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
   const price = parseBRLPrice(review.price_new);
   const reviewCount = Number(review.schema_review_count);
 
+  const published = validIsoDate(review.created_at);
+  const modified = validIsoDate(review.updated_at) || published;
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -75,6 +83,7 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
       author: {
         '@type': 'Person',
         name: 'Editor Vetor',
+        url: `${SITE_URL}/author/editor-vetor/`,
       },
       publisher: {
         '@id': ORG_ID,
@@ -90,6 +99,10 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
   }
 
   const reviewNode = schema.review as Record<string, unknown>;
+
+  if (published) reviewNode.datePublished = published;
+  if (modified) reviewNode.dateModified = modified;
+  reviewNode.url = `${SITE_URL}/reviews/${review.slug}/`;
 
   if (score !== null) {
     reviewNode.reviewRating = {

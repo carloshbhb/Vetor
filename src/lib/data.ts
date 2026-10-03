@@ -8,27 +8,6 @@ import {
 } from './supabase';
 import { reviews as staticReviews } from '@/data/reviews';
 import type { Review, ViralArticle, Category } from './types';
-const CATEGORY_ALIASES: Record<string, string> = {
-  eletroportateis: 'Eletroportáteis',
-  'eletroportáteis': 'Eletroportáteis',
-  wearables: 'Wearables / Smartbands',
-  'wearables / smartbands': 'Wearables / Smartbands',
-  'acessorios gamer': 'Acessórios para Games',
-  'acessórios gamer': 'Acessórios para Games',
-  'acessórios para games': 'Acessórios para Games',
-  'mercado livre frete gratis': 'Mercado Livre Frete Grátis',
-  'mercado livre frete grátis': 'Mercado Livre Frete Grátis',
-};
-
-export function normalizeCategoryName(value: string): string {
-  const key = value.trim().toLowerCase();
-  return CATEGORY_ALIASES[key] || value.trim();
-}
-
-function normalizeReviewCategory(review: Review): Review {
-  return { ...review, category: normalizeCategoryName(review.category) };
-}
-
 
 function normalizeStaticReviews(): Review[] {
   return staticReviews.map((r) => ({
@@ -71,13 +50,13 @@ function normalizeStaticReviews(): Review[] {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     faq: [],
-  })).map(r => ({ ...r, marketplace: 'mercadolivre', category: normalizeCategoryName(r.category) }));
+  })).map(r => ({ ...r, marketplace: 'mercadolivre' }));
 }
 
 export async function fetchAllReviews(): Promise<Review[]> {
   try {
     const reviews = await getAllReviews();
-    if (reviews && reviews.length > 0) return reviews.map(normalizeReviewCategory);
+    if (reviews && reviews.length > 0) return reviews;
   } catch {
     // Supabase not available, fall back to static
   }
@@ -86,8 +65,7 @@ export async function fetchAllReviews(): Promise<Review[]> {
 
 export async function fetchReviewBySlug(slug: string): Promise<Review | null> {
   if (getSupabaseClient()) {
-    const review = await getReviewBySlug(slug);
-    return review ? normalizeReviewCategory(review) : null;
+    return getReviewBySlug(slug);
   }
   const staticReview = staticReviews.find((r) => r.slug === slug);
   if (!staticReview) return null;
@@ -119,14 +97,7 @@ export async function fetchViralArticleBySlug(
 export async function fetchCategories(): Promise<Category[]> {
   try {
     const categories = await getCategories();
-    if (categories && categories.length > 0) {
-      const normalized = new Map<string, number>();
-      for (const category of categories) {
-        const name = normalizeCategoryName(category.name);
-        normalized.set(name, (normalized.get(name) || 0) + category.count);
-      }
-      return Array.from(normalized.entries()).map(([name, count]) => ({ name, count }));
-    }
+    if (categories && categories.length > 0) return categories;
   } catch {
     // Supabase not available
   }
