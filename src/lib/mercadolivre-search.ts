@@ -44,7 +44,7 @@ export type MLSearchResult = {
 function normalize(value: string): string {
   return value
     .normalize("NFD")
-    .replace(/[\\u0300-\\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
@@ -82,7 +82,7 @@ function matchScore(query: string, title: string): number {
     if (compactQ.length >= 8 && nt.includes(compactQ)) score += 0.10;
   }
 
-  const queryNumbers = nq.match(/\\b\\d+(?:[.,]\\d+)?\\b/g) || [];
+  const queryNumbers = nq.match(/\b\d+(?:[.,]\d+)?\b/g) || [];
   const titleNumbers = new Set(nt.match(/\\b\\d+(?:[.,]\\d+)?\\b/g) || []);
   if (queryNumbers.length) {
     const matchingNumbers = queryNumbers.filter((value) => titleNumbers.has(value)).length;
@@ -93,7 +93,7 @@ function matchScore(query: string, title: string): number {
 }
 
 function stableQuery(value: string): string {
-  return value.replace(/\\s+/g, " ").trim().slice(0, 180);
+  return value.replace(/\s+/g, " ").trim().slice(0, 180);
 }
 
 async function requestSearch(query: string, accessToken: string, sort?: string): Promise<MLSearchResponse> {
