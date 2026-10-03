@@ -11,8 +11,9 @@ export const metadata: Metadata = {
 
 export default function PoliticaEditorialPage() {
   return (
-    <BreadcrumbSchema items={[{ name: 'Início', url: 'https://www.vetor.blog/' }, { name: 'Política editorial', url: 'https://www.vetor.blog/politica-editorial/' }]} />
-    <main id="conteudo">
+    <>
+      <BreadcrumbSchema items={[{ name: 'Início', url: 'https://www.vetor.blog/' }, { name: 'Política editorial', url: 'https://www.vetor.blog/politica-editorial/' }]} />
+      <main id="conteudo">
       <section className="hero">
         <div className="container">
           <Breadcrumbs items={[{ label: "Início", href: "/" }, { label: "Política editorial" }]} />
@@ -61,6 +62,7 @@ export default function PoliticaEditorialPage() {
           </article>
         </div>
       </section>
-    </main>
+      </main>
+    </>
   );
 }
