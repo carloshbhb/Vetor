@@ -14,9 +14,7 @@ export default function AdminReviewsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/admin/reviews", {
-          headers: getAuthHeaders(),
-        });
+        const res = await fetch("/api/admin/reviews");
         if (res.status === 401) {
           setError("Não autorizado. Faça login novamente.");
           setReviews([]);
@@ -43,7 +41,6 @@ export default function AdminReviewsPage() {
     try {
       const res = await fetch(`/api/admin/reviews?slug=${encodeURIComponent(slug)}`, {
         method: "DELETE",
-        headers: getAuthHeaders(),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -65,7 +62,6 @@ export default function AdminReviewsPage() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          ...getAuthHeaders(),
         },
         body: JSON.stringify({ slug, status: "published" }),
       });
