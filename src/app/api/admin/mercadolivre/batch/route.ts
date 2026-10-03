@@ -116,7 +116,7 @@ export async function POST(request: Request) {
       search_query: result.query,
       marketplace_site: SITE_ID,
       matched_item_id: selectedCandidate?.itemId || null,
-      matched_product_id: null,
+      matched_product_id: selectedCandidate?.productId || null,
       matched_title: selectedCandidate?.title || null,
       matched_url: selectedCandidate?.url || null,
       sold_quantity: selectedCandidate?.soldQuantity ?? null,
