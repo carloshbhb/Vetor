@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { fetchAllReviews } from "@/lib/data";
+import { fetchAllReviews, fetchAllViralArticles } from "@/lib/data";
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from "@/lib/buying";
 import { fetchSearchConsoleRows } from "@/lib/search-console";
 
@@ -11,14 +11,99 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [reviews, searchConsole] = await Promise.all([
+  const [reviews, articles, searchConsole] = await Promise.all([
     fetchAllReviews(),
+    fetchAllViralArticles(),
     fetchSearchConsoleRows(),
   ]);
 
   const published = reviews.filter((review) => review.status === "published");
   const guides = buildBuyingGuideCategories(reviews, 3);
   const intents = buildBuyingIntentPages(reviews, 4);
+
+  const querySummary = new Map<
+    string,
+    { query: string; impressions: number; clicks: number; positionWeighted: number }
+  >();
+
+  const pageSummary = new Map<
+    string,
+    { page: string; impressions: number; clicks: number; positionWeighted: number }
+  >();
+
+  for (const row of searchConsole.rows) {
+    const query = row.keys?.[0] || "";
+    const page = row.keys?.[1] || "";
+    const impressions = row.impressions || 0;
+    const clicks = row.clicks || 0;
+    const position = row.position || 0;
+
+    if (query) {
+      const current = querySummary.get(query) || {
+        query,
+        impressions: 0,
+        clicks: 0,
+        positionWeighted: 0,
+      };
+      current.impressions += impressions;
+      current.clicks += clicks;
+      current.positionWeighted += position * impressions;
+      querySummary.set(query, current);
+    }
+
+    if (page) {
+      const current = pageSummary.get(page) || {
+        page,
+        impressions: 0,
+        clicks: 0,
+        positionWeighted: 0,
+      };
+      current.impressions += impressions;
+      current.clicks += clicks;
+      current.positionWeighted += position * impressions;
+      pageSummary.set(page, current);
+    }
+  }
+
+  const totalImpressions = searchConsole.rows.reduce(
+    (sum, row) => sum + (row.impressions || 0),
+    0
+  );
+  const totalClicks = searchConsole.rows.reduce(
+    (sum, row) => sum + (row.clicks || 0),
+    0
+  );
+  const weightedPosition = searchConsole.rows.reduce(
+    (sum, row) => sum + (row.position || 0) * (row.impressions || 0),
+    0
+  );
+
+  const topQueries = Array.from(querySummary.values())
+    .map((item) => ({
+      query: item.query,
+      impressions: Math.round(item.impressions),
+      clicks: Math.round(item.clicks),
+      ctr: item.impressions
+        ? Number(((item.clicks / item.impressions) * 100).toFixed(2))
+        : 0,
+      avgPosition: item.impressions
+        ? Number((item.positionWeighted / item.impressions).toFixed(1))
+        : 0,
+    }))
+    .sort((a, b) => b.impressions - a.impressions)
+    .slice(0, 20);
+
+  const topPages = Array.from(pageSummary.values())
+    .map((item) => ({
+      page: item.page,
+      impressions: Math.round(item.impressions),
+      clicks: Math.round(item.clicks),
+      avgPosition: item.impressions
+        ? Number((item.positionWeighted / item.impressions).toFixed(1))
+        : 0,
+    }))
+    .sort((a, b) => b.impressions - a.impressions)
+    .slice(0, 20);
 
   const queryOpportunities = searchConsole.rows
     .filter((row) => {
@@ -45,27 +130,35 @@ export async function GET(request: Request) {
       const position = row.position || 0;
       return impressions >= 30 && position >= 8 && position <= 25;
     })
-    .reduce<Map<string, { page: string; impressions: number; clicks: number; positionSum: number; rows: number }>>(
-      (map, row) => {
-        const page = row.keys?.[1] || "";
-        if (!page) return map;
-        const current = map.get(page) || { page, impressions: 0, clicks: 0, positionSum: 0, rows: 0 };
-        current.impressions += row.impressions || 0;
-        current.clicks += row.clicks || 0;
-        current.positionSum += row.position || 0;
-        current.rows += 1;
-        map.set(page, current);
-        return map;
-      },
-      new Map()
-    );
+    .reduce<
+      Map<
+        string,
+        { page: string; impressions: number; clicks: number; positionWeighted: number }
+      >
+    >((map, row) => {
+      const page = row.keys?.[1] || "";
+      if (!page) return map;
+      const current = map.get(page) || {
+        page,
+        impressions: 0,
+        clicks: 0,
+        positionWeighted: 0,
+      };
+      current.impressions += row.impressions || 0;
+      current.clicks += row.clicks || 0;
+      current.positionWeighted += (row.position || 0) * (row.impressions || 0);
+      map.set(page, current);
+      return map;
+    }, new Map());
 
   const pages = Array.from(pageOpportunities.values())
     .map((item) => ({
       page: item.page,
       impressions: Math.round(item.impressions),
       clicks: Math.round(item.clicks),
-      avgPosition: Number((item.positionSum / item.rows).toFixed(1)),
+      avgPosition: item.impressions
+        ? Number((item.positionWeighted / item.impressions).toFixed(1))
+        : 0,
     }))
     .sort((a, b) => b.impressions - a.impressions)
     .slice(0, 20);
@@ -80,7 +173,12 @@ export async function GET(request: Request) {
     }));
 
   const missingIntent = guides
-    .filter((category) => !intents.some((item) => item.categorySlug === category.slug && item.intent === "baratos"))
+    .filter(
+      (category) =>
+        !intents.some(
+          (item) => item.categorySlug === category.slug && item.intent === "baratos"
+        )
+    )
     .slice(0, 15)
     .map((category) => ({
       category: category.name,
@@ -96,10 +194,21 @@ export async function GET(request: Request) {
       configured: searchConsole.configured,
       error: searchConsole.error || null,
       rows: searchConsole.rows.length,
+      uniqueQueries: querySummary.size,
+      totalClicks: Math.round(totalClicks),
+      totalImpressions: Math.round(totalImpressions),
+      averageCtr: totalImpressions
+        ? Number(((totalClicks / totalImpressions) * 100).toFixed(2))
+        : 0,
+      averagePosition: totalImpressions
+        ? Number((weightedPosition / totalImpressions).toFixed(1))
+        : 0,
+      topQueries,
+      topPages,
     },
     inventory: {
       publishedReviews: published.length,
-      comparisons: 0,
+      comparisons: articles.length,
       buyingGuides: guides.length,
       buyingIntentPages: intents.length,
     },
