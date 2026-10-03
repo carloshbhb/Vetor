@@ -242,6 +242,13 @@ export default function MercadoLivreAdminPage() {
               {processing ? "Pesquisando..." : "Pesquisar próximos 8"}
             </button>
             <button
+              onClick={() => processNext(true)}
+              disabled={processing || !authorized}
+              className="border border-[var(--amber)]/40 text-[var(--amber)] px-4 py-2.5 rounded-xl text-sm hover:bg-[var(--surface2)] disabled:opacity-50"
+            >
+              {processing ? "Pesquisando..." : "Buscar novamente"}
+            </button>
+            <button
               onClick={processAll}
               disabled={processing || !authorized || !status?.remaining}
               className="bg-[var(--green)] text-black font-heading font-extrabold px-4 py-2.5 rounded-xl hover:bg-white disabled:opacity-50"
