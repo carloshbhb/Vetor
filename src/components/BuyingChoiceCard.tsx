@@ -55,13 +55,14 @@ export default function BuyingChoiceCard({
           </Link>
           {canBuy ? (
             <a
-              className="cta"
+              className="cta cta--primary-buy"
               href={'/go/' + review.slug + '/'}
               data-aff-pos={'melhores-' + (intent || 'geral') + '-' + rank}
               target="_blank"
               rel="sponsored nofollow noopener"
+              aria-label={review.price_new ? `Conferir preço atualizado de ${review.product}` : `Ver preço de ${review.product}`}
             >
-              Ver preço e oferta →
+              {review.price_new ? 'Conferir preço' : 'Ver preço'} →
             </a>
           ) : (
             <Link className="cta" href={'/reviews/' + review.slug + '/'}>

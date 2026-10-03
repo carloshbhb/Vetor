@@ -753,3 +753,10 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
   .related-commercial { padding: 20px; }
   .related-commercial-grid { grid-template-columns: 1fr; }
 }
+
+
+/* Phase 4.2 — hierarquia e acessibilidade das CTAs comerciais. */
+.cta--primary-buy { min-height: 50px; }
+.cta:focus-visible { outline: 3px solid #17212d; outline-offset: 3px; }
+.buying-choice--featured .cta--primary-buy, .verdict .cta--primary-buy { box-shadow: 0 8px 20px rgba(16, 23, 34, .12); }
+@media (max-width: 720px) { .answer .cta--primary-buy, .verdict .cta--primary-buy { width: 100%; } }

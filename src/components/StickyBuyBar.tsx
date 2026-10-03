@@ -10,7 +10,8 @@ type StickyBuyBarProps = {
 
 // Barra de compra no mobile: aparece depois do veredito e some perto do rodapé.
 // Sem JS, a barra nunca aparece (progressive enhancement); o link existe no conteúdo.
-export default function StickyBuyBar({ affiliateSlug, label = 'Ver preço e disponibilidade', price }: StickyBuyBarProps) {
+export default function StickyBuyBar({ affiliateSlug, label, price }: StickyBuyBarProps) {
+  const ctaLabel = label || (price ? 'Conferir preço atualizado' : 'Ver preço e disponibilidade');
   useEffect(() => {
     const bar = document.querySelector('.mobile-cta');
     const verdict = document.getElementById('veredito');
@@ -48,13 +49,14 @@ export default function StickyBuyBar({ affiliateSlug, label = 'Ver preço e disp
         {price && <strong>{price}</strong>}
       </div>
       <a
-        className="cta"
+        className="cta cta--primary-buy"
         href={`/go/${affiliateSlug}/`}
         data-aff-pos="sticky-mobile"
         target="_blank"
         rel="sponsored nofollow noopener"
+        aria-label={ctaLabel}
       >
-          {label} →
+          {ctaLabel} →
       </a>
     </div>
   );

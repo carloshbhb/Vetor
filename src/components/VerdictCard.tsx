@@ -73,13 +73,14 @@ export default function VerdictCard({
 
       {affiliateSlug && (
         <a
-          className="cta"
+          className="cta cta--primary-buy"
           href={`/go/${affiliateSlug}/`}
           data-aff-pos="hero"
           target="_blank"
           rel="sponsored nofollow noopener"
+          aria-label={price ? `Conferir preço atualizado de ${product}` : `Ver preço e disponibilidade de ${product}`}
         >
-          Ver preço e disponibilidade
+          {price ? 'Conferir preço atualizado' : 'Ver preço e disponibilidade'} →
         </a>
       )}
       {price && priceCheckedAt && formatDateBR(priceCheckedAt) && (

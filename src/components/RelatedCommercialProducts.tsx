@@ -56,13 +56,14 @@ export default function RelatedCommercialProducts({
                   Ler análise → 
                 </Link>
                 <a
-                  className="cta"
+                  className="cta cta--primary-buy"
                   href={'/go/' + link.slug + '/'}
                   data-aff-pos={'related-' + link.slug}
                   target="_blank"
                   rel="sponsored nofollow noopener"
+                  aria-label={price ? `Conferir preço de ${review.product}` : `Ver oferta de ${review.product}`}
                 >
-                  Ver oferta → 
+                  {price ? 'Conferir preço' : 'Ver oferta'} →
                 </a>
               </div>
             </article>

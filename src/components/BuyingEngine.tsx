@@ -58,13 +58,14 @@ export default function BuyingEngine({
               </div>
               {isValidHref ? (
                 <a
-                  className="cta"
+                  className="cta cta--primary-buy"
                   href={offer.href}
                   data-aff-pos={'buying-' + offer.marketplace}
                   target="_blank"
                   rel={offer.isAffiliate ? 'sponsored nofollow noopener' : 'nofollow noopener'}
+                  aria-label={offer.price ? `Conferir preço na ${offer.label}` : `Consultar preço na ${offer.label}`}
                 >
-                  Ver oferta →
+                  {offer.price ? 'Conferir preço na loja' : 'Consultar preço'} →
                 </a>
               ) : (
                 <span className="buying-unavailable">Link de compra não disponível</span>
