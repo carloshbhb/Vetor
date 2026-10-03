@@ -479,7 +479,6 @@ export default async function ReviewPage({ params }: PageProps) {
                   </a>
                 )}
               </section>
-              )}
 
               <AuthorBox
                 name={primaryAuthor.name}
