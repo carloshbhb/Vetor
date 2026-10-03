@@ -48,6 +48,45 @@ type DashboardData = {
     action: string;
   }>;
   pages: SearchConsolePage[];
+  intelligence: {
+    ctrOpportunities: Array<{
+      query: string;
+      page: string;
+      currentTitle: string;
+      impressions: number;
+      clicks: number;
+      ctr: number;
+      position: number;
+      titleSuggestion: string;
+    }>;
+    positionOpportunities: Array<{
+      page: string;
+      impressions: number;
+      clicks: number;
+      avgPosition: number;
+      action: string;
+    }>;
+    cannibalization: Array<{
+      query: string;
+      impressions: number;
+      pages: Array<{
+        page: string;
+        impressions: number;
+        clicks: number;
+        avgPosition: number;
+      }>;
+      leaderShare: number;
+      action: string;
+    }>;
+    contentGaps: Array<{
+      query: string;
+      impressions: number;
+      avgPosition: number;
+      leadingPage: string;
+      signal: string;
+      suggestedRoute: string;
+    }>;
+  };
   contentOpportunities: {
     thinCategories: Array<{
       category: string;
@@ -273,6 +312,147 @@ export default function OpportunitiesPage() {
             </section>
           </div>
         </section>
+      )}
+
+      {searchConsoleReady && (
+        <>
+          <section className="bg-[var(--surface)] border border-border rounded-xl p-5 mb-6">
+            <div className="mb-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--amber)] font-bold">
+                Fase 5 · sinais automáticos
+              </p>
+              <h2 className="font-heading font-bold text-xl mt-1">Oportunidades de CTR</h2>
+              <p className="text-xs text-[var(--muted)] mt-1">
+                Queries com 20+ impressões, posição entre 4 e 15 e CTR abaixo de 5%. A sugestão de title é automática e deve ser revisada antes de publicar.
+              </p>
+            </div>
+            {data.intelligence.ctrOpportunities.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-[var(--muted)] border-b border-border">
+                      <th className="py-3 pr-4">Query</th>
+                      <th className="py-3 pr-4">Página</th>
+                      <th className="py-3 pr-4">CTR</th>
+                      <th className="py-3 pr-4">Pos.</th>
+                      <th className="py-3">Title sugerido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.intelligence.ctrOpportunities.slice(0, 10).map((item, index) => (
+                      <tr key={item.page + "|" + item.query + "|" + index} className="border-b border-border/60 align-top">
+                        <td className="py-3 pr-4 font-medium">{item.query}</td>
+                        <td className="py-3 pr-4 max-w-[260px]">
+                          <p className="truncate">{item.page}</p>
+                          <p className="text-xs text-[var(--muted)] mt-1 truncate">{item.currentTitle}</p>
+                        </td>
+                        <td className="py-3 pr-4">{item.ctr}%</td>
+                        <td className="py-3 pr-4">{item.position}</td>
+                        <td className="py-3 max-w-[360px]">{item.titleSuggestion}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--muted)]">Nenhuma oportunidade de CTR no corte atual.</p>
+            )}
+          </section>
+
+          <div className="grid lg:grid-cols-2 gap-6 mb-6">
+            <section className="bg-[var(--surface)] border border-border rounded-xl p-5">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--amber)] font-bold">
+                Fase 5 · sinais automáticos
+              </p>
+              <h2 className="font-heading font-bold text-xl mt-1">Oportunidades de posição</h2>
+              <p className="text-xs text-[var(--muted)] mt-1 mb-4">
+                Páginas com 30+ impressões e posição média entre 5 e 15.
+              </p>
+              {data.intelligence.positionOpportunities.length ? (
+                data.intelligence.positionOpportunities.slice(0, 10).map((item) => (
+                  <div key={item.page} className="py-3 border-b border-border last:border-0">
+                    <p className="text-sm truncate">{item.page}</p>
+                    <p className="text-xs text-[var(--muted)] mt-1">
+                      {numberFormatter.format(item.impressions)} impressões · {numberFormatter.format(item.clicks)} cliques · posição {item.avgPosition}
+                    </p>
+                    <p className="text-xs text-[var(--amber)] mt-1">{item.action}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[var(--muted)]">Nenhuma página elegível.</p>
+              )}
+            </section>
+
+            <section className="bg-[var(--surface)] border border-border rounded-xl p-5">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--amber)] font-bold">
+                Fase 5 · sinais automáticos
+              </p>
+              <h2 className="font-heading font-bold text-xl mt-1">Possível canibalização</h2>
+              <p className="text-xs text-[var(--muted)] mt-1 mb-4">
+                Consultas com 30+ impressões distribuídas entre duas ou mais URLs. É um sinal para investigação, não uma conclusão.
+              </p>
+              {data.intelligence.cannibalization.length ? (
+                data.intelligence.cannibalization.slice(0, 8).map((item) => (
+                  <div key={item.query} className="py-3 border-b border-border last:border-0">
+                    <p className="text-sm font-medium">{item.query}</p>
+                    <p className="text-xs text-[var(--muted)] mt-1">
+                      {numberFormatter.format(item.impressions)} impressões · {item.pages.length} URLs · maior participação {item.leaderShare}%
+                    </p>
+                    {item.pages.slice(0, 3).map((page) => (
+                      <p key={page.page} className="text-xs mt-1 truncate">
+                        {page.page} · {numberFormatter.format(page.impressions)} impr. · pos. {page.avgPosition}
+                      </p>
+                    ))}
+                    <p className="text-xs text-[var(--amber)] mt-2">{item.action}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[var(--muted)]">Nenhum sinal no corte atual.</p>
+              )}
+            </section>
+          </div>
+
+          <section className="bg-[var(--surface)] border border-border rounded-xl p-5 mb-8">
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--amber)] font-bold">
+              Fase 5 · sinais automáticos
+            </p>
+            <h2 className="font-heading font-bold text-xl mt-1">Possíveis lacunas de conteúdo</h2>
+            <p className="text-xs text-[var(--muted)] mt-1 mb-4">
+              O painel cruza a intenção comercial detectada na query com a URL que hoje recebe as impressões. São oportunidades para análise editorial.
+            </p>
+            {data.intelligence.contentGaps.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-[var(--muted)] border-b border-border">
+                      <th className="py-3 pr-4">Query</th>
+                      <th className="py-3 pr-4">Impr.</th>
+                      <th className="py-3 pr-4">Pos.</th>
+                      <th className="py-3 pr-4">Página atual</th>
+                      <th className="py-3">Rota a avaliar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.intelligence.contentGaps.map((item) => (
+                      <tr key={item.query + "|" + item.leadingPage} className="border-b border-border/60 align-top">
+                        <td className="py-3 pr-4 font-medium">{item.query}</td>
+                        <td className="py-3 pr-4">{numberFormatter.format(item.impressions)}</td>
+                        <td className="py-3 pr-4">{item.avgPosition}</td>
+                        <td className="py-3 pr-4 max-w-[280px]">
+                          <p className="truncate">{item.leadingPage}</p>
+                          <p className="text-xs text-[var(--muted)] mt-1">{item.signal}</p>
+                        </td>
+                        <td className="py-3">{item.suggestedRoute}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--muted)]">Nenhuma lacuna potencial identificada no corte atual.</p>
+            )}
+          </section>
+        </>
       )}
 
       <section className="bg-[var(--surface)] border border-border rounded-xl p-5 mb-6">
