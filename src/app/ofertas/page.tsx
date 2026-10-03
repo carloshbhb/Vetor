@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Ofertas: preços e disponibilidade",
     description: "Preços acompanhados pelo Vetor.blog.",
-    url: "https://www.vetor.blog/ofertas",
+    url: "https://www.vetor.blog/ofertas/",
     type: "website",
     images: ["https://www.vetor.blog/og.png"],
   },

@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import ReviewCard from "@/components/ReviewCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { fetchAllReviews, fetchCategories } from "@/lib/data";
+import { fetchAllReviews, fetchCategories, normalizeCategoryName } from "@/lib/data";
 import { ItemListSchema } from "@/components/SchemaMarkup";
 
 interface PageProps {
@@ -24,7 +24,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { category: raw } = await params;
-  const category = safeDecode(raw);
+  const category = normalizeCategoryName(safeDecode(raw));
   return {
     title: `Melhores ${category} — Reviews e Comparativos`,
     description: `Reviews independentes de ${category}. Análises com prós, contras, notas e links para as melhores ofertas.`,
@@ -48,22 +48,23 @@ const chip = (active: boolean): React.CSSProperties => ({
 
 export default async function CategoryHubPage({ params }: PageProps) {
   const { category: raw } = await params;
-  const category = safeDecode(raw);
+  const requestedCategory = safeDecode(raw);
+  const canonicalCategory = normalizeCategoryName(requestedCategory);
 
   const [reviews, categories] = await Promise.all([
     fetchAllReviews(),
     fetchCategories(),
   ]);
 
-  const filtered = reviews.filter(
-    (r) => r.category.toLowerCase() === category.toLowerCase()
-  );
+  const filtered = reviews.filter((r) => r.category === canonicalCategory);
 
   if (filtered.length === 0) notFound();
 
-  const canonicalCategory =
-    categories.find((c) => c.name.toLowerCase() === category.toLowerCase())
-      ?.name || category;
+  if (requestedCategory !== canonicalCategory) {
+    permanentRedirect(
+      `/reviews/categoria/${encodeURIComponent(canonicalCategory)}/`
+    );
+  }
 
   return (
     <>
@@ -100,7 +101,7 @@ export default async function CategoryHubPage({ params }: PageProps) {
               </a>
               {categories.map((cat) => {
                 const isActive =
-                  cat.name.toLowerCase() === category.toLowerCase();
+                  cat.name === canonicalCategory;
                 return (
                   <a
                     key={cat.name}

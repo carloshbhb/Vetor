@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Guias de compra: qual escolher em 2026",
     description: "Critérios, perfis e alternativas antes de comprar.",
-    url: "https://www.vetor.blog/guias",
+    url: "https://www.vetor.blog/guias/",
     type: "website",
     images: ["https://www.vetor.blog/og.png"],
   },

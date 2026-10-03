@@ -51,9 +51,9 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 - [x] **P2-3** RSS `/feed.xml` (20 items, link no layout) ✅ 2026-09-23
 - [x] **P2-4** Author pages `/author/[slug]` (E-A-T) ✅ 2026-09-23
 - [x] **P2-5** Tag pages (se fizer sentido com dados) ✅ 2026-09-23 — 90 tags com ≥2 reviews a partir de `meta_keywords`
-- [ ] **P2-6** `author: Person` no JSON-LD das reviews (páginas de autor existem; auditor não detectou author no schema) + conferir `datePublished`/`dateModified` (AW9 saiu vazio) 📅 2026-10-01 — E-E-A-T
+- [x] **P2-6** `author: Person` no JSON-LD das reviews + `datePublished`/`dateModified` ✅ 2026-10-03 — autor canônico `Editor Vetor` e URL da página de autor adicionados ao schema das reviews.
 - [ ] **P2-7** Política de refresh de artigos antigos (AW9 rebrand "2026"): `dateModified` real ou URL nova, evitar duplicação com guias "melhores … 2026"; title AW9 com marca duplicada (`| Vetor Blog | vetor.blog`) 📅 2026-10-01
-- [ ] **P2-8** Categorias duplicadas por caixa/acentos (`Eletroportateis`/`Eletroportáteis`, `Wearables`/`Wearables / Smartbands`, `Acessorios Gamer`/`Acessórios para Games`, `Mercado Livre Frete Grátis`/`mercado livre frete gratis`) → hubs internos divididos, contagens/fracasso de internal link 📅 2026-10-01 — normalizar `reviews.category` + 301 dos hubs antigos
+- [x] **P2-8** Categorias duplicadas por caixa/acentos (`Eletroportateis`/`Eletroportáteis`, `Wearables`/`Wearables / Smartbands`, `Acessorios Gamer`/`Acessórios para Games`, `Mercado Livre Frete Grátis`/`mercado livre frete gratis`) ✅ 2026-10-03 — categorias normalizadas no pipeline; aliases legados dos hubs redirecionam permanentemente para a URL canônica.
 
 ### P3 — Pipeline de escala com qualidade
 
@@ -87,6 +87,12 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 | Domínio Vercel | ✅ 2026-09-23 `vetor.blog`+`www` movidos de projeto `vetor` → `vetor-blog`; apex redirect→www |
 
 ---
+
+### Ciclo 10 — 2026-10-03 (Normalização de URLs e categorias)
+- Canonical/Open Graph padronizados com trailing slash nas páginas de descoberta; sitemap alinhado ao mesmo padrão.
+- `trailingSlash: true` ativado no Next.js; redirects antigos passam a apontar diretamente para URLs canônicas com `/`.
+- Hubs de categoria normalizam aliases de caixa/acentuação e redirecionam aliases legados para a categoria canônica.
+- P2-6 e P2-8 atualizados como concluídos.
 
 ## Histórico de ciclos
 

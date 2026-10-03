@@ -21,7 +21,7 @@ const CATEGORY_ALIASES: Record<string, string> = {
   'mercado livre frete grátis': 'Mercado Livre Frete Grátis',
 };
 
-function normalizeCategoryName(value: string): string {
+export function normalizeCategoryName(value: string): string {
   const key = value.trim().toLowerCase();
   return CATEGORY_ALIASES[key] || value.trim();
 }
@@ -145,10 +145,9 @@ export async function fetchCategories(): Promise<Category[]> {
 export async function fetchReviewsByCategory(
   category: string
 ): Promise<Review[]> {
+  const normalizedCategory = normalizeCategoryName(category);
   const reviews = await fetchAllReviews();
-  return reviews.filter(
-    (r) => r.category.toLowerCase() === category.toLowerCase()
-  );
+  return reviews.filter((r) => r.category === normalizedCategory);
 }
 
 // Reviews que funcionam como guias (contêm "guia" ou prefixos top-N/melhores-*).
