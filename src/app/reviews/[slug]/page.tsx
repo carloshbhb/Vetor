@@ -199,27 +199,9 @@ export default async function ReviewPage({ params }: PageProps) {
           </div>
         </section>
 
-        <AdPlacement
-          slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
-          className="ad-slot"
-          ariaLabel="Publicidade"
-          wrapperClassName="container"
-        />
-
         <section className="content-wrap">
           <div className="container layout">
             <article className="article">
-              <nav className="toc" aria-label="Índice do artigo">
-                <strong>Neste review</strong>
-                <ol>
-                  {toc.map((t) => (
-                    <li key={t.id}>
-                      <a href={`#${t.id}`}>{t.label}</a>
-                    </li>
-                  ))}
-                </ol>
-              </nav>
-
               <AnswerBox
                 product={review.product}
                 question={worthQuestion}
@@ -227,6 +209,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 verdictText={verdictText}
                 score={score}
                 affiliateSlug={review.affiliate_url ? review.slug : undefined}
+                price={review.price_new}
               />
 
               <section id="resumo">
@@ -256,11 +239,29 @@ export default async function ReviewPage({ params }: PageProps) {
               </section>
 
               {heroBars.length > 0 && (
-                <>
-                  <h3>Nota por critério</h3>
+                <section aria-labelledby="nota-criterios">
+                  <h3 id="nota-criterios">Por que demos essa nota?</h3>
+                  <p>Veja como a avaliação se distribui entre os principais critérios da categoria.</p>
                   <ScoreBarsStatic bars={heroBars} />
-                </>
+                </section>
               )}
+
+              <AdPlacement
+                slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP}
+                className="ad-slot"
+                ariaLabel="Publicidade"
+              />
+
+              <nav className="toc" aria-label="Índice do artigo">
+                <strong>Neste review</strong>
+                <ol>
+                  {toc.map((t) => (
+                    <li key={t.id}>
+                      <a href={`#${t.id}`}>{t.label}</a>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
 
               <section id="criterios">
                 <h2>{isGuia ? "O que analisamos neste guia" : "O que analisamos neste review"}</h2>
@@ -441,6 +442,19 @@ export default async function ReviewPage({ params }: PageProps) {
                 </div>
               </section>
 
+              {faq.length > 0 && (
+                <section id="faq">
+                  <h2>Perguntas frequentes sobre {review.product}</h2>
+                  <div className="faq">
+                    {faq.map((item, i) => (
+                      <details key={i}>
+                        <summary>{item.question}</summary>
+                        <p>{item.answer}</p>
+                      </details>
+                    ))}
+                  </div>
+  
+
               <section>
                 <h2>Conclusão: {worthQuestion}</h2>
                 <p>
@@ -464,21 +478,6 @@ export default async function ReviewPage({ params }: PageProps) {
                   </a>
                 )}
               </section>
-              </>
-              )}
-
-              {faq.length > 0 && (
-                <section id="faq">
-                  <h2>Perguntas frequentes sobre {review.product}</h2>
-                  <div className="faq">
-                    {faq.map((item, i) => (
-                      <details key={i}>
-                        <summary>{item.question}</summary>
-                        <p>{item.answer}</p>
-                      </details>
-                    ))}
-                  </div>
-                </section>
               )}
 
               <AuthorBox
@@ -527,7 +526,7 @@ export default async function ReviewPage({ params }: PageProps) {
                     target="_blank"
                     rel="sponsored nofollow noopener"
                   >
-                    Ver oferta
+                    Ver preço e disponibilidade
                   </a>
                 )}
               </div>
