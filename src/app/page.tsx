@@ -175,7 +175,7 @@ export default async function Home() {
                 <Link
                   key={category}
                   className="home-category"
-                  href={`/reviews/?categoria=${encodeURIComponent(category)}`}
+                  href={`/reviews/categoria/${encodeURIComponent(category)}/`}
                 >
                   <span>{category}</span>
                   <strong>{count} {count === 1 ? 'análise' : 'análises'}</strong>
