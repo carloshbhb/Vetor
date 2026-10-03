@@ -11,6 +11,7 @@ const navItems = [
   { label: "Gerar Conteúdo", href: "/admin/generate", icon: "M12 6v6m0 0v6m0-6h6m-6 0H6" },
   { label: "Links de Afiliado", href: "/admin/afiliados", icon: "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 005.656-5.656l-1.1 1.1" },
   { label: "Mercado Livre", href: "/admin/ml", icon: "M6 7h12M6 12h12M6 17h7M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" },
+  { label: "Fila de Afiliados", href: "/admin/ml/fila", icon: "M5 5h14M5 12h14M5 19h14" },
   { label: "Oportunidades SEO", href: "/admin/oportunidades", icon: "M4 19V5m0 14h16M8 16l3-4 3 2 5-7" },
 ];
 
