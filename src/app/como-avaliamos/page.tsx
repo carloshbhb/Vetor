@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { BreadcrumbSchema } from "@/components/SchemaMarkup";
 
 export const metadata: Metadata = {
   title: "Como avaliamos — Metodologia do Vetor.blog",
   description:
     "Critérios, notas de 0 a 10, checagem de preços e política de independência: entenda exatamente como o Vetor.blog avalia produtos.",
-  alternates: { canonical: "https://www.vetor.blog/como-avaliamos/" },
+  alternates: { canonical: "/como-avaliamos/" },
 };
 
 export default function ComoAvaliamosPage() {
   return (
+    <BreadcrumbSchema items={[{ name: 'Início', url: 'https://www.vetor.blog/' }, { name: 'Como avaliamos', url: 'https://www.vetor.blog/como-avaliamos/' }]} />
     <main id="conteudo">
       <section className="hero">
         <div className="container">
