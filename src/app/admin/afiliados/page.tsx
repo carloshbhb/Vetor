@@ -203,7 +203,7 @@ export default function AffiliateCenterPage() {
   };
 
   const archive = async (item: AffiliateLink) => {
-    if (!window.confirm("Arquivar o link "" + item.name + ""? O slug permanece registrado, mas o redirect deixa de funcionar.")) return;
+    if (!window.confirm('Arquivar o link "' + item.name + '"? O slug permanece registrado, mas o redirect deixa de funcionar.')) return;
     try {
       const response = await fetch("/api/admin/affiliates/" + item.id, { method: "DELETE" });
       const payload = await response.json().catch(() => ({}));
