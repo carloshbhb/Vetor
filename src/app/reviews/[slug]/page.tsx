@@ -484,6 +484,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 bio={primaryAuthor.bio}
                 slug={primaryAuthor.slug}
                 role={primaryAuthor.role}
+                avatar={primaryAuthor.avatar}
                 date={review.updated_at}
                 readTime={`Leitura: ${readTime}`}
               />

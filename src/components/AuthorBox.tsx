@@ -7,6 +7,7 @@ interface AuthorBoxProps {
   role?: string;
   date?: string;
   readTime?: string;
+  avatar?: string;
 }
 
 export default function AuthorBox({
@@ -16,6 +17,7 @@ export default function AuthorBox({
   role,
   date,
   readTime,
+  avatar,
 }: AuthorBoxProps) {
   let formattedDate: string | null = null;
   if (date) {
@@ -31,24 +33,34 @@ export default function AuthorBox({
 
   return (
     <div className="author">
-      <div
-        aria-hidden="true"
-        style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '50%',
-          flex: 'none',
-          background: '#dfe5eb',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '28px',
-          fontWeight: 800,
-          color: '#556170',
-        }}
-      >
-        {name.charAt(0).toUpperCase()}
-      </div>
+      {avatar ? (
+        <img
+          alt={name}
+          src={avatar}
+          width={64}
+          height={64}
+          style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', flex: 'none' }}
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            flex: 'none',
+            background: '#dfe5eb',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '28px',
+            fontWeight: 800,
+            color: '#556170',
+          }}
+        >
+          {name.charAt(0).toUpperCase()}
+        </div>
+      )}
       <div>
         <strong>
           {slug ? <Link href={`/author/${slug}`}>{name}</Link> : name}

@@ -330,6 +330,7 @@ export default async function ViralArticlePage({ params }: PageProps) {
                 bio={primaryAuthor.bio}
                 slug={primaryAuthor.slug}
                 role={primaryAuthor.role}
+                avatar={primaryAuthor.avatar}
                 date={article.updated_at}
               />
 

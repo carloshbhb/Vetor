@@ -48,7 +48,18 @@ export default function AuthorIndexPage() {
                   <Link key={author.slug} className="home-card" href={`/author/${author.slug}`}>
                     <span className="home-card-label">{author.role}</span>
                     <h3>
-                      {initials} · {author.name}
+                      {author.avatar ? (
+                        <img
+                          alt={author.name}
+                          src={author.avatar}
+                          width={40}
+                          height={40}
+                          style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle', marginRight: 8 }}
+                        />
+                      ) : (
+                        <>{initials} · </>
+                      )}
+                      {author.name}
                     </h3>
                     <p>{author.tagline}</p>
                     <div className="home-card-bottom">Ver artigos →</div>

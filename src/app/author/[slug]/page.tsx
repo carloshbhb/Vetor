@@ -88,24 +88,34 @@ export default async function AuthorPage({ params }: PageProps) {
         <section className="content-wrap">
           <div className="container">
             <div className="author" style={{ maxWidth: 680, marginBottom: 56 }}>
-              <div
-                aria-hidden="true"
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: "50%",
-                  background: "#dfe5eb",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 28,
-                  color: "#556170",
-                  fontWeight: 800,
-                  flexShrink: 0,
-                }}
-              >
-                {initials}
-              </div>
+              {author.avatar ? (
+                <img
+                  alt={author.name}
+                  src={author.avatar}
+                  width={72}
+                  height={72}
+                  style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                />
+              ) : (
+                <div
+                  aria-hidden="true"
+                  style={{
+                    width: 72,
+                    height: 72,
+                    borderRadius: "50%",
+                    background: "#dfe5eb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 28,
+                    color: "#556170",
+                    fontWeight: 800,
+                    flexShrink: 0,
+                  }}
+                >
+                  {initials}
+                </div>
+              )}
               <div>
                 <strong>{author.name}</strong>
                 <p>

@@ -5,6 +5,7 @@ export interface Author {
   tagline: string;
   bio: string;
   credentials: string[];
+  avatar?: string;
 }
 
 export const authors: Author[] = [
@@ -12,6 +13,7 @@ export const authors: Author[] = [
     slug: 'editor-vetor',
     name: 'Editor Vetor',
     role: 'Editor-chefe',
+    avatar: '/images/authors/editora-chefe.webp',
     tagline:
       'Editor-chefe do vetor.blog — reviews independentes com critérios claros e notas de 0 a 10.',
     bio: 'À frente da redação do vetor.blog, escreve e revisa as análises do site com foco em wearables, fones de ouvido e notebooks. Cada texto segue o mesmo padrão: critérios públicos, comparação com concorrentes na mesma faixa de preço, prós e contras honestos e um veredicto direto — em português, sem achismo.',
