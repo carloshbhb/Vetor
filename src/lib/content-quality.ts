@@ -111,7 +111,7 @@ function countHtmlTags(html: string, tag: string): number {
 }
 
 function normalizeSearchText(value: string): string {
-  return value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
 export const generatedViralQualitySchema = z
@@ -156,7 +156,7 @@ export const generatedViralQualitySchema = z
       });
     }
 
-    if (!/<table\\b/i.test(val.content)) {
+    if (!/<table\b/i.test(val.content)) {
       ctx.addIssue({ code: 'custom', path: ['content'], message: 'content must contain a comparison table' });
     }
 
@@ -165,7 +165,7 @@ export const generatedViralQualitySchema = z
       ctx.addIssue({ code: 'custom', path: ['content'], message: 'content must contain an identifiable FAQ section' });
     }
 
-    if ((val.content.match(/\\?/g) ?? []).length < MIN_VIRAL_FAQ_QUESTIONS) {
+    if ((val.content.match(/\?/g) ?? []).length < MIN_VIRAL_FAQ_QUESTIONS) {
       ctx.addIssue({
         code: 'custom',
         path: ['content'],

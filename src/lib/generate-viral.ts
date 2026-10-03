@@ -46,7 +46,7 @@ export async function generateViralArticle(topic: {
       maxTokens: 6500,
     });
 
-    const jsonMatch = response.match(/\\{[\\s\\S]*\\}/);
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('LLM did not return a JSON object');
 
     const candidate = JSON.parse(jsonMatch[0]);

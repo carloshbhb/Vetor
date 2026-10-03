@@ -114,7 +114,7 @@ export default function AdminProductLinksPage() {
       if (filterHasVideo !== "all") params.set("has_video", filterHasVideo === "true" ? "true" : "false");
 
       const res = await fetch(`/api/admin/product-links?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${getAuth()}` },
+        
       });
       const data = await res.json();
       setLinks(data.data || []);
@@ -127,7 +127,7 @@ export default function AdminProductLinksPage() {
   const fetchStats = async () => {
     try {
       const res = await fetch("/api/admin/product-links/stats", {
-        headers: { Authorization: `Bearer ${getAuth()}` },
+        
       });
       const data = await res.json();
       setStats(data.data || stats);
@@ -137,7 +137,7 @@ export default function AdminProductLinksPage() {
   const fetchCategories = async () => {
     try {
       const res = await fetch("/api/admin/product-links", {
-        headers: { Authorization: `Bearer ${getAuth()}` },
+        
       });
       const data = await res.json();
       const allLinks: ProductLink[] = data.data || [];
@@ -205,7 +205,7 @@ export default function AdminProductLinksPage() {
     try {
       const res = await fetch(`/api/admin/product-links/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${getAuth()}` },
+        
       });
       if (!res.ok) throw new Error("Erro ao excluir.");
       fetchLinks();
