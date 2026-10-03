@@ -23,7 +23,6 @@ export default function AdminGeneratePage() {
       setProgress("Enviando requisição para o servidor...");
       const res = await fetch("/api/admin/generate", {
         method: "POST",
-        headers: getAuthHeaders(),
       });
 
       const data = await res.json();
