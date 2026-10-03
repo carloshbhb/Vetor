@@ -155,9 +155,9 @@ export async function GET(request: Request) {
     0
   );
 
-  const topQueries = Array.from(querySummary.values())
-    .map((item) => ({
-      query: item.query,
+  const topQueries = Array.from(querySummary.entries())
+    .map(([query, item]) => ({
+      query,
       impressions: Math.round(item.impressions),
       clicks: Math.round(item.clicks),
       ctr: item.impressions
@@ -170,9 +170,9 @@ export async function GET(request: Request) {
     .sort((a, b) => b.impressions - a.impressions)
     .slice(0, 20);
 
-  const topPages = Array.from(pageSummary.values())
-    .map((item) => ({
-      page: item.page,
+  const topPages = Array.from(pageSummary.entries())
+    .map(([page, item]) => ({
+      page,
       impressions: Math.round(item.impressions),
       clicks: Math.round(item.clicks),
       avgPosition: item.impressions
