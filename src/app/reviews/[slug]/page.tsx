@@ -109,9 +109,11 @@ export default async function ReviewPage({ params }: PageProps) {
   // Títulos sem duplicar "vale a pena?" quando o product já contém a pergunta.
   const asksWorth = /vale a pena/i.test(review.product);
   const isGuia = /guia/i.test(review.slug);
-  const reviewTitle = asksWorth
-    ? `${review.product} — Review completo, preço e alternativas`
-    : `${review.product} vale a pena? Review completo, preço e alternativas`;
+  const reviewTitle = isGuia
+    ? `${review.product} — guia completo de compra`
+    : asksWorth
+      ? `${review.product} — Review completo, preço e alternativas`
+      : `${review.product} vale a pena? Review completo, preço e alternativas`;
   const worthQuestion = isGuia
     ? `${review.product}: qual escolher?`
     : asksWorth
