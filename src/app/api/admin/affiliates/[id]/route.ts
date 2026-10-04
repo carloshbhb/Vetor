@@ -22,6 +22,21 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   try {
     const body = await request.json();
+    for (const field of ["product_url", "image_url", "destination_url"] as const) {
+      if (body[field] === undefined || !body[field]) continue;
+      try {
+        const parsed = new URL(String(body[field]));
+        if (parsed.protocol !== "https:") throw new Error();
+      } catch {
+        return NextResponse.json({ error: `${field} precisa ser uma URL HTTPS válida.` }, { status: 400 });
+      }
+    }
+    if (body.affiliate_tag !== undefined && String(body.affiliate_tag).length > 30) {
+      return NextResponse.json({ error: "A etiqueta da Central aceita até 30 caracteres." }, { status: 400 });
+    }
+    if (body.price !== undefined && body.price !== null && (!Number.isFinite(Number(body.price)) || Number(body.price) < 0)) {
+      return NextResponse.json({ error: "O preço precisa ser um número igual ou maior que zero." }, { status: 400 });
+    }
     const result = await updateAffiliateLink(id, {
       ...(body.slug !== undefined ? { slug: String(body.slug) } : {}),
       ...(body.name !== undefined ? { name: String(body.name) } : {}),
@@ -30,6 +45,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       ...(body.source_type !== undefined ? { source_type: body.source_type } : {}),
       ...(body.source_ref !== undefined ? { source_ref: String(body.source_ref) } : {}),
       ...(body.destination_url !== undefined ? { destination_url: String(body.destination_url) } : {}),
+      ...(body.product_url !== undefined ? { product_url: String(body.product_url) } : {}),
+      ...(body.affiliate_tag !== undefined ? { affiliate_tag: String(body.affiliate_tag) } : {}),
+      ...(body.affiliate_checked_at !== undefined ? { affiliate_checked_at: body.affiliate_checked_at ? String(body.affiliate_checked_at) : null } : {}),
+      ...(body.image_url !== undefined ? { image_url: String(body.image_url) } : {}),
+      ...(body.price !== undefined ? { price: body.price == null || body.price === "" ? null : Number(body.price) } : {}),
       ...(body.status !== undefined ? { status: body.status } : {}),
       ...(body.priority !== undefined ? { priority: Number(body.priority) } : {}),
       ...(body.notes !== undefined ? { notes: String(body.notes) } : {}),

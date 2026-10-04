@@ -307,6 +307,11 @@ create table if not exists public.affiliate_links (
     check (source_type in ('review','comparison_product','product_link','manual')),
   source_ref text not null default '',
   destination_url text not null,
+  product_url text not null default '',
+  affiliate_tag text not null default '',
+  affiliate_checked_at timestamptz null,
+  image_url text not null default '',
+  price numeric(12, 2) null,
   status text not null default 'active'
     check (status in ('active','paused','broken','archived')),
   priority integer not null default 0,

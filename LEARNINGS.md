@@ -42,3 +42,18 @@ Wrapper <div> ao redor de componente que pode retornar null (AdPlacement/AdSlot 
 Em paginas SSG do App Router, /reviews/categoria/X sem reviews retorna 404 por design (P0-10); validar categorias vazias antes de linkar
   Evidência: /reviews/categoria/Eletronicos 404 apos spam removido
   Confiança: 0.70 · sucesso
+
+### 2026-10-04 · mercadolivre-affiliate · #10
+Para centralizar links de afiliados do Mercado Livre, armazenar a URL oficial copiada da Central sem reconstruir parâmetros; mapear por produto e slug editorial e fazer /go priorizar o destino registrado, preservando links legados durante a migração gradual.
+  Evidência: Implementado affiliate_url e affiliate_tag no cadastro central product_links, com /go resolvendo por slug, review_slug e URL do produto; orientações oficiais do programa dizem gerar links pelas ferramentas da Central.
+  Confiança: 0.70 · sucesso
+
+### 2026-10-04 · mercadolivre-affiliate · #11
+A API autenticada do Mercado Livre pode enriquecer o cadastro com dados de catálogo (título, categoria, permalink, imagem e preço), mas deve permanecer separada da URL afiliada criada pela Central; guardar o destino afiliado copiado sem reconstruir seus parâmetros.
+  Evidência: O painel central usa getProductWithPictures/getCategory para autopreencher produto; o campo affiliate_url continua manual e conserva a URL produzida pela Central.
+  Confiança: 0.70 · sucesso
+
+### 2026-10-04 · mercadolivre-affiliate · #10
+Quando o remoto já substituiu um módulo local por uma central mais completa, portar os recursos exclusivos para a central atual; não reintroduzir a tela antiga como uma segunda fonte de verdade. Manter separados o permalink de catálogo e o destino oficial afiliado.
+  Evidência: No GitHub, /admin/product-links redireciona para /admin/afiliados e affiliate_links já centraliza os destinos; integração adicionou consulta de catálogo e metadados sem recuperar a UI legada.
+  Confiança: 0.70 · sucesso

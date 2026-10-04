@@ -15,6 +15,11 @@ type AffiliateLink = {
   source_type: SourceType;
   source_ref: string;
   destination_url: string;
+  product_url: string;
+  affiliate_tag: string;
+  affiliate_checked_at: string | null;
+  image_url: string;
+  price: number | null;
   status: Status;
   priority: number;
   notes: string;
@@ -29,6 +34,12 @@ type AffiliateLink = {
   created_at: string;
   updated_at: string;
 };
+
+type AffiliateForm = Pick<AffiliateLink,
+  "slug" | "name" | "marketplace" | "category" | "source_type" | "source_ref" |
+  "destination_url" | "product_url" | "affiliate_tag" | "affiliate_checked_at" |
+  "image_url" | "price" | "status" | "priority" | "notes" | "tags"
+>;
 
 type Stats = {
   total: number;
@@ -48,6 +59,11 @@ const EMPTY = {
   source_type: "manual" as SourceType,
   source_ref: "",
   destination_url: "",
+  product_url: "",
+  affiliate_tag: "",
+  affiliate_checked_at: null,
+  image_url: "",
+  price: null,
   status: "active" as Status,
   priority: 100,
   notes: "",
@@ -121,9 +137,10 @@ export default function AffiliateCenterClient({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<AffiliateLink | null>(null);
-  const [form, setForm] = useState(EMPTY);
+  const [form, setForm] = useState<AffiliateForm>(EMPTY);
   const [copied, setCopied] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [notice, setNotice] = useState("");
@@ -179,6 +196,11 @@ export default function AffiliateCenterClient({
       source_type: item.source_type,
       source_ref: item.source_ref,
       destination_url: item.destination_url,
+      product_url: item.product_url || "",
+      affiliate_tag: item.affiliate_tag || "",
+      affiliate_checked_at: item.affiliate_checked_at,
+      image_url: item.image_url || "",
+      price: item.price,
       status: item.status,
       priority: item.priority,
       notes: item.notes,
@@ -189,10 +211,48 @@ export default function AffiliateCenterClient({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const lookupProduct = async () => {
+    setLookingUp(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/affiliates/lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_url: form.product_url }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Não foi possível consultar o produto.");
+      setForm((current) => ({
+        ...current,
+        name: current.name || payload.data.name || "",
+        slug: current.slug || (payload.data.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+        category: current.category || payload.data.category || "",
+        product_url: payload.data.product_url || current.product_url,
+        image_url: payload.data.image_url || current.image_url,
+        price: payload.data.price ?? current.price,
+        marketplace: "Mercado Livre",
+      }));
+      setNotice("Dados do catálogo preenchidos. Cole separadamente o link oficial gerado pela Central de Afiliados.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível consultar o produto.");
+    } finally {
+      setLookingUp(false);
+    }
+  };
+
   const save = async () => {
     if (!form.name.trim() || !form.destination_url.trim()) {
       setError("Nome e destino são obrigatórios.");
       return;
+    }
+    if (form.affiliate_tag.length > 30) {
+      setError("A etiqueta da Central aceita até 30 caracteres.");
+      return;
+    }
+    for (const [field, label] of [[form.product_url, "URL do produto"], [form.image_url, "Imagem"]] as const) {
+      if (!field) continue;
+      try { if (new URL(field).protocol !== "https:") throw new Error(); }
+      catch { setError(`${label} precisa ser uma URL HTTPS válida.`); return; }
     }
     setSaving(true);
     setError("");
@@ -449,10 +509,31 @@ export default function AffiliateCenterClient({
               </div>
 
               <label className="text-xs text-[var(--muted)] block">
-                URL de afiliado / destino HTTPS *
-                <input value={form.destination_url} onChange={(e) => setForm({ ...form, destination_url: e.target.value })} className="mt-1 w-full bg-[var(--surface)] border border-border rounded-lg px-3 py-2.5 text-sm text-[var(--text)] font-mono" />
-                <span className="block mt-1">A URL fica apenas no servidor; o conteúdo público usa somente /go/{form.slug || "seu-slug"}/.</span>
+                URL do produto no Mercado Livre
+                <input value={form.product_url} onChange={(e) => setForm({ ...form, product_url: e.target.value })} className="mt-1 w-full bg-[var(--surface)] border border-border rounded-lg px-3 py-2.5 text-sm text-[var(--text)]" placeholder="Cole a página do produto com o código MLB" />
               </label>
+              <button type="button" onClick={() => void lookupProduct()} disabled={lookingUp || !form.product_url.trim()} className="-mt-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-[var(--text)] disabled:opacity-50">
+                {lookingUp ? "Consultando catálogo…" : "Preencher dados pela API do Mercado Livre"}
+              </button>
+              {form.image_url && <div className="flex items-center gap-3 text-xs text-[var(--muted)]"><img src={form.image_url} alt="" className="h-12 w-12 rounded border border-border object-contain bg-white" /><span>{form.price == null ? "Imagem do catálogo" : `Preço de referência: R$ ${form.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}</span></div>}
+
+              <label className="text-xs text-[var(--muted)] block">
+                URL oficial de afiliado / destino HTTPS *
+                <input value={form.destination_url} onChange={(e) => setForm({ ...form, destination_url: e.target.value, affiliate_checked_at: null })} className="mt-1 w-full bg-[var(--surface)] border border-border rounded-lg px-3 py-2.5 text-sm text-[var(--text)] font-mono" />
+                <span className="block mt-1">Cole o endereço gerado pela Central sem reconstruir parâmetros. O conteúdo público usa somente /go/{form.slug || "seu-slug"}/.</span>
+                <a href="https://www.mercadolivre.com.br/l/visite-o-portal-de-afiliados" target="_blank" rel="noreferrer" className="mt-1 inline-block text-[var(--amber)] hover:underline">Abrir Central de Afiliados ↗</a>
+              </label>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <label className="text-xs text-[var(--muted)]">
+                  Etiqueta da Central de Afiliados
+                  <input maxLength={30} value={form.affiliate_tag} onChange={(e) => setForm({ ...form, affiliate_tag: e.target.value })} className="mt-1 w-full bg-[var(--surface)] border border-border rounded-lg px-3 py-2.5 text-sm" placeholder="site_review" />
+                </label>
+                <div className="text-xs text-[var(--muted)]">
+                  URL afiliada: {form.affiliate_checked_at ? formatDate(form.affiliate_checked_at) : "ainda não conferida"}
+                  <button type="button" disabled={!form.destination_url.trim()} onClick={() => setForm({ ...form, affiliate_checked_at: new Date().toISOString() })} className="mt-1 block rounded-lg border border-border px-3 py-2 font-semibold disabled:opacity-50">Marcar como conferida</button>
+                </div>
+              </div>
 
               <div className="grid md:grid-cols-4 gap-4">
                 <label className="text-xs text-[var(--muted)]">

@@ -13,6 +13,11 @@ export interface AffiliateLink {
   source_type: AffiliateSourceType;
   source_ref: string;
   destination_url: string;
+  product_url: string;
+  affiliate_tag: string;
+  affiliate_checked_at: string | null;
+  image_url: string;
+  price: number | null;
   status: AffiliateLinkStatus;
   priority: number;
   notes: string;
@@ -55,6 +60,11 @@ function normalizeRow(row: Record<string, unknown>): AffiliateLink {
       : "manual",
     source_ref: String(row.source_ref || ""),
     destination_url: String(row.destination_url || ""),
+    product_url: String(row.product_url || ""),
+    affiliate_tag: String(row.affiliate_tag || ""),
+    affiliate_checked_at: row.affiliate_checked_at ? String(row.affiliate_checked_at) : null,
+    image_url: String(row.image_url || ""),
+    price: row.price == null ? null : Number(row.price),
     status: STATUS_VALUES.includes(row.status as AffiliateLinkStatus)
       ? (row.status as AffiliateLinkStatus)
       : "active",
@@ -322,6 +332,11 @@ export async function createAffiliateLink(input: {
   source_type: AffiliateSourceType;
   source_ref: string;
   destination_url: string;
+  product_url: string;
+  affiliate_tag: string;
+  affiliate_checked_at: string | null;
+  image_url: string;
+  price: number | null;
   status: AffiliateLinkStatus;
   priority: number;
   notes: string;
@@ -337,6 +352,18 @@ export async function createAffiliateLink(input: {
   catch (error) { return { data: null, error: error instanceof Error ? error.message : "Destino inválido." }; }
 
   const now = new Date().toISOString();
+  if (input.price !== null && (!Number.isFinite(input.price) || input.price < 0)) {
+    return { data: null, error: "O preço precisa ser um número igual ou maior que zero." };
+  }
+  if (input.affiliate_tag.trim().length > 30) return { data: null, error: "A etiqueta da Central aceita até 30 caracteres." };
+  let product_url = "";
+  let image_url = "";
+  try {
+    product_url = input.product_url.trim() ? validateAffiliateDestination(input.product_url) : "";
+    image_url = input.image_url.trim() ? validateAffiliateDestination(input.image_url) : "";
+  } catch (error) {
+    return { data: null, error: error instanceof Error ? error.message : "URL de produto inválida." };
+  }
   const { data, error } = await supabase.from("affiliate_links").insert({
     slug,
     name: input.name.trim(),
@@ -345,6 +372,11 @@ export async function createAffiliateLink(input: {
     source_type: input.source_type,
     source_ref: input.source_ref.trim(),
     destination_url,
+    product_url,
+    affiliate_tag: input.affiliate_tag.trim(),
+    affiliate_checked_at: input.affiliate_checked_at,
+    image_url,
+    price: input.price,
     status: input.status,
     priority: Math.round(input.priority || 0),
     notes: input.notes.trim(),
@@ -365,6 +397,11 @@ export async function updateAffiliateLink(id: string, input: Partial<{
   source_type: AffiliateSourceType;
   source_ref: string;
   destination_url: string;
+  product_url: string;
+  affiliate_tag: string;
+  affiliate_checked_at: string | null;
+  image_url: string;
+  price: number | null;
   status: AffiliateLinkStatus;
   priority: number;
   notes: string;
@@ -380,6 +417,23 @@ export async function updateAffiliateLink(id: string, input: Partial<{
   if (input.category !== undefined) patch.category = input.category.trim();
   if (input.source_type !== undefined) patch.source_type = input.source_type;
   if (input.source_ref !== undefined) patch.source_ref = input.source_ref.trim();
+  if (input.product_url !== undefined) {
+    try { patch.product_url = input.product_url.trim() ? validateAffiliateDestination(input.product_url) : ""; }
+    catch (error) { return { data: null, error: error instanceof Error ? error.message : "URL de produto inválida." }; }
+  }
+  if (input.affiliate_tag !== undefined) {
+    if (input.affiliate_tag.trim().length > 30) return { data: null, error: "A etiqueta da Central aceita até 30 caracteres." };
+    patch.affiliate_tag = input.affiliate_tag.trim();
+  }
+  if (input.affiliate_checked_at !== undefined) patch.affiliate_checked_at = input.affiliate_checked_at;
+  if (input.image_url !== undefined) {
+    try { patch.image_url = input.image_url.trim() ? validateAffiliateDestination(input.image_url) : ""; }
+    catch (error) { return { data: null, error: error instanceof Error ? error.message : "URL de imagem inválida." }; }
+  }
+  if (input.price !== undefined) {
+    if (input.price !== null && (!Number.isFinite(input.price) || input.price < 0)) return { data: null, error: "O preço precisa ser um número igual ou maior que zero." };
+    patch.price = input.price;
+  }
   if (input.destination_url !== undefined) {
     try { patch.destination_url = validateAffiliateDestination(input.destination_url); }
     catch (error) { return { data: null, error: error instanceof Error ? error.message : "Destino inválido." }; }
