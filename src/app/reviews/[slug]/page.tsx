@@ -21,7 +21,7 @@ import EditorialEvidence from "@/components/EditorialEvidence";
 import RelatedCommercialProducts from "@/components/RelatedCommercialProducts";
 import ReviewPurchaseIntentLinks from "@/components/ReviewPurchaseIntentLinks";
 import { getProductLinksByReviewSlug, getReviewedProductLinksByCategory } from "@/lib/product-links";
-import { buildBuyingIntentPages, buildMarketplaceOffers, isGuideLikeSlug, reviewScore } from "@/lib/buying";
+import { buildBuyingGuideCategories, buildBuyingIntentPages, buildMarketplaceOffers, isGuideLikeSlug, reviewScore } from "@/lib/buying";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -120,6 +120,9 @@ export default async function ReviewPage({ params }: PageProps) {
         b.link.priority - a.link.priority
     )
     .slice(0, 3);
+  const buyingGuide = buildBuyingGuideCategories(allReviews, 3).find(
+    (item) => item.name === review.category
+  );
   const buyingIntentPages = buildBuyingIntentPages(allReviews, 4).filter(
     (item) => item.categoryName === review.category
   );
@@ -298,6 +301,25 @@ export default async function ReviewPage({ params }: PageProps) {
 
               {!isGuia && buyingIntentPages.length > 0 && (
                 <ReviewPurchaseIntentLinks categoryName={review.category} pages={buyingIntentPages} />
+              )}
+
+              {!isGuia && !buyingIntentPages.length && buyingGuide && (
+                <section className="buying-intent-section" aria-labelledby="review-cluster-heading">
+                  <div className="section-kicker">Cluster Vetor</div>
+                  <h2 id="review-cluster-heading">Explore mais sobre {review.category}</h2>
+                  <p>
+                    Este review faz parte do cluster de {review.category}. Consulte o hub da categoria ou o guia
+                    de compra para comparar outras opções analisadas pelo Vetor.blog.
+                  </p>
+                  <div className="buying-intent-section-links">
+                    <Link className="cta" href={`/reviews/categoria/${encodeURIComponent(review.category)}/`}>
+                      Ver todos os reviews →
+                    </Link>
+                    <Link href={`/melhores/${buyingGuide.slug}/`}>
+                      Ver guia de compra →
+                    </Link>
+                  </div>
+                </section>
               )}
 
               {heroBars.length > 0 && (

@@ -28,8 +28,14 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
-        source: '/review/:slug',
+        source: '/review/:slug/',
         destination: '/reviews/:slug/',
+        permanent: true,
+      },
+      // P0 SEO: recuperar hubs legados de categoria que ainda recebem impressões.
+      {
+        source: '/categoria/:category/',
+        destination: '/reviews/categoria/:category/',
         permanent: true,
       },
       // P0-10: reviews-spam de scraping (title-lixo) → índice de categorias

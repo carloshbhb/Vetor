@@ -165,3 +165,11 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 - **Confirmado:** slug/título-lixo publicado e linkado na home (→ P0-10) · home sem `<img>` no HTML (→ P1-9) · 5 reviews finas (→ P1-8) · author/Person não detectado no schema + datas vazias AW9 (→ P2-6) · rebadge de ano AW9 (→ P2-7)
 - **Refutado:** "home com apenas 3 links / JS-renderizada" — produção tem **31 `<a>`** server-rendered com cards de artigo no HTML inicial
 - **Métricas:** zero sessões orgânicas 56d (`metrics/SUMMARY.md`) → prioridade em base/indexação (P0/P1), não em P4
+
+
+### Ciclo 11 — 2026-10-05 (Crescimento orgânico — etapa 2)
+- Corrigida a ponte legada `/categoria/:category/` → `/reviews/categoria/:category/` para recuperar hubs que ainda recebem impressões.
+- Ajustado o redirect de `/review/:slug/` → `/reviews/:slug/` para respeitar `trailingSlash: true` e reduzir risco de cadeia de redirects.
+- Reviews agora conseguem expor um bloco de cluster adicional quando a categoria tem guia de compra, mas não possui páginas de intenção com dados suficientes.
+- Revisão de SEO aplicada no Supabase às 10 páginas prioritárias da etapa anterior; Echo Dot 5 foi corrigido para a categoria `Casa Inteligente`.
+- Não foi introduzido nenhum mecanismo artificial para AI Search; a arquitetura reforça hubs, links internos e intenção comercial.
