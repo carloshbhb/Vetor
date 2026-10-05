@@ -11,7 +11,7 @@ import VerdictCard from "@/components/VerdictCard";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import AdPlacement from "@/components/AdPlacement";
 import { ReviewSchema, FAQSchema, BreadcrumbSchema } from "@/components/SchemaMarkup";
-import { fetchReviewBySlug, fetchAllReviews } from "@/lib/data";
+import { fetchReviewBySlug, fetchAllReviews, fetchAllViralArticles, normalizeCategoryName } from "@/lib/data";
 import { resolveOgImage } from "@/lib/seo";
 import type { Review } from "@/lib/types";
 import AuthorBox from "@/components/AuthorBox";
@@ -26,6 +26,10 @@ import { buildBuyingGuideCategories, buildBuyingIntentPages, buildMarketplaceOff
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
+
+// Permite que ajustes editoriais no Supabase sejam refletidos sem depender
+// exclusivamente de um novo build para cada alteração de conteúdo.
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
   const reviews = await fetchAllReviews();
@@ -100,8 +104,9 @@ export default async function ReviewPage({ params }: PageProps) {
     ? `${review.meta_reading_time} min`
     : `${Math.max(3, Math.ceil(totalContentLength / 1000))} min`;
 
-  const [allReviews, productLinks, relatedCommercialLinks] = await Promise.all([
+  const [allReviews, allComparatives, productLinks, relatedCommercialLinks] = await Promise.all([
     fetchAllReviews(),
+    fetchAllViralArticles(),
     getProductLinksByReviewSlug(review.slug),
     getReviewedProductLinksByCategory(review.category, review.slug, 6),
   ]);
@@ -126,6 +131,13 @@ export default async function ReviewPage({ params }: PageProps) {
   const buyingIntentPages = buildBuyingIntentPages(allReviews, 4).filter(
     (item) => item.categoryName === review.category
   );
+  const relatedComparatives = allComparatives
+    .filter(
+      (article) =>
+        normalizeCategoryName(article.category) === normalizeCategoryName(review.category)
+    )
+    .slice(0, 3);
+
   const related = allReviews
     .filter(
       (r) =>
@@ -185,7 +197,42 @@ export default async function ReviewPage({ params }: PageProps) {
 
   return (
     <>
-      <ReviewSchema review={review} />
+      {isGuia ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Article",
+              headline: review.product,
+              description: review.hero_lead || review.meta_description,
+              image: review.image_url || undefined,
+              author: {
+                "@type": "Person",
+                name: primaryAuthor.name,
+                url: `https://www.vetor.blog/author/${primaryAuthor.slug}/`,
+              },
+              publisher: {
+                "@type": "Organization",
+                name: "vetor.blog",
+                url: "https://www.vetor.blog",
+              },
+              datePublished: review.created_at,
+              dateModified: review.updated_at || review.created_at,
+              mainEntityOfPage: {
+                "@type": "WebPage",
+                "@id": `https://www.vetor.blog/reviews/${review.slug}/`,
+              },
+              about: {
+                "@type": "Thing",
+                name: review.category,
+              },
+            }),
+          }}
+        />
+      ) : (
+        <ReviewSchema review={review} />
+      )}
       {faq.length > 0 && <FAQSchema faqs={faq} />}
       <BreadcrumbSchema
         items={[
@@ -580,6 +627,24 @@ export default async function ReviewPage({ params }: PageProps) {
                 date={review.updated_at}
                 readTime={`Leitura: ${readTime}`}
               />
+
+              {relatedComparatives.length > 0 && (
+                <section>
+                  <h2>Compare produtos desta categoria</h2>
+                  <p>
+                    Veja comparativos do mesmo cluster para colocar opções lado a lado e entender
+                    qual faz mais sentido para seu orçamento e uso.
+                  </p>
+                  <div className="related">
+                    {relatedComparatives.map((article) => (
+                      <Link key={article.slug} href={`/comparativos/${article.slug}/`}>
+                        <small>Comparativo</small>
+                        <strong>{article.title}</strong>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {related.length > 0 && (
                 <section>
