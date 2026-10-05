@@ -27,8 +27,89 @@ const nextConfig: NextConfig = {
         destination: '/como-avaliamos/',
         permanent: true,
       },
+      // P0 SEO: consolidar aliases antigos que ainda recebem impressões.
       {
-        source: '/review/:slug/',
+        source: '/review/echo-dot-5',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/review/echo-dot-5/',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/review/amazon-echo-dot-5-geracao',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/review/amazon-echo-dot-5-geracao/',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/review/echo-dot-5-alexa-completo',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/review/echo-dot-5-alexa-completo/',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/review/focusrite-scarlett-2i2-4-geracao',
+        destination: '/reviews/focusrite-scarlett-2i2-4th-gen-analise/',
+        permanent: true,
+      },
+      {
+        source: '/review/focusrite-scarlett-2i2-4-geracao/',
+        destination: '/reviews/focusrite-scarlett-2i2-4th-gen-analise/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/echo-dot-5',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/echo-dot-5/',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/amazon-echo-dot-5-geracao',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/amazon-echo-dot-5-geracao/',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/echo-dot-5-alexa-completo',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/echo-dot-5-alexa-completo/',
+        destination: '/reviews/echo-dot-5-geracao/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/focusrite-scarlett-2i2-4-geracao',
+        destination: '/reviews/focusrite-scarlett-2i2-4th-gen-analise/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/focusrite-scarlett-2i2-4-geracao/',
+        destination: '/reviews/focusrite-scarlett-2i2-4th-gen-analise/',
+        permanent: true,
+      },
+      {
+        source: '/review/:slug',
         destination: '/reviews/:slug/',
         permanent: true,
       },

@@ -90,7 +90,18 @@ export async function fetchAllReviews(): Promise<Review[]> {
 export async function fetchReviewBySlug(slug: string): Promise<Review | null> {
   if (getSupabaseClient()) {
     const review = await getReviewBySlug(slug);
-    return review ? normalizeReviewCategory(review) : null;
+    if (review) return normalizeReviewCategory(review);
+
+    // Fallback defensivo: o índice público de reviews pode estar disponível
+    // mesmo quando a consulta pontual ao slug falha.
+    try {
+      const reviews = await getAllReviews();
+      const fallback = reviews.find((item) => item.slug === slug);
+      return fallback ? normalizeReviewCategory(fallback) : null;
+    } catch (error) {
+      console.error('[Data] getReviewBySlug fallback failed:', error);
+      return null;
+    }
   }
   const staticReview = staticReviews.find((r) => r.slug === slug);
   if (!staticReview) return null;
