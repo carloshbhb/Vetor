@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import {
   getAllReviewsAdmin,
   createReview,
@@ -8,6 +9,11 @@ import {
 import { verifyAdminAuth } from '@/lib/admin-auth';
 import { markProductLinksForReview } from '@/lib/product-links';
 import { buildContentUrl, pingNewContent } from '@/lib/indexnow';
+
+function revalidateReview(slug: string) {
+  revalidatePath(`/reviews/${slug}`);
+  revalidatePath('/reviews');
+}
 
 export async function GET(request: NextRequest) {
   const authError = verifyAdminAuth(request);
@@ -52,6 +58,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
+    const reviewSlug = typeof result.data?.slug === 'string' ? result.data.slug : body.slug;
+    if (reviewSlug) revalidateReview(reviewSlug);
+
     return NextResponse.json(result.data, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -89,6 +98,8 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    revalidateReview(slug);
+
     if (status === 'published') {
       await markProductLinksForReview(slug);
       await pingNewContent([buildContentUrl(`/reviews/${slug}`)]);
@@ -117,6 +128,8 @@ export async function DELETE(request: NextRequest) {
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
+
+    revalidateReview(slug);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err: unknown) {
