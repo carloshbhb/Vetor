@@ -48,6 +48,7 @@ type Stats = {
   broken: number;
   archived: number;
   unchecked: number;
+  healthErrors: number;
   clicks: number;
 };
 
@@ -117,16 +118,19 @@ function badgeClass(status: Status | Health) {
 
 type AffiliateCenterProps = {
   initialLinks: AffiliateLink[];
+  initialTotal: number;
   initialStats: Stats;
   initialMarketplaces: string[];
 };
 
 export default function AffiliateCenterClient({
   initialLinks,
+  initialTotal,
   initialStats,
   initialMarketplaces,
 }: AffiliateCenterProps) {
   const [links, setLinks] = useState<AffiliateLink[]>(initialLinks);
+  const [total, setTotal] = useState(initialTotal);
   const [stats, setStats] = useState<Stats>(initialStats);
   const [marketplaces, setMarketplaces] = useState<string[]>(initialMarketplaces);
   const [search, setSearch] = useState("");
@@ -134,6 +138,7 @@ export default function AffiliateCenterClient({
   const [marketplace, setMarketplace] = useState("");
   const [sourceType, setSourceType] = useState("");
   const [health, setHealth] = useState("");
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -154,11 +159,13 @@ export default function AffiliateCenterClient({
       if (marketplace) qs.set("marketplace", marketplace);
       if (sourceType) qs.set("source_type", sourceType);
       if (health) qs.set("health_status", health);
-      qs.set("limit", "500");
+      qs.set("limit", "50");
+      qs.set("offset", String(page * 50));
       const response = await fetch("/api/admin/affiliates?" + qs.toString(), { cache: "no-store" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Não foi possível carregar os links.");
       setLinks(payload.data || []);
+      setTotal(Number(payload.total || 0));
       setStats(payload.stats || stats);
       setMarketplaces(payload.marketplaces || []);
     } catch (err) {
@@ -166,7 +173,7 @@ export default function AffiliateCenterClient({
     } finally {
       setLoading(false);
     }
-  }, [search, status, marketplace, sourceType, health]);
+  }, [search, status, marketplace, sourceType, health, page]);
 
   const didMount = useRef(false);
 
@@ -295,14 +302,44 @@ export default function AffiliateCenterClient({
     setChecking(true);
     setError("");
     try {
-      const response = await fetch("/api/admin/affiliates/health", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(ids ? { ids } : {}),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "Falha na verificação.");
-      setNotice(payload.checked ? payload.checked + " link(s) verificado(s)." : "Nenhum link elegível.");
+      let checked = 0;
+      if (ids) {
+        const response = await fetch("/api/admin/affiliates/health", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "Falha na verificação.");
+        checked = Number(payload.checked || 0);
+      } else {
+        const activeIds: string[] = [];
+        let offset = 0;
+        let activeTotal = 0;
+        do {
+          const qs = new URLSearchParams({ status: "active", limit: "200", offset: String(offset) });
+          const response = await fetch("/api/admin/affiliates?" + qs.toString(), { cache: "no-store" });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || "Não foi possível localizar todos os links ativos.");
+          activeIds.push(...(payload.data || []).map((item: AffiliateLink) => item.id));
+          activeTotal = Number(payload.total || 0);
+          offset += 200;
+        } while (offset < activeTotal);
+
+        for (let start = 0; start < activeIds.length; start += 50) {
+          const batch = activeIds.slice(start, start + 50);
+          const response = await fetch("/api/admin/affiliates/health", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids: batch }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || "Falha na verificação dos links ativos.");
+          checked += Number(payload.checked || 0);
+          setNotice(`Verificados ${checked} de ${activeIds.length} links ativos…`);
+        }
+      }
+      setNotice(checked ? checked + " link(s) verificado(s)." : "Nenhum link ativo elegível.");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao verificar links.");
@@ -359,12 +396,13 @@ export default function AffiliateCenterClient({
       {error && <div className="mb-4 rounded-xl border border-[var(--red)]/30 bg-[var(--red)]/5 text-[var(--red)] px-4 py-3 text-sm">{error}</div>}
       {notice && <div className="mb-4 rounded-xl border border-[var(--green)]/30 bg-[var(--green)]/5 text-[var(--green)] px-4 py-3 text-sm">{notice}</div>}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
         {[
           ["Total", stats.total],
           ["Ativos", stats.active],
           ["Pausados", stats.paused],
-          ["Problemas", stats.broken],
+          ["Status com problema", stats.broken],
+          ["Saúde com erro", stats.healthErrors],
           ["Não verificados", stats.unchecked],
           ["Arquivados", stats.archived],
           ["Cliques", stats.clicks],
@@ -380,26 +418,26 @@ export default function AffiliateCenterClient({
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
             placeholder="Produto, slug, categoria ou nota..."
             className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--amber)]"
           />
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
+          <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
             <option value="">Todos os status</option>
             <option value="active">Ativos</option>
             <option value="paused">Pausados</option>
             <option value="broken">Com problema</option>
             <option value="archived">Arquivados</option>
           </select>
-          <select value={marketplace} onChange={(e) => setMarketplace(e.target.value)} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
+          <select value={marketplace} onChange={(e) => { setMarketplace(e.target.value); setPage(0); }} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
             <option value="">Todos os marketplaces</option>
             {Array.from(new Set([...MARKETPLACES, ...marketplaces])).map((item) => <option key={item}>{item}</option>)}
           </select>
-          <select value={sourceType} onChange={(e) => setSourceType(e.target.value)} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
+          <select value={sourceType} onChange={(e) => { setSourceType(e.target.value); setPage(0); }} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
             <option value="">Todas as origens</option>
             {Object.entries(SOURCE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
-          <select value={health} onChange={(e) => setHealth(e.target.value)} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
+          <select value={health} onChange={(e) => { setHealth(e.target.value); setPage(0); }} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
             <option value="">Toda saúde</option>
             <option value="unknown">Não verificado</option>
             <option value="healthy">OK</option>
@@ -413,7 +451,7 @@ export default function AffiliateCenterClient({
         <div className="px-5 py-4 border-b border-border flex flex-wrap justify-between gap-3">
           <div>
             <h2 className="font-heading font-bold">Registro central</h2>
-            <p className="text-xs text-[var(--muted)] mt-1">{links.length} exibidos · {activeCount} ativos no filtro atual</p>
+            <p className="text-xs text-[var(--muted)] mt-1">{links.length} exibidos · {total} links no filtro · {activeCount} ativos nesta página</p>
           </div>
           <span className="text-xs text-[var(--muted)]">Última atualização: {formatDate(links[0]?.updated_at || null)}</span>
         </div>
@@ -475,6 +513,22 @@ export default function AffiliateCenterClient({
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 mt-4">
+        <button
+          type="button"
+          onClick={() => setPage((current) => Math.max(0, current - 1))}
+          disabled={page === 0 || loading}
+          className="rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-40"
+        >Anterior</button>
+        <span className="text-xs text-[var(--muted)]">Página {total ? page + 1 : 0} de {Math.max(1, Math.ceil(total / 50))}</span>
+        <button
+          type="button"
+          onClick={() => setPage((current) => current + 1)}
+          disabled={loading || (page + 1) * 50 >= total}
+          className="rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-40"
+        >Próxima</button>
       </div>
 
       <div className="mt-6 bg-[var(--surface)] border border-border rounded-xl p-5">

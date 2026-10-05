@@ -176,6 +176,7 @@ export default function OpportunitiesPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [history, setHistory] = useState<SeoActionRecord[]>([]);
   const [error, setError] = useState("");
+  const [historySyncError, setHistorySyncError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [updatingAction, setUpdatingAction] = useState<string | null>(null);
@@ -185,19 +186,23 @@ export default function OpportunitiesPage() {
     const dashboard = await fetchDashboardData();
     setData(dashboard);
 
-    const syncResponse = await fetch("/api/admin/seo-actions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify({ actions: dashboard.actionQueue }),
-    });
+    try {
+      const syncResponse = await fetch("/api/admin/seo-actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ actions: dashboard.actionQueue }),
+      });
+      const syncData = await syncResponse.json().catch(() => ({}));
+      if (!syncResponse.ok) {
+        throw new Error(syncData.error || "Não foi possível sincronizar o histórico SEO.");
+      }
 
-    if (!syncResponse.ok) {
-      throw new Error("Dashboard carregado, mas não foi possível sincronizar o histórico SEO.");
+      setHistory(Array.isArray(syncData.history) ? syncData.history : []);
+      setHistorySyncError("");
+    } catch (err) {
+      setHistorySyncError(err instanceof Error ? err.message : "Não foi possível sincronizar o histórico SEO.");
     }
-
-    const syncData = await syncResponse.json();
-    setHistory(Array.isArray(syncData.history) ? syncData.history : []);
   };
 
   useEffect(() => {
@@ -209,6 +214,7 @@ export default function OpportunitiesPage() {
   const refreshDashboard = async () => {
     setRefreshing(true);
     setError("");
+    setHistorySyncError("");
     try {
       await loadDashboard();
     } catch (err) {
@@ -330,6 +336,11 @@ export default function OpportunitiesPage() {
 
   return (
     <div>
+      {historySyncError && (
+        <div role="status" className="mb-5 rounded-xl border border-[var(--amber)]/30 bg-[var(--amber)]/5 px-4 py-3 text-sm text-[var(--text)]">
+          O painel de oportunidades foi carregado, mas o histórico de ações não sincronizou: {historySyncError}
+        </div>
+      )}
       <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--amber)] font-bold">

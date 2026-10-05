@@ -36,6 +36,46 @@ export interface AffiliateLink {
 const STATUS_VALUES: AffiliateLinkStatus[] = ["active", "paused", "broken", "archived"];
 const SOURCE_VALUES: AffiliateSourceType[] = ["review", "comparison_product", "product_link", "manual"];
 
+type AffiliateLinkFilters = {
+  search?: string;
+  status?: AffiliateLinkStatus;
+  marketplace?: string;
+  source_type?: AffiliateSourceType;
+  health_status?: AffiliateHealthStatus;
+  limit?: number;
+  offset?: number;
+};
+
+const MARKETPLACE_FILTERS: Record<string, { aliases: string[]; hosts: string[] }> = {
+  "Mercado Livre": {
+    aliases: ["Mercado Livre", "mercadolivre", "MercadoLivre"],
+    hosts: ["mercadolivre.com.br", "mercadolibre.com"],
+  },
+  Amazon: { aliases: ["Amazon", "amazon"], hosts: ["amazon.", "amzn.to", "amzn.eu"] },
+  Shopee: { aliases: ["Shopee", "shopee"], hosts: ["shopee.com"] },
+  "Magazine Luiza": { aliases: ["Magazine Luiza", "magazineluiza", "Magalu"], hosts: ["magazineluiza.com.br", "magalu.com"] },
+};
+
+function canonicalMarketplace(value: unknown, destinationUrl: unknown): string {
+  const raw = String(value || "").trim();
+  let hostname = "";
+  try {
+    hostname = new URL(String(destinationUrl || "")).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {}
+
+  if (/mercadolivre\.com\.br|mercadolibre\.com/.test(hostname)) return "Mercado Livre";
+  if (/amazon\.|^amzn\.(to|eu)$/.test(hostname)) return "Amazon";
+  if (/shopee\.com/.test(hostname)) return "Shopee";
+  if (/magazineluiza\.com\.br|magalu\.com/.test(hostname)) return "Magazine Luiza";
+
+  const normalized = raw.toLowerCase().replace(/[\s_-]+/g, "");
+  if (["mercadolivre", "mercadolibre"].includes(normalized)) return "Mercado Livre";
+  if (normalized === "amazon") return "Amazon";
+  if (normalized === "shopee") return "Shopee";
+  if (["magazineluiza", "magalu"].includes(normalized)) return "Magazine Luiza";
+  return raw || "Outro";
+}
+
 function normalizeTags(value: unknown): string[] {
   if (Array.isArray(value)) return value.map(String).map((v) => v.trim()).filter(Boolean);
   if (typeof value === "string") {
@@ -53,7 +93,7 @@ function normalizeRow(row: Record<string, unknown>): AffiliateLink {
     id: String(row.id),
     slug: String(row.slug || ""),
     name: String(row.name || ""),
-    marketplace: String(row.marketplace || "Outro"),
+    marketplace: canonicalMarketplace(row.marketplace, row.destination_url),
     category: String(row.category || ""),
     source_type: SOURCE_VALUES.includes(row.source_type as AffiliateSourceType)
       ? (row.source_type as AffiliateSourceType)
@@ -120,42 +160,69 @@ export async function getAffiliateLinkBySlug(slug: string): Promise<AffiliateLin
   return normalizeRow(data as Record<string, unknown>);
 }
 
-export async function listAffiliateLinks(filters?: {
-  search?: string;
-  status?: AffiliateLinkStatus;
-  marketplace?: string;
-  source_type?: AffiliateSourceType;
-  health_status?: AffiliateHealthStatus;
-  limit?: number;
-  offset?: number;
-}): Promise<AffiliateLink[]> {
-  const supabase = getSupabaseServiceKeyClient();
-  if (!supabase) return [];
-  let query = supabase
-    .from("affiliate_links")
-    .select("*")
-    .order("status", { ascending: true })
-    .order("priority", { ascending: false })
-    .order("updated_at", { ascending: false });
-
+function applyAffiliateLinkFilters(query: any, filters?: AffiliateLinkFilters) {
   if (filters?.status) query = query.eq("status", filters.status);
-  if (filters?.marketplace) query = query.eq("marketplace", filters.marketplace);
   if (filters?.source_type) query = query.eq("source_type", filters.source_type);
   if (filters?.health_status) query = query.eq("health_status", filters.health_status);
+  if (filters?.marketplace) {
+    const marketplace = canonicalMarketplace(filters.marketplace, "");
+    const definition = MARKETPLACE_FILTERS[marketplace];
+    if (definition) {
+      const clauses = [
+        ...definition.aliases.map((alias) => `marketplace.eq."${alias}"`),
+        ...definition.hosts.map((host) => `destination_url.ilike.%${host}%`),
+      ];
+      query = query.or(clauses.join(","));
+    } else {
+      query = query.eq("marketplace", filters.marketplace);
+    }
+  }
   if (filters?.search) {
-    const term = filters.search.replace(/[%_,]/g, " ").trim();
+    const term = filters.search.replace(/[%_,()."'\\]/g, " ").trim();
     if (term) {
       query = query.or(
         "name.ilike.%" + term + "%,slug.ilike.%" + term + "%,category.ilike.%" + term + "%,source_ref.ilike.%" + term + "%,notes.ilike.%" + term + "%"
       );
     }
   }
+  return query;
+}
 
+async function fetchAffiliateLinksPage(filters: AffiliateLinkFilters | undefined, withCount: boolean) {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return { data: [] as AffiliateLink[], total: 0 };
+  let query = supabase
+    .from("affiliate_links")
+    .select("*", withCount ? { count: "exact" } : {})
+    .order("status", { ascending: true })
+    .order("priority", { ascending: false })
+    .order("updated_at", { ascending: false });
+  query = applyAffiliateLinkFilters(query, filters);
   const limit = Math.min(Math.max(filters?.limit ?? 100, 1), 200);
   const offset = Math.max(filters?.offset ?? 0, 0);
-  const { data, error } = await query.range(offset, offset + limit - 1);
-  if (error || !data) return [];
-  return data.map((row) => normalizeRow(row as Record<string, unknown>));
+  const { data, error, count } = await query.range(offset, offset + limit - 1);
+  if (error || !data) return { data: [] as AffiliateLink[], total: 0 };
+  return {
+    data: data.map((row) => normalizeRow(row as Record<string, unknown>)),
+    total: count ?? data.length,
+  };
+}
+
+export async function listAffiliateLinks(filters?: AffiliateLinkFilters): Promise<AffiliateLink[]> {
+  return (await fetchAffiliateLinksPage(filters, false)).data;
+}
+
+export async function listAffiliateLinksPage(filters?: AffiliateLinkFilters) {
+  return fetchAffiliateLinksPage(filters, true);
+}
+
+export async function getAffiliateLinksByIds(ids: string[]): Promise<AffiliateLink[]> {
+  const supabase = getSupabaseServiceKeyClient();
+  const uniqueIds = Array.from(new Set(ids)).slice(0, 50);
+  if (!supabase || !uniqueIds.length) return [];
+  const { data, error } = await supabase.from("affiliate_links").select("*").in("id", uniqueIds);
+  if (error) throw error;
+  return (data || []).map((row) => normalizeRow(row as Record<string, unknown>));
 }
 
 export async function getAffiliateLinkStats() {
@@ -167,14 +234,21 @@ export async function getAffiliateLinkStats() {
     broken: 0,
     archived: 0,
     unchecked: 0,
+    healthErrors: 0,
     clicks: 0,
   };
   if (!supabase) return empty;
 
-  const { data, error } = await supabase
-    .from("affiliate_links")
-    .select("status,health_status,total_clicks");
-  if (error || !data) return empty;
+  const data: Array<{ status: string; health_status: string; total_clicks: number }> = [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data: page, error } = await supabase
+      .from("affiliate_links")
+      .select("status,health_status,total_clicks")
+      .range(offset, offset + 999);
+    if (error || !page) return empty;
+    data.push(...page);
+    if (page.length < 1000) break;
+  }
 
   return data.reduce((stats, row) => {
     stats.total += 1;
@@ -183,6 +257,7 @@ export async function getAffiliateLinkStats() {
     if (row.status === "broken") stats.broken += 1;
     if (row.status === "archived") stats.archived += 1;
     if (row.health_status === "unknown") stats.unchecked += 1;
+    if (row.health_status === "error") stats.healthErrors += 1;
     stats.clicks += Number(row.total_clicks || 0);
     return stats;
   }, empty);
@@ -498,10 +573,10 @@ export async function getAffiliateMarketplaceOptions() {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("affiliate_links")
-    .select("marketplace")
+    .select("marketplace,destination_url")
     .not("marketplace", "is", null);
   if (error || !data) return [];
-  return Array.from(new Set(data.map((row) => String(row.marketplace).trim()).filter(Boolean))).sort();
+  return Array.from(new Set(data.map((row) => canonicalMarketplace(row.marketplace, row.destination_url)).filter(Boolean))).sort();
 }
 
 export const affiliateStatusValues = STATUS_VALUES;

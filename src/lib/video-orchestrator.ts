@@ -37,11 +37,6 @@ export interface VideoQueueItem {
   updated_at: string;
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 const SERVICE_SUPABASE = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
@@ -85,6 +80,41 @@ export async function getPendingVideos(limit = 5): Promise<VideoQueueItem[]> {
   return (data || []) as VideoQueueItem[];
 }
 
+export async function listVideoQueue(options?: {
+  limit?: number;
+  offset?: number;
+  status?: VideoQueueItem["status"];
+}): Promise<{ videos: VideoQueueItem[]; total: number }> {
+  const limit = Math.min(Math.max(options?.limit ?? 50, 1), 100);
+  const offset = Math.max(options?.offset ?? 0, 0);
+  let query = SERVICE_SUPABASE
+    .from("video_queue")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false });
+  if (options?.status) query = query.eq("status", options.status);
+
+  const { data, count, error } = await query.range(offset, offset + limit - 1);
+  if (error) throw new Error(error.message);
+  return { videos: (data || []) as VideoQueueItem[], total: count || 0 };
+}
+
+export async function getVideoQueueStats() {
+  const statuses: VideoQueueItem["status"][] = ["pending", "processing", "completed", "failed"];
+  const [{ count: total, error: totalError }, ...counts] = await Promise.all([
+    SERVICE_SUPABASE.from("video_queue").select("id", { count: "exact", head: true }),
+    ...statuses.map((status) =>
+      SERVICE_SUPABASE.from("video_queue").select("id", { count: "exact", head: true }).eq("status", status)
+    ),
+  ]);
+  if (totalError) throw new Error(totalError.message);
+  const result: Record<string, number> = { total: total || 0 };
+  statuses.forEach((status, index) => {
+    if (counts[index].error) throw new Error(counts[index].error.message);
+    result[status] = counts[index].count || 0;
+  });
+  return result as { total: number; pending: number; processing: number; completed: number; failed: number };
+}
+
 export async function getVideoById(id: string): Promise<VideoQueueItem | null> {
   const { data, error } = await SERVICE_SUPABASE
     .from('video_queue')
@@ -100,10 +130,23 @@ export async function updateVideoStatus(
   id: string,
   updates: Partial<VideoQueueItem>
 ): Promise<void> {
-  await SERVICE_SUPABASE
+  const { error } = await SERVICE_SUPABASE
     .from('video_queue')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function retryFailedVideo(id: string): Promise<boolean> {
+  const { data, error } = await SERVICE_SUPABASE
+    .from("video_queue")
+    .update({ status: "pending", error_message: null, started_at: null, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("status", "failed")
+    .select("id")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return Boolean(data);
 }
 
 export async function processVideoPipeline(videoId: string): Promise<{ success: boolean; videoUrl?: string; error?: string }> {

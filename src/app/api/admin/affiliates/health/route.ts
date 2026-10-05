@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminAuth } from "@/lib/admin-auth";
-import { listAffiliateLinks, updateAffiliateHealth, type AffiliateLink } from "@/lib/affiliate-links";
+import { getAffiliateLinksByIds, updateAffiliateHealth, type AffiliateLink } from "@/lib/affiliate-links";
 
 async function checkDestination(item: AffiliateLink) {
   const started = Date.now();
@@ -43,16 +43,20 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const ids = Array.isArray(body.ids) ? body.ids.map(String).filter(Boolean).slice(0, 50) : [];
-    let items: AffiliateLink[] = [];
-
-    if (ids.length) {
-      const all = await listAffiliateLinks({ limit: 200 });
-      const wanted = new Set(ids);
-      items = all.filter((item) => wanted.has(item.id));
-    } else {
-      items = (await listAffiliateLinks({ status: "active", limit: 50 }));
+    const ids: string[] = [];
+    if (Array.isArray(body.ids)) {
+      for (const value of body.ids as unknown[]) {
+        const id = String(value).trim();
+        if (id && !ids.includes(id)) ids.push(id);
+      }
     }
+    if (!ids.length) {
+      return NextResponse.json({ error: "Informe ao menos um link para verificar." }, { status: 400 });
+    }
+    if (ids.length > 50) {
+      return NextResponse.json({ error: "Verifique no máximo 50 links por lote." }, { status: 400 });
+    }
+    const items: AffiliateLink[] = await getAffiliateLinksByIds(ids);
 
     const results: Array<Awaited<ReturnType<typeof checkDestination>>> = [];
     for (let i = 0; i < items.length; i += 6) {

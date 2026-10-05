@@ -57,3 +57,33 @@ A API autenticada do Mercado Livre pode enriquecer o cadastro com dados de catá
 Quando o remoto já substituiu um módulo local por uma central mais completa, portar os recursos exclusivos para a central atual; não reintroduzir a tela antiga como uma segunda fonte de verdade. Manter separados o permalink de catálogo e o destino oficial afiliado.
   Evidência: No GitHub, /admin/product-links redireciona para /admin/afiliados e affiliate_links já centraliza os destinos; integração adicionou consulta de catálogo e metadados sem recuperar a UI legada.
   Confiança: 0.70 · sucesso
+
+### 2026-10-04 · code-quality · #10
+Falha no login admin local com resposta 401 indica que o password POST difere de ADMIN_PASSWORD carregado de .env.local; diferenciar senha local de produção antes de alterar credenciais.
+  Evidência: POST /api/admin/auth retornou 401; configuração local ADMIN_PASSWORD presente e sem whitespace externo; fluxo envia JSON password sem transformação
+  Confiança: 0.70 · sucesso
+
+### 2026-10-04 · code-quality · #11
+A Central de Afiliados pede limit=500 no cliente, mas listAffiliateLinks fixa o teto em 200 e a tela não envia offset; estatísticas cobrem todo o conjunto enquanto a tabela omite os registros após 200.
+  Evidência: GET /api/admin/affiliates?limit=500 respondeu 200; UI mostrou 243 no total e 200 exibidos; listAffiliateLinks limita a 200 e não há paginação
+  Confiança: 0.80 · sucesso
+
+### 2026-10-04 · code-quality · #12
+A página de oportunidades dispara POST para sincronizar SEO history ao montar; se o endpoint falha com 500, mostrar erro mesmo com o dashboard GET carregado. Separar falha de sincronização do carregamento do dashboard e expor detalhe operacional sem bloquear as oportunidades.
+  Evidência: GET /api/admin/opportunities respondeu 200; a página exibiu dashboard carregado mas histórico SEO falhou; terminal registrou POST /api/admin/seo-actions 500 duas vezes
+  Confiança: 0.70 · sucesso
+
+### 2026-10-05 · code-quality · #13
+Before debugging a Supabase PostgREST table-not-found 500, compare the configured project ref with the remote migration and table inventory; local SQL files do not prove that the schema is deployed.
+  Evidência: The configured project lacked public.seo_action_history despite local migrations; applying ordered additive migrations changed the admin SEO action request from 500 to 200.
+  Confiança: 0.70 · sucesso
+
+### 2026-10-05 · mercadolivre-affiliate · #14
+Admin registries should return an exact filtered total with explicit limit and offset; batch health checks by requested IDs within the endpoint cap so the UI does not imply a full scan while checking only the first page.
+  Evidência: The affiliate center had 243 rows while its UI requested 500 and backend clamped results to 200; pagination and explicit batches of at most 50 resolved the mismatch.
+  Confiança: 0.70 · sucesso
+
+### 2026-10-05 · code-quality · #15
+Admin screens should read and mutate the same persisted backend collection through authenticated server APIs; synthetic queue rows and browser-side database writes bypassing custom admin auth create misleading controls.
+  Evidência: The old video admin synthesized jobs while video_queue contained 591 rows; the consolidated screen now reads the real queue through authenticated routes.
+  Confiança: 0.70 · sucesso

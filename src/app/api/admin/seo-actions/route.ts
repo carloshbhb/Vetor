@@ -16,6 +16,14 @@ export const dynamic = "force-dynamic";
 
 const statuses: SeoActionStatus[] = ["open", "in_progress", "done", "dismissed"];
 
+function describeError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return "Unknown error";
+}
+
 function shiftDate(date: Date, days: number): Date {
   const shifted = new Date(date);
   shifted.setUTCDate(shifted.getUTCDate() + days);
@@ -162,6 +170,7 @@ export async function GET(request: NextRequest) {
     const items = await listSeoActions();
     return NextResponse.json({ history: items });
   } catch (error) {
+    console.error("[admin/seo-actions] GET failed:", describeError(error));
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erro ao carregar histórico." },
       { status: 500 }
@@ -204,6 +213,7 @@ export async function POST(request: NextRequest) {
     const history = await listSeoActions();
     return NextResponse.json({ synced: synced.length, resolved, history });
   } catch (error) {
+    console.error("[admin/seo-actions] POST failed:", describeError(error));
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erro ao sincronizar histórico." },
       { status: 500 }

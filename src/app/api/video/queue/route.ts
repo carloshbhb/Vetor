@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createVideoJob, getPendingVideos, processVideoPipeline, getVideoById, updateVideoStatus, createVideoJobsFromBestSellers } from '@/lib/video-orchestrator';
+import { createVideoJob, getPendingVideos, processVideoPipeline, getVideoById, createVideoJobsFromBestSellers, getVideoQueueStats, listVideoQueue, retryFailedVideo } from '@/lib/video-orchestrator';
 import { verifyAdminAuth } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
@@ -66,7 +66,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const status = searchParams.get('status');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const parsedLimit = Number.parseInt(searchParams.get('limit') || '50', 10);
+    const parsedOffset = Number.parseInt(searchParams.get('offset') || '0', 10);
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 50;
+    const offset = Number.isFinite(parsedOffset) ? Math.max(0, parsedOffset) : 0;
 
     if (id) {
       const video = await getVideoById(id);
@@ -81,11 +84,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ videos, count: videos.length });
     }
 
-    return NextResponse.json({ error: 'Invalid query parameters' }, { status: 400 });
+    if (status && !['processing', 'completed', 'failed'].includes(status)) {
+      return NextResponse.json({ error: 'Invalid status filter' }, { status: 400 });
+    }
+
+    const [page, stats] = await Promise.all([
+      listVideoQueue({ limit, offset, ...(status ? { status: status as 'processing' | 'completed' | 'failed' } : {}) }),
+      getVideoQueueStats(),
+    ]);
+    return NextResponse.json({ videos: page.videos, total: page.total, offset, limit: Math.min(Math.max(limit, 1), 100), stats });
   } catch (error) {
     console.error('Error fetching video queue:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch video queue' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const authError = verifyAdminAuth(request);
+  if (authError) return authError;
+
+  try {
+    const body = await request.json();
+    const id = typeof body.id === 'string' ? body.id : '';
+    if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    const retried = await retryFailedVideo(id);
+    if (!retried) return NextResponse.json({ error: 'Failed video not found.' }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to retry video' },
       { status: 500 }
     );
   }

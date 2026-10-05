@@ -4,7 +4,7 @@ import { isAdminAuthenticated } from "@/lib/admin-auth";
 import {
   getAffiliateLinkStats,
   getAffiliateMarketplaceOptions,
-  listAffiliateLinks,
+  listAffiliateLinksPage,
   syncPublishedReviewAffiliateLinks,
 } from "@/lib/affiliate-links";
 import AffiliateCenterClient from "./AffiliateCenterClient";
@@ -24,15 +24,16 @@ export default async function AffiliateCenterPage() {
 
   await syncPublishedReviewAffiliateLinks();
 
-  const [links, stats, marketplaces] = await Promise.all([
-    listAffiliateLinks({ limit: 500 }),
+  const [page, stats, marketplaces] = await Promise.all([
+    listAffiliateLinksPage({ limit: 50, offset: 0 }),
     getAffiliateLinkStats(),
     getAffiliateMarketplaceOptions(),
   ]);
 
   return (
     <AffiliateCenterClient
-      initialLinks={links}
+      initialLinks={page.data}
+      initialTotal={page.total}
       initialStats={stats}
       initialMarketplaces={marketplaces}
     />

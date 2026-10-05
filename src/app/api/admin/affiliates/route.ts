@@ -4,8 +4,7 @@ import {
   createAffiliateLink,
   getAffiliateLinkStats,
   getAffiliateMarketplaceOptions,
-  listAffiliateLinks,
-  syncPublishedReviewAffiliateLinks,
+  listAffiliateLinksPage,
   type AffiliateHealthStatus,
   type AffiliateLinkStatus,
   type AffiliateSourceType,
@@ -25,28 +24,35 @@ export async function GET(request: Request) {
   const health_status = searchParams.get("health_status") as AffiliateHealthStatus | null;
   const marketplace = searchParams.get("marketplace") || undefined;
   const search = searchParams.get("search") || undefined;
-  const limitRaw = Number(searchParams.get("limit") || 500);
+  const limitRaw = Number(searchParams.get("limit") || 50);
   const offsetRaw = Number(searchParams.get("offset") || 0);
+  const offset = Number.isFinite(offsetRaw) ? Math.max(0, offsetRaw) : 0;
 
-  const filters: Parameters<typeof listAffiliateLinks>[0] = {
+  const filters: Parameters<typeof listAffiliateLinksPage>[0] = {
     ...(status && statusValues.includes(status) ? { status } : {}),
     ...(source_type && sourceValues.includes(source_type) ? { source_type } : {}),
     ...(health_status && healthValues.includes(health_status) ? { health_status } : {}),
     marketplace,
     search,
-    limit: Number.isFinite(limitRaw) ? limitRaw : 120,
-    offset: Number.isFinite(offsetRaw) ? offsetRaw : 0,
+    limit: Number.isFinite(limitRaw) ? limitRaw : 50,
+    offset,
   };
 
-  await syncPublishedReviewAffiliateLinks();
-
-  const [links, stats, marketplaces] = await Promise.all([
-    listAffiliateLinks(filters),
+  const [page, stats, marketplaces] = await Promise.all([
+    listAffiliateLinksPage(filters),
     getAffiliateLinkStats(),
     getAffiliateMarketplaceOptions(),
   ]);
 
-  return NextResponse.json({ data: links, stats, marketplaces });
+  return NextResponse.json({
+    data: page.data,
+    total: page.total,
+    offset,
+    limit: Math.min(Math.max(filters.limit || 50, 1), 200),
+    hasMore: offset + page.data.length < page.total,
+    stats,
+    marketplaces,
+  });
 }
 
 export async function POST(request: Request) {

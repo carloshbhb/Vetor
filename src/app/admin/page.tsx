@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="bg-[var(--surface)] border border-border rounded-xl p-5">
-          <p className="text-sm text-[var(--muted)]">Total de Reviews</p>
+          <p className="text-sm text-[var(--muted)]">Reviews publicados</p>
           <p className="text-3xl font-display text-[var(--amber)] mt-1">
             {reviews.length}
           </p>
