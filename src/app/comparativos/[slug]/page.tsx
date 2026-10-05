@@ -22,6 +22,10 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// Permite que novos comparativos cadastrados no Supabase sejam renderizados mesmo fora do build inicial.
+export const dynamicParams = true;
+export const revalidate = 3600;
+
 export async function generateStaticParams() {
   const articles = await fetchAllViralArticles();
   return articles.map((article) => ({ slug: article.slug }));
