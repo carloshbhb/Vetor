@@ -62,6 +62,34 @@ export default async function AuthorPage({ params }: PageProps) {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Person",
+            name: author.name,
+            jobTitle: author.role,
+            description: author.bio,
+            url: "https://www.vetor.blog/author/" + author.slug + "/",
+            image: author.avatar ? "https://www.vetor.blog" + author.avatar : undefined,
+            worksFor: {
+              "@type": "Organization",
+              name: "Vetor.blog",
+              url: "https://www.vetor.blog/",
+            },
+            knowsAbout: [
+              "wearables",
+              "fones de ouvido",
+              "notebooks",
+              "áudio profissional",
+              "casa inteligente",
+              "acessórios para games",
+              "avaliação e comparação de produtos",
+            ],
+          }),
+        }}
+      />
       <main id="conteudo">
         <section className="hero">
           <div className="container">
@@ -128,6 +156,28 @@ export default async function AuthorPage({ params }: PageProps) {
                 </ul>
               </div>
             </div>
+
+            <section
+              aria-labelledby="metodologia-autoria-heading"
+              style={{ maxWidth: 820, marginBottom: 56 }}
+            >
+              <h2 id="metodologia-autoria-heading" style={{ marginBottom: 16 }}>
+                Como o Vetor produz suas análises
+              </h2>
+              <p>
+                O Vetor separa dados de fabricante, informações comerciais e julgamento editorial. O objetivo é deixar claro o que é especificação, o que é preço consultado e o que é conclusão da redação.
+              </p>
+              <ul>
+                {author.methodology.map((line) => (
+                  <li key={line}>✓ {line}</li>
+                ))}
+              </ul>
+              <p style={{ marginTop: 16, color: 'var(--muted)' }}>
+                A política editorial e os critérios completos estão disponíveis em{' '}
+                <a href="/politica-editorial/">Política editorial</a> e{' '}
+                <a href="/como-avaliamos/">Como avaliamos</a>.
+              </p>
+            </section>
 
             <h2 style={{ marginBottom: 32 }}>
               {sorted.length > 0 ? "Publicações recentes" : "Nenhum artigo ainda"}
