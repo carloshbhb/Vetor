@@ -19,7 +19,9 @@ interface PageProps {
 }
 
 function isBuyingIntent(value: string): value is BuyingIntent {
-  return value === 'baratos' || value === 'custo-beneficio';
+  return (
+    ['baratos', 'custo-beneficio', 'para-trabalho', 'para-estudo', 'para-jogos', 'premium'] as const
+  ).includes(value as BuyingIntent);
 }
 
 export async function generateStaticParams() {
@@ -43,12 +45,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const page = await resolvePage(categoria, intencao);
   if (!page) return { title: 'Seleção de compra não encontrada' };
 
-  const title = page.intent === 'baratos'
-    ? 'Melhores ' + page.categoryName + ' baratos em 2026'
-    : 'Melhores ' + page.categoryName + ' custo-benefício em 2026';
-  const description = page.intent === 'baratos'
-    ? 'Compare os ' + page.categoryName.toLowerCase() + ' com menor preço consultado no Vetor e veja nota, limitações e links para as análises.'
-    : 'Compare o custo-benefício de ' + page.categoryName.toLowerCase() + ' analisados pelo Vetor usando uma fórmula transparente de nota e preço.';
+  const label = getBuyingIntentLabel(page.intent);
+  const title = 'Melhores ' + page.categoryName + ' ' + label.toLowerCase() + ' em 2026';
+  const description =
+    getBuyingIntentDescription(page.intent, page.categoryName) +
+    ' Veja notas, preços consultados e links para as análises.';
 
   return {
     title,
