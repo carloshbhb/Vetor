@@ -384,9 +384,24 @@ export default async function ViralArticlePage({ params }: PageProps) {
                     Depois de comparar os produtos, use a página da categoria para revisar alternativas, notas e preços consultados. Quando houver dados suficientes, também há seleções por intenção de compra.
                   </p>
                   <div className="buying-intent-section-links">
-                    {guide && <Link className="cta" href={`/melhores/${guide.slug}/`}>Ver guia de compra →</Link>}
-                    <Link href={`/reviews/categoria/${encodeURIComponent(normalizedCategory)}/`}>Ver reviews da categoria →</Link>
+                    {guide && <Link className="cta" href={'/melhores/' + guide.slug + '/'}>Ver guia de {guide.name} →</Link>}
+                    <Link href={'/reviews/categoria/' + encodeURIComponent(normalizedCategory) + '/'}>Ver todos os reviews da categoria →</Link>
+                    <Link href="/ofertas/">Ver ofertas do Vetor →</Link>
                   </div>
+
+                  {reviewed.length > 0 && (
+                    <div className="review-commercial-comparatives">
+                      <div className="section-kicker">Do comparativo para a análise completa</div>
+                      <div className="related">
+                        {reviewed.slice(0, 3).map((item) => (
+                          <Link key={item.review.slug} href={'/reviews/' + item.review.slug + '/'}>
+                            <small>Review individual</small>
+                            <strong>{item.review.product}</strong>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {intentPages.length > 0 && (
                     <div className="buying-intent-grid">
                       {intentPages.map((item) => (

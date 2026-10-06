@@ -5,7 +5,7 @@ import { fetchAllReviews, fetchAllViralArticles, fetchGuias } from '@/lib/data';
 import NewsletterForm from '@/components/NewsletterForm';
 import GuideCard from '@/components/GuideCard';
 import AdPlacement from '@/components/AdPlacement';
-import { buildBuyingGuideCategories } from '@/lib/buying';
+import { buildBuyingGuideCategories, buildPriorityBuyingCategories } from '@/lib/buying';
 import SafeImage from '@/components/SafeImage';
 import { safeImageSrc } from '@/lib/images';
 
@@ -34,6 +34,7 @@ export default async function Home() {
   const compares = viralArticles.slice(0, 4);
   const guideCards = guias.slice(0, 4);
   const buyingCategories = buildBuyingGuideCategories(reviews, 3).slice(0, 6);
+  const priorityBuyingCategories = buildPriorityBuyingCategories(reviews, 3);
   const categoryCounts = Array.from(
     reviews.reduce((map, review) => {
       map.set(review.category, (map.get(review.category) ?? 0) + 1);
@@ -194,6 +195,27 @@ export default async function Home() {
               <Link className="cta" href="/melhores/">
                 Ver todos os guias de compra
               </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {priorityBuyingCategories.length > 0 && (
+        <section className="home-section" aria-labelledby="clusters-prioritarios-heading">
+          <div className="container">
+            <div className="home-section-head">
+              <span className="eyebrow-small">Clusters prioritários</span>
+              <h2 id="clusters-prioritarios-heading">Pesquise por categoria e intenção</h2>
+              <p>Comece pelos cinco clusters comerciais prioritários do Vetor e avance do guia para as listas por intenção, reviews e comparativos.</p>
+            </div>
+            <div className="home-category-grid">
+              {priorityBuyingCategories.map((category) => (
+                <Link key={category.slug} className="home-category" href={'/melhores/' + category.slug + '/'}>
+                  <span>{category.name}</span>
+                  <strong>{category.count} reviews na base do cluster</strong>
+                  <b>Explorar cluster →</b>
+                </Link>
+              ))}
             </div>
           </div>
         </section>

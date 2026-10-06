@@ -8,9 +8,11 @@ import {
 export default function ReviewPurchaseIntentLinks({
   categoryName,
   pages,
+  comparatives = [],
 }: {
   categoryName: string;
   pages: BuyingIntentPage[];
+  comparatives?: { slug: string; title: string }[];
 }) {
   if (pages.length === 0) return null;
 
@@ -31,6 +33,9 @@ export default function ReviewPurchaseIntentLinks({
         <Link href={'/reviews/categoria/' + encodeURIComponent(categoryName) + '/'}>
           Ver todos os reviews da categoria
         </Link>
+        <a href="#onde-comprar">
+          Ir para ofertas disponíveis →
+        </a>
       </div>
 
       <div className="buying-intent-grid">
@@ -51,6 +56,20 @@ export default function ReviewPurchaseIntentLinks({
           );
         })}
       </div>
+
+      {comparatives.length > 0 && (
+        <div className="review-commercial-comparatives">
+          <div className="section-kicker">Concorrentes desta categoria</div>
+          <div className="related">
+            {comparatives.map((article) => (
+              <Link key={article.slug} href={'/comparativos/' + article.slug + '/'}>
+                <small>Comparativo</small>
+                <strong>{article.title}</strong>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

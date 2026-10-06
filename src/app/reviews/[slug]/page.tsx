@@ -347,7 +347,14 @@ export default async function ReviewPage({ params }: PageProps) {
               )}
 
               {!isGuia && buyingIntentPages.length > 0 && (
-                <ReviewPurchaseIntentLinks categoryName={review.category} pages={buyingIntentPages} />
+                <ReviewPurchaseIntentLinks
+                  categoryName={review.category}
+                  pages={buyingIntentPages}
+                  comparatives={relatedComparatives.map((article) => ({
+                    slug: article.slug,
+                    title: article.title,
+                  }))}
+                />
               )}
 
               {!isGuia && !buyingIntentPages.length && buyingGuide && (

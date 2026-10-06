@@ -649,6 +649,8 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
 }
 
 /* Phase 2 — páginas de intenção de compra. */
+.review-commercial-comparatives { margin-top: 24px; }
+.review-commercial-comparatives .section-kicker { margin-bottom: 10px; }
 .buying-intent-section { margin-top: 42px; padding: 26px; background: #f7f9fb; border: 1px solid var(--line); border-radius: 20px; }
 .buying-intent-section > h2 { margin: 7px 0 7px; font-size: clamp(1.45rem, 3vw, 2rem); line-height: 1.08; letter-spacing: -.03em; }
 .buying-intent-section > p { margin: 0 0 20px; max-width: 76ch; color: var(--muted); font-size: .9rem; }

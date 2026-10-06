@@ -6,6 +6,7 @@ import { fetchAllReviews } from '@/lib/data';
 import {
   buildBuyingGuideCategories,
   buildBuyingIntentPages,
+  buildPriorityBuyingCategories,
   getBuyingIntentDescription,
   getBuyingIntentLabel,
 } from '@/lib/buying';
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
 export default async function BestProductsPage() {
   const reviews = await fetchAllReviews();
   const categories = buildBuyingGuideCategories(reviews, 3);
+  const priorityCategories = buildPriorityBuyingCategories(reviews, 3);
   const intentPages = buildBuyingIntentPages(reviews, 4);
 
   return (
@@ -65,6 +67,24 @@ export default async function BestProductsPage() {
               </div>
               <Link className="cta" href="/como-avaliamos/">Conhecer critérios →</Link>
             </div>
+
+            {priorityCategories.length > 0 && (
+              <section className="buying-intent-section" aria-labelledby="clusters-prioritarios-heading">
+                <div className="section-kicker">Clusters prioritários</div>
+                <h2 id="clusters-prioritarios-heading">Comece pelos clusters comerciais mais estratégicos</h2>
+                <p>Estes clusters recebem prioridade na arquitetura editorial porque concentram categorias com base suficiente para guias, intenção de compra, reviews e comparativos.</p>
+                <div className="buying-intent-grid">
+                  {priorityCategories.map((category) => (
+                    <Link key={category.slug} href={'/melhores/' + category.slug + '/'} className="buying-intent-card">
+                      <span>{category.count} análises</span>
+                      <strong>Melhores {category.name}</strong>
+                      <small>Guia → intenção → review → oferta, quando os dados comerciais estiverem disponíveis.</small>
+                      <b>Explorar cluster →</b>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <div className="buying-guide-grid">
               {categories.map((category) => (

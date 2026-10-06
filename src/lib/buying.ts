@@ -29,6 +29,31 @@ export interface BuyingIntentPage {
 
 export const BUYING_INTENTS: BuyingIntent[] = ['baratos', 'custo-beneficio'];
 
+// Clusters prioritários da estratégia SEO comercial. Os aliases permitem
+// manter a arquitetura estável mesmo quando a categoria editorial varia.
+export const PRIORITY_BUYING_CATEGORIES = [
+  { label: 'Fones de Ouvido', aliases: ['Fones de Ouvido', 'Fones'] },
+  { label: 'Notebooks', aliases: ['Notebooks'] },
+  { label: 'Acessórios para Games', aliases: ['Acessórios para Games', 'Acessorios Gamer', 'Acessórios Gamer'] },
+  { label: 'Áudio Profissional', aliases: ['Áudio Profissional', 'Audio Profissional'] },
+  { label: 'Casa Inteligente', aliases: ['Casa Inteligente'] },
+] as const;
+
+export function buildPriorityBuyingCategories(
+  reviews: Review[],
+  minimum = 3
+): BuyingGuideCategory[] {
+  const categories = buildBuyingGuideCategories(reviews, minimum);
+  return PRIORITY_BUYING_CATEGORIES
+    .map((priority) => {
+      const match = categories.find((category) =>
+        priority.aliases.some((alias) => category.name.toLowerCase() === alias.toLowerCase())
+      );
+      return match || null;
+    })
+    .filter((category): category is BuyingGuideCategory => category !== null);
+}
+
 const MARKETPLACE_LABELS: Record<string, string> = {
   mercadolivre: 'Mercado Livre',
   amazon: 'Amazon',
