@@ -13,6 +13,7 @@ const navItems = [
   { label: "Mercado Livre", href: "/admin/ml", icon: "M6 7h12M6 12h12M6 17h7M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" },
   { label: "Fila de Afiliados", href: "/admin/ml/fila", icon: "M5 5h14M5 12h14M5 19h14" },
   { label: "Oportunidades SEO", href: "/admin/oportunidades", icon: "M4 19V5m0 14h16M8 16l3-4 3 2 5-7" },
+  { label: "Monetização", href: "/admin/monetizacao", icon: "M12 8c-2.21 0-4 1.34-4 3s1.79 3 4 3 4 1.34 4 3-1.79 3-4 3m0-16v2m0 14v2m8-9a8 8 0 11-16 0 8 8 0 0116 0z" },
 ];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
