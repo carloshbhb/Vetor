@@ -27,6 +27,23 @@ const nextConfig: NextConfig = {
         destination: '/como-avaliamos/',
         permanent: true,
       },
+      // Compatibilidade SEO: URLs antigas de sitemap/feed ainda cadastradas no GSC.
+      // Mantemos um único destino canônico sem deixar endpoints legados em 404.
+      {
+        source: '/sitemap',
+        destination: '/sitemap.xml',
+        permanent: true,
+      },
+      {
+        source: '/sitemap/',
+        destination: '/sitemap.xml',
+        permanent: true,
+      },
+      {
+        source: '/rss.xml',
+        destination: '/feed.xml',
+        permanent: true,
+      },
       // P0 SEO: consolidar aliases antigos que ainda recebem impressões.
       {
         source: '/review/echo-dot-5',
