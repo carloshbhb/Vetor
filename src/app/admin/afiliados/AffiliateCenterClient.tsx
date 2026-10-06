@@ -24,6 +24,7 @@ type Props = {
   initialStats: Stats;
   initialMarketplaces: string[];
   generatedAt: string;
+  buildVersion: string;
 };
 
 const EMPTY: FormData = {
@@ -60,7 +61,7 @@ function tone(value: Status | Health) {
   return "border-border bg-[var(--surface)] text-[var(--muted)]";
 }
 
-export default function AffiliateCenterClient({ initialLinks, initialTotal, initialStats, initialMarketplaces, generatedAt }: Props) {
+export default function AffiliateCenterClient({ initialLinks, initialTotal, initialStats, initialMarketplaces, generatedAt, buildVersion }: Props) {
   const [links, setLinks] = useState(initialLinks);
   const [total, setTotal] = useState(initialTotal);
   const [stats, setStats] = useState(initialStats);
@@ -83,6 +84,14 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
   const [lastRead, setLastRead] = useState(generatedAt);
+
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) window.location.reload();
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -284,6 +293,11 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted)]">
               Um único lugar para trocar destinos comerciais, acompanhar saúde e editar ofertas sem alterar os artigos publicados.
             </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+              <span className="rounded-full border border-border bg-[var(--surface)] px-2.5 py-1">Admin {buildVersion}</span>
+              <span className="rounded-full border border-border bg-[var(--surface)] px-2.5 py-1">Sem cache</span>
+              <span className="rounded-full border border-border bg-[var(--surface)] px-2.5 py-1">Fonte: public.affiliate_links</span>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => void syncContent()} disabled={syncing} className="rounded-xl border border-border bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold hover:bg-[var(--surface2)] disabled:opacity-50">{syncing ? "Sincronizando…" : "Sincronizar conteúdo"}</button>
@@ -302,7 +316,7 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--amber)]">Registro central</p>
             <div className="mt-1 flex items-baseline gap-2"><strong className="font-display text-4xl">{total}</strong><span className="text-sm text-[var(--muted)]">links reais no banco central</span></div>
-            <p className="mt-1 text-xs text-[var(--muted)]">Leitura {date(lastRead)} · nenhum contador de inventário antigo.</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">Leitura {date(lastRead)} · nenhum contador de inventário antigo · build {buildVersion}.</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[

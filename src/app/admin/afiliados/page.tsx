@@ -26,6 +26,8 @@ export default async function AffiliateCenterPage() {
     getAffiliateMarketplaceOptions(),
   ]);
 
+  const buildVersion = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) || 'local';
+
   return (
     <AffiliateCenterClient
       initialLinks={page.data}
@@ -33,6 +35,7 @@ export default async function AffiliateCenterPage() {
       initialStats={stats}
       initialMarketplaces={marketplaces}
       generatedAt={new Date().toISOString()}
+      buildVersion={process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) || 'local'}
     />
   );
 }
