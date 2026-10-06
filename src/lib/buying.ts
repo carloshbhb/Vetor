@@ -17,7 +17,13 @@ export interface BuyingGuideCategory {
   featured: Review[];
 }
 
-export type BuyingIntent = 'baratos' | 'custo-beneficio';
+export type BuyingIntent =
+  | 'baratos'
+  | 'custo-beneficio'
+  | 'para-trabalho'
+  | 'para-estudo'
+  | 'para-jogos'
+  | 'premium';
 
 export interface BuyingIntentPage {
   categoryName: string;
@@ -27,7 +33,14 @@ export interface BuyingIntentPage {
   reviews: Review[];
 }
 
-export const BUYING_INTENTS: BuyingIntent[] = ['baratos', 'custo-beneficio'];
+export const BUYING_INTENTS: BuyingIntent[] = [
+  'baratos',
+  'custo-beneficio',
+  'para-trabalho',
+  'para-estudo',
+  'para-jogos',
+  'premium',
+];
 
 // Clusters prioritários da estratégia SEO comercial. Os aliases permitem
 // manter a arquitetura estável mesmo quando a categoria editorial varia.
@@ -125,10 +138,66 @@ export function buildBuyingGuideCategories(reviews: Review[], minimum = 3): Buyi
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'pt-BR'));
 }
 
-function rankByIntent(reviews: Review[], intent: BuyingIntent): Review[] {
-  const withPrice = reviews.filter(
-    (review) => reviewScore(review) > 0 && parseReviewPrice(review.price_new) !== null
+function reviewSearchCorpus(review: Review): string {
+  return [
+    review.product,
+    review.meta_title,
+    review.meta_description,
+    review.hero_lead,
+    JSON.stringify(review.specs || []),
+    JSON.stringify(review.sections || []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function matchesAdvancedBuyingIntent(review: Review, intent: BuyingIntent): boolean {
+  const category = review.category.trim().toLowerCase();
+  const corpus = reviewSearchCorpus(review);
+
+  if (intent === 'premium') return reviewScore(review) >= 9.2;
+
+  if (intent === 'para-trabalho') {
+    return (
+      category === 'notebooks' ||
+      category === 'fones de ouvido' ||
+      category === 'áudio profissional'
+    ) && !/kids|infantil/i.test(corpus);
+  }
+
+  if (intent === 'para-estudo') {
+    return (
+      category === 'notebooks' ||
+      category === 'fones de ouvido'
+    ) && !/gamer|gaming|kids|infantil/i.test(corpus);
+  }
+
+  if (intent === 'para-jogos') {
+    return (
+      category === 'acessórios para games' ||
+      (category === 'notebooks' && /gamer|gaming|nitro|rtx|geforce|radeon/i.test(corpus))
+    );
+  }
+
+  return true;
+}
+
+function intentEligibleReviews(reviews: Review[], intent: BuyingIntent): Review[] {
+  const candidates = reviews.filter(
+    (review) =>
+      review.status === 'published' &&
+      !isGuideLikeSlug(review.slug) &&
+      reviewScore(review) > 0 &&
+      parseReviewPrice(review.price_new) !== null
   );
+
+  if (intent === 'baratos' || intent === 'custo-beneficio') return candidates;
+  return candidates.filter((review) => matchesAdvancedBuyingIntent(review, intent));
+}
+
+function rankByIntent(reviews: Review[], intent: BuyingIntent): Review[] {
+  const withPrice = intentEligibleReviews(reviews, intent);
 
   if (intent === 'baratos') {
     return [...withPrice].sort((a, b) => {
@@ -198,24 +267,46 @@ export function buildBuyingIntentPages(
 }
 
 export function getBuyingIntentLabel(intent: BuyingIntent): string {
-  return intent === 'baratos' ? 'Mais baratos' : 'Custo-benefício';
+  switch (intent) {
+    case 'baratos':
+      return 'Mais baratos';
+    case 'custo-beneficio':
+      return 'Custo-benefício';
+    case 'para-trabalho':
+      return 'Para trabalho';
+    case 'para-estudo':
+      return 'Para estudo';
+    case 'para-jogos':
+      return 'Para jogos';
+    case 'premium':
+      return 'Premium';
+  }
 }
 
 export function getBuyingIntentDescription(
   intent: BuyingIntent,
   categoryName: string
 ): string {
-  if (intent === 'baratos') {
-    return (
-      'Ordenação pelo menor preço consultado entre análises com preço disponível. ' +
-      'O valor pode mudar por loja, versão, promoção e data da consulta.'
-    );
+  switch (intent) {
+    case 'baratos':
+      return (
+        'Ordenação pelo menor preço consultado entre análises com preço disponível. ' +
+        'O valor pode mudar por loja, versão, promoção e data da consulta.'
+      );
+    case 'custo-beneficio':
+      return (
+        'Ordenação por índice de valor: nota Vetor × 1.000 ÷ preço consultado. ' +
+        'É uma referência matemática, não uma escolha universal.'
+      );
+    case 'para-trabalho':
+      return 'Seleção voltada a rotinas profissionais, produtividade e criação, usando a categoria e o conteúdo editorial disponível.';
+    case 'para-estudo':
+      return 'Seleção voltada a estudo, aulas e produtividade cotidiana, priorizando produtos com base editorial suficiente na categoria.';
+    case 'para-jogos':
+      return 'Seleção orientada a jogos quando o produto, a categoria e o conteúdo da análise indicam esse uso.';
+    case 'premium':
+      return 'Seleção de produtos com nota Vetor igual ou superior a 9,2/10 e preço consultado disponível.';
   }
-
-  return (
-    'Ordenação por índice de valor: nota Vetor × 1.000 ÷ preço consultado. ' +
-    'É uma referência matemática, não uma escolha universal.'
-  );
 }
 
 function formatNumericPrice(value: number): string {
