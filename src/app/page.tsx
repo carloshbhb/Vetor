@@ -25,8 +25,20 @@ export default async function Home() {
     fetchGuias(),
   ]);
 
-  const latestReviews = reviews.slice(0, 8);
-  const topReviews = reviews.filter((r) => r.verdict_score >= 9);
+  const isHomeProductReview = (review: typeof reviews[number]) => {
+    const slug = review.slug.toLowerCase();
+    const product = review.product.toLowerCase();
+    return (
+      !slug.includes('guia') &&
+      !slug.startsWith('melhores-') &&
+      !slug.startsWith('top-') &&
+      !product.includes(' vs ') &&
+      !product.startsWith('comparativo:')
+    );
+  };
+  const productReviews = reviews.filter(isHomeProductReview);
+  const latestReviews = productReviews.slice(0, 8);
+  const topReviews = productReviews.filter((r) => r.verdict_score >= 9);
   const featured = topReviews[0] ?? latestReviews[0];
   const picks = (topReviews.length >= 3 ? topReviews : latestReviews).slice(0, 3);
   const mainReview = latestReviews[0];
@@ -36,7 +48,7 @@ export default async function Home() {
   const buyingCategories = buildBuyingGuideCategories(reviews, 3).slice(0, 6);
   const priorityBuyingCategories = buildPriorityBuyingCategories(reviews, 3);
   const categoryCounts = Array.from(
-    reviews.reduce((map, review) => {
+    productReviews.reduce((map, review) => {
       map.set(review.category, (map.get(review.category) ?? 0) + 1);
       return map;
     }, new Map<string, number>())
