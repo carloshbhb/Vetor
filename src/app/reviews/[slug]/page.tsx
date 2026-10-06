@@ -77,6 +77,42 @@ function formatDateLong(iso: string | null | undefined): string {
   return d.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
 }
 
+function normalizeComparableText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function findComparisonReview(column: string, reviews: Review[]): Review | null {
+  const target = normalizeComparableText(column);
+  if (!target) return null;
+  const targetTokens = new Set(target.split(" ").filter((token) => token.length >= 3));
+  let best: { review: Review; score: number } | null = null;
+
+  for (const candidate of reviews) {
+    if (candidate.status !== "published" || isGuideLikeSlug(candidate.slug)) continue;
+    const candidateText = normalizeComparableText(candidate.product);
+    if (!candidateText) continue;
+
+    let score = candidateText === target ? 100 : 0;
+    if (candidateText.includes(target) || target.includes(candidateText)) score += 50;
+
+    const candidateTokens = new Set(candidateText.split(" ").filter((token) => token.length >= 3));
+    let shared = 0;
+    for (const token of targetTokens) {
+      if (candidateTokens.has(token)) shared += 1;
+    }
+    score += shared * 4;
+
+    if (!best || score > best.score) best = { review: candidate, score };
+  }
+
+  return best && best.score >= 12 ? best.review : null;
+}
+
 const br = (n: number) => String(n).replace(".", ",");
 
 function generateVerdictText(review: Review): string {
@@ -163,6 +199,9 @@ export default async function ReviewPage({ params }: PageProps) {
   const cons = Array.isArray(review.cons) ? review.cons : [];
   const compareRows = review.compare_table?.rows ?? [];
   const compareColumns = review.compare_table?.columns ?? [];
+  const compareProductReviews = compareColumns.map((column, index) =>
+    index === 0 ? null : findComparisonReview(String(column || ""), allReviews)
+  );
   const competitors = compareColumns.filter(Boolean).slice(1, 3);
   const updatedLong = formatDateLong(review.updated_at);
 
@@ -342,7 +381,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 </div>
               </section>
 
-              {buyingOffers.length > 0 && (
+              {!isGuia && buyingOffers.length > 0 && (
                 <BuyingEngine review={review} offers={buyingOffers} />
               )}
 
@@ -530,9 +569,19 @@ export default async function ReviewPage({ params }: PageProps) {
                     <table>
                       <thead>
                         <tr>
-                          {compareColumns.map((col, i) => (
-                            <th key={i}>{col || (i === 0 ? "Critério" : `Opção ${i}`)}</th>
-                          ))}
+                          {compareColumns.map((col, i) => {
+                            const label = col || (i === 0 ? "Critério" : "Opção " + i);
+                            const linkedReview = compareProductReviews[i];
+                            return (
+                              <th key={i}>
+                                {linkedReview ? (
+                                  <Link href={"/reviews/" + linkedReview.slug + "/"}>{label}</Link>
+                                ) : (
+                                  label
+                                )}
+                              </th>
+                            );
+                          })}
                         </tr>
                       </thead>
                       <tbody>

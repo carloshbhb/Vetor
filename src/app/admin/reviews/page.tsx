@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Review } from "@/lib/types";
+import { isGuideLikeSlug } from "@/lib/buying";
 
 
 export default function AdminReviewsPage() {
@@ -23,7 +24,11 @@ export default function AdminReviewsPage() {
           setError(data.error || "Erro ao carregar reviews.");
         } else {
           const data = await res.json();
-          setReviews(Array.isArray(data) ? data : []);
+          setReviews(
+            (Array.isArray(data) ? data : []).filter(
+              (review: Review) => !isGuideLikeSlug(review.slug)
+            )
+          );
           setError("");
         }
       } catch {

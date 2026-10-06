@@ -1,4 +1,5 @@
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
+import { isGuideLikeSlug } from "@/lib/buying";
 
 export type AffiliateLinkStatus = "active" | "paused" | "broken" | "archived";
 export type AffiliateSourceType = "review" | "comparison_product" | "product_link" | "manual";
@@ -273,7 +274,7 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
     { data: productLinks, error: productLinksError },
     { data: articles, error: articlesError },
   ] = await Promise.all([
-    supabase.from("affiliate_links").select("slug"),
+    supabase.from("affiliate_links").select("id,slug,source_type,status"),
     supabase
       .from("reviews")
       .select("slug,product,category,marketplace,affiliate_url")
@@ -289,14 +290,62 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
 
   if (existingError) return 0;
 
-  const existingSlugs = new Set((existing || []).map((row) => String(row.slug)));
-  const rows: Array<Record<string, unknown>> = [];
+  const existingBySlug = new Map(
+    (existing || []).map((row) => [
+      String(row.slug),
+      {
+        id: String(row.id),
+        source_type: String(row.source_type || ""),
+        status: String(row.status || "active"),
+      },
+    ])
+  );
 
-  const addRow = (row: Record<string, unknown>) => {
+  const rows: Array<Record<string, unknown>> = [];
+  const updates: Array<{ id: string; patch: Record<string, unknown> }> = [];
+  const queuedUpdateIds = new Set<string>();
+
+  const queueUpdate = (id: string, patch: Record<string, unknown>) => {
+    if (!id || queuedUpdateIds.has(id)) return;
+    queuedUpdateIds.add(id);
+    updates.push({ id, patch });
+  };
+
+  const addOrUpdateRow = (row: Record<string, unknown>) => {
     const slug = String(row.slug || "").trim();
-    if (!slug || existingSlugs.has(slug)) return;
-    existingSlugs.add(slug);
-    rows.push(row);
+    if (!slug) return;
+    const existingRow = existingBySlug.get(slug);
+
+    if (!existingRow) {
+      existingBySlug.set(slug, {
+        id: "",
+        source_type: String(row.source_type || ""),
+        status: String(row.status || "active"),
+      });
+      rows.push(row);
+      return;
+    }
+
+    if (String(row.source_type || "") === "comparison_product" && existingRow.id) {
+      queueUpdate(existingRow.id, {
+        name: String(row.name || ""),
+        marketplace: String(row.marketplace || "Outro"),
+        category: String(row.category || ""),
+        source_type: "comparison_product",
+        source_ref: String(row.source_ref || ""),
+        destination_url: String(row.destination_url || ""),
+        status: "active",
+        priority: Number(row.priority || 0),
+        notes: String(row.notes || ""),
+        tags: normalizeTags(row.tags),
+        health_status: "unknown",
+        last_checked_at: null,
+        http_status: null,
+        final_url: null,
+        last_error: null,
+        updated_at: new Date().toISOString(),
+      });
+    }
   };
 
   if (!reviewsError && reviews) {
@@ -305,8 +354,20 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
       const destination = String(review.affiliate_url || "").trim();
       if (!slug || !destination) continue;
 
+      if (isGuideLikeSlug(slug)) {
+        const existingRow = existingBySlug.get(slug);
+        if (existingRow?.id && existingRow.source_type === "review" && existingRow.status !== "archived") {
+          queueUpdate(existingRow.id, {
+            status: "archived",
+            notes: "Arquivado automaticamente: guia/lista não é produto individual.",
+            updated_at: new Date().toISOString(),
+          });
+        }
+        continue;
+      }
+
       try {
-        addRow({
+        addOrUpdateRow({
           slug,
           name: String(review.product || slug),
           marketplace: String(review.marketplace || "Outro"),
@@ -319,9 +380,7 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
           notes: "Criado automaticamente a partir de um review publicado.",
           tags: [],
         });
-      } catch {
-        // Uma URL inválida não deve interromper a sincronização das demais.
-      }
+      } catch {}
     }
   }
 
@@ -330,9 +389,8 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
       const slug = String(productLink.slug || "").trim();
       const destination = String(productLink.affiliate_url || "").trim();
       if (!slug || !destination) continue;
-
       try {
-        addRow({
+        addOrUpdateRow({
           slug,
           name: String(productLink.product_name || slug),
           marketplace: String(productLink.marketplace || "Outro"),
@@ -342,18 +400,13 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
           destination_url: validateAffiliateDestination(destination),
           status: String(productLink.status || "").toLowerCase() === "archived" ? "archived" : "active",
           priority: Number(productLink.priority || 0),
-          notes:
-            "Migrado automaticamente de public.product_links." +
-            (String(productLink.notes || "").trim()
-              ? " " + String(productLink.notes).trim()
-              : ""),
+          notes: "Migrado automaticamente de public.product_links." +
+            (String(productLink.notes || "").trim() ? " " + String(productLink.notes).trim() : ""),
           tags: normalizeTags(productLink.tags),
           created_at: productLink.created_at || undefined,
           updated_at: productLink.updated_at || undefined,
         });
-      } catch {
-        // Uma URL inválida não deve interromper a sincronização das demais.
-      }
+      } catch {}
     }
   }
 
@@ -366,10 +419,10 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
       products.forEach((product: Record<string, unknown>, index: number) => {
         const destination = String(product.product_url || "").trim();
         if (!destination) return;
-
         const slug = articleSlug + "-p" + String(index + 1);
+
         try {
-          addRow({
+          addOrUpdateRow({
             slug,
             name: String(product.name || "Produto " + String(index + 1)),
             marketplace: "Mercado Livre",
@@ -379,24 +432,31 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
             destination_url: validateAffiliateDestination(destination),
             status: "active",
             priority: 50,
-            notes: "Migrado automaticamente do comparativo. Edite o destino na Central de Afiliados.",
+            notes: "Sincronizado automaticamente do comparativo. Edite o destino na Central de Afiliados.",
             tags: ["comparativo"],
           });
-        } catch {
-          // Uma URL inválida não deve interromper a sincronização das demais.
-        }
+        } catch {}
       });
     }
   }
 
-  if (!rows.length) return 0;
-  const { data, error } = await supabase
-    .from("affiliate_links")
-    .insert(rows)
-    .select("id");
+  let changed = 0;
+  if (rows.length) {
+    const { data, error } = await supabase.from("affiliate_links").insert(rows).select("id");
+    if (!error && data) changed += data.length;
+  }
 
-  if (error || !data) return 0;
-  return data.length;
+  for (const update of updates) {
+    const { data, error } = await supabase
+      .from("affiliate_links")
+      .update(update.patch)
+      .eq("id", update.id)
+      .select("id")
+      .maybeSingle();
+    if (!error && data) changed += 1;
+  }
+
+  return changed;
 }
 
 export async function createAffiliateLink(input: {
