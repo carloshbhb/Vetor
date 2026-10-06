@@ -5,6 +5,7 @@ export interface Author {
   tagline: string;
   bio: string;
   credentials: string[];
+  methodology: string[];
   avatar?: string;
 }
 
@@ -21,6 +22,12 @@ export const authors: Author[] = [
       'Cobertura editorial de wearables, áudio e notebooks desde a fundação do vetor.blog',
       'Avaliações baseadas em informações verificáveis, critérios públicos e comparação com concorrentes relevantes',
       'Nota e veredicto definidos sem influência de patrocínio ou comissão de afiliado',
+    ],
+    methodology: [
+      'Separação entre informações do fabricante, dados comerciais e julgamento editorial.',
+      'Preço e disponibilidade apresentados com data de referência e sujeitos a mudança.',
+      'Comparação com alternativas da mesma categoria antes do veredicto.',
+      'Alegações de teste prático ou experiência de uso só aparecem quando documentadas.',
     ],
   },
 ];
