@@ -161,6 +161,24 @@ export async function getAffiliateLinkBySlug(slug: string): Promise<AffiliateLin
   return normalizeRow(data as Record<string, unknown>);
 }
 
+export async function getAffiliateLinksForReview(slug: string): Promise<AffiliateLink[]> {
+  const supabase = getSupabaseServiceKeyClient();
+  const normalizedSlug = slug.trim();
+  if (!supabase || !normalizedSlug) return [];
+
+  const { data, error } = await supabase
+    .from("affiliate_links")
+    .select("*")
+    .eq("source_type", "review")
+    .eq("source_ref", normalizedSlug)
+    .eq("status", "active")
+    .order("priority", { ascending: false })
+    .order("updated_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data.map((row) => normalizeRow(row as Record<string, unknown>));
+}
+
 function applyAffiliateLinkFilters(query: any, filters?: AffiliateLinkFilters) {
   if (filters?.status) query = query.eq("status", filters.status);
   if (filters?.source_type) query = query.eq("source_type", filters.source_type);
