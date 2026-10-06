@@ -21,6 +21,7 @@ import EditorialEvidence from "@/components/EditorialEvidence";
 import RelatedCommercialProducts from "@/components/RelatedCommercialProducts";
 import ReviewPurchaseIntentLinks from "@/components/ReviewPurchaseIntentLinks";
 import { getProductLinksByReviewSlug, getReviewedProductLinksByCategory } from "@/lib/product-links";
+import { getAffiliateLinksForReview, type AffiliateLink } from "@/lib/affiliate-links";
 import { buildBuyingGuideCategories, buildBuyingIntentPages, buildMarketplaceOffers, isGuideLikeSlug, reviewScore } from "@/lib/buying";
 
 interface PageProps {
@@ -115,6 +116,47 @@ function findComparisonReview(column: string, reviews: Review[]): Review | null 
 
 const br = (n: number) => String(n).replace(".", ",");
 
+function buildCentralMarketplaceOffers(review: Review, links: AffiliateLink[]): import("@/lib/buying").MarketplaceOffer[] {
+  const seen = new Set<string>();
+  const offers: import("@/lib/buying").MarketplaceOffer[] = [];
+
+  for (const link of links) {
+    const marketplace = (link.marketplace || "Outro").trim();
+    const key = marketplace.toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+
+    const price =
+      link.price != null && Number.isFinite(link.price)
+        ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(link.price)
+        : marketplace.toLowerCase() === (review.marketplace || "").trim().toLowerCase()
+          ? review.price_new || ""
+          : "";
+
+    offers.push({
+      marketplace: key,
+      label: marketplace,
+      price,
+      href: "/go/" + link.slug + "/",
+      checkedAt: link.affiliate_checked_at || link.updated_at || review.updated_at,
+      isAffiliate: true,
+    });
+  }
+
+  if (!offers.length && (review.affiliate_url || review.price_new)) {
+    offers.push({
+      marketplace: (review.marketplace || "mercadolivre").trim().toLowerCase(),
+      label: review.marketplace || "Mercado Livre",
+      price: review.price_new || "",
+      href: review.affiliate_url ? "/go/" + review.slug + "/" : "#",
+      checkedAt: review.updated_at,
+      isAffiliate: Boolean(review.affiliate_url),
+    });
+  }
+
+  return offers;
+}
+
 function generateVerdictText(review: Review): string {
   const score = review.verdict_score;
   const product = review.product;
@@ -140,13 +182,16 @@ export default async function ReviewPage({ params }: PageProps) {
     ? `${review.meta_reading_time} min`
     : `${Math.max(3, Math.ceil(totalContentLength / 1000))} min`;
 
-  const [allReviews, allComparatives, productLinks, relatedCommercialLinks] = await Promise.all([
+  const [allReviews, allComparatives, productLinks, relatedCommercialLinks, centralAffiliateLinks] = await Promise.all([
     fetchAllReviews(),
     fetchAllViralArticles(),
     getProductLinksByReviewSlug(review.slug),
     getReviewedProductLinksByCategory(review.category, review.slug, 6),
+    getAffiliateLinksForReview(review.slug),
   ]);
-  const buyingOffers = buildMarketplaceOffers(review, productLinks);
+  const buyingOffers = centralAffiliateLinks.length
+    ? buildCentralMarketplaceOffers(review, centralAffiliateLinks)
+    : buildMarketplaceOffers(review, productLinks);
   const reviewBySlug = new Map(allReviews.map((item) => [item.slug, item]));
   const relatedCommercial = relatedCommercialLinks
     .map((link) => ({
