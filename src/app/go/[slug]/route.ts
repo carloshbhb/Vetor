@@ -32,9 +32,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     const managedTarget = safeTarget(managed.destination_url);
     if (managed.status === "active" && managedTarget) {
       const referer = _request.headers.get("referer");
-      await recordAffiliateClick(managed.id, referer ? (() => {
-        try { return new URL(referer).pathname; } catch { return null; }
-      })() : null);
+      await recordAffiliateClick(managed.id, referer);
       return redirectTo(managedTarget);
     }
 
