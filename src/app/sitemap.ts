@@ -4,6 +4,8 @@ import { authors } from '@/data/authors';
 import { buildTagIndex } from '@/lib/tags';
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from '@/lib/buying';
 
+export const revalidate = 300;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [reviews, viralArticles, categories] = await Promise.all([
     fetchAllReviews(),

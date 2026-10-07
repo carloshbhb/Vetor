@@ -173,3 +173,9 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 - Reviews agora conseguem expor um bloco de cluster adicional quando a categoria tem guia de compra, mas não possui páginas de intenção com dados suficientes.
 - Revisão de SEO aplicada no Supabase às 10 páginas prioritárias da etapa anterior; Echo Dot 5 foi corrigido para a categoria `Casa Inteligente`.
 - Não foi introduzido nenhum mecanismo artificial para AI Search; a arquitetura reforça hubs, links internos e intenção comercial.
+
+### Ciclo 12 — 2026-10-06 (Cluster Moto G06)
+- Publicado em produção o review `moto-g06-128gb-review` e o comparativo `moto-g06-vs-moto-g17-vs-galaxy-a07`.
+- Conteúdo editorial sincronizado com GitHub por migration idempotente, preservando review, FAQ, comparação, SEO on-page e dados de afiliado já publicados no Supabase.
+- `src/app/sitemap.ts` passou a revalidar a cada 5 minutos para que novas reviews/comparativos do Supabase sejam refletidos sem depender de um novo conteúdo manual no sitemap.
+- Próximo passo operacional: submissão do sitemap e URLs ao Google Search Console/IndexNow e inspeção das duas URLs.
