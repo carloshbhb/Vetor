@@ -49,7 +49,12 @@ async function requestProductItems(productId: string, accessToken: string): Prom
   );
 
   if (!response.ok) {
-    throw new Error("Mercado Livre product items " + response.status);
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      "Mercado Livre product items " +
+        response.status +
+        (body ? ": " + body.slice(0, 400) : "")
+    );
   }
 
   return response.json() as Promise<ProductItemsResponse>;
@@ -93,8 +98,16 @@ export async function expandMercadoLivreCandidates(
       .map((item): MLMatchCandidate | null => {
         const itemId = item.item_id ? String(item.item_id) : null;
         const title = String(item.title || detail.name || row.title).trim();
-        const url = String(item.permalink || "").trim();
-        if (!itemId || !url) return null;
+        if (!itemId) return null;
+
+        // O endpoint de itens associados pode não devolver permalink/title.
+        // O catálogo já fornece o nome do produto, e o ITEM_ID permite
+        // construir uma URL pública estável para o anúncio.
+        const numericItemId = itemId.replace(/^MLB[-]?/i, "").trim();
+        const fallbackUrl = numericItemId
+          ? "https://produto.mercadolivre.com.br/MLB-" + numericItemId
+          : "https://www.mercadolivre.com.br/" + itemId;
+        const url = String(item.permalink || fallbackUrl).trim();
 
         return {
           productId: row.productId,
@@ -111,7 +124,11 @@ export async function expandMercadoLivreCandidates(
         };
       })
       .filter((item): item is MLMatchCandidate => Boolean(item));
-  } catch {
-    return [];
+  } catch (error) {
+    // Nunca transformar falha de API em "zero candidatos":
+    // o chamador precisa distinguir erro de integração de ausência de anúncios.
+    throw error instanceof Error
+      ? error
+      : new Error("Falha ao consultar anúncios associados do Mercado Livre.");
   }
 }
