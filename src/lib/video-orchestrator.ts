@@ -37,17 +37,21 @@ export interface VideoQueueItem {
   updated_at: string;
 }
 
-const SERVICE_SUPABASE = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-);
+function getServiceSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if (!supabaseUrl || !serviceKey) {
+    throw new Error('Supabase server configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY).');
+  }
+  return createClient(supabaseUrl, serviceKey);
+}
 
 export async function createVideoJob(input: VideoQueueInput): Promise<VideoQueueItem> {
   const productData = await extractProductData(input.productUrl);
   const affiliateUrl = generateAffiliateUrl(input.productUrl, productData.marketplace);
   const shortenedUrl = await shortenUrl(affiliateUrl);
 
-  const { data, error } = await SERVICE_SUPABASE
+  const { data, error } = await getServiceSupabase()
     .from('video_queue')
     .insert({
       product_url: input.productUrl,
@@ -68,7 +72,7 @@ export async function createVideoJob(input: VideoQueueInput): Promise<VideoQueue
 }
 
 export async function getPendingVideos(limit = 5): Promise<VideoQueueItem[]> {
-  const { data, error } = await SERVICE_SUPABASE
+  const { data, error } = await getServiceSupabase()
     .from('video_queue')
     .select('*')
     .eq('status', 'pending')
@@ -87,7 +91,7 @@ export async function listVideoQueue(options?: {
 }): Promise<{ videos: VideoQueueItem[]; total: number }> {
   const limit = Math.min(Math.max(options?.limit ?? 50, 1), 100);
   const offset = Math.max(options?.offset ?? 0, 0);
-  let query = SERVICE_SUPABASE
+  let query = getServiceSupabase()
     .from("video_queue")
     .select("*", { count: "exact" })
     .order("created_at", { ascending: false });
@@ -101,9 +105,9 @@ export async function listVideoQueue(options?: {
 export async function getVideoQueueStats() {
   const statuses: VideoQueueItem["status"][] = ["pending", "processing", "completed", "failed"];
   const [{ count: total, error: totalError }, ...counts] = await Promise.all([
-    SERVICE_SUPABASE.from("video_queue").select("id", { count: "exact", head: true }),
+    getServiceSupabase().from("video_queue").select("id", { count: "exact", head: true }),
     ...statuses.map((status) =>
-      SERVICE_SUPABASE.from("video_queue").select("id", { count: "exact", head: true }).eq("status", status)
+      getServiceSupabase().from("video_queue").select("id", { count: "exact", head: true }).eq("status", status)
     ),
   ]);
   if (totalError) throw new Error(totalError.message);
@@ -116,7 +120,7 @@ export async function getVideoQueueStats() {
 }
 
 export async function getVideoById(id: string): Promise<VideoQueueItem | null> {
-  const { data, error } = await SERVICE_SUPABASE
+  const { data, error } = await getServiceSupabase()
     .from('video_queue')
     .select('*')
     .eq('id', id)
@@ -130,7 +134,7 @@ export async function updateVideoStatus(
   id: string,
   updates: Partial<VideoQueueItem>
 ): Promise<void> {
-  const { error } = await SERVICE_SUPABASE
+  const { error } = await getServiceSupabase()
     .from('video_queue')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id);
@@ -138,7 +142,7 @@ export async function updateVideoStatus(
 }
 
 export async function retryFailedVideo(id: string): Promise<boolean> {
-  const { data, error } = await SERVICE_SUPABASE
+  const { data, error } = await getServiceSupabase()
     .from("video_queue")
     .update({ status: "pending", error_message: null, started_at: null, updated_at: new Date().toISOString() })
     .eq("id", id)
@@ -283,7 +287,7 @@ export async function processPendingVideos(limit = 3): Promise<void> {
 }
 
 export async function retryFailedVideos(limit = 3): Promise<void> {
-  const { data, error } = await SERVICE_SUPABASE
+  const { data, error } = await getServiceSupabase()
     .from('video_queue')
     .select('*')
     .eq('status', 'failed')
