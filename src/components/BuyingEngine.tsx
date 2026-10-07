@@ -26,6 +26,7 @@ export default function BuyingEngine({
   const numericPrices = offers
     .map((offer) => parseReviewPrice(offer.price))
     .filter((price): price is number => price !== null);
+  const lowestPrice = numericPrices.length > 0 ? Math.min(...numericPrices) : null;
   const hasMultiplePrices = numericPrices.length > 1;
 
   return (
@@ -35,19 +36,30 @@ export default function BuyingEngine({
           <span className="eyebrow-small">Decisão de compra</span>
           <h2 id="onde-comprar-heading">Onde comprar {review.product}</h2>
           <p>
-            Compare as lojas cadastradas para este produto. O Vetor mostra o preço disponível na data da consulta e não trata o valor como garantia de preço futuro.
+            Compare as lojas cadastradas para este produto. O Vetor destaca o menor preço entre os valores consultados, sem tratar o resultado como garantia de preço futuro.
           </p>
         </div>
         <Link className="buying-method-link" href="/afiliados/">Como funcionam os links</Link>
       </div>
 
+      {lowestPrice !== null && (
+        <div className="buying-engine-signal" role="status">
+          <span>Menor preço consultado</span>
+          <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lowestPrice)}</strong>
+          <small>entre os preços disponíveis neste review</small>
+        </div>
+      )}
+
       <div className="buying-offer-grid">
         {offers.map((offer) => {
           const date = formatDate(offer.checkedAt);
           const isValidHref = /^\/|^https:\/\//i.test(offer.href);
+          const price = parseReviewPrice(offer.price);
+          const isLowestPrice = price !== null && lowestPrice !== null && price === lowestPrice;
 
           return (
-            <article className="buying-offer" key={offer.marketplace + '-' + offer.href}>
+            <article className={`buying-offer${isLowestPrice ? ' buying-offer--best' : ''}`} key={offer.marketplace + '-' + offer.href}>
+              {isLowestPrice && <span className="buying-offer-badge">Menor preço consultado</span>}
               <div className="buying-offer-top">
                 <span>{offer.label}</span>
                 <strong>{offer.price || 'Ver preço'}</strong>
@@ -63,9 +75,15 @@ export default function BuyingEngine({
                   data-aff-pos={'buying-' + offer.marketplace}
                   target="_blank"
                   rel={offer.isAffiliate ? 'sponsored nofollow noopener' : 'nofollow noopener'}
-                  aria-label={offer.price ? `Conferir preço na ${offer.label}` : `Consultar preço na ${offer.label}`}
+                  aria-label={
+                    isLowestPrice
+                      ? `Conferir o menor preço consultado na ${offer.label}`
+                      : offer.price
+                        ? `Conferir preço na ${offer.label}`
+                        : `Consultar preço na ${offer.label}`
+                  }
                 >
-                  {offer.price ? 'Conferir preço na loja' : 'Consultar preço'} →
+                  {isLowestPrice ? 'Ver menor preço' : offer.price ? 'Conferir preço na loja' : 'Consultar preço'} →
                 </a>
               ) : (
                 <span className="buying-unavailable">Link de compra não disponível</span>
