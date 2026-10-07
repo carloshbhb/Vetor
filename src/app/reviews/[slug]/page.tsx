@@ -79,7 +79,8 @@ function formatDateLong(iso: string | null | undefined): string {
   return d.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
 }
 
-function normalizeComparableText(value: string): string {
+function normalizeComparableText(value: unknown): string {
+  if (typeof value !== "string") return "";
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -88,6 +89,52 @@ function normalizeComparableText(value: string): string {
     .trim();
 }
 
+function cleanEditorialText(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value.replace(/bateria冠军级/gi, "bateria de nível excelente");
+}
+
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  const numeric = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function normalizeReviewSections(value: unknown): Review["sections"] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((raw, index) => {
+    if (!raw || typeof raw !== "object") return [];
+    const section = raw as Record<string, unknown>;
+    const heading = cleanEditorialText(section.heading ?? section.title) || "Seção " + (index + 1);
+    const content = cleanEditorialText(section.content ?? section.body);
+    const id = cleanEditorialText(section.id) || "section-" + index;
+    const tocLabel = cleanEditorialText(section.tocLabel ?? section.toc_label ?? heading);
+    const tocEmoji = cleanEditorialText(section.tocEmoji ?? section.toc_emoji);
+    return [{ id, content, heading, tocEmoji, tocLabel }];
+  });
+}
+
+function normalizeCompareRows(value: unknown): Review["compare_table"]["rows"] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((raw) => {
+    if (Array.isArray(raw)) {
+      const [feature, ...values] = raw;
+      return [{ feature: cleanEditorialText(feature), values: values.map(cleanEditorialText), winner: -1 }];
+    }
+    if (!raw || typeof raw !== "object") return [];
+    const row = raw as Record<string, unknown>;
+    const values = Array.isArray(row.values) ? row.values.map(cleanEditorialText) : [];
+    return [{
+      feature: cleanEditorialText(row.feature),
+      values,
+      winner: Number.isInteger(row.winner) ? Number(row.winner) : -1,
+    }];
+  });
+}
+
+function normalizeCompareColumns(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(cleanEditorialText);
+}
 function findComparisonReview(column: string, reviews: Review[], excludedSlug?: string): Review | null {
   const target = normalizeComparableText(column);
   if (!target) return null;
@@ -176,7 +223,6 @@ export default async function ReviewPage({ params }: PageProps) {
   const verdictLabel =
     review.verdict_label ||
     (score >= 8 ? "Fortemente Recomendado" : score >= 5 ? "Recomendado" : "Não Recomendado");
-  const cleanEditorialText = (value: string) => value.replace(/bateria冠军级/gi, "bateria de nível excelente");
   const verdictText = cleanEditorialText(review.verdict_text || generateVerdictText(review));
   const totalContentLength =
     review.sections?.reduce((acc, s) => acc + (s.content?.length || 0), 0) || 500;
@@ -238,15 +284,26 @@ export default async function ReviewPage({ params }: PageProps) {
     )
     .slice(0, 3);
 
-  const heroBars = (Array.isArray(review.hero_bars) ? review.hero_bars : []).map((bar) => ({ ...bar, label: cleanEditorialText(bar.label) }));
-  const sections = (Array.isArray(review.sections) ? review.sections : []).map((section) => ({ ...section, heading: cleanEditorialText(section.heading), tocLabel: cleanEditorialText(section.tocLabel), content: cleanEditorialText(section.content) }));
-  const specs = (Array.isArray(review.specs) ? review.specs : []).map((spec) => ({ ...spec, label: cleanEditorialText(spec.label), value: cleanEditorialText(spec.value) }));
-  const faq = (Array.isArray(review.faq) ? review.faq : []).map((item) => ({ ...item, question: cleanEditorialText(item.question), answer: cleanEditorialText(item.answer) }));
-  const pros = (Array.isArray(review.pros) ? review.pros : []).map(cleanEditorialText);
-  const cons = (Array.isArray(review.cons) ? review.cons : []).map(cleanEditorialText);
-  const compareRows = (review.compare_table?.rows ?? []).map((row) => ({ ...row, feature: cleanEditorialText(row.feature), values: row.values.map(cleanEditorialText) }));
-  const compareColumns = (review.compare_table?.columns ?? []).map((column) => cleanEditorialText(column));
-  const compareProductReviews = compareColumns.map((column, index) =>
+  const heroBars = (Array.isArray(review.hero_bars) ? review.hero_bars : []).flatMap((raw) => {
+    if (!raw || typeof raw !== "object") return [];
+    const bar = raw as Record<string, unknown>;
+    return [{ pct: toFiniteNumber(bar.pct), label: cleanEditorialText(bar.label), value: toFiniteNumber(bar.value) }];
+  });
+  const sections = normalizeReviewSections(review.sections);
+  const specs = (Array.isArray(review.specs) ? review.specs : []).flatMap((raw) => {
+    if (!raw || typeof raw !== "object") return [];
+    const spec = raw as Record<string, unknown>;
+    return [{ label: cleanEditorialText(spec.label), value: cleanEditorialText(spec.value), highlight: Boolean(spec.highlight) }];
+  });
+  const faq = (Array.isArray(review.faq) ? review.faq : []).flatMap((raw) => {
+    if (!raw || typeof raw !== "object") return [];
+    const item = raw as Record<string, unknown>;
+    return [{ question: cleanEditorialText(item.question), answer: cleanEditorialText(item.answer) }];
+  });
+  const pros = (Array.isArray(review.pros) ? review.pros : []).map(cleanEditorialText).filter(Boolean);
+  const cons = (Array.isArray(review.cons) ? review.cons : []).map(cleanEditorialText).filter(Boolean);
+  const compareRows = normalizeCompareRows(review.compare_table?.rows);
+  const compareColumns = normalizeCompareColumns(review.compare_table?.columns);  const compareProductReviews = compareColumns.map((column, index) =>
     index === 0 ? null : findComparisonReview(String(column || ""), allReviews, review.slug)
   );
   const competitors = compareColumns.slice(1).filter((column) => normalizeComparableText(String(column || "")) !== normalizeComparableText(review.product)).slice(0, 3);
