@@ -34,6 +34,18 @@ type MLProductDetail = {
   buy_box_winner?: MLBuyBoxWinner | null;
 };
 
+type MLItemDetail = {
+  id?: string;
+  title?: string;
+  permalink?: string;
+  price?: number;
+  sold_quantity?: number;
+  category_id?: string;
+  condition?: string;
+  seller_id?: number;
+  catalog_product_id?: string | null;
+};
+
 export type MLMatchCandidate = {
   productId: string;
   itemId: string | null;
@@ -158,7 +170,112 @@ async function requestProductDetail(productId: string, accessToken: string): Pro
   return response.json() as Promise<MLProductDetail>;
 }
 
-export async function searchMercadoLivreProduct(rawQuery: string): Promise<MLSearchResult> {
+function extractMLBItemId(value: string): string | null {
+  const normalized = String(value || "").trim();
+  if (!normalized) return null;
+
+  const patterns = [
+    /\/(MLB[-_]\d{6,})(?:[^\d]|$)/i,
+    /\b(MLB\d{6,})\b/i,
+    /\b(MLB[-_]\d{6,})\b/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern);
+    if (match?.[1]) {
+      return match[1].replace("-", "");
+    }
+  }
+
+  return null;
+}
+
+async function resolveToMLBItemId(sourceUrl: string): Promise<string | null> {
+  const direct = extractMLBItemId(sourceUrl);
+  if (direct) return direct;
+
+  const url = String(sourceUrl || "").trim();
+  if (!/^https?:\/\//i.test(url)) return null;
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      headers: {
+        Accept: "text/html,application/xhtml+xml",
+        "User-Agent": "Mozilla/5.0 (compatible; VetorBot/1.0; +https://www.vetor.blog/)",
+      },
+      cache: "no-store",
+    });
+
+    const finalUrl = response.url || "";
+    const fromFinalUrl = extractMLBItemId(finalUrl);
+    if (fromFinalUrl) return fromFinalUrl;
+
+    const body = await response.text().catch(() => "");
+    return extractMLBItemId(body);
+  } catch {
+    return null;
+  }
+}
+
+async function requestItemDetail(itemId: string, accessToken: string): Promise<MLItemDetail> {
+  const response = await fetch(
+    ML_API + "/items/" + encodeURIComponent(itemId),
+    {
+      headers: {
+        Authorization: "Bearer " + accessToken,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      "Mercado Livre item " +
+        response.status +
+        (body ? ": " + body.slice(0, 300) : "")
+    );
+  }
+
+  return response.json() as Promise<MLItemDetail>;
+}
+
+function candidateFromItem(
+  item: MLItemDetail,
+  query: string
+): MLMatchCandidate | null {
+  const itemId = String(item.id || "").trim();
+  if (!itemId) return null;
+
+  const title = String(item.title || "").trim();
+  const url =
+    String(item.permalink || "").trim() ||
+    ("https://produto.mercadolivre.com.br/" + itemId);
+
+  if (!title || !url) return null;
+
+  return {
+    productId: String(item.catalog_product_id || "").trim(),
+    itemId,
+    title,
+    url,
+    soldQuantity: Number.isFinite(Number(item.sold_quantity)) ? Number(item.sold_quantity) : 0,
+    price: Number.isFinite(Number(item.price)) ? Number(item.price) : null,
+    categoryId: item.category_id ? String(item.category_id) : null,
+    condition: item.condition ? String(item.condition) : null,
+    sellerId: item.seller_id == null ? null : Number(item.seller_id),
+    score: matchScore(query, title),
+    isBuyBoxWinner: false,
+  };
+}
+
+export async function searchMercadoLivreProduct(
+  rawQuery: string,
+  sourceUrl?: string
+): Promise<MLSearchResult> {
   const query = stableQuery(rawQuery);
   if (!query) {
     return {
@@ -172,6 +289,33 @@ export async function searchMercadoLivreProduct(rawQuery: string): Promise<MLSea
 
   try {
     const accessToken = await getValidAccessToken();
+
+    // Prioridade máxima: quando a Central já guarda um link meli.la,
+    // resolvemos o anúncio exato e consultamos /items/{ITEM_ID}.
+    if (sourceUrl) {
+      const directItemId = await resolveToMLBItemId(sourceUrl);
+      if (directItemId) {
+        const item = await requestItemDetail(directItemId, accessToken);
+        const candidate = candidateFromItem(item, query);
+
+        if (candidate) {
+          const confident =
+            candidate.score >= 0.78 ||
+            normalize(item.title || "").includes(normalize(query));
+
+          return {
+            query,
+            candidates: [candidate],
+            selected: candidate,
+            matchStatus: confident ? "matched" : "review",
+            errorMessage: confident
+              ? null
+              : "Anúncio identificado pelo link existente, mas o título tem baixa similaridade; revisão manual recomendada.",
+          };
+        }
+      }
+    }
+
     const payload = await requestProductSearch(query, accessToken);
     const rows = Array.isArray(payload.results) ? payload.results : [];
 

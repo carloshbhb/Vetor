@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   if (!supabase) return NextResponse.json({ error: "Supabase não configurado." }, { status: 500 });
 
   const [{ data: links, error: linksError }, { data: matches, error: matchesError }] = await Promise.all([
-    supabase.from("affiliate_links").select("id,name,marketplace,category,slug,status").order("name"),
+    supabase.from("affiliate_links").select("id,name,marketplace,category,slug,status,destination_url,product_url").order("name"),
     supabase.from("affiliate_link_ml_matches").select("*").order("updated_at", { ascending: false }),
   ]);
 
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
   const [{ data: links, error: linksError }, { data: matches, error: matchesError }] = await Promise.all([
     supabase
       .from("affiliate_links")
-      .select("id,name,marketplace,category,slug,status")
+      .select("id,name,marketplace,category,slug,status,destination_url,product_url")
       .order("priority", { ascending: false })
       .order("name"),
     supabase
@@ -103,11 +103,13 @@ export async function POST(request: Request) {
 
   for (const link of selected) {
     const searchQuery = String(link.name || "").trim();
-    let result = seenQuery.get(searchQuery);
+    const sourceUrl = String(link.product_url || link.destination_url || "").trim();
+    const cacheKey = searchQuery + "|" + sourceUrl;
+    let result = seenQuery.get(cacheKey);
 
     if (!result) {
-      result = await searchMercadoLivreProduct(searchQuery);
-      seenQuery.set(searchQuery, result);
+      result = await searchMercadoLivreProduct(searchQuery, sourceUrl);
+      seenQuery.set(cacheKey, result);
     }
 
     const selectedCandidate = result.selected;
