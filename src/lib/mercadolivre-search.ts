@@ -165,7 +165,10 @@ type MLItemSearchResponse = {
   }>;
 };
 
-async function requestPublicItemSearch(query: string): Promise<MLMatchCandidate[]> {
+async function requestPublicItemSearch(
+  query: string,
+  accessToken: string
+): Promise<MLMatchCandidate[]> {
   const params = new URLSearchParams({
     q: query,
     limit: "20",
@@ -488,7 +491,7 @@ export async function searchMercadoLivreProduct(
     // Último fallback: a busca pública de itens lista anúncios ativos diretamente.
     // É especialmente útil quando o catálogo não possui buy-box/children disponíveis.
     if (!candidates.length) {
-      candidates = await requestPublicItemSearch(query);
+      candidates = await requestPublicItemSearch(query, accessToken);
     }
 
     candidates = candidates
