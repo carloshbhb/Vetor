@@ -196,7 +196,8 @@ async function requestProductSearch(query: string, accessToken: string): Promise
         Accept: "application/json",
       },
       cache: "no-store",
-    }
+    },
+    "catalog search"
   );
 
   if (!response.ok) {
@@ -268,7 +269,8 @@ async function requestPublicItemSearch(
           Accept: "application/json",
         },
         cache: "no-store",
-      }
+      },
+      "public item search"
     );
 
     if (response.status === 429) {
@@ -357,7 +359,8 @@ async function requestProductDetail(productId: string, accessToken: string): Pro
         Accept: "application/json",
       },
       cache: "no-store",
-    }
+    },
+    "product detail"
   );
 
   if (!response.ok) {
@@ -468,7 +471,8 @@ async function requestItemDetail(itemId: string, accessToken: string): Promise<M
         Accept: "application/json",
       },
       cache: "no-store",
-    }
+    },
+    "item detail"
   );
 
   if (!response.ok) {
