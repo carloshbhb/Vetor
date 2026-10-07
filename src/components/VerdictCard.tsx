@@ -7,6 +7,9 @@ type VerdictCardProps = {
   score: number;
   verdictTitle: string;
   verdictText: string;
+  decisionLabel?: string;
+  bestFor?: string[];
+  notFor?: string[];
   price?: string;
   priceCheckedAt?: string;
   affiliateSlug?: string;
@@ -19,6 +22,13 @@ function formatDateBR(iso?: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function getDecisionLabel(score: number): string {
+  if (score >= 9.2) return 'Compra forte';
+  if (score >= 8.5) return 'Boa compra';
+  if (score >= 7) return 'Vale considerar';
+  return 'Compare antes de comprar';
 }
 
 function Stars({ score }: { score: number }) {
@@ -39,12 +49,19 @@ export default function VerdictCard({
   score,
   verdictTitle,
   verdictText,
+  decisionLabel,
+  bestFor = [],
+  notFor = [],
   price,
   priceCheckedAt,
   affiliateSlug,
 }: VerdictCardProps) {
+  const signal = decisionLabel || getDecisionLabel(score);
+  const positiveFit = bestFor.filter(Boolean).slice(0, 2);
+  const negativeFit = notFor.filter(Boolean).slice(0, 2);
+
   return (
-    <aside className="verdict" id="veredito" aria-label="Resumo da avaliação">
+    <aside className="verdict" id="veredito" aria-label="Resumo da avaliação e decisão de compra">
       {imageUrl && (
         <SafeImage
           src={safeImageSrc(imageUrl)}
@@ -61,8 +78,34 @@ export default function VerdictCard({
       </div>
       <Stars score={score} />
 
+      <div className="verdict-signal">
+        <span>Sinal do Vetor</span>
+        <strong>{signal}</strong>
+      </div>
+
       <h2>{verdictTitle}</h2>
       <p>{verdictText}</p>
+
+      {(positiveFit.length > 0 || negativeFit.length > 0) && (
+        <div className="verdict-fit">
+          {positiveFit.length > 0 && (
+            <div>
+              <span>Faz mais sentido para</span>
+              <ul>
+                {positiveFit.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </div>
+          )}
+          {negativeFit.length > 0 && (
+            <div>
+              <span>Talvez não seja ideal para</span>
+              <ul>
+                {negativeFit.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {price && (
         <div className="price-line">
@@ -78,9 +121,9 @@ export default function VerdictCard({
           data-aff-pos="hero"
           target="_blank"
           rel="sponsored nofollow noopener"
-          aria-label={price ? `Conferir preço atualizado de ${product}` : `Ver preço e disponibilidade de ${product}`}
+          aria-label={price ? `Conferir oferta e preço de ${product}` : `Ver preço e disponibilidade de ${product}`}
         >
-          {price ? 'Conferir preço atualizado' : 'Ver preço e disponibilidade'} →
+          {price ? 'Conferir oferta e preço' : 'Ver preço e disponibilidade'} →
         </a>
       )}
       {price && priceCheckedAt && formatDateBR(priceCheckedAt) && (
