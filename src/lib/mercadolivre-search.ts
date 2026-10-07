@@ -91,6 +91,47 @@ function tokens(value: string): string[] {
   ));
 }
 
+function compactNormalized(value: string): string {
+  return normalize(value).replace(/\s+/g, "");
+}
+
+function explicitModelMatch(query: string, title: string): boolean {
+  const nq = compactNormalized(query);
+  const nt = compactNormalized(title);
+
+  const patterns = [
+    /(?:^|[^a-z])(?:af|afn|afo)\d+[a-z0-9]*/i,
+    /(?:^|[^a-z])nitrov\d+/i,
+    /(?:^|[^a-z])v\d{2,3}(?:\d+)?/i,
+    /(?:^|[^a-z])[a-z]{2,6}\d{2,}[a-z0-9]*/i,
+  ];
+
+  return patterns.some((pattern) => {
+    const match = nq.match(pattern);
+    const signature = match?.[0]?.replace(/^[^a-z]+/i, "");
+    return Boolean(signature && signature.length >= 3 && nt.includes(signature));
+  });
+}
+
+function capacityMatches(query: string, title: string): boolean {
+  const q = normalize(query).match(/\b(\d+(?:[.,]\d+)?)\s*l\b/i);
+  if (!q?.[1]) return true;
+
+  const t = normalize(title).match(/\b(\d+(?:[.,]\d+)?)\s*l\b/i);
+  if (!t?.[1]) return false;
+
+  return Math.abs(Number(q[1].replace(",", ".")) - Number(t[1].replace(",", "."))) < 0.01;
+}
+
+function brandMatches(query: string, title: string): boolean {
+  const qTokens = tokens(query);
+  const tTokens = new Set(tokens(title));
+  const brand = qTokens.find((token) =>
+    ["acer","mondial","midea","amazon","samsung","xiaomi","jbl","sony","philco","electrolux","lg","motorola","apple","lenovo","asus","dell","hp"].includes(token)
+  );
+  return !brand || tTokens.has(brand);
+}
+
 function matchScore(query: string, title: string): number {
   const q = tokens(query);
   const t = new Set(tokens(title));
@@ -221,6 +262,43 @@ type MLItemSearchResponse = {
     catalog_product_id?: string | null;
   }>;
 };
+
+function catalogSearchVariants(query: string): string[] {
+  const variants = new Set<string>();
+  const normalized = stableQuery(query);
+  variants.add(normalized);
+
+  if (/\b5[.,]5\s*l\b/i.test(normalized) && /\bmondial\b/i.test(normalized)) {
+    variants.add("Mondial AF55I 5,5L");
+    variants.add("Mondial AF-55I 5,5L");
+  }
+
+  if (/\bnitro\s+v\s*15\b/i.test(normalized)) {
+    variants.add("Acer Nitro V15");
+    variants.add("Acer Nitro V 15");
+  }
+
+  return Array.from(variants).slice(0, 3);
+}
+
+async function requestCatalogSearchVariants(
+  query: string,
+  accessToken: string
+): Promise<MLProductSearchItem[]> {
+  const unique = new Map<string, MLProductSearchItem>();
+
+  for (const variant of catalogSearchVariants(query)) {
+    const payload = await requestProductSearch(variant, accessToken);
+    for (const item of Array.isArray(payload.results) ? payload.results : []) {
+      const id = String(item.id || "").trim();
+      if (id && !unique.has(id)) unique.set(id, item);
+    }
+  }
+
+  return Array.from(unique.values())
+    .sort((a, b) => matchScore(query, String(b.name || "")) - matchScore(query, String(a.name || "")))
+    .slice(0, 6);
+}
 
 function publicSearchVariants(query: string): string[] {
   const variants = new Set<string>();
@@ -426,7 +504,7 @@ async function findChildBuyBoxCandidate(
   accessToken: string
 ): Promise<MLMatchCandidate | null> {
   const children = Array.isArray(detail.children_ids)
-    ? detail.children_ids.filter(Boolean).slice(0, 12)
+    ? detail.children_ids.filter(Boolean).slice(0, 4)
     : [];
 
   for (const childId of children) {
@@ -572,8 +650,10 @@ export async function searchMercadoLivreProduct(
     const strongDirect = directCandidates.find((candidate) => candidate.score >= 0.62);
 
     if (strongDirect) {
+      const modelMatch = explicitModelMatch(query, strongDirect.title);
       const confident =
-        strongDirect.score >= 0.78 ||
+        strongDirect.score >= 0.84 ||
+        (modelMatch && strongDirect.score >= 0.72) ||
         normalize(strongDirect.title).includes(normalize(query));
 
       return {
@@ -587,8 +667,9 @@ export async function searchMercadoLivreProduct(
       };
     }
 
-    const payload = await requestProductSearch(query, accessToken);
-    const rows = Array.isArray(payload.results) ? payload.results : [];
+    const catalogRows = await requestCatalogSearchVariants(query, accessToken);
+
+    const rows = catalogRows;
 
     // /sites/MLB/search is returning 403 for this integration. The supported
     // Product Search API returns catalog products; their detail exposes the
@@ -699,12 +780,16 @@ export async function searchMercadoLivreProduct(
         distinctiveTokens.length
       : 0;
 
+    const modelMatch = explicitModelMatch(query, selected.title);
+    const attributeMatch = brandMatches(query, selected.title) && capacityMatches(query, selected.title);
+
     const confident =
       Boolean(selected.itemId) &&
+      attributeMatch &&
       (
         exactPhrase ||
-        selected.score >= 0.78 ||
-        (selected.score >= 0.70 && distinctiveCoverage >= 0.75)
+        selected.score >= 0.84 ||
+        (modelMatch && selected.score >= 0.72)
       );
 
     return {
