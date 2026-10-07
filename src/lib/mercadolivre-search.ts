@@ -96,21 +96,18 @@ function compactNormalized(value: string): string {
 }
 
 function explicitModelMatch(query: string, title: string): boolean {
+  // compactNormalized removes hyphens/spaces, so "AFN-40-BI" becomes
+  // "afn40bi". Match the normalized model signature directly.
   const nq = compactNormalized(query);
   const nt = compactNormalized(title);
 
-  const patterns = [
-    /(?:^|[^a-z])(?:af|afn|afo)\d+[a-z0-9]*/i,
-    /(?:^|[^a-z])nitrov\d+/i,
-    /(?:^|[^a-z])v\d{2,3}(?:\d+)?/i,
-    /(?:^|[^a-z])[a-z]{2,6}\d{2,}[a-z0-9]*/i,
-  ];
+  const signatures = [
+    nq.match(/(?:afn|afo|af)\d+[a-z0-9]*/i)?.[0],
+    nq.match(/nitrov\d+/i)?.[0],
+    nq.match(/v\d{2,3}(?:\d+)?/i)?.[0],
+  ].filter((value): value is string => Boolean(value && value.length >= 3));
 
-  return patterns.some((pattern) => {
-    const match = nq.match(pattern);
-    const signature = match?.[0]?.replace(/^[^a-z]+/i, "");
-    return Boolean(signature && signature.length >= 3 && nt.includes(signature));
-  });
+  return signatures.some((signature) => nt.includes(signature));
 }
 
 function capacityMatches(query: string, title: string): boolean {
