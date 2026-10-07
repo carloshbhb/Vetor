@@ -20,6 +20,7 @@ import BuyingEngine from "@/components/BuyingEngine";
 import EditorialEvidence from "@/components/EditorialEvidence";
 import RelatedCommercialProducts from "@/components/RelatedCommercialProducts";
 import ReviewPurchaseIntentLinks from "@/components/ReviewPurchaseIntentLinks";
+import DecisionPath from "@/components/DecisionPath";
 import { getProductLinksByReviewSlug, getReviewedProductLinksByCategory } from "@/lib/product-links";
 import { getAffiliateLinksForReview, type AffiliateLink } from "@/lib/affiliate-links";
 import { buildBuyingGuideCategories, buildBuyingIntentPages, buildMarketplaceOffers, isGuideLikeSlug, reviewScore } from "@/lib/buying";
@@ -87,14 +88,14 @@ function normalizeComparableText(value: string): string {
     .trim();
 }
 
-function findComparisonReview(column: string, reviews: Review[]): Review | null {
+function findComparisonReview(column: string, reviews: Review[], excludedSlug?: string): Review | null {
   const target = normalizeComparableText(column);
   if (!target) return null;
   const targetTokens = new Set(target.split(" ").filter((token) => token.length >= 3));
   let best: { review: Review; score: number } | null = null;
 
   for (const candidate of reviews) {
-    if (candidate.status !== "published" || isGuideLikeSlug(candidate.slug)) continue;
+    if (candidate.status !== "published" || isGuideLikeSlug(candidate.slug) || candidate.slug === excludedSlug) continue;
     const candidateText = normalizeComparableText(candidate.product);
     if (!candidateText) continue;
 
@@ -175,7 +176,8 @@ export default async function ReviewPage({ params }: PageProps) {
   const verdictLabel =
     review.verdict_label ||
     (score >= 8 ? "Fortemente Recomendado" : score >= 5 ? "Recomendado" : "Não Recomendado");
-  const verdictText = review.verdict_text || generateVerdictText(review);
+  const cleanEditorialText = (value: string) => value.replace(/bateria冠军级/gi, "bateria de nível excelente");
+  const verdictText = cleanEditorialText(review.verdict_text || generateVerdictText(review));
   const totalContentLength =
     review.sections?.reduce((acc, s) => acc + (s.content?.length || 0), 0) || 500;
   const readTime = review.meta_reading_time
@@ -236,18 +238,39 @@ export default async function ReviewPage({ params }: PageProps) {
     )
     .slice(0, 3);
 
-  const heroBars = Array.isArray(review.hero_bars) ? review.hero_bars : [];
-  const sections = Array.isArray(review.sections) ? review.sections : [];
-  const specs = Array.isArray(review.specs) ? review.specs : [];
-  const faq = Array.isArray(review.faq) ? review.faq : [];
-  const pros = Array.isArray(review.pros) ? review.pros : [];
-  const cons = Array.isArray(review.cons) ? review.cons : [];
-  const compareRows = review.compare_table?.rows ?? [];
-  const compareColumns = review.compare_table?.columns ?? [];
+  const heroBars = (Array.isArray(review.hero_bars) ? review.hero_bars : []).map((bar) => ({ ...bar, label: cleanEditorialText(bar.label) }));
+  const sections = (Array.isArray(review.sections) ? review.sections : []).map((section) => ({ ...section, heading: cleanEditorialText(section.heading), tocLabel: cleanEditorialText(section.tocLabel), content: cleanEditorialText(section.content) }));
+  const specs = (Array.isArray(review.specs) ? review.specs : []).map((spec) => ({ ...spec, label: cleanEditorialText(spec.label), value: cleanEditorialText(spec.value) }));
+  const faq = (Array.isArray(review.faq) ? review.faq : []).map((item) => ({ ...item, question: cleanEditorialText(item.question), answer: cleanEditorialText(item.answer) }));
+  const pros = (Array.isArray(review.pros) ? review.pros : []).map(cleanEditorialText);
+  const cons = (Array.isArray(review.cons) ? review.cons : []).map(cleanEditorialText);
+  const compareRows = (review.compare_table?.rows ?? []).map((row) => ({ ...row, feature: cleanEditorialText(row.feature), values: row.values.map(cleanEditorialText) }));
+  const compareColumns = (review.compare_table?.columns ?? []).map((column) => cleanEditorialText(column));
   const compareProductReviews = compareColumns.map((column, index) =>
-    index === 0 ? null : findComparisonReview(String(column || ""), allReviews)
+    index === 0 ? null : findComparisonReview(String(column || ""), allReviews, review.slug)
   );
-  const competitors = compareColumns.filter(Boolean).slice(1, 3);
+  const competitors = compareColumns.slice(1).filter((column) => normalizeComparableText(String(column || "")) !== normalizeComparableText(review.product)).slice(0, 3);
+
+  const winCounts = new Map<number, number>();
+  for (const row of compareRows) {
+    if (Number.isInteger(row.winner) && row.winner >= 0 && row.winner < row.values.length) {
+      winCounts.set(row.winner, (winCounts.get(row.winner) || 0) + 1);
+    }
+  }
+  const bestCount = Math.max(0, ...winCounts.values());
+  const computedWinnerIndex = bestCount > 0
+    ? [...winCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? -1
+    : -1;
+  const explicitWinnerIndex = Number(review.compare_table?.winnerCol);
+  const compareWinnerIndex = explicitWinnerIndex > 0 && explicitWinnerIndex < compareColumns.length
+    ? explicitWinnerIndex
+    : computedWinnerIndex >= 0
+      ? computedWinnerIndex + 1
+      : -1;
+  const compareWinnerLabel = compareWinnerIndex > 0 ? compareColumns[compareWinnerIndex] || "" : "";
+  const bestFor = pros.slice(0, 2);
+  const notFor = cons.slice(0, 2);
+  const decisionLabel = score >= 9.2 ? "Compra forte" : score >= 8.5 ? "Boa compra" : score >= 7 ? "Vale considerar" : "Compare antes de comprar";
   const updatedLong = formatDateLong(review.updated_at);
 
   // Títulos sem duplicar "vale a pena?" quando o product já contém a pergunta.
@@ -382,6 +405,9 @@ export default async function ReviewPage({ params }: PageProps) {
                 price={review.price_new}
                 priceCheckedAt={review.updated_at}
                 affiliateSlug={review.affiliate_url ? review.slug : undefined}
+                decisionLabel={decisionLabel}
+                bestFor={bestFor}
+                notFor={notFor}
               />
             </div>
           </div>
@@ -438,6 +464,32 @@ export default async function ReviewPage({ params }: PageProps) {
                     slug: article.slug,
                     title: article.title,
                   }))}
+                />
+              )}
+
+              {!isGuia && (
+                <DecisionPath
+                  product={review.product}
+                  items={[
+                    ...(relatedComparatives[0] ? [{
+                      href: `/comparativos/${relatedComparatives[0].slug}/`,
+                      label: "Comparar",
+                      title: relatedComparatives[0].title,
+                      description: "Coloque este produto lado a lado com uma alternativa relevante do mesmo cluster.",
+                    }] : []),
+                    ...(buyingIntentPages.find((item) => item.intent === "custo-beneficio") ? [{
+                      href: `/melhores/${buyingIntentPages.find((item) => item.intent === "custo-beneficio")!.categorySlug}/custo-beneficio/`,
+                      label: "Custo-benefício",
+                      title: `Ver o melhor custo-benefício em ${review.category}`,
+                      description: "Veja a seleção matemática do Vetor por nota e preço consultado.",
+                    }] : []),
+                    ...(relatedCommercial.length > 0 ? [{
+                      href: "#alternativas",
+                      label: "Alternativas",
+                      title: "Ver alternativas com oferta",
+                      description: "Compare outros produtos com review publicado e link comercial cadastrado.",
+                    }] : []),
+                  ]}
                 />
               )}
 
@@ -585,14 +637,12 @@ export default async function ReviewPage({ params }: PageProps) {
 
                 {review.affiliate_url && (
                   <a
-                    className="cta"
-                    href={`/go/${review.slug}/`}
+                    className="answer-next"
+                    href="#onde-comprar"
                     data-aff-pos="preco"
-                    target="_blank"
-                    rel="sponsored nofollow noopener"
                     style={{ maxWidth: 420, marginTop: 22 }}
                   >
-                    Conferir preço atualizado
+                    Comparar ofertas e lojas →
                   </a>
                 )}
               </section>
@@ -609,6 +659,18 @@ export default async function ReviewPage({ params }: PageProps) {
                     A tabela abaixo ajuda a comparar os pontos que mais influenciam a decisão. Dados verificados
                     no momento da análise.
                   </p>
+
+                  {compareWinnerLabel && (
+                    <div className="compare-winner" role="status">
+                      <span>Vetor escolhe</span>
+                      <strong>{compareWinnerLabel}</strong>
+                      {compareProductReviews[compareWinnerIndex] && (
+                        <Link href={`/reviews/${compareProductReviews[compareWinnerIndex]!.slug}/`}>
+                          Ler análise completa →
+                        </Link>
+                      )}
+                    </div>
+                  )}
 
                   <div className="compare-wrap">
                     <table>
@@ -707,14 +769,12 @@ export default async function ReviewPage({ params }: PageProps) {
 
                 {review.affiliate_url && (
                   <a
-                    className="cta"
-                    href={`/go/${review.slug}/`}
+                    className="answer-next"
+                    href="#onde-comprar"
                     data-aff-pos="conclusao"
-                    target="_blank"
-                    rel="sponsored nofollow noopener"
                     style={{ maxWidth: 440, marginTop: 22 }}
                   >
-                    Ver oferta e disponibilidade
+                    Voltar às ofertas e comparar antes de comprar →
                   </a>
                 )}
               </section>
