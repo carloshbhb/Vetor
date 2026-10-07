@@ -21,7 +21,7 @@ export default function RelatedCommercialProducts({
   if (items.length === 0) return null;
 
   return (
-    <section className="related-commercial" aria-labelledby="produtos-relacionados-heading">
+    <section id="alternativas" className="related-commercial" aria-labelledby="produtos-relacionados-heading">
       <div className="section-kicker">Alternativas com oferta</div>
       <h2 id="produtos-relacionados-heading">Compare outros produtos antes de comprar</h2>
       <p>
