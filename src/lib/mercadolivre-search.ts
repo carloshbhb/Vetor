@@ -1,4 +1,5 @@
 import { getValidAccessToken } from "@/lib/mercadolivre-auth";
+import { expandMercadoLivreCandidates } from "@/lib/mercadolivre-product-items";
 
 const ML_API = "https://api.mercadolibre.com";
 const SITE_ID = "MLB";
@@ -195,41 +196,28 @@ export async function searchMercadoLivreProduct(rawQuery: string): Promise<MLSea
       })
     );
 
-    const candidates = detailed
-      .map(({ row, detail }): MLMatchCandidate | null => {
-        if (!detail) return null;
+    const candidateGroups = await Promise.all(
+      detailed.map(({ row, detail }) =>
+        detail
+          ? expandMercadoLivreCandidates(
+              row,
+              detail,
+              query,
+              accessToken,
+              matchScore
+            )
+          : Promise.resolve([])
+      )
+    );
 
-        const title = String(detail.name || row.title).trim();
-        const winner = detail.buy_box_winner || null;
-        const itemId = winner?.item_id ? String(winner.item_id) : null;
-        const itemUrl = winner?.permalink ? String(winner.permalink) : "";
-        const productUrl = String(detail.permalink || row.productUrl).trim();
-        const url = itemUrl || productUrl;
-        if (!url) return null;
-
-        return {
-          productId: row.productId,
-          itemId,
-          title,
-          url,
-          soldQuantity: Number.isFinite(Number(winner?.sold_quantity ?? detail.sold_quantity))
-            ? Number(winner?.sold_quantity ?? detail.sold_quantity)
-            : 0,
-          price: Number.isFinite(Number(winner?.price)) ? Number(winner?.price) : null,
-          categoryId: winner?.category_id ? String(winner.category_id) : null,
-          condition: winner?.condition ? String(winner.condition) : null,
-          sellerId: winner?.seller_id == null ? null : Number(winner.seller_id),
-          score: matchScore(query, title),
-          isBuyBoxWinner: Boolean(winner?.item_id),
-        };
-      })
-      .filter((item): item is MLMatchCandidate => Boolean(item))
+    const candidates = candidateGroups
+      .flat()
       .sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
         if (b.soldQuantity !== a.soldQuantity) return b.soldQuantity - a.soldQuantity;
         return Number(b.isBuyBoxWinner) - Number(a.isBuyBoxWinner);
       })
-      .slice(0, 10);
+      .slice(0, 20);
 
     const eligible = candidates
       .filter((candidate) => candidate.score >= 0.62)
@@ -250,7 +238,7 @@ export async function searchMercadoLivreProduct(rawQuery: string): Promise<MLSea
         matchStatus: candidates.length ? "review" : "no_match",
         errorMessage: candidates.length
           ? "Resultados encontrados, mas a similaridade do produto ficou baixa."
-          : "Nenhum produto ativo encontrado.",
+          : "Nenhum produto ativo encontrado ou nenhum anúncio foi retornado para os produtos candidatos.",
       };
     }
 
@@ -276,7 +264,7 @@ export async function searchMercadoLivreProduct(rawQuery: string): Promise<MLSea
         ? null
         : selected.itemId
           ? "Há ambiguidade entre produtos semelhantes; revisão manual recomendada."
-          : "Produto de catálogo encontrado, mas o Mercado Livre não retornou um anúncio vencedor para confirmar automaticamente.",
+          : "Produto de catálogo encontrado, mas o Mercado Livre não retornou um anúncio vencedor; os anúncios associados foram usados como fallback.",
     };
   } catch (error) {
     return {
