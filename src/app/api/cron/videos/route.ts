@@ -4,10 +4,16 @@ import { getAllReviews, getAllViralArticles } from '@/lib/supabase';
 import { generateVideoScript } from '@/lib/script-generator';
 import { createClient } from '@supabase/supabase-js';
 
-const SERVICE_SUPABASE = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-);
+function getServiceSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+  if (!supabaseUrl || !serviceKey) {
+    throw new Error('Supabase server configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY).');
+  }
+
+  return createClient(supabaseUrl, serviceKey);
+}
 
 interface VideoJobResult {
   type: string;
@@ -28,7 +34,7 @@ async function createVideoQueueEntry(data: {
   script_hook: string;
   script_text: string;
 }): Promise<string | null> {
-  const { data: result, error } = await SERVICE_SUPABASE
+  const { data: result, error } = await getServiceSupabase()
     .from('video_queue')
     .insert({
       product_url: data.product_url,
