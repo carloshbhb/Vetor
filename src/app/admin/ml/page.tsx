@@ -33,6 +33,19 @@ type StatusResponse = {
   matches: Match[];
 };
 
+type BatchResult = {
+  id: string;
+  slug?: string | null;
+  name: string;
+  ok: boolean;
+  matchStatus: Match["match_status"];
+  matchedTitle: string | null;
+  matchedUrl: string | null;
+  soldQuantity: number | null;
+  score: number | null;
+  error: string | null;
+};
+
 function formatDate(value: string | null) {
   if (!value) return "—";
   const date = new Date(value);
@@ -66,6 +79,7 @@ export default function MercadoLivreAdminPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [copied, setCopied] = useState("");
+  const [lastBatch, setLastBatch] = useState<BatchResult[]>([]);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -111,6 +125,7 @@ export default function MercadoLivreAdminPage() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Falha ao pesquisar no Mercado Livre.");
+      setLastBatch(Array.isArray(payload.results) ? payload.results : []);
       setNotice(
         payload.processed
           ? payload.processed + " link(s) pesquisado(s)."
@@ -139,6 +154,9 @@ export default function MercadoLivreAdminPage() {
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || "Falha durante a busca.");
         completed += Number(payload.processed || 0);
+        if (Array.isArray(payload.results) && payload.results.length) {
+          setLastBatch((current) => [...current, ...payload.results].slice(-8));
+        }
         if (!payload.processed) break;
         setNotice(completed + " links pesquisados nesta execução...");
       }
@@ -289,6 +307,75 @@ export default function MercadoLivreAdminPage() {
           </select>
         </div>
       </div>
+
+      {lastBatch.length > 0 && (
+        <div className="bg-[var(--surface)] border border-[var(--amber)]/30 rounded-xl p-5 mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--amber)] font-bold">Validação da última execução</p>
+              <h2 className="font-heading font-bold mt-1">O que o Mercado Livre realmente retornou</h2>
+              <p className="text-xs text-[var(--muted)] mt-1">
+                Este diagnóstico vem da própria resposta da busca e não depende de permissões de leitura pública do Supabase.
+              </p>
+            </div>
+            <div className="text-xs text-[var(--muted)]">
+              {lastBatch.filter((item) => item.matchStatus === "matched").length} confiáveis ·{" "}
+              {lastBatch.filter((item) => item.matchStatus === "review").length} revisão ·{" "}
+              {lastBatch.filter((item) => item.matchStatus === "no_match").length} sem resultado ·{" "}
+              {lastBatch.filter((item) => item.matchStatus === "error").length} erros
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {lastBatch.map((item) => (
+              <div key={item.id} className="rounded-xl border border-border bg-[var(--surface2)] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-[0.12em] text-[var(--muted)]">Produto pesquisado</p>
+                    <p className="font-heading font-bold mt-1">{item.name}</p>
+                  </div>
+                  <span className={"inline-flex rounded-full border px-2 py-1 text-[10px] font-bold " + statusClass(item.matchStatus)}>
+                    {statusLabel(item.matchStatus)}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 mt-4">
+                  <div>
+                    <p className="text-xs text-[var(--muted)]">Anúncio selecionado</p>
+                    <p className="text-sm font-medium mt-1">{item.matchedTitle || "Nenhum candidato selecionado"}</p>
+                    {item.matchedUrl && (
+                      <a
+                        href={item.matchedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block text-xs text-[var(--amber)] hover:underline mt-1"
+                      >
+                        Abrir anúncio ↗
+                      </a>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-[var(--muted)]">Score</p>
+                    <p className="text-lg font-display mt-1">{item.score == null ? "—" : item.score.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-[var(--muted)]">Vendas</p>
+                    <p className="text-lg font-display mt-1">
+                      {item.soldQuantity == null ? "—" : item.soldQuantity.toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                </div>
+
+                {item.error && (
+                  <div className="mt-3 rounded-lg border border-[var(--red)]/20 bg-[var(--red)]/5 px-3 py-2 text-xs text-[var(--red)]">
+                    {item.error}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-[var(--surface)] border border-border rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
