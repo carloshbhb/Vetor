@@ -23,24 +23,15 @@ export default async function MonetizationPage() {
 
   return (
     <div>
-      <div className="mb-7">
-        <p className="text-xs uppercase tracking-[0.2em] text-[var(--amber)] font-bold">
-          Stage 9 · Conversão
-        </p>
-        <h1 className="font-display text-3xl mt-1">Monetização</h1>
-        <p className="text-sm text-[var(--muted)] mt-2 max-w-3xl">
-          Painel operacional para identificar produtos e páginas que levam leitores aos links de afiliado.
-          Cliques são sinais de intenção comercial; compras e comissões continuam dependentes do marketplace.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold">
-            {data.analyticsConfigured ? "GA4 configurado" : "GA4 aguardando Measurement ID"}
-          </span>
-          <span className="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold">
-            {freshness.neverChecked} nunca conferidos · {freshness.stale} vencidos
-          </span>
+      <header className="mb-7 rounded-2xl border border-border bg-[var(--surface)] p-6 lg:p-7 shadow-sm">
+        <span className="inline-flex rounded-full bg-[var(--amber-bg)] px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[var(--amber)]">Conversão</span>
+        <h1 className="mt-3 font-display text-3xl font-black tracking-tight lg:text-4xl">Monetização</h1>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">Identifique produtos, páginas e campanhas que geram cliques nos links de afiliado. Cliques indicam intenção comercial; compras e comissões continuam sendo confirmadas pelo marketplace.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="inline-flex items-center rounded-full border border-border bg-[var(--surface2)] px-3 py-1.5 text-xs font-semibold">{data.analyticsConfigured ? "GA4 configurado" : "GA4 aguardando Measurement ID"}</span>
+          <span className="inline-flex items-center rounded-full border border-border bg-[var(--surface2)] px-3 py-1.5 text-xs font-semibold">{freshness.neverChecked} nunca conferidos · {freshness.stale} vencidos</span>
         </div>
-      </div>
+      </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-7">
         {[
@@ -50,7 +41,7 @@ export default async function MonetizationPage() {
           ["Cliques últimos 30 dias", data.periodClicks],
           ["Precisam conferência", freshness.needsCheck],
         ].map(([label, value]) => (
-          <div key={String(label)} className="bg-[var(--surface)] border border-border rounded-xl p-5">
+          <div key={String(label)} className="bg-[var(--surface)] border border-border rounded-2xl p-5 shadow-sm">
             <p className="text-xs text-[var(--muted)]">{label}</p>
             <p className="text-2xl font-display text-[var(--amber)] mt-1">{value}</p>
           </div>

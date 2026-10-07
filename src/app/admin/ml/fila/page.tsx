@@ -124,13 +124,12 @@ export default function MercadoLivreAffiliateQueuePage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <p className="text-xs uppercase tracking-[0.2em] text-[var(--amber)] font-bold">Operação comercial</p>
-        <h1 className="font-display text-3xl mt-1">Fila de geração de links</h1>
-        <p className="text-sm text-[var(--muted)] mt-2 max-w-4xl">
-          Cada linha traz o anúncio encontrado no Mercado Livre e o campo para registrar o link oficial gerado pelo Portal de Afiliados.
-        </p>
-      </div>
+      <header className="mb-7 rounded-2xl border border-border bg-[var(--surface)] p-6 lg:p-7 shadow-sm">
+        <span className="inline-flex rounded-full bg-[var(--amber-bg)] px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[var(--amber)]">Operação comercial</span>
+        <h1 className="mt-3 font-display text-3xl font-black tracking-tight lg:text-4xl">Fila de geração de links</h1>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">Converta os anúncios aprovados em links oficiais de afiliado. O destino só é aplicado à Central quando você marcar o item como aplicado.</p>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--muted)]"><a href="/admin/ml" className="rounded-full border border-border bg-[var(--surface2)] px-3 py-1.5">← Voltar à pesquisa</a><span className="rounded-full border border-border bg-[var(--surface2)] px-3 py-1.5">Cole → valide → aplique</span></div>
+      </header>
 
       {error && <div className="mb-4 rounded-xl border border-[var(--red)]/30 bg-[var(--red)]/5 text-[var(--red)] px-4 py-3 text-sm">{error}</div>}
       {notice && <div className="mb-4 rounded-xl border border-[var(--green)]/30 bg-[var(--green)]/5 text-[var(--green)] px-4 py-3 text-sm">{notice}</div>}
@@ -142,14 +141,14 @@ export default function MercadoLivreAffiliateQueuePage() {
           ["Aplicados", counts.applied || 0],
           ["Ignorados", counts.skipped || 0],
         ].map(([label, value]) => (
-          <div key={String(label)} className="bg-[var(--surface)] border border-border rounded-xl p-4">
+          <div key={String(label)} className="bg-[var(--surface)] border border-border rounded-2xl p-5 shadow-sm">
             <p className="text-xs text-[var(--muted)]">{label}</p>
             <p className="text-2xl font-display text-[var(--amber)] mt-1">{value}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-[var(--surface)] border border-border rounded-xl p-4 mb-6">
+      <div className="bg-[var(--surface)] border border-border rounded-2xl p-5 shadow-sm mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Produto, título ou item ID..." className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--amber)]" />
           <select value={status} onChange={(e) => setStatus(e.target.value)} className="bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm">
