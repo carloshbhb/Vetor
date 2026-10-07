@@ -31,6 +31,7 @@ type MLProductDetail = {
   permalink?: string;
   sold_quantity?: number;
   domain_id?: string;
+  children_ids?: string[];
   buy_box_winner?: MLBuyBoxWinner | null;
 };
 
@@ -219,6 +220,48 @@ async function resolveToMLBItemId(sourceUrl: string): Promise<string | null> {
   }
 }
 
+async function findChildBuyBoxCandidate(
+  detail: MLProductDetail,
+  query: string,
+  accessToken: string
+): Promise<MLMatchCandidate | null> {
+  const children = Array.isArray(detail.children_ids)
+    ? detail.children_ids.filter(Boolean).slice(0, 12)
+    : [];
+
+  for (const childId of children) {
+    try {
+      const child = await requestProductDetail(childId, accessToken);
+      const winner = child.buy_box_winner;
+      if (!winner?.item_id) continue;
+
+      const title = String(child.name || detail.name || "").trim();
+      const url = String(winner.permalink || child.permalink || "").trim();
+      if (!title || !url) continue;
+
+      return {
+        productId: String(child.id || childId).trim(),
+        itemId: String(winner.item_id),
+        title,
+        url,
+        soldQuantity: Number.isFinite(Number(winner.sold_quantity ?? child.sold_quantity))
+          ? Number(winner.sold_quantity ?? child.sold_quantity)
+          : 0,
+        price: Number.isFinite(Number(winner.price)) ? Number(winner.price) : null,
+        categoryId: winner.category_id ? String(winner.category_id) : null,
+        condition: winner.condition ? String(winner.condition) : null,
+        sellerId: winner.seller_id == null ? null : Number(winner.seller_id),
+        score: matchScore(query, title),
+        isBuyBoxWinner: true,
+      };
+    } catch {
+      // Tenta o próximo produto filho.
+    }
+  }
+
+  return null;
+}
+
 async function requestItemDetail(itemId: string, accessToken: string): Promise<MLItemDetail> {
   const response = await fetch(
     ML_API + "/items/" + encodeURIComponent(itemId),
@@ -295,23 +338,27 @@ export async function searchMercadoLivreProduct(
     if (sourceUrl) {
       const directItemId = await resolveToMLBItemId(sourceUrl);
       if (directItemId) {
-        const item = await requestItemDetail(directItemId, accessToken);
-        const candidate = candidateFromItem(item, query);
+        try {
+          const item = await requestItemDetail(directItemId, accessToken);
+          const candidate = candidateFromItem(item, query);
 
-        if (candidate) {
-          const confident =
-            candidate.score >= 0.78 ||
-            normalize(item.title || "").includes(normalize(query));
+          if (candidate) {
+            const confident =
+              candidate.score >= 0.78 ||
+              normalize(item.title || "").includes(normalize(query));
 
-          return {
-            query,
-            candidates: [candidate],
-            selected: candidate,
-            matchStatus: confident ? "matched" : "review",
-            errorMessage: confident
-              ? null
-              : "Anúncio identificado pelo link existente, mas o título tem baixa similaridade; revisão manual recomendada.",
-          };
+            return {
+              query,
+              candidates: [candidate],
+              selected: candidate,
+              matchStatus: confident ? "matched" : "review",
+              errorMessage: confident
+                ? null
+                : "Anúncio identificado pelo link existente, mas o título tem baixa similaridade; revisão manual recomendada.",
+            };
+          }
+        } catch {
+          // Link curto pode apontar para anúncio encerrado; use a busca atual.
         }
       }
     }
@@ -341,17 +388,35 @@ export async function searchMercadoLivreProduct(
     );
 
     const candidateGroups = await Promise.all(
-      detailed.map(({ row, detail }) =>
-        detail
-          ? expandMercadoLivreCandidates(
-              row,
-              detail,
-              query,
-              accessToken,
-              matchScore
-            )
-          : Promise.resolve([])
-      )
+      detailed.map(async ({ row, detail }) => {
+        if (!detail) return [];
+
+        if (detail.buy_box_winner?.item_id) {
+          return expandMercadoLivreCandidates(
+            row,
+            detail,
+            query,
+            accessToken,
+            matchScore
+          );
+        }
+
+        const childWinner = await findChildBuyBoxCandidate(
+          detail,
+          query,
+          accessToken
+        );
+
+        if (childWinner) return [childWinner];
+
+        return expandMercadoLivreCandidates(
+          row,
+          detail,
+          query,
+          accessToken,
+          matchScore
+        );
+      })
     );
 
     const candidates = candidateGroups
@@ -382,7 +447,7 @@ export async function searchMercadoLivreProduct(
         matchStatus: candidates.length ? "review" : "no_match",
         errorMessage: candidates.length
           ? "Resultados encontrados, mas a similaridade do produto ficou baixa."
-          : "Nenhum produto ativo encontrado ou nenhum anúncio foi retornado para os produtos candidatos.",
+          : "Nenhum anúncio atual foi encontrado: o link existente pode estar expirado e o catálogo consultado não apresentou vencedor ou publicação associada.",
       };
     }
 
