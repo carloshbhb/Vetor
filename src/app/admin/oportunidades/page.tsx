@@ -341,17 +341,17 @@ export default function OpportunitiesPage() {
           O painel de oportunidades foi carregado, mas o histórico de ações não sincronizou: {historySyncError}
         </div>
       )}
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--amber)] font-bold">
+      <div className="flex flex-col gap-4 mb-8 rounded-2xl border border-border bg-[var(--surface)] p-5 shadow-sm sm:p-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-[0.2em] font-black text-[#956400]">
             Fase 11
           </p>
-          <h1 className="font-display text-3xl mt-1">Oportunidades SEO</h1>
-          <p className="text-sm text-[var(--muted)] mt-2">
+          <h1 className="mt-1 font-display text-3xl font-black leading-tight text-[#101722] sm:text-4xl">Oportunidades SEO</h1>
+          <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-[#3f4b59]">
             Search Console + inventário editorial + intenção comercial.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="text-xs text-[var(--muted)]">
             Período: {data.period.startDate} → {data.period.endDate}
           </div>
@@ -359,7 +359,7 @@ export default function OpportunitiesPage() {
             type="button"
             onClick={refreshDashboard}
             disabled={refreshing}
-            className="px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-[var(--surface2)] disabled:opacity-50"
+            className="min-h-[42px] rounded-lg border border-[#c9d1da] bg-white px-4 py-2 text-xs font-extrabold text-[#101722] shadow-sm hover:bg-[#f5f7f9] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#5f8dff]"
           >
             {refreshing ? "Atualizando..." : "Atualizar dados"}
           </button>
