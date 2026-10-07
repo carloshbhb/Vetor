@@ -18,6 +18,34 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'images.unsplash.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'images3.kabum.com.br',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.tupi.com.py',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.tmt.my',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.tcdn.com.br',
+      },
+      {
+        protocol: 'https',
+        hostname: 'xiaomistoreph.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'bfasset.costco-static.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'resources.claroshop.com',
+      },
     ],
   },
   async headers() {
@@ -47,8 +75,6 @@ const nextConfig: NextConfig = {
         destination: '/como-avaliamos/',
         permanent: true,
       },
-      // Compatibilidade SEO: URLs antigas de sitemap/feed ainda cadastradas no GSC.
-      // Mantemos um único destino canônico sem deixar endpoints legados em 404.
       {
         source: '/sitemap',
         destination: '/sitemap.xml',
@@ -64,7 +90,6 @@ const nextConfig: NextConfig = {
         destination: '/feed.xml',
         permanent: true,
       },
-      // P0 SEO: consolidar aliases antigos que ainda recebem impressões.
       {
         source: '/review/echo-dot-5',
         destination: '/reviews/echo-dot-5-geracao/',
@@ -150,13 +175,11 @@ const nextConfig: NextConfig = {
         destination: '/reviews/:slug/',
         permanent: true,
       },
-      // P0 SEO: recuperar hubs legados de categoria que ainda recebem impressões.
       {
         source: '/categoria/:category/',
         destination: '/reviews/categoria/:category/',
         permanent: true,
       },
-      // P0-10: reviews-spam de scraping (title-lixo) → índice de categorias
       {
         source: '/reviews/20-mais-vendidor-669r-4965225-offfrete-grtis-micro-ondas-mondial-21l-1200w-mo-01-21-e-espelhado',
         destination: '/reviews/',
@@ -167,7 +190,6 @@ const nextConfig: NextConfig = {
         destination: '/reviews/',
         permanent: true,
       },
-      // P1-8: drafts finos do MESMO produto de review publicada → canibalização evitada
       {
         source: '/reviews/airpods-pro-2',
         destination: '/reviews/airpods-pro-2-review-2026/',

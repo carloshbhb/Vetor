@@ -4,6 +4,13 @@ const ALLOWED_IMAGE_HOSTS = new Set([
   'http2.mlstatic.com',
   'www.vetor.blog',
   'images.unsplash.com',
+  'images3.kabum.com.br',
+  'www.tupi.com.py',
+  'www.tmt.my',
+  'images.tcdn.com.br',
+  'xiaomistoreph.com',
+  'bfasset.costco-static.com',
+  'resources.claroshop.com',
 ]);
 
 export const IMAGE_PLACEHOLDER = '/images/placeholder.svg';
