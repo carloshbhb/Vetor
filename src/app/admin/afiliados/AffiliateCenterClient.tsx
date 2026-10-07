@@ -289,8 +289,8 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
               <span className="rounded-full border border-[var(--amber)]/25 bg-[var(--amber)]/10 px-2.5 py-1 font-bold uppercase tracking-[0.14em] text-[var(--amber)]">Comercial</span>
               <span className="rounded-full border border-border bg-[var(--surface)] px-2.5 py-1 text-[var(--muted)]">Fonte única: public.affiliate_links</span>
             </div>
-            <h1 className="font-display mt-3 text-4xl sm:text-5xl">Links de afiliado</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted)]">
+            <h1 className="font-display mt-3 text-4xl font-black leading-tight text-[#101722] sm:text-5xl">Links de afiliado</h1>
+            <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-[#3f4b59]">
               Um único lugar para trocar destinos comerciais, acompanhar saúde e editar ofertas sem alterar os artigos publicados.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
