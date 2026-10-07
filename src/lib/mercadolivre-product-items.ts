@@ -48,6 +48,23 @@ async function requestProductItems(productId: string, accessToken: string): Prom
     }
   );
 
+  if (response.status === 404) {
+    const body = await response.text().catch(() => "");
+    const normalized = body.toLowerCase();
+
+    // O Mercado Livre usa 404 "No winners found" quando o produto
+    // não possui publicação concorrente disponível nesse momento.
+    // Isso é ausência de candidatos, não falha da integração.
+    if (normalized.includes("no winners found")) {
+      return { results: [] };
+    }
+
+    throw new Error(
+      "Mercado Livre product items 404" +
+        (body ? ": " + body.slice(0, 400) : "")
+    );
+  }
+
   if (!response.ok) {
     const body = await response.text().catch(() => "");
     throw new Error(
@@ -125,8 +142,6 @@ export async function expandMercadoLivreCandidates(
       })
       .filter((item): item is MLMatchCandidate => Boolean(item));
   } catch (error) {
-    // Nunca transformar falha de API em "zero candidatos":
-    // o chamador precisa distinguir erro de integração de ausência de anúncios.
     throw error instanceof Error
       ? error
       : new Error("Falha ao consultar anúncios associados do Mercado Livre.");
