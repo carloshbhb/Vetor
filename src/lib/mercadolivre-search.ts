@@ -151,6 +151,70 @@ async function requestProductSearch(query: string, accessToken: string): Promise
   return response.json() as Promise<MLProductSearchResponse>;
 }
 
+type MLItemSearchResponse = {
+  results?: Array<{
+    id?: string;
+    title?: string;
+    permalink?: string;
+    price?: number;
+    sold_quantity?: number;
+    category_id?: string;
+    condition?: string;
+    seller?: { id?: number };
+    catalog_product_id?: string | null;
+  }>;
+};
+
+async function requestPublicItemSearch(query: string): Promise<MLMatchCandidate[]> {
+  const params = new URLSearchParams({
+    q: query,
+    limit: "20",
+    sort: "relevance",
+  });
+
+  try {
+    const response = await fetch(
+      ML_API + "/sites/" + SITE_ID + "/search?" + params.toString(),
+      {
+        headers: {
+          Accept: "application/json",
+        },
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) return [];
+
+    const payload = (await response.json()) as MLItemSearchResponse;
+    return (Array.isArray(payload.results) ? payload.results : [])
+      .map((item): MLMatchCandidate | null => {
+        const itemId = String(item.id || "").trim();
+        const title = String(item.title || "").trim();
+        if (!itemId || !title) return null;
+
+        return {
+          productId: String(item.catalog_product_id || "").trim(),
+          itemId,
+          title,
+          url: String(item.permalink || "").trim() ||
+            ("https://produto.mercadolivre.com.br/" + itemId),
+          soldQuantity: Number.isFinite(Number(item.sold_quantity))
+            ? Number(item.sold_quantity)
+            : 0,
+          price: Number.isFinite(Number(item.price)) ? Number(item.price) : null,
+          categoryId: item.category_id ? String(item.category_id) : null,
+          condition: item.condition ? String(item.condition) : null,
+          sellerId: item.seller?.id == null ? null : Number(item.seller.id),
+          score: matchScore(query, title),
+          isBuyBoxWinner: false,
+        };
+      })
+      .filter((item): item is MLMatchCandidate => Boolean(item));
+  } catch {
+    return [];
+  }
+}
+
 async function requestProductDetail(productId: string, accessToken: string): Promise<MLProductDetail> {
   const response = await fetch(
     ML_API + "/products/" + encodeURIComponent(productId),
@@ -419,25 +483,28 @@ export async function searchMercadoLivreProduct(
       })
     );
 
-    const candidates = candidateGroups
-      .flat()
+    let candidates = candidateGroups.flat();
+
+    // Último fallback: a busca pública de itens lista anúncios ativos diretamente.
+    // É especialmente útil quando o catálogo não possui buy-box/children disponíveis.
+    if (!candidates.length) {
+      candidates = await requestPublicItemSearch(query);
+    }
+
+    candidates = candidates
       .sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
-        if (b.soldQuantity !== a.soldQuantity) return b.soldQuantity - a.soldQuantity;
-        return Number(b.isBuyBoxWinner) - Number(a.isBuyBoxWinner);
-      })
-      .slice(0, 20);
-
-    const eligible = candidates
-      .filter((candidate) => candidate.score >= 0.62)
-      .sort((a, b) => {
-        if (b.soldQuantity !== a.soldQuantity) return b.soldQuantity - a.soldQuantity;
         if (Number(b.isBuyBoxWinner) !== Number(a.isBuyBoxWinner)) {
           return Number(b.isBuyBoxWinner) - Number(a.isBuyBoxWinner);
         }
-        return b.score - a.score;
-      });
+        if ((a.price ?? Number.POSITIVE_INFINITY) !== (b.price ?? Number.POSITIVE_INFINITY)) {
+          return (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY);
+        }
+        return b.soldQuantity - a.soldQuantity;
+      })
+      .slice(0, 20);
 
+    const eligible = candidates.filter((candidate) => candidate.score >= 0.62);
     const selected = eligible[0] || null;
     if (!selected) {
       return {
@@ -451,18 +518,34 @@ export async function searchMercadoLivreProduct(
       };
     }
 
-    const second = eligible[1];
-    const closeAlternative =
-      second &&
-      Math.abs(second.soldQuantity - selected.soldQuantity) <
-        Math.max(10, selected.soldQuantity * 0.10);
+    const normalizedQuery = normalize(query);
+    const normalizedTitle = normalize(selected.title);
+    const exactPhrase = normalizedTitle.includes(normalizedQuery);
 
-    // A catalog product without a buy-box item is useful as a lead, but is not
-    // enough to call an individual marketplace ad "confiável".
+    const queryTokens = tokens(query);
+    const distinctiveTokens = queryTokens.filter(
+      (token) =>
+        token.length >= 3 &&
+        !new Set([
+          "air", "fryer", "forno", "fritadeira", "amazon", "alexa",
+          "echo", "family", "smart", "plus", "com", "som", "inteligente",
+          "preto", "preta", "branco", "branca"
+        ]).has(token)
+    );
+
+    const titleTokens = new Set(tokens(selected.title));
+    const distinctiveCoverage = distinctiveTokens.length
+      ? distinctiveTokens.filter((token) => titleTokens.has(token)).length /
+        distinctiveTokens.length
+      : 0;
+
     const confident =
-      selected.score >= 0.78 &&
       Boolean(selected.itemId) &&
-      !closeAlternative;
+      (
+        exactPhrase ||
+        selected.score >= 0.78 ||
+        (selected.score >= 0.70 && distinctiveCoverage >= 0.75)
+      );
 
     return {
       query,
@@ -471,9 +554,7 @@ export async function searchMercadoLivreProduct(
       matchStatus: confident ? "matched" : "review",
       errorMessage: confident
         ? null
-        : selected.itemId
-          ? "Há ambiguidade entre produtos semelhantes; revisão manual recomendada."
-          : "Produto de catálogo encontrado, mas o Mercado Livre não retornou um anúncio vencedor; os anúncios associados foram usados como fallback.",
+        : "Há correspondência relevante, mas a similaridade ainda não é suficiente para validação automática.",
     };
   } catch (error) {
     return {
