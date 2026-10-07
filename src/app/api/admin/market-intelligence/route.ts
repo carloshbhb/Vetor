@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       const snapshots = rows.map((row) => {
         const id = idByKeyword.get(row.keyword); const item = intelligence.opportunities.find((x) => x.keyword === row.keyword);
         return id && item ? { keyword_id: id, snapshot_date: today, source: "market_intelligence", demand_score: item.demandScore, trend_score: item.trendScore, commercial_score: item.commercialScore, competition_score: item.competitionScore, vetor_fit_score: item.vetorFitScore, opportunity_score: item.opportunityScore, impressions: item.impressions, clicks: item.clicks, position: item.position, metadata: { sources: item.sources } } : null;
-      }).filter(Boolean);
+      }).filter((snapshot): snapshot is NonNullable<typeof snapshot> => snapshot !== null);
       if (snapshots.length) {
         const { error: snapshotError } = await supabase.from("seo_keyword_snapshots").upsert(snapshots, { onConflict: "keyword_id,snapshot_date,source" });
         if (snapshotError) throw new Error(snapshotError.message);

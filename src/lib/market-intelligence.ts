@@ -156,11 +156,12 @@ export async function collectMarketIntelligence() {
     const trend = item.trendScore || 10;
     const fit = routeFor(item.keyword, reviews) ? 100 : /\b(air fryer|smartband|fone|celular|notebook|tv|televisao|jbl|samsung|xiaomi|motorola|apple|sony|mondial|philips|electrolux|lg)\b/i.test(item.keyword) ? 82 : 35;
     const opportunity = clamp(demand * 0.28 + trend * 0.22 + commercial * 0.22 + (100 - competition) * 0.10 + fit * 0.18);
+    const trendDirection: KeywordOpportunity["trendDirection"] = trend >= 55 ? "rising" : "stable";
     return {
       keyword: item.keyword, intent: intentFor(item.keyword), source: Array.from(item.sources).join(","),
       demandScore: Number(demand.toFixed(1)), trendScore: Number(trend.toFixed(1)), commercialScore: commercial,
       competitionScore: competition, vetorFitScore: fit, opportunityScore: Number(opportunity.toFixed(1)),
-      trendDirection: trend >= 55 ? "rising" : "stable", impressions: Math.round(item.impressions), clicks: Math.round(item.clicks),
+      trendDirection, impressions: Math.round(item.impressions), clicks: Math.round(item.clicks),
       ctr: item.impressions ? Number(((item.clicks / item.impressions) * 100).toFixed(2)) : 0,
       position: position === null ? null : Number(position.toFixed(1)), suggestedRoute: routeFor(item.keyword, reviews),
       sources: Array.from(item.sources),
