@@ -762,3 +762,57 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
 .cta:focus-visible { outline: 3px solid #17212d; outline-offset: 3px; }
 .buying-choice--featured .cta--primary-buy, .verdict .cta--primary-buy { box-shadow: 0 8px 20px rgba(16, 23, 34, .12); }
 @media (max-width: 720px) { .answer .cta--primary-buy, .verdict .cta--primary-buy { width: 100%; } }
+
+/* Waves 1–3 — decisão, conversão e Product Graph. */
+.verdict-signal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 16px;
+  padding: 10px 12px;
+  background: #f7f9fb;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.verdict-signal span { color: var(--muted); font-size: .73rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.verdict-signal strong { font-size: .85rem; }
+.verdict-fit { display: grid; gap: 10px; margin: 0 0 14px; }
+.verdict-fit > div { padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fbfcfd; }
+.verdict-fit span { display: block; margin-bottom: 6px; color: var(--muted); font-size: .7rem; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
+.verdict-fit ul { margin: 0; padding-left: 18px; }
+.verdict-fit li { margin: 3px 0; color: #354150; font-size: .8rem; line-height: 1.45; }
+.answer-next { display: inline-flex; align-items: center; min-height: 44px; color: #17212d; font-weight: 900; font-size: .82rem; text-decoration: none; border: 1px solid var(--line); border-radius: 12px; padding: 10px 13px; background: #fff; }
+.answer-next:hover { border-color: #bcc6d0; }
+.answer-next:focus-visible { outline: 3px solid #17212d; outline-offset: 3px; }
+.buying-engine-signal { display: grid; grid-template-columns: auto auto 1fr; gap: 10px 14px; align-items: center; margin-top: 18px; padding: 13px 15px; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+.buying-engine-signal span { color: var(--muted); font-size: .73rem; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
+.buying-engine-signal strong { font-size: 1.08rem; }
+.buying-engine-signal small { color: var(--muted); font-size: .73rem; }
+.buying-offer { position: relative; }
+.buying-offer--best { border-color: #d8c300; box-shadow: 0 10px 26px rgba(16,23,34,.06); }
+.buying-offer-badge { display: inline-flex; margin-bottom: 10px; padding: 5px 8px; border-radius: 999px; background: #fff8c5; color: #5b4d00; font-size: .67rem; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+.decision-path { margin-top: 42px; padding: 24px; background: #101722; color: #fff; border-radius: 20px; }
+.decision-path .section-kicker { color: #c9d2db; }
+.decision-path h2 { margin: 7px 0 7px; font-size: clamp(1.45rem, 3vw, 2rem); line-height: 1.08; letter-spacing: -.03em; }
+.decision-path > p { margin: 0 0 18px; color: #bdc7d2; max-width: 72ch; font-size: .88rem; }
+.decision-path-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.decision-path-card { display: grid; gap: 7px; min-height: 170px; padding: 17px; background: #fff; color: #17212d; border-radius: 15px; text-decoration: none; border: 1px solid rgba(255,255,255,.1); transition: .18s ease; }
+.decision-path-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0,0,0,.18); }
+.decision-path-card span { width: fit-content; padding: 5px 8px; border-radius: 999px; background: #f0f3f6; color: #52606e; font-size: .67rem; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
+.decision-path-card strong { font-size: 1rem; line-height: 1.18; }
+.decision-path-card small { color: var(--muted); font-size: .75rem; line-height: 1.5; }
+.decision-path-card b { margin-top: auto; font-size: .78rem; }
+.compare-winner { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 18px 0; padding: 14px 15px; border: 1px solid #d8c300; border-radius: 14px; background: #fffdf0; }
+.compare-winner span { color: #6a5d00; font-size: .7rem; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
+.compare-winner strong { font-size: .98rem; }
+.compare-winner a { margin-left: auto; color: #17212d; font-size: .78rem; font-weight: 900; text-decoration: none; }
+@media (max-width: 720px) {
+  .verdict-signal { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .buying-engine-signal { grid-template-columns: 1fr; gap: 3px; }
+  .decision-path { padding: 20px; }
+  .decision-path-grid { grid-template-columns: 1fr; }
+  .decision-path-card { min-height: 0; }
+  .compare-winner { align-items: flex-start; flex-direction: column; }
+  .compare-winner a { margin-left: 0; }
+}
