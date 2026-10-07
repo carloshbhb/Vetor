@@ -95,22 +95,31 @@ function compactNormalized(value: string): string {
   return normalize(value).replace(/\s+/g, "");
 }
 
-function explicitModelMatch(query: string, title: string): boolean {
-  const nq = compactNormalized(query);
-  const nt = compactNormalized(title);
+function extractModelSignatures(value: string): string[] {
+  const normalized = normalize(value);
+  const signatures = new Set<string>();
 
   const patterns = [
-    /(?:^|[^a-z])(?:af|afn|afo)\d+[a-z0-9]*/i,
-    /(?:^|[^a-z])nitrov\d+/i,
-    /(?:^|[^a-z])v\d{2,3}(?:\d+)?/i,
-    /(?:^|[^a-z])[a-z]{2,6}\d{2,}[a-z0-9]*/i,
+    /\b(?:afn|afo|af)\s*[- ]?\s*\d{2,}[a-z0-9-]*/gi,
+    /\bnitro\s*v\s*\d{2,}[a-z0-9-]*/gi,
+    /\b[a-z]{1,8}\s*[- ]?\s*[a-z]{0,3}\s*[- ]?\s*\d{2,}[a-z0-9-]*/gi,
   ];
 
-  return patterns.some((pattern) => {
-    const match = nq.match(pattern);
-    const signature = match?.[0]?.replace(/^[^a-z]+/i, "");
-    return Boolean(signature && signature.length >= 3 && nt.includes(signature));
-  });
+  for (const pattern of patterns) {
+    for (const match of normalized.matchAll(pattern)) {
+      const signature = compactNormalized(match[0]);
+      if (signature.length >= 4) signatures.add(signature);
+    }
+  }
+
+  return Array.from(signatures);
+}
+
+function explicitModelMatch(query: string, title: string): boolean {
+  const titleCompact = compactNormalized(title);
+  const querySignatures = extractModelSignatures(query);
+
+  return querySignatures.some((signature) => titleCompact.includes(signature));
 }
 
 function capacityMatches(query: string, title: string): boolean {
@@ -157,6 +166,9 @@ function matchScore(query: string, title: string): number {
     const matchingNumbers = queryNumbers.filter((value) => titleNumbers.has(value)).length;
     score += (matchingNumbers / queryNumbers.length) * 0.10;
   }
+
+  // Um código de modelo exato é um forte sinal de identidade do produto.
+  if (explicitModelMatch(query, title)) score += 0.18;
 
   return Math.min(1, Number(score.toFixed(5)));
 }
@@ -650,16 +662,54 @@ export async function searchMercadoLivreProduct(
     const strongDirect = directCandidates.find((candidate) => candidate.score >= 0.62);
 
     if (strongDirect) {
-      const modelMatch = explicitModelMatch(query, strongDirect.title);
+      let selectedDirect = strongDirect;
+
+      // Confirma o anúncio selecionado em /items/{ITEM_ID} para obter
+      // dados atuais do anúncio, incluindo sold_quantity quando disponível.
+      if (selectedDirect.itemId) {
+        try {
+          const detail = await requestItemDetail(selectedDirect.itemId, accessToken);
+          const enriched = candidateFromItem(detail, query);
+          if (enriched && enriched.itemId === selectedDirect.itemId) {
+            selectedDirect = {
+              ...selectedDirect,
+              title: enriched.title,
+              url: enriched.url,
+              soldQuantity: enriched.soldQuantity,
+              price: enriched.price,
+              categoryId: enriched.categoryId,
+              condition: enriched.condition,
+              sellerId: enriched.sellerId,
+              productId: enriched.productId || selectedDirect.productId,
+              score: Math.max(selectedDirect.score, enriched.score),
+            };
+          }
+        } catch {
+          // Mantém os dados da busca pública caso o detalhe não esteja disponível.
+        }
+      }
+
+      const modelMatch = explicitModelMatch(query, selectedDirect.title);
+      const attributeMatch =
+        brandMatches(query, selectedDirect.title) &&
+        capacityMatches(query, selectedDirect.title);
+      const exactPhrase = normalize(selectedDirect.title).includes(normalize(query));
+
       const confident =
-        strongDirect.score >= 0.84 ||
-        (modelMatch && strongDirect.score >= 0.72) ||
-        normalize(strongDirect.title).includes(normalize(query));
+        Boolean(selectedDirect.itemId) &&
+        attributeMatch &&
+        (
+          exactPhrase ||
+          selectedDirect.score >= 0.84 ||
+          (modelMatch && selectedDirect.score >= 0.72)
+        );
 
       return {
         query,
-        candidates: directCandidates,
-        selected: strongDirect,
+        candidates: directCandidates.map((candidate) =>
+          candidate.itemId === selectedDirect.itemId ? selectedDirect : candidate
+        ),
+        selected: selectedDirect,
         matchStatus: confident ? "matched" : "review",
         errorMessage: confident
           ? null
