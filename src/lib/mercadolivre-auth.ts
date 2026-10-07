@@ -52,6 +52,7 @@ export function getAuthorizationUrl(redirectUri: string, state: string): string 
     client_id: clientId,
     redirect_uri: redirectUri,
     state,
+    scope: "offline_access read write",
   });
 
   return ML_AUTH_URL + "/authorization?" + params.toString();
