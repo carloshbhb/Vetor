@@ -40,7 +40,7 @@ export default function AdminDashboardPage() {
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">Use esta tela para saber o que existe no site, detectar pendências e entrar diretamente na área certa sem procurar funções espalhadas.</p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex">
-            <a href="/admin/generate" className="min-h-[48px] rounded-xl bg-[#111] px-4 py-3 text-center text-sm font-extrabold text-white hover:bg-[#2b2b2b]">Gerar conteúdo</a>
+            <a href="/admin/generate" className="min-h-[50px] rounded-xl border-2 border-[#956400] bg-[#ffe600] px-5 py-3 text-center text-sm font-extrabold text-[#111111] shadow-sm hover:bg-[#f6ce00] focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-[#5f8dff]">Gerar conteúdo</a>
             <a href="/admin/afiliados" className="min-h-[48px] rounded-xl border border-border bg-[var(--surface2)] px-4 py-3 text-center text-sm font-bold hover:bg-[var(--surface)]">Gerir afiliados</a>
           </div>
         </div>
