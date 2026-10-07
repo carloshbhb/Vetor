@@ -67,7 +67,7 @@ export async function POST(request: Request) {
   const [{ data: links, error: linksError }, { data: matches, error: matchesError }] = await Promise.all([
     supabase
       .from("affiliate_links")
-      .select("id,name,marketplace,category,slug,status,destination_url,product_url")
+      .select("id,name,marketplace,category,slug,status,destination_url,product_url,final_url")
       .order("priority", { ascending: false })
       .order("name"),
     supabase
@@ -103,7 +103,12 @@ export async function POST(request: Request) {
 
   for (const link of selected) {
     const searchQuery = String(link.name || "").trim();
-    const sourceUrl = String(link.product_url || link.destination_url || "").trim();
+    const sourceUrl = String(
+      link.product_url ||
+      link.final_url ||
+      link.destination_url ||
+      ""
+    ).trim();
     const cacheKey = searchQuery + "|" + sourceUrl;
     let result = seenQuery.get(cacheKey);
 
@@ -145,15 +150,20 @@ export async function POST(request: Request) {
     });
   }
 
-  const { count: remainingCount } = await supabase
-    .from("affiliate_links")
-    .select("id", { count: "exact", head: true })
-    .in("status", ["active", "paused", "broken"]);
+  const eligibleMLCount = (links || []).filter(
+    (link) =>
+      normalizeMarketplace(link.marketplace) === "mercadolivre" &&
+      link.status !== "archived"
+  ).length;
 
   return NextResponse.json({
     processed: processed.length,
     totalCandidates: selected.length,
-    remaining: Math.max(0, (remainingCount || 0) - checkedIds.size - processed.length),
+    remaining: Math.max(
+      0,
+      eligibleMLCount -
+        (refresh ? checkedIds.size : checkedIds.size + processed.length)
+    ),
     results: processed,
   });
 }
