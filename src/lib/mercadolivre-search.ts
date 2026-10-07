@@ -124,6 +124,62 @@ function stableQuery(value: string): string {
   return value.replace(/\s+/g, " ").trim().slice(0, 180);
 }
 
+let lastMLRequestAt = 0;
+
+async function waitForMLRateLimit(): Promise<void> {
+  const minimumGapMs = 1200;
+  const elapsed = Date.now() - lastMLRequestAt;
+
+  if (elapsed < minimumGapMs) {
+    await new Promise((resolve) =>
+      setTimeout(resolve, minimumGapMs - elapsed)
+    );
+  }
+
+  lastMLRequestAt = Date.now();
+}
+
+async function fetchMercadoLivre(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  label: string
+): Promise<Response> {
+  let delayMs = 1500;
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await waitForMLRateLimit();
+
+    const response = await fetch(input, init);
+
+    if (response.status !== 429 || attempt === 3) {
+      return response;
+    }
+
+    const retryAfterHeader = response.headers.get("retry-after");
+    const retryAfterSeconds = retryAfterHeader
+      ? Number(retryAfterHeader)
+      : NaN;
+    const retryAfterMs = Number.isFinite(retryAfterSeconds)
+      ? retryAfterSeconds * 1000
+      : 0;
+    const jitterMs = Math.floor(Math.random() * 500);
+    const waitMs = Math.max(delayMs, retryAfterMs) + jitterMs;
+
+    console.warn(
+      "[MercadoLivre] 429 on " +
+        label +
+        "; retrying in " +
+        waitMs +
+        "ms"
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    delayMs *= 2;
+  }
+
+  throw new Error("Mercado Livre rate limit persistente.");
+}
+
 async function requestProductSearch(query: string, accessToken: string): Promise<MLProductSearchResponse> {
   const params = new URLSearchParams({
     q: query,
@@ -132,7 +188,7 @@ async function requestProductSearch(query: string, accessToken: string): Promise
     limit: "20",
   });
 
-  const response = await fetch(
+  const response = await fetchMercadoLivre(
     ML_API + "/products/search?" + params.toString(),
     {
       headers: {
@@ -191,25 +247,7 @@ function publicSearchVariants(query: string): string[] {
   const commaDecimal = normalized.replace(/(\d+)\.(\d+)\s*l/gi, "$1,$2L");
   if (commaDecimal !== normalized) variants.add(commaDecimal);
 
-  return Array.from(variants).slice(0, 5);
-}
-
-function publicSearchVariants(query: string): string[] {
-  const variants = new Set<string>();
-  const normalized = stableQuery(query);
-
-  variants.add(normalized);
-
-  if (/\b5[.,]5\s*l\b/i.test(normalized) && /\bmondial\b/i.test(normalized)) {
-    variants.add("Mondial AF55I 5,5L");
-    variants.add("Mondial AF55I 5.5L");
-  }
-
-  if (/\bnitro\s+v\s*15\b/i.test(normalized)) {
-    variants.add("Acer Nitro V15");
-  }
-
-  return Array.from(variants);
+  return Array.from(variants).slice(0, 3);
 }
 
 async function requestPublicItemSearch(
@@ -222,7 +260,7 @@ async function requestPublicItemSearch(
   });
 
   try {
-    const response = await fetch(
+    const response = await fetchMercadoLivre(
       ML_API + "/sites/" + SITE_ID + "/search?" + params.toString(),
       {
         headers: {
@@ -277,7 +315,7 @@ async function requestPublicItemSearchVariants(
   const unique = new Map<string, MLMatchCandidate>();
 
   // Sequential on purpose: Mercado Livre rate-limits bursts from one origin.
-  for (const variant of publicSearchVariants(query).slice(0, 3)) {
+  for (const variant of publicSearchVariants(query)) {
     const candidates = await requestPublicItemSearch(variant, accessToken);
 
     for (const candidate of candidates) {
@@ -311,7 +349,7 @@ async function requestPublicItemSearchVariants(
 }
 
 async function requestProductDetail(productId: string, accessToken: string): Promise<MLProductDetail> {
-  const response = await fetch(
+  const response = await fetchMercadoLivre(
     ML_API + "/products/" + encodeURIComponent(productId),
     {
       headers: {
@@ -422,7 +460,7 @@ async function findChildBuyBoxCandidate(
 }
 
 async function requestItemDetail(itemId: string, accessToken: string): Promise<MLItemDetail> {
-  const response = await fetch(
+  const response = await fetchMercadoLivre(
     ML_API + "/items/" + encodeURIComponent(itemId),
     {
       headers: {
