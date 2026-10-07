@@ -96,21 +96,27 @@ function compactNormalized(value: string): string {
 }
 
 function explicitModelMatch(query: string, title: string): boolean {
-  const nq = compactNormalized(query);
-  const nt = compactNormalized(title);
+  const queryTokens = tokens(query);
+  const titleTokens = new Set(tokens(title));
+  const compactQuery = compactNormalized(query);
+  const compactTitle = compactNormalized(title);
 
-  const patterns = [
-    /(?:^|[^a-z])(?:af|afn|afo)\d+[a-z0-9]*/i,
-    /(?:^|[^a-z])nitrov\d+/i,
-    /(?:^|[^a-z])v\d{2,3}(?:\d+)?/i,
-    /(?:^|[^a-z])[a-z]{2,6}\d{2,}[a-z0-9]*/i,
-  ];
+  // Modelos normalmente aparecem como um token alfanumérico (AF30, AFN40BI,
+  // AFO101D, NitroV15) mesmo quando o anúncio usa hífens/espaços.
+  const modelTokens = queryTokens.filter((token) =>
+    /^(?:af|afn|afo)\d+[a-z0-9]*$/i.test(token) ||
+    /^nitro[a-z]*v?\d+[a-z0-9]*$/i.test(token) ||
+    /^[a-z]{2,8}\d{2,}[a-z0-9]*$/i.test(token)
+  );
 
-  return patterns.some((pattern) => {
-    const match = nq.match(pattern);
-    const signature = match?.[0]?.replace(/^[^a-z]+/i, "");
-    return Boolean(signature && signature.length >= 3 && nt.includes(signature));
-  });
+  for (const model of modelTokens) {
+    if (titleTokens.has(model) || compactTitle.includes(model)) return true;
+  }
+
+  // Trata também consultas em que o modelo foi separado por pontuação,
+  // por exemplo "AF-30", "AFN-40-BI" ou "Nitro V 15".
+  const compactModels = compactQuery.match(/(?:af|afn|afo)\d+[a-z0-9]*|nitrov\d+[a-z0-9]*/gi) || [];
+  return compactModels.some((model) => compactTitle.includes(model.toLowerCase()));
 }
 
 function capacityMatches(query: string, title: string): boolean {
