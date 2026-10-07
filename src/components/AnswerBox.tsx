@@ -20,14 +20,12 @@ export default function AnswerBox({ product, question, verdictLabel, verdictText
       </p>
       {affiliateSlug && (
         <a
-          className="cta cta--primary-buy"
-          href={`/go/${affiliateSlug}/`}
+          className="answer-next"
+          href="#onde-comprar"
           data-aff-pos="resposta-rapida"
-          target="_blank"
-          rel="sponsored nofollow noopener"
-          aria-label={price ? `Conferir preço atualizado de ${product}` : `Ver preço e disponibilidade de ${product}`}
+          aria-label={`Ir para as ofertas de ${product}`}
         >
-          {price ? 'Conferir preço atualizado' : 'Ver preço e disponibilidade'} →
+          Comparar ofertas e lojas →
         </a>
       )}
     </div>
