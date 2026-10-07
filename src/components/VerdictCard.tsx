@@ -12,6 +12,7 @@ type VerdictCardProps = {
   notFor?: string[];
   price?: string;
   priceCheckedAt?: string;
+  priceContext?: string;
   affiliateSlug?: string;
 };
 
@@ -54,6 +55,7 @@ export default function VerdictCard({
   notFor = [],
   price,
   priceCheckedAt,
+  priceContext,
   affiliateSlug,
 }: VerdictCardProps) {
   const signal = decisionLabel || getDecisionLabel(score);
@@ -113,12 +115,18 @@ export default function VerdictCard({
           <strong>{price}</strong>
         </div>
       )}
+      {priceContext && (
+        <div className="micro" aria-label="Contexto de preço">
+          {priceContext}
+        </div>
+      )}
 
       {affiliateSlug && (
         <a
           className="cta cta--primary-buy"
           href={`/go/${affiliateSlug}/`}
           data-aff-pos="hero"
+          data-aff-variant="hero-primary"
           target="_blank"
           rel="sponsored nofollow noopener"
           aria-label={price ? `Conferir oferta e preço de ${product}` : `Ver preço e disponibilidade de ${product}`}

@@ -15,6 +15,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const baseUrl = 'https://www.vetor.blog';
 
+  const legacyReviewSlugs = new Set([
+    'echo-dot-5',
+    'amazon-echo-dot-5-geracao',
+    'echo-dot-5-alexa-completo',
+    'focusrite-scarlett-2i2-4-geracao',
+    'airpods-pro-2',
+    'redmi-watch-5',
+    'sony-wf-1000xm5',
+  ]);
+
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
@@ -93,7 +103,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  const reviewPages: MetadataRoute.Sitemap = reviews.map((r) => ({
+  const reviewPages: MetadataRoute.Sitemap = reviews
+    .filter((r) => !legacyReviewSlugs.has(r.slug))
+    .map((r) => ({
     url: `${baseUrl}/reviews/${r.slug}/`,
     lastModified: new Date(r.updated_at || r.created_at),
     changeFrequency: 'weekly' as const,

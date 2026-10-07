@@ -23,7 +23,7 @@ import ReviewPurchaseIntentLinks from "@/components/ReviewPurchaseIntentLinks";
 import DecisionPath from "@/components/DecisionPath";
 import { getProductLinksByReviewSlug, getReviewedProductLinksByCategory } from "@/lib/product-links";
 import { getAffiliateLinksForReview, type AffiliateLink } from "@/lib/affiliate-links";
-import { buildBuyingGuideCategories, buildBuyingIntentPages, buildMarketplaceOffers, isGuideLikeSlug, reviewScore } from "@/lib/buying";
+import { buildBuyingGuideCategories, buildBuyingIntentPages, buildMarketplaceOffers, isGuideLikeSlug, reviewScore, parseReviewPrice } from "@/lib/buying";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -329,6 +329,24 @@ export default async function ReviewPage({ params }: PageProps) {
   const bestFor = pros.slice(0, 2);
   const notFor = cons.slice(0, 2);
   const decisionLabel = score >= 9.2 ? "Compra forte" : score >= 8.5 ? "Boa compra" : score >= 7 ? "Vale considerar" : "Compare antes de comprar";
+  const categoryPrices = allReviews
+    .filter((item) => item.status === "published" && item.category === review.category)
+    .map((item) => parseReviewPrice(item.price_new))
+    .filter((value): value is number => value !== null)
+    .sort((a, b) => a - b);
+  const currentPrice = parseReviewPrice(review.price_new);
+  const priceContext = currentPrice !== null && categoryPrices.length >= 4
+    ? (() => {
+        const mid = Math.floor(categoryPrices.length / 2);
+        const median = categoryPrices.length % 2
+          ? categoryPrices[mid]
+          : (categoryPrices[mid - 1] + categoryPrices[mid]) / 2;
+        const ratio = currentPrice / median;
+        if (ratio <= 0.85) return "Faixa de preço abaixo da mediana da categoria.";
+        if (ratio >= 1.15) return "Faixa de preço acima da mediana da categoria.";
+        return "Faixa de preço próxima da mediana da categoria.";
+      })()
+    : "";
   const updatedLong = formatDateLong(review.updated_at);
 
   // Títulos sem duplicar "vale a pena?" quando o product já contém a pergunta.
@@ -466,6 +484,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 decisionLabel={decisionLabel}
                 bestFor={bestFor}
                 notFor={notFor}
+                priceContext={priceContext}
               />
             </div>
           </div>

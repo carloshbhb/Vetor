@@ -59,6 +59,7 @@ export default function AffiliateTracker() {
           link_text: linkText,
           position: affPos,
           cta_type: 'affiliate',
+          cta_variant: a.dataset.affVariant || affPos,
           page_path: location.pathname,
         });
         return;
