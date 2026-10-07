@@ -165,14 +165,42 @@ type MLItemSearchResponse = {
   }>;
 };
 
+function publicSearchVariants(query: string): string[] {
+  const variants = new Set<string>();
+  const normalized = stableQuery(query);
+
+  variants.add(normalized);
+
+  if (/\b5[.,]5\s*l\b/i.test(normalized) && /\bmondial\b/i.test(normalized)) {
+    variants.add("Mondial AF55I 5,5L");
+    variants.add("Mondial AF55I 5.5L");
+    variants.add("Fritadeira Mondial AF55I 5,5L");
+  }
+
+  if (/\bnitro\s+v\s*15\b/i.test(normalized)) {
+    variants.add("Acer Nitro V15");
+    variants.add("Acer Nitro V 15");
+  }
+
+  const compact = normalized
+    .replace(/\bair fryer\b/ig, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (compact && compact !== normalized) variants.add(compact);
+
+  const commaDecimal = normalized.replace(/(\d+)\.(\d+)\s*l/gi, "$1,$2L");
+  if (commaDecimal !== normalized) variants.add(commaDecimal);
+
+  return Array.from(variants).slice(0, 5);
+}
+
 async function requestPublicItemSearch(
   query: string,
   accessToken: string
 ): Promise<MLMatchCandidate[]> {
   const params = new URLSearchParams({
     q: query,
-    limit: "20",
-    sort: "relevance",
+    limit: "50",
   });
 
   try {
@@ -180,6 +208,7 @@ async function requestPublicItemSearch(
       ML_API + "/sites/" + SITE_ID + "/search?" + params.toString(),
       {
         headers: {
+          Authorization: "Bearer " + accessToken,
           Accept: "application/json",
         },
         cache: "no-store",
@@ -216,6 +245,36 @@ async function requestPublicItemSearch(
   } catch {
     return [];
   }
+}
+
+async function requestPublicItemSearchVariants(
+  query: string,
+  accessToken: string
+): Promise<MLMatchCandidate[]> {
+  const results = await Promise.all(
+    publicSearchVariants(query).map((variant) =>
+      requestPublicItemSearch(variant, accessToken)
+    )
+  );
+
+  const unique = new Map<string, MLMatchCandidate>();
+  for (const list of results) {
+    for (const candidate of list) {
+      if (candidate.itemId && !unique.has(candidate.itemId)) {
+        unique.set(candidate.itemId, candidate);
+      }
+    }
+  }
+
+  return Array.from(unique.values())
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if ((a.price ?? Infinity) !== (b.price ?? Infinity)) {
+        return (a.price ?? Infinity) - (b.price ?? Infinity);
+      }
+      return b.soldQuantity - a.soldQuantity;
+    })
+    .slice(0, 20);
 }
 
 async function requestProductDetail(productId: string, accessToken: string): Promise<MLProductDetail> {
@@ -491,7 +550,7 @@ export async function searchMercadoLivreProduct(
     // Último fallback: a busca pública de itens lista anúncios ativos diretamente.
     // É especialmente útil quando o catálogo não possui buy-box/children disponíveis.
     if (!candidates.length) {
-      candidates = await requestPublicItemSearch(query, accessToken);
+      candidates = await requestPublicItemSearchVariants(query, accessToken);
     }
 
     candidates = candidates
