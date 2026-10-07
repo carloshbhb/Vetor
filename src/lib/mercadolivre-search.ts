@@ -194,13 +194,31 @@ function publicSearchVariants(query: string): string[] {
   return Array.from(variants).slice(0, 5);
 }
 
+function publicSearchVariants(query: string): string[] {
+  const variants = new Set<string>();
+  const normalized = stableQuery(query);
+
+  variants.add(normalized);
+
+  if (/\b5[.,]5\s*l\b/i.test(normalized) && /\bmondial\b/i.test(normalized)) {
+    variants.add("Mondial AF55I 5,5L");
+    variants.add("Mondial AF55I 5.5L");
+  }
+
+  if (/\bnitro\s+v\s*15\b/i.test(normalized)) {
+    variants.add("Acer Nitro V15");
+  }
+
+  return Array.from(variants);
+}
+
 async function requestPublicItemSearch(
   query: string,
   accessToken: string
 ): Promise<MLMatchCandidate[]> {
   const params = new URLSearchParams({
     q: query,
-    limit: "50",
+    limit: "20",
   });
 
   try {
@@ -215,6 +233,10 @@ async function requestPublicItemSearch(
       }
     );
 
+    if (response.status === 429) {
+      return [];
+    }
+
     if (!response.ok) return [];
 
     const payload = (await response.json()) as MLItemSearchResponse;
@@ -228,7 +250,8 @@ async function requestPublicItemSearch(
           productId: String(item.catalog_product_id || "").trim(),
           itemId,
           title,
-          url: String(item.permalink || "").trim() ||
+          url:
+            String(item.permalink || "").trim() ||
             ("https://produto.mercadolivre.com.br/" + itemId),
           soldQuantity: Number.isFinite(Number(item.sold_quantity))
             ? Number(item.sold_quantity)
@@ -251,19 +274,29 @@ async function requestPublicItemSearchVariants(
   query: string,
   accessToken: string
 ): Promise<MLMatchCandidate[]> {
-  const results = await Promise.all(
-    publicSearchVariants(query).map((variant) =>
-      requestPublicItemSearch(variant, accessToken)
-    )
-  );
-
   const unique = new Map<string, MLMatchCandidate>();
-  for (const list of results) {
-    for (const candidate of list) {
-      if (candidate.itemId && !unique.has(candidate.itemId)) {
-        unique.set(candidate.itemId, candidate);
+
+  // Sequential on purpose: Mercado Livre rate-limits bursts from one origin.
+  for (const variant of publicSearchVariants(query).slice(0, 3)) {
+    const candidates = await requestPublicItemSearch(variant, accessToken);
+
+    for (const candidate of candidates) {
+      if (!candidate.itemId) continue;
+
+      const originalScore = matchScore(query, candidate.title);
+      const variantScore = matchScore(variant, candidate.title);
+      const scored = { ...candidate, score: Math.max(originalScore, variantScore) };
+
+      const existing = unique.get(candidate.itemId);
+      if (!existing || scored.score > existing.score) {
+        unique.set(candidate.itemId, scored);
       }
     }
+
+    const best = Array.from(unique.values())
+      .sort((a, b) => b.score - a.score)[0];
+
+    if (best && best.score >= 0.78) break;
   }
 
   return Array.from(unique.values())
@@ -487,6 +520,29 @@ export async function searchMercadoLivreProduct(
           // Link curto pode apontar para anúncio encerrado; use a busca atual.
         }
       }
+    }
+
+    // Public item search returns active marketplace listings directly.
+    // Prefer it over expanding many catalog products; this avoids bursts and
+    // gives the admin a real ITEM_ID for the affiliate mapping.
+    const directCandidates = await requestPublicItemSearchVariants(query, accessToken);
+
+    const strongDirect = directCandidates.find((candidate) => candidate.score >= 0.62);
+
+    if (strongDirect) {
+      const confident =
+        strongDirect.score >= 0.78 ||
+        normalize(strongDirect.title).includes(normalize(query));
+
+      return {
+        query,
+        candidates: directCandidates,
+        selected: strongDirect,
+        matchStatus: confident ? "matched" : "review",
+        errorMessage: confident
+          ? null
+          : "Anúncio ativo encontrado, mas a similaridade exige revisão.",
+      };
     }
 
     const payload = await requestProductSearch(query, accessToken);
