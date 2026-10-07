@@ -103,7 +103,7 @@ function normalizeReviewSections(value: unknown): Review["sections"] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((raw, index) => {
     if (!raw || typeof raw !== "object") return [];
-    const section = raw as Record<string, unknown>;
+    const section = raw as unknown as Record<string, unknown>;
     const heading = cleanEditorialText(section.heading ?? section.title) || "Seção " + (index + 1);
     const content = cleanEditorialText(section.content ?? section.body);
     const id = cleanEditorialText(section.id) || "section-" + index;
@@ -121,7 +121,7 @@ function normalizeCompareRows(value: unknown): Review["compare_table"]["rows"] {
       return [{ feature: cleanEditorialText(feature), values: values.map(cleanEditorialText), winner: -1 }];
     }
     if (!raw || typeof raw !== "object") return [];
-    const row = raw as Record<string, unknown>;
+    const row = raw as unknown as Record<string, unknown>;
     const values = Array.isArray(row.values) ? row.values.map(cleanEditorialText) : [];
     return [{
       feature: cleanEditorialText(row.feature),
@@ -286,24 +286,25 @@ export default async function ReviewPage({ params }: PageProps) {
 
   const heroBars = (Array.isArray(review.hero_bars) ? review.hero_bars : []).flatMap((raw) => {
     if (!raw || typeof raw !== "object") return [];
-    const bar = raw as Record<string, unknown>;
+    const bar = raw as unknown as Record<string, unknown>;
     return [{ pct: toFiniteNumber(bar.pct), label: cleanEditorialText(bar.label), value: toFiniteNumber(bar.value) }];
   });
   const sections = normalizeReviewSections(review.sections);
   const specs = (Array.isArray(review.specs) ? review.specs : []).flatMap((raw) => {
     if (!raw || typeof raw !== "object") return [];
-    const spec = raw as Record<string, unknown>;
+    const spec = raw as unknown as Record<string, unknown>;
     return [{ label: cleanEditorialText(spec.label), value: cleanEditorialText(spec.value), highlight: Boolean(spec.highlight) }];
   });
   const faq = (Array.isArray(review.faq) ? review.faq : []).flatMap((raw) => {
     if (!raw || typeof raw !== "object") return [];
-    const item = raw as Record<string, unknown>;
+    const item = raw as unknown as Record<string, unknown>;
     return [{ question: cleanEditorialText(item.question), answer: cleanEditorialText(item.answer) }];
   });
   const pros = (Array.isArray(review.pros) ? review.pros : []).map(cleanEditorialText).filter(Boolean);
   const cons = (Array.isArray(review.cons) ? review.cons : []).map(cleanEditorialText).filter(Boolean);
   const compareRows = normalizeCompareRows(review.compare_table?.rows);
-  const compareColumns = normalizeCompareColumns(review.compare_table?.columns);  const compareProductReviews = compareColumns.map((column, index) =>
+  const compareColumns = normalizeCompareColumns(review.compare_table?.columns);
+  const compareProductReviews = compareColumns.map((column, index) =>
     index === 0 ? null : findComparisonReview(String(column || ""), allReviews, review.slug)
   );
   const competitors = compareColumns.slice(1).filter((column) => normalizeComparableText(String(column || "")) !== normalizeComparableText(review.product)).slice(0, 3);
