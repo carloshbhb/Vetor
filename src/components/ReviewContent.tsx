@@ -52,7 +52,7 @@ function renderMarkdownBlock(block: string): string {
     return `<div class="callout"><p>${inline(trimmed.slice(2))}</p></div>`;
   }
 
-  const image = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/s);
+  const image = trimmed.match(/^!\[(.*?)\]\(([\s\S]*?)\)$/);
   if (image) {
     return `<figure class="article-img"><img src="${image[2]}" alt="${image[1]}" loading="lazy" decoding="async" width="800" height="450" /><figcaption>${image[1]}</figcaption></figure>`;
   }
