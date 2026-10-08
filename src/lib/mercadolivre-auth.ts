@@ -163,14 +163,17 @@ export async function saveSession(tokenResponse: MLTokenResponse): Promise<MLSes
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) throw new Error("Supabase client not available");
 
+  // ml_tokens intentionally keeps a single current session (primary key: id).
+  // Do not upsert on user_id: the table does not enforce that column as unique.
   const { error } = await supabase.from("ml_tokens").upsert({
+    id: "current",
     user_id: session.userId,
     access_token: session.accessToken,
     refresh_token: session.refreshToken,
     expires_at: new Date(session.expiresAt).toISOString(),
     scope: session.scope || null,
     updated_at: new Date().toISOString(),
-  }, { onConflict: "user_id" });
+  }, { onConflict: "id" });
 
   if (error) throw new Error("Failed to save ML session: " + error.message);
   return session;
