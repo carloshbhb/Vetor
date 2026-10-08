@@ -816,3 +816,17 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
   .compare-winner { align-items: flex-start; flex-direction: column; }
   .compare-winner a { margin-left: 0; }
 }
+
+
+/* Padrão global de imagens editoriais inline. */
+.article-img { width: 100%; max-width: 100%; margin: 30px 0; }
+.article-img img { display: block; width: 100%; height: auto; max-height: 620px; object-fit: contain; border: 1px solid #e5e7eb; border-radius: 14px; background: #f4f6f8; }
+.article-img figcaption { margin-top: 9px; color: #6b7280; font-size: .8125rem; line-height: 1.5; text-align: left; }
+.review-featured-product { margin-top: 38px; }
+.review-featured-product > h2 { margin: 7px 0 16px; }
+.comparison-selection { margin-top: 38px; }
+.comparison-selection .section-lead { max-width: 760px; color: var(--muted); margin: -4px 0 20px; }
+.comparison-selection-legacy { margin-top: 24px; padding: 20px; background: #f7f9fb; border: 1px solid var(--line); border-radius: 16px; }
+.comparison-selection-legacy h3 { margin: 0 0 7px; font-size: 1rem; }
+.comparison-selection-legacy p { margin: 0 0 14px; color: var(--muted); font-size: .86rem; }
+@media (max-width:720px) { .review-featured-product, .comparison-selection { margin-top: 28px; } .article-img { margin: 24px 0; } .article-img img { max-height: none; border-radius: 12px; } }

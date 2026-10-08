@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import AuthorBox from "@/components/AuthorBox";
 import VsCards, { type VsProduct } from "@/components/VsCards";
+import BuyingChoiceCard from "@/components/BuyingChoiceCard";
 import AdPlacement from "@/components/AdPlacement";
 import { BreadcrumbSchema, ItemListSchema } from "@/components/SchemaMarkup";
 import {
@@ -99,6 +100,7 @@ export default async function ViralArticlePage({ params }: PageProps) {
     (e): e is EnrichedWithReview => e.review !== null
   );
   const bestScore = Math.max(0, ...reviewed.map((e) => e.review.verdict_score ?? 0));
+  const rankedReviewed = [...reviewed].sort((a, b) => (b.review.verdict_score ?? 0) - (a.review.verdict_score ?? 0));
 
   const vsProducts: VsProduct[] = enriched.map(({ product: p, review }, i) => {
     const score = review?.verdict_score ?? 0;
@@ -241,6 +243,9 @@ export default async function ViralArticlePage({ params }: PageProps) {
                   <li>
                     <a href="#escolha">Qual escolher</a>
                   </li>
+                  {rankedReviewed.length > 0 && (
+                    <li><a href="#selecao">Nossa seleção</a></li>
+                  )}
                 </ol>
               </nav>
 
@@ -307,9 +312,37 @@ export default async function ViralArticlePage({ params }: PageProps) {
                 <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }} />
               </section>
 
+              <section id="selecao" className="comparison-selection">
+                <h2>Nossa seleção</h2>
+                <p className="section-lead">A posição considera a nota Vetor e os critérios apresentados neste comparativo. Veja a análise individual de cada produto antes de comprar.</p>
+                <div className="buying-choice-grid">
+                  {rankedReviewed.map(({ product: p, review }, i) => {
+                    const originalIndex = enriched.findIndex((item) => item.review?.slug === review.slug);
+                    return (
+                      <BuyingChoiceCard
+                        key={review.slug}
+                        review={review}
+                        rank={i + 1}
+                        context="comparison"
+                        imageUrl={p.imageUrl || review.image_url}
+                        ctaHref={p.product_url ? `/go/${article.slug}-p${originalIndex + 1}/` : undefined}
+                        ctaLabel={p.product_url ? "Ver preço" : "Ler review"}
+                        ctaPos={`comparativo-${i + 1}`}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="comparison-selection-legacy">
+                  <h3>Qual escolher?</h3>
+                  <p>Use a seleção acima para identificar rapidamente a melhor opção e, em seguida, leia os detalhes do comparativo para entender as diferenças.</p>
+                  <div className="compare-context-links">
+                    {enriched.map(({ product: p, review }) => review ? (
+                      <Link key={review.slug} href={`/reviews/${review.slug}/`}>{p.name} <span>→</span></Link>
+                    ) : null)}
+                  </div>
+                </div>
+              </section>
               <section id="escolha">
-                <h2>Qual escolher?</h2>
-                <div className="who-grid">
                   {enriched.map(({ product: p, review }, i) => (
                     <div className="who-card" key={p.name}>
                       <h3>{p.name}</h3>

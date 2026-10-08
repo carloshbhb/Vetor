@@ -17,6 +17,7 @@ import type { Review } from "@/lib/types";
 import AuthorBox from "@/components/AuthorBox";
 import { primaryAuthor } from "@/data/authors";
 import BuyingEngine from "@/components/BuyingEngine";
+import BuyingChoiceCard from "@/components/BuyingChoiceCard";
 import EditorialEvidence from "@/components/EditorialEvidence";
 import RelatedCommercialProducts from "@/components/RelatedCommercialProducts";
 import ReviewPurchaseIntentLinks from "@/components/ReviewPurchaseIntentLinks";

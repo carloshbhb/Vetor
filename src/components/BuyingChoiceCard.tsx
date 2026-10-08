@@ -10,31 +10,45 @@ export default function BuyingChoiceCard({
   review,
   rank,
   intent,
+  context = 'ranking',
+  imageUrl,
+  ctaHref,
+  ctaLabel,
+  ctaPos,
 }: {
   review: Review;
   rank: number;
   intent?: BuyingIntent;
+  context?: 'ranking' | 'review' | 'comparison';
+  imageUrl?: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+  ctaPos?: string;
 }) {
   const score = reviewScore(review);
-  const label = intent
-    ? `${getBuyingIntentLabel(intent)} · posição ${rank}`
-    : rank === 1
-      ? 'Destaque da seleção'
-      : rank === 2
-        ? 'Alternativa em destaque'
-        : 'Outra opção';
-  const canBuy = Boolean(review.affiliate_url);
+  const label = context === 'review'
+    ? 'Produto analisado'
+    : context === 'comparison'
+      ? rank === 1 ? '🥇 Melhor escolha' : rank === 2 ? '🥈 Alternativa' : `Posição ${rank}`
+      : intent
+        ? `${getBuyingIntentLabel(intent)} · posição ${rank}`
+        : rank === 1 ? 'Destaque da seleção' : rank === 2 ? 'Alternativa em destaque' : 'Outra opção';
+  const image = imageUrl || review.image_url;
+  const canBuy = Boolean(review.affiliate_url || ctaHref);
+  const finalCtaHref = ctaHref || `/go/${review.slug}/`;
+  const finalCtaLabel = ctaLabel || (review.price_new ? 'Conferir preço' : 'Ver preço');
+  const finalCtaPos = ctaPos || 'melhores-' + (intent || 'geral') + '-' + rank;
 
   return (
     <article className={'buying-choice' + (rank === 1 ? ' buying-choice--featured' : '')}>
       <div className="buying-choice-rank">{String(rank).padStart(2, '0')}</div>
-      {review.image_url && (
+      {image && (
         <SafeImage
-          src={safeImageSrc(review.image_url)}
+          src={safeImageSrc(image)}
           width={600}
           height={400}
           alt={review.product + ': produto selecionado pelo Vetor'}
-          loading="lazy"
+          loading={rank === 1 ? 'eager' : 'lazy'}
         />
       )}
 
@@ -56,13 +70,13 @@ export default function BuyingChoiceCard({
           {canBuy ? (
             <a
               className="cta cta--primary-buy"
-              href={'/go/' + review.slug + '/'}
-              data-aff-pos={'melhores-' + (intent || 'geral') + '-' + rank}
+              href={finalCtaHref}
+              data-aff-pos={finalCtaPos}
               target="_blank"
               rel="sponsored nofollow noopener"
-              aria-label={review.price_new ? `Conferir preço atualizado de ${review.product}` : `Ver preço de ${review.product}`}
+              aria-label={`${finalCtaLabel} — ${review.product}`}
             >
-              {review.price_new ? 'Conferir preço' : 'Ver preço'} →
+              {finalCtaLabel} →
             </a>
           ) : (
             <Link className="cta" href={'/reviews/' + review.slug + '/'}>
