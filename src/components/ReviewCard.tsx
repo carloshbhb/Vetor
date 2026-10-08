@@ -4,7 +4,8 @@ import Link from "next/link";
 import type { Review } from "@/lib/types";
 
 export default function ReviewCard({ review }: { review: Review; featured?: boolean }) {
-  const score = review.verdict_score || review.hero_overall_score;
+  const rawScore = review.verdict_score || review.hero_overall_score;
+  const score = Number.isFinite(rawScore) ? Math.min(10, Math.max(0, rawScore)) : 0;
 
   return (
     <Link
