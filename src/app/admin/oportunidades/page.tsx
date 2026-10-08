@@ -139,28 +139,7 @@ type DashboardData = {
       relevant: boolean;
       reason: string;
     }>;
-  };  keywordIntelligence: {
-    totalStored: number;
-    relevant: number;
-    lowFit: number;
-    items: Array<{
-      keyword: string;
-      intent: string;
-      opportunityScore: number;
-      vetorFitScore: number;
-      commercialScore: number;
-      competitionScore: number;
-      impressions: number;
-      clicks: number;
-      ctr: number;
-      position: number | null;
-      suggestedRoute: string;
-      routeExists: boolean;
-      relevant: boolean;
-      reason: string;
-    }>;
-  };
-  editorialQueue: {
+  };  editorialQueue: {
     total: number;
     items: Array<{
       keyword: string;
