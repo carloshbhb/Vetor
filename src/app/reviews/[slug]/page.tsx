@@ -124,10 +124,14 @@ function normalizeCompareRows(value: unknown): Review["compare_table"]["rows"] {
     if (!raw || typeof raw !== "object") return [];
     const row = raw as unknown as Record<string, unknown>;
     const values = Array.isArray(row.values) ? row.values.map(cleanEditorialText) : [];
+    const winner =
+      Number.isInteger(row.winner) && Number(row.winner) >= 0 && Number(row.winner) < values.length
+        ? Number(row.winner)
+        : -1;
     return [{
       feature: cleanEditorialText(row.feature),
       values,
-      winner: Number.isInteger(row.winner) ? Number(row.winner) : -1,
+      winner,
     }];
   });
 }
@@ -241,6 +245,10 @@ export default async function ReviewPage({ params }: PageProps) {
   const buyingOffers = centralAffiliateLinks.length
     ? buildCentralMarketplaceOffers(review, centralAffiliateLinks)
     : buildMarketplaceOffers(review, productLinks);
+  const latestOfferCheckedAt = buyingOffers
+    .map((offer) => offer.checkedAt)
+    .filter(Boolean)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || review.updated_at;
   const reviewBySlug = new Map(allReviews.map((item) => [item.slug, item]));
   const relatedCommercial = relatedCommercialLinks
     .map((link) => ({
@@ -481,7 +489,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 verdictTitle={verdictLabel}
                 verdictText={verdictText}
                 price={review.price_new}
-                priceCheckedAt={review.updated_at}
+                priceCheckedAt={latestOfferCheckedAt}
                 affiliateSlug={review.affiliate_url ? review.slug : undefined}
                 decisionLabel={decisionLabel}
                 bestFor={bestFor}
@@ -761,13 +769,14 @@ export default async function ReviewPage({ params }: PageProps) {
 
                   <div className="compare-wrap">
                     <table>
+                      <caption>{review.compare_table?.caption || `Comparação de ${review.product} com alternativas`}</caption>
                       <thead>
                         <tr>
                           {compareColumns.map((col, i) => {
                             const label = col || (i === 0 ? "Critério" : "Opção " + i);
                             const linkedReview = compareProductReviews[i];
                             return (
-                              <th key={i}>
+                              <th key={i} scope="col">
                                 {linkedReview ? (
                                   <Link href={"/reviews/" + linkedReview.slug + "/"}>{label}</Link>
                                 ) : (
@@ -781,9 +790,7 @@ export default async function ReviewPage({ params }: PageProps) {
                       <tbody>
                         {compareRows.map((row, i) => (
                           <tr key={i}>
-                            <td>
-                              <strong>{row.feature}</strong>
-                            </td>
+                            <th scope="row">{row.feature}</th>
                             {row.values.map((value, j) => {
                               const isWinner = row.winner === j;
                               return (
