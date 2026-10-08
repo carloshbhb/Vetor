@@ -59,13 +59,23 @@ function routeFor(keyword: string, reviews: Awaited<ReturnType<typeof getAllRevi
   const q = normalize(keyword);
   const match = reviews.find((r) => {
     const product = normalize(r.product || "");
-    const tokens = product.split(" ").filter((x) => x.length > 2);
-    return product && (q.includes(product) || (tokens.length >= 2 && tokens.every((token) => q.includes(token))));
+    const category = normalize(r.category || "");
+    const productTokens = product.split(" ").filter((x) => x.length > 2);
+    const categoryTokens = category.split(" ").filter((x) => x.length > 2);
+    const directProduct = product && (q.includes(product) || (productTokens.length >= 2 && productTokens.every((token) => q.includes(token))));
+    const categoryMatch = category && categoryTokens.length >= 1 && categoryTokens.filter((token) => q.includes(token)).length >= Math.min(2, categoryTokens.length);
+    return Boolean(directProduct || categoryMatch);
   });
   if (match) return "/reviews/" + match.slug + "/";
   if (q.includes("melhor")) {
-    const tail = q.replace(/\bmelhores?\b/g, "").trim().replace(/\s+/g, "-");
-    return tail ? "/melhores/" + tail + "/" : "";
+    const tail = q.replace(/\bmelhores?\b/g, "").trim();
+    const candidate = reviews.some((r) => {
+      const category = normalize(r.category || "");
+      const tokens = category.split(" ").filter((x) => x.length > 2);
+      return tokens.length > 0 && tokens.filter((token) => tail.includes(token)).length >= Math.min(2, tokens.length);
+    });
+    if (!candidate) return "";
+    return tail ? "/melhores/" + tail.replace(/\s+/g, "-") + "/" : "";
   }
   return "";
 }
@@ -154,7 +164,11 @@ export async function collectMarketIntelligence() {
     const position = item.impressions ? item.positionWeighted / item.impressions : null;
     const competition = position === null ? 60 : position <= 10 ? 35 : position <= 20 ? 55 : 75;
     const trend = item.trendScore || 10;
-    const fit = routeFor(item.keyword, reviews) ? 100 : /\b(air fryer|smartband|fone|celular|notebook|tv|televisao|jbl|samsung|xiaomi|motorola|apple|sony|mondial|philips|electrolux|lg)\b/i.test(item.keyword) ? 82 : 35;
+    const normalizedKeyword = normalize(item.keyword);
+    const hasDirectRoute = Boolean(routeFor(item.keyword, reviews));
+    const productFamilySignal = /\b(air fryer|aspirador|smartband|smartwatch|fone|headphone|celular|smartphone|notebook|tablet|tv|televisao|monitor|mouse|teclado|controle|camera|lampada|tomada|rob[oô]|cafeteira|liquidificador|microfone|soundbar|jbl|samsung|xiaomi|motorola|apple|sony|mondial|philips|electrolux|lg|logitech|gamesir|redragon|hyperx|edifier)\b/i.test(normalizedKeyword);
+    const hasWeakGenericTerm = /\b(2025|antigo|gratis|grátis|download|papel de parede|significado|noticia|notícia|politica|política|resultado|jogo de hoje)\b/i.test(normalizedKeyword);
+    const fit = hasWeakGenericTerm ? 15 : hasDirectRoute ? 100 : productFamilySignal ? 72 : 25;
     const opportunity = clamp(demand * 0.28 + trend * 0.22 + commercial * 0.22 + (100 - competition) * 0.10 + fit * 0.18);
     const trendDirection: KeywordOpportunity["trendDirection"] = trend >= 55 ? "rising" : "stable";
     return {
