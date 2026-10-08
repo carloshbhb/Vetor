@@ -151,12 +151,12 @@ function normalizeReviewContent(review: Review): Review {
 function normalizeMetaDescription(value: unknown, product: string): string {
   const text = cleanReviewEditorialText(value).trim();
   if (!text) return '';
-  if (!/(\\bgaranta\\b|\\bclique\\b|\\bcompre agora\\b|\\badquira\\b|\\bconfira (?:agora|o melhor preço)\\b|\\bmelhor preço agora\\b|\\bvale a sua compra(?: hoje)?\\b)/i.test(text)) {
+  if (!/(\bgaranta\b|\bclique\b|\bcompre agora\b|\badquira\b|\bconfira (?:agora|o melhor preço)\b|\bmelhor preço agora\b|\bvale a sua compra(?: hoje)?\b)/i.test(text)) {
     return text;
   }
   const fallback = `Review de ${product}: nota, prós, contras, preço consultado e alternativas para decidir a compra.`;
   if (fallback.length <= 160) return fallback;
-  return fallback.slice(0, 160).replace(/\\s+\\S*$/, '').trim() + '.';
+  return fallback.slice(0, 160).replace(/\s+\S*$/, '').trim() + '.';
 }
 
 function normalizeReviewCategory(review: Review): Review {
