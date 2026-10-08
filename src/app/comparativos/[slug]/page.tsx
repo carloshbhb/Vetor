@@ -342,64 +342,6 @@ export default async function ViralArticlePage({ params }: PageProps) {
                   </div>
                 </div>
               </section>
-              <section id="escolha">
-                  {enriched.map(({ product: p, review }, i) => (
-                    <div className="who-card" key={p.name}>
-                      <h3>{p.name}</h3>
-                      <ul>
-                        {review && (review.verdict_score ?? 0) > 0 && (
-                          <li>Nota Vetor: {br(review.verdict_score)}/10</li>
-                        )}
-                        {review?.price_new && <li>Preço consultado: {review.price_new}</li>}
-                        <li>Categoria: {article.category}</li>
-                      </ul>
-                      {p.product_url ? (
-                        <a
-                          className="cta cta--primary-buy"
-                          href={`/go/${article.slug}-p${i + 1}/`}
-                          data-aff-pos={i === 0 ? "escolha-a" : "escolha-b"}
-                          target="_blank"
-                          rel="sponsored nofollow noopener"
-                          aria-label={`Ver preço de ${p.name}`}
-                        >
-                          Ver preço
-                        </a>
-                      ) : (
-                        review && (
-                          <Link className="cta" href={`/reviews/${review.slug}/`}>
-                            Ler review
-                          </Link>
-                        )
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {reviewed.length > 0 && (
-                  <div className="compare-context">
-                    <div>
-                      <span className="eyebrow-small">Aprofunde a pesquisa</span>
-                      <h3>Veja os produtos em páginas independentes</h3>
-                      <p>Confira a análise completa, critérios, especificações e preço consultado de cada produto que também possui review no Vetor.blog.</p>
-                    </div>
-                    <div className="compare-context-links">
-                      {reviewed.map((e) => (
-                        <Link key={e.review.slug} href={`/reviews/${e.review.slug}/`}>
-                          {e.product.name} <span>→</span>
-                        </Link>
-                      ))}
-                      <Link href={`/reviews/categoria/${encodeURIComponent(normalizedCategory)}/`}>
-                        Mais reviews de {normalizedCategory} <span>→</span>
-                      </Link>
-                      {guide && (
-                        <Link href={`/melhores/${guide.slug}/`}>
-                          Guia de compra de {normalizedCategory} <span>→</span>
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </section>
-
               <AuthorBox
                 name={primaryAuthor.name}
                 bio={primaryAuthor.bio}
