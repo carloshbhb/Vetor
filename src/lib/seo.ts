@@ -227,12 +227,16 @@ export function generateItemListSchema(
     '@type': 'ItemList',
     numberOfItems: items.length,
     itemListOrder: 'https://schema.org/ItemListOrderAscending',
-    itemListElement: items.map((item, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: item.name,
-      url: item.url.startsWith('http') ? item.url : `${SITE_URL}${item.url}`,
-    })),
+    itemListElement: items.map((item, index) => {
+      const rawUrl = item.url.startsWith('http') ? item.url : `${SITE_URL}${item.url}`;
+      const url = rawUrl.includes('?') || rawUrl.endsWith('/') ? rawUrl : `${rawUrl}/`;
+      return {
+        '@type': 'ListItem',
+        position: index + 1,
+        name: item.name,
+        url,
+      };
+    }),
   };
 }
 
