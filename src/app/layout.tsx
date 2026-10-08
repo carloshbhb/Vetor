@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "vetor.blog",
-    description: "Reviews e comparativos modernos.",
+    title: "Reviews, Comparativos e Guias de Compra | Vetor.blog",
+    description: "Reviews, comparativos e guias de compra para pesquisar produtos, entender diferenças e escolher com mais clareza.",
     siteName: "vetor.blog",
     locale: "pt_BR",
     type: "website",
@@ -42,6 +42,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
+    title: "Reviews, Comparativos e Guias de Compra | Vetor.blog",
+    description: "Reviews, comparativos e guias de compra para pesquisar produtos, entender diferenças e escolher com mais clareza.",
     images: ["https://www.vetor.blog/og.png"],
   },
   robots: {
