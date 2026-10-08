@@ -116,7 +116,7 @@ function normalizeReviewContent(review: Review): Review {
   return {
     ...review,
     meta_title: cleanReviewEditorialText(review.meta_title).trim(),
-    meta_description: cleanReviewEditorialText(review.meta_description).trim(),
+    meta_description: normalizeMetaDescription(review.meta_description, review.product),
     hero_lead: cleanReviewEditorialText(review.hero_lead).trim(),
     hero_headline_line1: cleanReviewEditorialText(review.hero_headline_line1).trim(),
     hero_headline_line2: cleanReviewEditorialText(review.hero_headline_line2).trim(),
@@ -146,6 +146,17 @@ function normalizeReviewContent(review: Review): Review {
     schema_rating_value: Math.round((verdictScore / 2) * 10) / 10,
     schema_review_count: 0,
   };
+}
+
+function normalizeMetaDescription(value: unknown, product: string): string {
+  const text = cleanReviewEditorialText(value).trim();
+  if (!text) return '';
+  if (!/(\\bgaranta\\b|\\bclique\\b|\\bcompre agora\\b|\\badquira\\b|\\bconfira agora\\b|\\bmelhor preço agora\\b)/i.test(text)) {
+    return text;
+  }
+  const fallback = `Review de ${product}: nota, prós, contras, preço consultado e alternativas para decidir a compra.`;
+  if (fallback.length <= 160) return fallback;
+  return fallback.slice(0, 160).replace(/\\s+\\S*$/, '').trim() + '.';
 }
 
 function normalizeReviewCategory(review: Review): Review {
