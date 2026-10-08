@@ -17,7 +17,7 @@ Marketplace: ${product.marketplace || 'mercadolivre'}
 Responda APENAS em JSON válido com esta estrutura exata:
 {
   "title": "Título SEO otimizado",
-  "description": "Descrição curta (max 160 chars)",
+  "description": "Descrição SEO informativa (100-160 chars, sem CTA agressiva)",
   "content": "HTML completo do artigo com h2, p, ul/li, table. Use <h2> para seções, <p> para parágrafos, <ul><li> para listas",
   "hero_overall_score": 8.5,
   "hero_bars": [
@@ -43,9 +43,9 @@ Responda APENAS em JSON válido com esta estrutura exata:
   "compare_table": {
     "columns": ["Produto", "Preço", "Nota"],
     "rows": [
-      { "feature": "${product.title}", "values": ["${product.price}", "8.5"], "winner": 0 }
+      { "feature": "Preço", "values": ["${product.price}", "R$ ..."], "winner": 0 }
     ],
-    "caption": "Comparativo",
+    "caption": "Tabela comparativa do produto com alternativas relevantes",
     "winnerCol": 1
   },
   "verdict_score": 8.5,
@@ -73,8 +73,13 @@ Regras:
 - specs deve ter 4-8 especificações
 - sections deve ter 4-6 seções com conteúdo HTML
 - pros e cons devem ter 3-5 itens cada
-- compare_table deve comparar com 1-2 concorrentes
+- compare_table deve comparar com 1-2 concorrentes reais e verificáveis
+- Na tabela, "columns[0]" é o critério; "values" contém somente os produtos comparados, na mesma ordem de "columns". "winner" é índice 0-based dentro de "values"; use -1 quando não houver vencedor claro. "winnerCol" usa o índice da coluna completa, incluindo "columns[0]". Nunca use um índice fora do tamanho da lista.
+- Todas as especificações, preços, recursos e afirmações comparativas precisam ser sustentáveis pelos dados disponíveis; quando não houver dado suficiente, declare a limitação em vez de inventar.
 - faq deve ter 3-5 perguntas
+- Meta title: 35-65 caracteres, com o nome do produto e a intenção de busca principal, sem palavras promocionais vazias.
+- Meta description: 100-160 caracteres, informativa, natural e sem "garanta", "compre agora", "clique e confira" ou equivalentes.
+- Não use linguagem promocional em title/description. A chamada para compra fica no conteúdo e nos componentes comerciais.
 - Tom: profissional, objetivo, confiável
 - Idioma: português brasileiro`;
 }
