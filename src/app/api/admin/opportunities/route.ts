@@ -406,6 +406,41 @@ export async function GET(request: Request) {
     )
     .slice(0, 20);
 
+  const editorialQueue = (keywordRows.data || [])
+    .map((row) => ({
+      keyword: String(row.keyword || ""),
+      intent: String(row.intent || ""),
+      opportunityScore: Number(row.opportunity_score || 0),
+      vetorFitScore: Number(row.vetor_fit_score || 0),
+      commercialScore: Number(row.commercial_score || 0),
+      competitionScore: Number(row.competition_score || 0),
+      impressions: Number(row.current_impressions || 0),
+      clicks: Number(row.current_clicks || 0),
+      ctr: Number(row.current_ctr || 0),
+      position: row.current_position == null ? null : Number(row.current_position),
+      suggestedRoute: row.suggested_route ? String(row.suggested_route) : "",
+    }))
+    .filter((item) => item.vetorFitScore >= 70 && item.opportunityScore >= 35)
+    .sort((a, b) => (b.opportunityScore + b.commercialScore) - (a.opportunityScore + a.commercialScore))
+    .slice(0, 30)
+    .map((item) => {
+      const existingRoute = item.suggestedRoute && (item.suggestedRoute.startsWith("/reviews/") || item.suggestedRoute.startsWith("/melhores/"));
+      const action = existingRoute ? "otimizar_url_existente" : "validar_serp_e_criar";
+      return {
+        ...item,
+        action,
+        priority: item.opportunityScore >= 55 ? "Alta" as const : "Média" as const,
+        brief: {
+          objective: "Capturar demanda comercial dentro do escopo editorial do Vetor.",
+          contentAction: action === "otimizar_url_existente"
+            ? "Atualizar a página existente, melhorar cobertura da intenção e reforçar links internos."
+            : "Validar SERP, intenção e disponibilidade de produto antes de criar uma nova página.",
+          suggestedTitle: buildTitleSuggestion(item.keyword),
+          validation: "Não publicar sem validar intenção, concorrência, canibalização e oferta afiliada."
+        }
+      };
+    });
+
   const actionQueue = [
     ...ctrOpportunities.slice(0, 10).map((item) => ({
       type: "CTR",
@@ -630,6 +665,10 @@ export async function GET(request: Request) {
       relevant: keywordIntelligence.length,
       lowFit: Math.max(0, (keywordRows.data?.length || 0) - keywordIntelligence.length),
       items: keywordIntelligence,
+    },
+    editorialQueue: {
+      total: editorialQueue.length,
+      items: editorialQueue,
     },
   });
 }

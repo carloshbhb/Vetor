@@ -19,6 +19,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!author) return { title: "Autor não encontrado" };
   return {
     title: `${author.name} — Artigos e Reviews`,
+    robots: { index: true, follow: true },
     description: `Artigos e reviews independentes de ${author.name} no vetor.blog. ${author.tagline}`,
     alternates: { canonical: `/author/${author.slug}` },
     openGraph: {
@@ -68,6 +69,7 @@ export default async function AuthorPage({ params }: PageProps) {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Person",
+            "@id": "https://www.vetor.blog/author/" + author.slug + "/#person",
             name: author.name,
             jobTitle: author.role,
             description: author.bio,
