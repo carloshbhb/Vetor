@@ -1,11 +1,13 @@
 import { z } from 'zod';
 
-const MIN_CONTENT_LENGTH = 3000;
+const MIN_CONTENT_LENGTH = 4500;
 const MIN_HERO_LEAD_LENGTH = 80;
 const MIN_SECTIONS = 4;
 const MIN_PROS = 3;
 const MIN_CONS = 3;
 const MIN_FAQ = 3;
+const MIN_SPECS = 4;
+const MIN_HERO_BARS = 3;
 
 const FORBIDDEN_REVIEW_EDITORIAL_SIGNALS = [
   'temos um claro vencedor',
@@ -62,6 +64,15 @@ export const generatedReviewQualitySchema = z
       .string()
       .trim()
       .min(MIN_HERO_LEAD_LENGTH, `hero_lead must have at least ${MIN_HERO_LEAD_LENGTH} characters`),
+    specs: z.array(z.object({
+      label: z.string().trim().min(2),
+      value: z.string().trim().min(1),
+    })).min(MIN_SPECS, `specs must contain at least ${MIN_SPECS} specifications`),
+    hero_bars: z.array(z.object({
+      pct: z.number().min(0).max(100),
+      label: z.string().trim().min(2),
+      value: z.number().min(0).max(10),
+    })).min(MIN_HERO_BARS, `hero_bars must contain at least ${MIN_HERO_BARS} criteria`).max(5),
     pros: z.array(z.string().trim().min(8)).min(MIN_PROS),
     cons: z.array(z.string().trim().min(8)).min(MIN_CONS),
     faq: z
@@ -74,8 +85,8 @@ export const generatedReviewQualitySchema = z
       .min(MIN_FAQ, `faq must contain at least ${MIN_FAQ} questions`),
     hero_overall_score: z.number().min(0).max(10).optional(),
     verdict_score: z.number().min(0).max(10).optional(),
-    meta_title: z.string().trim().optional(),
-    meta_description: z.string().trim().optional(),
+    meta_title: z.string().trim().min(35).max(65),
+    meta_description: z.string().trim().min(100).max(160),
     verdict_label: z.string().trim().optional(),
     verdict_text: z.string().trim().optional(),
     verdict_note: z.string().trim().optional(),
@@ -83,16 +94,16 @@ export const generatedReviewQualitySchema = z
       .object({
         rows: z.array(
           z.object({
-            feature: z.string().trim(),
-            values: z.array(z.string()),
-            winner: z.number().int(),
+            feature: z.string().trim().min(2),
+            values: z.array(z.string()).min(1),
+            winner: z.number().int().min(-1),
           })
-        ),
-        caption: z.string().trim(),
-        columns: z.array(z.string()),
-        winnerCol: z.number().int(),
-      })
-      .optional(),
+        ).min(3),
+        caption: z.string().trim().min(4),
+        columns: z.array(z.string().trim().min(2)).min(2).max(4),
+        winnerCol: z.number().int().min(0),
+      }),
+
   })
   .superRefine((val, ctx) => {
     if (visibleTextLength(val.content) < MIN_CONTENT_LENGTH) {
@@ -117,6 +128,25 @@ export const generatedReviewQualitySchema = z
           path: ['content'],
           message: `generic fallback phrase detected: "${phrase}"`,
         });
+      }
+    }
+
+    if (val.hero_bars.some((bar) => Math.abs(bar.pct - bar.value * 10) > 0.1)) {
+      ctx.addIssue({ code: 'custom', path: ['hero_bars'], message: 'hero_bars pct must equal value * 10' });
+    }
+
+    if (val.compare_table.columns.length > 0) {
+      const productColumnCount = val.compare_table.columns.length - 1;
+      if (val.compare_table.winnerCol >= val.compare_table.columns.length) {
+        ctx.addIssue({ code: 'custom', path: ['compare_table', 'winnerCol'], message: 'winnerCol must point to a valid product column' });
+      }
+      for (const [index, row] of val.compare_table.rows.entries()) {
+        if (row.values.length !== productColumnCount) {
+          ctx.addIssue({ code: 'custom', path: ['compare_table', 'rows', index, 'values'], message: 'row values must match the number of product columns' });
+        }
+        if (row.winner >= row.values.length) {
+          ctx.addIssue({ code: 'custom', path: ['compare_table', 'rows', index, 'winner'], message: 'row winner must point to a valid value index or be -1' });
+        }
       }
     }
 
