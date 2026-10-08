@@ -119,6 +119,27 @@ type DashboardData = {
       action: string;
     }>;
   };
+  keywordIntelligence: {
+    totalStored: number;
+    relevant: number;
+    lowFit: number;
+    items: Array<{
+      keyword: string;
+      intent: string;
+      opportunityScore: number;
+      vetorFitScore: number;
+      commercialScore: number;
+      competitionScore: number;
+      impressions: number;
+      clicks: number;
+      ctr: number;
+      position: number | null;
+      suggestedRoute: string;
+      routeExists: boolean;
+      relevant: boolean;
+      reason: string;
+    }>;
+  };
 };
 
 type SeoActionStatus = "open" | "in_progress" | "done" | "dismissed";
@@ -392,6 +413,52 @@ export default function OpportunitiesPage() {
           </div>
         ))}
       </div>
+
+      <section className="bg-[var(--surface)] border border-border rounded-xl p-5 mb-8">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--amber)] font-bold">
+              Fase 5 · radar validado
+            </p>
+            <h2 className="font-heading font-bold text-xl mt-1">Palavras-chave com aderência ao Vetor</h2>
+            <p className="text-xs text-[var(--muted)] mt-1 max-w-3xl">
+              O radar não transforma qualquer tendência em pauta: prioriza termos comerciais, aderentes ao inventário e com rota válida ou forte fit editorial.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.12em]">
+            <span className="rounded-full border border-border px-2 py-1">Armazenadas: {data.keywordIntelligence.totalStored}</span>
+            <span className="rounded-full border border-border px-2 py-1 text-[#176b3a]">Relevantes: {data.keywordIntelligence.relevant}</span>
+            <span className="rounded-full border border-border px-2 py-1">Baixo fit: {data.keywordIntelligence.lowFit}</span>
+          </div>
+        </div>
+        {data.keywordIntelligence.items.length ? (
+          <div className="space-y-2">
+            {data.keywordIntelligence.items.slice(0, 12).map((item) => (
+              <div key={item.keyword} className="rounded-lg border border-border/70 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm break-words">{item.keyword}</p>
+                    <p className="text-[11px] text-[var(--muted)] mt-1">
+                      {item.intent} · oportunidade {item.opportunityScore.toFixed(1)} · fit {item.vetorFitScore.toFixed(0)} · {item.impressions} impressões
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-[#b9d9c4] bg-[#f0faf3] px-2 py-1 text-[10px] font-bold text-[#176b3a]">
+                    {item.routeExists ? "Rota existente" : "Validar SERP"}
+                  </span>
+                </div>
+                <p className="text-xs mt-2 text-[var(--muted)]">{item.reason}</p>
+                {item.suggestedRoute && (
+                  <p className="mt-2 text-xs font-medium break-all">{item.suggestedRoute}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border p-5 text-sm text-[var(--muted)]">
+            Nenhuma oportunidade passou pelo filtro de relevância. Isso é preferível a criar páginas fora do escopo.
+          </div>
+        )}
+      </section>
 
       <section className="bg-[var(--surface)] border border-border rounded-xl p-5 mb-8">
         <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
