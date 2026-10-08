@@ -932,3 +932,70 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
   }
 }
 
+
+
+/* Auditoria global de reviews — consistência de cards e tabelas. */
+.home-card h3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 2.3em;
+}
+.home-card p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  min-height: 4.6em;
+}
+.spec-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+.spec-table {
+  min-width: 0;
+  width: 100%;
+}
+.spec-table caption,
+.compare-wrap table caption {
+  padding: 14px 16px;
+  text-align: left;
+  color: #52606f;
+  font-size: .8rem;
+  font-weight: 800;
+  border-bottom: 1px solid var(--line);
+  background: #f8fafb;
+}
+.spec-table th[scope="row"] {
+  width: 34%;
+  background: #f8fafb;
+  color: #52606f;
+  font-size: .84rem;
+}
+.spec-table td {
+  color: #25303d;
+  font-size: .92rem;
+  font-weight: 700;
+}
+.compare-wrap th[scope="row"] {
+  color: #25303d;
+  background: #fafbfc;
+}
+.compare-wrap th a {
+  color: inherit;
+}
+@media (max-width: 720px) {
+  .home-card h3 { min-height: 0; }
+  .home-card p { min-height: 0; }
+  .spec-table {
+    min-width: 100%;
+  }
+  .spec-table th,
+  .spec-table td {
+    padding: 12px;
+  }
+}
