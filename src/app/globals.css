@@ -830,3 +830,105 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
 .comparison-selection-legacy h3 { margin: 0 0 7px; font-size: 1rem; }
 .comparison-selection-legacy p { margin: 0 0 14px; color: var(--muted); font-size: .86rem; }
 @media (max-width:720px) { .review-featured-product, .comparison-selection { margin-top: 28px; } .article-img { margin: 24px 0; } .article-img img { max-height: none; border-radius: 12px; } }
+
+
+/* Editorial review system — applies globally to every ReviewContent section. */
+.review-editorial-section {
+  position: relative;
+  margin-top: 52px;
+  padding-top: 34px;
+  border-top: 1px solid var(--line);
+}
+.review-editorial-section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.review-editorial-section-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+.review-editorial-index {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f4f6f8;
+  color: #667382;
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+.review-editorial-section-head .section-kicker {
+  margin: 0 0 6px;
+}
+.review-editorial-section-head h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.35rem);
+  line-height: 1.1;
+  letter-spacing: -.035em;
+}
+.review-editorial-body {
+  min-width: 0;
+}
+.review-editorial-body > p,
+.review-editorial-body > ul,
+.review-editorial-body > ol {
+  max-width: 68ch;
+}
+.review-editorial-body > ul,
+.review-editorial-body > ol {
+  margin-top: 0;
+  margin-bottom: 1.2em;
+}
+.review-editorial-body > h3,
+.review-editorial-body > h4 {
+  max-width: 72ch;
+}
+.review-editorial-body > h3 {
+  margin: 30px 0 10px;
+  font-size: 1.22rem;
+  line-height: 1.25;
+}
+.review-editorial-body > h4 {
+  margin: 24px 0 9px;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+.review-editorial-body > .callout,
+.review-editorial-body > figure,
+.review-editorial-body > table,
+.review-editorial-body > .compare-wrap {
+  max-width: 100%;
+}
+.buying-offer-badge {
+  display: flex;
+  width: fit-content;
+  margin: 0 auto 10px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+@media (max-width: 720px) {
+  .review-editorial-section {
+    margin-top: 38px;
+    padding-top: 26px;
+  }
+  .review-editorial-section-head {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .review-editorial-index {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+}
+
