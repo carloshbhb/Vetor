@@ -171,19 +171,21 @@ export default function AdminVideosPage() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--amber)] font-bold">Produção</p>
-          <h1 className="font-display text-3xl mt-1">Fila de vídeos</h1>
-          <p className="text-sm text-[var(--muted)] mt-2">Acompanhe os vídeos persistidos no processamento real e gerencie cada etapa.</p>
-        </div>
-        <button
+      <header className="mb-7 rounded-2xl border border-border bg-[var(--surface)] p-6 lg:p-7 shadow-sm">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <span className="inline-flex rounded-full bg-[var(--amber-bg)] px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[var(--amber)]">Produção</span>
+            <h1 className="mt-3 font-display text-3xl font-black tracking-tight lg:text-4xl">Fila de vídeos</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">Acompanhe o que está pendente, em processamento, concluído ou com falha e aja somente nos itens que precisam de intervenção.</p>
+          </div>
+          <button
           type="button"
           onClick={() => void loadVideos(page)}
           disabled={loading}
           className="rounded-xl border border-border px-4 py-2.5 text-sm hover:bg-[var(--surface2)] disabled:opacity-50"
         >Atualizar fila</button>
-      </div>
+        </div>
+      </header>
 
       {error && <div role="alert" className="mb-4 rounded-xl border border-[var(--red)]/30 bg-[var(--red)]/5 px-4 py-3 text-sm text-[var(--red)]">{error}</div>}
       {notice && <div role="status" className="mb-4 rounded-xl border border-[var(--green)]/30 bg-[var(--green)]/5 px-4 py-3 text-sm text-[var(--green)]">{notice}</div>}
@@ -196,14 +198,14 @@ export default function AdminVideosPage() {
           ["Concluídos", stats.completed],
           ["Falhas", stats.failed],
         ] as const).map(([label, value]) => (
-          <div key={label} className="bg-[var(--surface)] border border-border rounded-xl p-4">
+          <div key={label} className="bg-[var(--surface)] border border-border rounded-2xl p-5 shadow-sm">
             <p className="text-xs text-[var(--muted)]">{label}</p>
             <p className="text-2xl font-display text-[var(--amber)] mt-1">{value}</p>
           </div>
         ))}
       </div>
 
-      <section className="bg-[var(--surface)] border border-border rounded-xl p-5 mb-6">
+      <section className="bg-[var(--surface)] border border-border rounded-2xl p-5 mb-6 shadow-sm">
         <h2 className="font-heading font-bold">Adicionar à fila</h2>
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 mt-3">
           <input
@@ -224,7 +226,7 @@ export default function AdminVideosPage() {
         </form>
       </section>
 
-      <section className="bg-[var(--surface)] border border-border rounded-xl overflow-hidden">
+      <section className="bg-[var(--surface)] border border-border rounded-2xl overflow-hidden shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-border">
           <div>
             <h2 className="font-heading font-bold">Vídeos cadastrados</h2>

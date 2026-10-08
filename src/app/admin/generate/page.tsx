@@ -69,13 +69,16 @@ export default function AdminGeneratePage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl mb-6">Gerar Conteúdo</h1>
+      <header className="mb-7 rounded-2xl border border-border bg-[var(--surface)] p-6 lg:p-7 shadow-sm">
+        <span className="inline-flex rounded-full bg-[var(--amber-bg)] px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[var(--amber)]">Automação editorial</span>
+        <h1 className="mt-3 font-display text-3xl font-black tracking-tight lg:text-4xl">Gerar Conteúdo</h1>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">Acione o pipeline automático de conteúdo. O painel informa claramente quando a geração conclui, falha por conexão ou é bloqueada pela validação de qualidade.</p>
+      </header>
 
-      <div className="bg-[var(--surface)] border border-border rounded-xl p-6 max-w-xl">
-        <h2 className="font-heading text-sm font-bold tracking-wider uppercase text-[var(--muted)] mb-2">Geração Automática</h2>
-        <p className="text-sm text-[var(--muted)] mb-6 leading-relaxed">
-          Gere novos reviews e artigos virais usando IA. O processo pode levar
-          alguns minutos.
+      <div className="bg-[var(--surface)] border border-border rounded-2xl p-6 max-w-3xl shadow-sm">
+        <h2 className="font-heading text-lg font-black">Geração automática</h2>
+        <p className="text-sm text-[var(--muted)] mt-2 mb-6 leading-relaxed">
+          A rotina cria conteúdo usando as fontes configuradas no backend e só considera o trabalho concluído quando o servidor retorna sucesso.
         </p>
 
         <button
