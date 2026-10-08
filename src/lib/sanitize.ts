@@ -12,6 +12,7 @@ const ALLOWED_TAGS = new Set([
 const ALLOWED_ATTRS: Record<string, Set<string>> = {
   a: new Set(['href', 'title', 'target', 'rel']),
   img: new Set(['src', 'alt', 'width', 'height', 'loading']),
+  figure: new Set(['class']),
   td: new Set(['colspan', 'rowspan']),
   th: new Set(['colspan', 'rowspan']),
   div: new Set(['class', 'style']),

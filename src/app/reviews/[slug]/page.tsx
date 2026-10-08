@@ -369,6 +369,7 @@ export default async function ReviewPage({ params }: PageProps) {
 
   const toc = [
     { id: "resumo", label: "Resumo da análise" },
+    ...(!isGuia ? [{ id: "produto-analisado", label: "Produto analisado" }] : []),
     ...(buyingOffers.length > 0 ? [{ id: "onde-comprar", label: "Onde comprar" }] : []),
     { id: "criterios", label: isGuia ? "O que analisamos neste guia" : "O que analisamos" },
     ...sections.map((s) => ({ id: s.id, label: s.tocLabel || s.heading })),
@@ -529,6 +530,14 @@ export default async function ReviewPage({ params }: PageProps) {
                   )}
                 </div>
               </section>
+
+              {!isGuia && (
+                <section id="produto-analisado" className="review-featured-product" aria-labelledby="produto-analisado-heading">
+                  <div className="section-kicker">Decisão de compra</div>
+                  <h2 id="produto-analisado-heading">Produto analisado</h2>
+                  <BuyingChoiceCard review={review} rank={1} context="review" />
+                </section>
+              )}
 
               {!isGuia && buyingOffers.length > 0 && (
                 <BuyingEngine review={review} offers={buyingOffers} />
