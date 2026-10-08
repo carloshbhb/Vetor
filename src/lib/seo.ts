@@ -69,8 +69,6 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
     review.verdict_score > 0 ? review.verdict_score : review.hero_overall_score
   );
   const price = parseBRLPrice(review.price_new);
-  const reviewCount = Number(review.schema_review_count);
-
   const published = validIsoDate(review.created_at);
   const modified = validIsoDate(review.updated_at) || published;
   const schema: Record<string, unknown> = {
@@ -131,6 +129,7 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
       '@type': 'Rating',
       ratingValue: String(score),
       bestRating: '5',
+      worstRating: '0',
     };
   }
 
@@ -143,15 +142,8 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
     };
   }
 
-  if (score !== null && Number.isFinite(reviewCount) && reviewCount > 1) {
-    schema.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: String(score),
-      bestRating: '5',
-      ratingCount: String(reviewCount),
-    };
-  }
-
+  // A nota do Vetor é uma avaliação editorial única. Não há aggregateRating
+  // enquanto o site não publicar uma média real de múltiplas avaliações próprias.
   return schema;
 }
 
