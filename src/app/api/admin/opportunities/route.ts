@@ -4,6 +4,7 @@ import { fetchAllReviews, fetchAllViralArticles } from "@/lib/data";
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from "@/lib/buying";
 import { fetchSearchConsoleRows } from "@/lib/search-console";
 import { createSeoActionFingerprint } from "@/lib/seo-actions";
+import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -84,13 +85,67 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [reviews, articles, searchConsole] = await Promise.all([
+  const supabase = getSupabaseServiceKeyClient();
+  const [reviews, articles, searchConsole, keywordRows] = await Promise.all([
     fetchAllReviews(),
     fetchAllViralArticles(),
     fetchSearchConsoleRows(),
+    supabase
+      ? supabase
+          .from("seo_keywords")
+          .select("keyword,intent,opportunity_score,vetor_fit_score,commercial_score,competition_score,current_impressions,current_clicks,current_ctr,current_position,suggested_route,metadata")
+          .order("opportunity_score", { ascending: false })
+          .limit(200)
+      : Promise.resolve({ data: [], error: null }),
   ]);
+  if (keywordRows.error) {
+    console.error("[SEO] Could not load keyword intelligence:", keywordRows.error.message);
+  }
 
   const published = reviews.filter((review) => review.status === "published");
+
+  const validReviewSlugs = new Set(published.map((review) => review.slug));
+  const validGuideRoutes = new Set([
+    ...guides.map((guide) => "/melhores/" + guide.slug + "/"),
+    ...intents.map((item) => "/melhores/" + item.categorySlug + "/" + item.intent + "/"),
+  ]);
+  const keywordIntelligence = (keywordRows.data || [])
+    .map((row) => {
+      const route = row.suggested_route ? String(row.suggested_route) : "";
+      const normalized = normalizeText(String(row.keyword || ""));
+      const fit = Number(row.vetor_fit_score || 0);
+      const opportunity = Number(row.opportunity_score || 0);
+      const routeExists =
+        (route.startsWith("/reviews/") && validReviewSlugs.has(route.split("/")[2] || "")) ||
+        validGuideRoutes.has(route);
+      const stale = /\b2025\b|\b2024\b/.test(normalized);
+      const relevant = !stale && fit >= 70 && opportunity >= 35 && (routeExists || fit >= 82);
+      const reason = stale
+        ? "Termo temporal antigo; não priorizar como pauta nova."
+        : routeExists
+          ? "Há uma rota editorial válida no inventário do Vetor."
+          : fit >= 82
+            ? "Aderência forte à cobertura comercial do Vetor; validar SERP antes de criar URL."
+            : "Aderência insuficiente para priorização.";
+      return {
+        keyword: String(row.keyword || ""),
+        intent: String(row.intent || ""),
+        opportunityScore: opportunity,
+        vetorFitScore: fit,
+        commercialScore: Number(row.commercial_score || 0),
+        competitionScore: Number(row.competition_score || 0),
+        impressions: Number(row.current_impressions || 0),
+        clicks: Number(row.current_clicks || 0),
+        ctr: Number(row.current_ctr || 0),
+        position: row.current_position == null ? null : Number(row.current_position),
+        suggestedRoute: route,
+        routeExists,
+        relevant,
+        reason,
+      };
+    })
+    .filter((item) => item.relevant)
+    .slice(0, 40);
   const guides = buildBuyingGuideCategories(reviews, 3);
   const intents = buildBuyingIntentPages(reviews, 4);
   const intentSet = new Set(
@@ -569,6 +624,12 @@ export async function GET(request: Request) {
     contentOpportunities: {
       thinCategories,
       missingIntent,
+    },
+    keywordIntelligence: {
+      totalStored: keywordRows.data?.length || 0,
+      relevant: keywordIntelligence.length,
+      lowFit: Math.max(0, (keywordRows.data?.length || 0) - keywordIntelligence.length),
+      items: keywordIntelligence,
     },
   });
 }
