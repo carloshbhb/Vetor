@@ -26,8 +26,131 @@ export function normalizeCategoryName(value: string): string {
   return CATEGORY_ALIASES[key] || value.trim();
 }
 
+const EDITORIAL_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/\\bEm nossos testes\\b/g, 'Na análise'],
+  [/\\bNos nossos testes\\b/g, 'Na análise'],
+  [/\\bem nossos testes\\b/g, 'na análise'],
+  [/\\bnos nossos testes\\b/g, 'na análise'],
+  [/\\bTestamos\\b/g, 'Analisamos'],
+  [/\\btestamos\\b/g, 'analisamos'],
+  [/\\bMedimos\\b/g, 'Avaliamos'],
+  [/\\bmedimos\\b/g, 'avaliamos'],
+  [/\\bbenchmark feito por nós\\b/gi, 'benchmark de referência'],
+  [/\\bbenchmark feito por nos\\b/gi, 'benchmark de referência'],
+];
+
+function cleanReviewEditorialText(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  return EDITORIAL_REPLACEMENTS.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), value);
+}
+
+function normalizeScore(value: unknown, fallback = 0): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(10, Math.max(0, Math.round(n * 10) / 10));
+}
+
+function normalizeReviewContent(review: Review): Review {
+  const heroScore = normalizeScore(review.hero_overall_score);
+  const verdictScore = normalizeScore(review.verdict_score, heroScore);
+
+  const heroBars = Array.isArray(review.hero_bars)
+    ? review.hero_bars.map((bar) => {
+        const value = normalizeScore(bar?.value);
+        return {
+          ...bar,
+          label: cleanReviewEditorialText(String(bar?.label ?? '')).trim(),
+          value,
+          pct: Math.round(value * 10),
+        };
+      })
+    : [];
+
+  const specs = Array.isArray(review.specs)
+    ? review.specs.map((spec) => ({
+        ...spec,
+        label: cleanReviewEditorialText(String(spec?.label ?? '')).trim(),
+        value: cleanReviewEditorialText(String(spec?.value ?? '')).trim(),
+      }))
+    : [];
+
+  const sections = Array.isArray(review.sections)
+    ? review.sections.map((section, index) => ({
+        ...section,
+        id: cleanReviewEditorialText(section.id || `section-${index + 1}`).trim(),
+        heading: cleanReviewEditorialText(section.heading).trim(),
+        tocEmoji: cleanReviewEditorialText(section.tocEmoji).trim(),
+        tocLabel: cleanReviewEditorialText(section.tocLabel).trim(),
+        content: cleanReviewEditorialText(section.content),
+      }))
+    : [];
+
+  const compare = review.compare_table;
+  const columns = Array.isArray(compare?.columns)
+    ? compare.columns.map((column) => cleanReviewEditorialText(column).trim())
+    : [];
+  const compareRows = Array.isArray(compare?.rows)
+    ? compare.rows.map((row) => {
+        const values = Array.isArray(row?.values)
+          ? row.values.map((value) => cleanReviewEditorialText(String(value ?? '')).trim())
+          : [];
+        const winner =
+          Number.isInteger(row?.winner) && row.winner >= 0 && row.winner < values.length
+            ? row.winner
+            : -1;
+        return {
+          ...row,
+          feature: cleanReviewEditorialText(String(row?.feature ?? '')).trim(),
+          values,
+          winner,
+        };
+      })
+    : [];
+  const winnerCol =
+    Number.isInteger(compare?.winnerCol) &&
+    compare.winnerCol >= 0 &&
+    compare.winnerCol < columns.length
+      ? compare.winnerCol
+      : 0;
+
+  return {
+    ...review,
+    meta_title: cleanReviewEditorialText(review.meta_title).trim(),
+    meta_description: cleanReviewEditorialText(review.meta_description).trim(),
+    hero_lead: cleanReviewEditorialText(review.hero_lead).trim(),
+    hero_headline_line1: cleanReviewEditorialText(review.hero_headline_line1).trim(),
+    hero_headline_line2: cleanReviewEditorialText(review.hero_headline_line2).trim(),
+    hero_headline_em: cleanReviewEditorialText(review.hero_headline_em).trim(),
+    hero_overall_score: heroScore,
+    verdict_score: verdictScore,
+    verdict_label: cleanReviewEditorialText(review.verdict_label).trim(),
+    verdict_text: cleanReviewEditorialText(review.verdict_text).trim(),
+    verdict_note: cleanReviewEditorialText(review.verdict_note).trim(),
+    hero_bars: heroBars,
+    specs,
+    sections,
+    pros: (review.pros || []).map((item) => cleanReviewEditorialText(item).trim()).filter(Boolean),
+    cons: (review.cons || []).map((item) => cleanReviewEditorialText(item).trim()).filter(Boolean),
+    faq: (review.faq || []).map((item) => ({
+      ...item,
+      question: cleanReviewEditorialText(item.question).trim(),
+      answer: cleanReviewEditorialText(item.answer).trim(),
+    })),
+    compare_table: {
+      ...compare,
+      columns,
+      rows: compareRows,
+      caption: cleanReviewEditorialText(compare?.caption || '').trim(),
+      winnerCol,
+    },
+    schema_rating_value: Math.round((verdictScore / 2) * 10) / 10,
+    schema_review_count: 0,
+  };
+}
+
 function normalizeReviewCategory(review: Review): Review {
-  return { ...review, category: normalizeCategoryName(review.category) };
+  const normalized = normalizeReviewContent(review);
+  return { ...normalized, category: normalizeCategoryName(normalized.category) };
 }
 
 function normalizeStaticReviews(): Review[] {
