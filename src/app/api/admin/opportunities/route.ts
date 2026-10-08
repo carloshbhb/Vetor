@@ -103,6 +103,12 @@ export async function GET(request: Request) {
   }
 
   const published = reviews.filter((review) => review.status === "published");
+  const guides = buildBuyingGuideCategories(reviews, 3);
+  const intents = buildBuyingIntentPages(reviews, 4);
+  const intentSet = new Set(
+    intents.map((item) => item.categorySlug + ":" + item.intent)
+  );
+
 
   const validReviewSlugs = new Set(published.map((review) => review.slug));
   const validGuideRoutes = new Set([
@@ -146,12 +152,6 @@ export async function GET(request: Request) {
     })
     .filter((item) => item.relevant)
     .slice(0, 40);
-  const guides = buildBuyingGuideCategories(reviews, 3);
-  const intents = buildBuyingIntentPages(reviews, 4);
-  const intentSet = new Set(
-    intents.map((item) => item.categorySlug + ":" + item.intent)
-  );
-
   const querySummary = new Map<string, SummaryItem>();
   const pageSummary = new Map<string, SummaryItem>();
   const queryPages = new Map<string, Map<string, SummaryItem>>();
