@@ -140,29 +140,40 @@ export default function MercadoLivreAdminPage() {
     }
   };
 
-  const processAll = async () => {
+  const processAll = async (refresh = false) => {
     setProcessing(true);
     setError("");
     setNotice("");
     try {
       let completed = 0;
+      const attemptedIds = new Set<string>();
       for (let i = 0; i < 100; i += 1) {
         const response = await fetch("/api/admin/mercadolivre/batch", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ limit: 8 }),
+          body: JSON.stringify({ limit: 8, refresh }),
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || "Falha durante a busca.");
-        completed += Number(payload.processed || 0);
-        if (Array.isArray(payload.results) && payload.results.length) {
-          setLastBatch((current) => [...current, ...payload.results].slice(-8));
-        }
-        if (!payload.processed) break;
-        setNotice(completed + " links pesquisados nesta execução...");
+
+        const batchResults = Array.isArray(payload.results)
+          ? (payload.results as BatchResult[])
+          : [];
+        const freshResults = batchResults.filter((item) => !attemptedIds.has(String(item.id)));
+        batchResults.forEach((item) => attemptedIds.add(String(item.id)));
+        if (batchResults.length) setLastBatch(batchResults.slice(-8));
+
+        if (!payload.processed || !freshResults.length) break;
+        completed += freshResults.length;
+        setNotice(completed + " produtos únicos pesquisados nesta execução...");
       }
       await loadStatus();
-      setNotice(completed + " links pesquisados nesta execução.");
+      setNotice(
+        completed +
+          (refresh
+            ? " produtos reprocessados com a validação corrigida."
+            : " links pesquisados nesta execução.")
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "A execução em lote foi interrompida.");
       await loadStatus();
@@ -273,11 +284,19 @@ export default function MercadoLivreAdminPage() {
               {processing ? "Pesquisando..." : "Buscar novamente"}
             </button>
             <button
-              onClick={processAll}
+              onClick={() => processAll()}
               disabled={processing || !authorized || !status?.remaining}
               className="bg-[var(--green)] text-black font-heading font-extrabold px-4 py-2.5 rounded-xl hover:bg-white disabled:opacity-50"
             >
               {processing ? "Executando..." : "Processar os restantes"}
+            </button>
+            <button
+              onClick={() => processAll(true)}
+              disabled={processing || !authorized}
+              className="border border-[var(--amber)]/40 text-[var(--amber)] px-4 py-2.5 rounded-xl text-sm hover:bg-[var(--surface2)] disabled:opacity-50"
+              title="Reconsulta todos os produtos já pesquisados, começando pelos registros mais antigos."
+            >
+              {processing ? "Executando..." : "Reprocessar toda a fila"}
             </button>
           </div>
         </div>

@@ -60,7 +60,10 @@ export async function GET(request: Request) {
   const relevantMatches = (matches || []).filter((match) => mlLinkIds.has(String(match.affiliate_link_id)));
   const checkedIds = new Set(
     relevantMatches
-      .filter((match) => Boolean(match.checked_at))
+      .filter((match) =>
+        Boolean(match.checked_at) &&
+        ["matched", "review", "no_match"].includes(String(match.match_status || ""))
+      )
       .map((match) => String(match.affiliate_link_id))
   );
 
@@ -106,7 +109,7 @@ export async function POST(request: Request) {
       .order("name"),
     supabase
       .from("affiliate_link_ml_matches")
-      .select("affiliate_link_id,checked_at"),
+      .select("affiliate_link_id,checked_at,match_status,updated_at"),
   ]);
 
   if (linksError) return NextResponse.json({ error: linksError.message }, { status: 500 });
@@ -116,20 +119,28 @@ export async function POST(request: Request) {
   const eligibleLinkIds = new Set(eligibleLinks.map((link) => String(link.id)));
   const checkedIds = new Set(
     (matches || [])
-      .filter((row) => Boolean(row.checked_at) && eligibleLinkIds.has(String(row.affiliate_link_id)))
+      .filter((row) =>
+        Boolean(row.checked_at) &&
+        ["matched", "review", "no_match"].includes(String(row.match_status || "")) &&
+        eligibleLinkIds.has(String(row.affiliate_link_id))
+      )
       .map((row) => String(row.affiliate_link_id))
+  );
+  const matchByLinkId = new Map(
+    (matches || []).map((row) => [String(row.affiliate_link_id), row])
   );
 
   const selected = eligibleLinks
     .filter((link) => refresh || !checkedIds.has(String(link.id)))
     .sort((a, b) => {
-      // Prioritize products mentioned in published comparisons that still lack
-      // an affiliate destination. Searching them first prevents the existing
-      // marketplace links from starving this backlog.
+      if (refresh) {
+        const aCheckedAt = Date.parse(String(matchByLinkId.get(String(a.id))?.checked_at || "")) || 0;
+        const bCheckedAt = Date.parse(String(matchByLinkId.get(String(b.id))?.checked_at || "")) || 0;
+        if (aCheckedAt !== bCheckedAt) return aCheckedAt - bCheckedAt;
+      }
       const pendingPriority =
         Number(isPendingComparisonProduct(b)) - Number(isPendingComparisonProduct(a));
       if (pendingPriority !== 0) return pendingPriority;
-
       const priorityDifference = Number(b.priority || 0) - Number(a.priority || 0);
       if (priorityDifference !== 0) return priorityDifference;
       return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR");
@@ -189,7 +200,7 @@ export async function POST(request: Request) {
       id: link.id,
       slug: link.slug,
       name: link.name,
-      ok: !error,
+      ok: !error && result.matchStatus !== "error",
       matchStatus: result.matchStatus,
       matchedTitle: selectedCandidate?.title || null,
       matchedUrl: selectedCandidate?.url || null,

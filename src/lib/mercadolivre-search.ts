@@ -133,10 +133,156 @@ function brandMatches(query: string, title: string): boolean {
   const qTokens = tokens(query);
   const tTokens = new Set(tokens(title));
   const brand = qTokens.find((token) =>
-    ["acer","mondial","midea","amazon","samsung","xiaomi","jbl","sony","philco","electrolux","lg","motorola","apple","lenovo","asus","dell","hp"].includes(token)
+    [
+      "acer", "akko", "amazon", "anker", "apple", "arno", "asus", "audient",
+      "behringer", "bose", "brastemp", "britania", "consul", "dell", "dji",
+      "dt3sports", "dreame", "easysmx", "edifier", "elgin", "elsys",
+      "electrolux", "ezviz", "focusrite", "gamesir", "geonav", "google",
+      "haylou", "hp", "hyperx", "i2go", "intelbras", "jbl", "lenovo",
+      "liectroux", "logitech", "mondial", "motorola", "midea", "microsoft",
+      "m-audio", "nintendo", "oster", "philco", "philips", "pichau", "positivo",
+      "powera", "pulsar", "qcy", "razer", "redragon", "roborock", "rode",
+      "royal", "scuf", "samsung", "sonoff", "sony", "soundpeats", "steelseries",
+      "thunderx3", "tp", "link", "xiaomi", "yeelight", "xbox", "ipega", "irobot"
+    ].includes(token)
   );
   return !brand || tTokens.has(brand);
 }
+
+const ACCESSORY_MARKERS: Array<{ pattern: RegExp; label: string }> = [
+  { pattern: /\bcarregadores?\b/, label: "carregador" },
+  { pattern: /\bcabos?\b/, label: "cabo" },
+  { pattern: /\bcapas?\b|\bcapinhas?\b|\bcases?\b/, label: "capa/case" },
+  { pattern: /\bpeliculas?\b/, label: "película" },
+  { pattern: /\bpecas?\b|\breposicao\b|\bkit de reparo\b|\breparo\b/, label: "peça ou item de reposição" },
+  { pattern: /\bdobradicas?\b|\bconectores?\b|\bconector de carga\b|\bpower jack\b/, label: "componente" },
+  { pattern: /\bescovas?\b|\bcestos?\b|\bfiltros?\b/, label: "peça de reposição" },
+  { pattern: /\bsuportes?\b|\bbase de mesa\b|\bbraco articulado\b/, label: "suporte" },
+  { pattern: /\bcanetas?\b|\bstylus\b/, label: "caneta/acessório" },
+  { pattern: /\btransmissores?\b/, label: "transmissor avulso" },
+  { pattern: /\bcopos? (?:de|para) liquidificador\b|\bcopos? liquidificador\b/, label: "peça de liquidificador" },
+  { pattern: /\bbotoes? (?:para|de)\b/, label: "botão de reposição" },
+  { pattern: /\bmouse para\b|\bteclado para\b|\bmicrofone para fones\b/, label: "acessório compatível" },
+  { pattern: /\bcompat[ií]vel com\b|\bcompativel com\b/, label: "item compatível/acessório" },
+  { pattern: /\bkit\s+\d+\s+(?:lampadas?|unidades?)\b/, label: "kit com várias unidades" },
+];
+
+const VARIANT_MARKERS = [
+  "neo", "pro", "plus", "max", "mini", "lite", "ultra", "fe", "se", "kids", "x",
+  "mkii", "mk2", "gen2", "gen3", "gen4", "gen5",
+];
+
+function isPlaceholderQuery(query: string): boolean {
+  const q = normalize(query);
+  return [
+    "nome deste produto",
+    "nome do produto",
+    "produto sem nome",
+    "produto exemplo",
+    "produto teste",
+    "item sem nome",
+  ].includes(q);
+}
+
+function accessoryMismatchReason(query: string, title: string): string | null {
+  const normalizedQuery = normalize(query);
+  const normalizedTitle = normalize(title);
+
+  for (const marker of ACCESSORY_MARKERS) {
+    if (marker.pattern.test(normalizedTitle) && !marker.pattern.test(normalizedQuery)) {
+      return 'o título parece descrever "' + marker.label + '", não o produto completo solicitado';
+    }
+  }
+
+  return null;
+}
+
+function variantMismatchReason(query: string, title: string): string | null {
+  const normalizedQuery = normalize(query);
+  const normalizedTitle = normalize(title);
+
+  const queryGeneration = normalizedQuery.match(
+    /\b(\d+)(?:a|o|st|nd|rd|th)?\s*(?:geracao|gen|generation)\b|\b(?:gen|generation)\s*(\d+)\b/
+  );
+  const titleGeneration = normalizedTitle.match(
+    /\b(\d+)(?:a|o|st|nd|rd|th)?\s*(?:geracao|gen|generation)\b|\b(?:gen|generation)\s*(\d+)\b/
+  );
+  const queryGen = queryGeneration ? Number(queryGeneration[1] || queryGeneration[2]) : null;
+  const titleGen = titleGeneration ? Number(titleGeneration[1] || titleGeneration[2]) : null;
+  if (queryGen !== null && titleGen !== null && queryGen !== titleGen) {
+    return "a geração indicada no anúncio é " + titleGen + ", mas a pesquisa pede a geração " + queryGen;
+  }
+
+  const queryMarkers = VARIANT_MARKERS.filter((marker) =>
+    new RegExp("\\b" + marker + "\\b", "i").test(normalizedQuery)
+  );
+  const titleMarkers = VARIANT_MARKERS.filter((marker) =>
+    new RegExp("\\b" + marker + "\\b", "i").test(normalizedTitle)
+  );
+
+  const missingRequested = queryMarkers.find((marker) => !titleMarkers.includes(marker));
+  if (missingRequested) {
+    return 'a variante "' + missingRequested + '" solicitada não aparece no título do anúncio';
+  }
+
+  const unexpectedVariant = titleMarkers.find((marker) => !queryMarkers.includes(marker));
+  if (unexpectedVariant) {
+    return 'o anúncio indica a variante "' + unexpectedVariant + '", que não consta no nome pesquisado';
+  }
+
+  return null;
+}
+
+function candidateMismatchReason(query: string, title: string): string | null {
+  const accessoryReason = accessoryMismatchReason(query, title);
+  if (accessoryReason) return accessoryReason;
+
+  const variantReason = variantMismatchReason(query, title);
+  if (variantReason) return variantReason;
+
+  if (!brandMatches(query, title)) {
+    return "a marca do anúncio não coincide claramente com a marca pesquisada";
+  }
+
+  if (!capacityMatches(query, title)) {
+    return "a capacidade indicada no anúncio difere da capacidade solicitada";
+  }
+
+  const modelIds = tokens(query).filter((token) =>
+    /^(?=.*[a-z])(?=.*\d)[a-z0-9]{3,}$/i.test(token)
+  );
+  const titleTokens = new Set(tokens(title));
+  const missingModelId = modelIds.find((model) => !titleTokens.has(model));
+  if (missingModelId) {
+    return 'o código/modelo "' + missingModelId + '" não aparece como código completo no título do anúncio';
+  }
+
+  // Evita confundir modelos com sufixo explícito, por exemplo NT1 e NT1-A.
+  // Um sufixo de uma letra separado por hífen passa a ser um token após a normalização.
+  const normalizedTitle = normalize(title);
+  for (const model of modelIds) {
+    const suffixMatch = normalizedTitle.match(
+      new RegExp("\\b" + model + "\\s+([a-z])\\b", "i")
+    );
+    const suffix = suffixMatch?.[1];
+    if (suffix && !modelIds.includes(model + suffix)) {
+      return 'o anúncio parece usar o modelo "' + model.toUpperCase() + "-" + suffix.toUpperCase() +
+        '", diferente do código pesquisado';
+    }
+  }
+
+  return null;
+}
+
+function catalogRelevanceScore(query: string, title: string): number {
+  let score = matchScore(query, title);
+  if (accessoryMismatchReason(query, title)) score -= 0.65;
+  if (variantMismatchReason(query, title)) score -= 0.28;
+  if (!brandMatches(query, title)) score -= 0.25;
+  if (!capacityMatches(query, title)) score -= 0.25;
+  return score;
+}
+
 
 function matchScore(query: string, title: string): number {
   const q = tokens(query);
@@ -168,7 +314,11 @@ function matchScore(query: string, title: string): number {
 }
 
 function stableQuery(value: string): string {
-  return value.replace(/\s+/g, " ").trim().slice(0, 180);
+  return value
+    .replace(/\s*\(?\s*concorrente\s*\d+\s*\)?/ig, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180);
 }
 
 let lastMLRequestAt = 0;
@@ -196,7 +346,13 @@ async function fetchMercadoLivre(
   for (let attempt = 0; attempt < 4; attempt += 1) {
     await waitForMLRateLimit();
 
-    const response = await fetch(input, init);
+    let response: Response;
+    try {
+      response = await fetch(input, init);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "erro de rede não identificado";
+      throw new Error("Falha de rede na consulta Mercado Livre (" + label + "): " + message.slice(0, 180));
+    }
 
     if (response.status !== 429 || attempt === 3) {
       return response;
@@ -249,7 +405,23 @@ async function requestProductSearch(query: string, accessToken: string): Promise
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    throw new Error("Mercado Livre " + response.status + (body ? ": " + body.slice(0, 300) : ""));
+    let detail = "";
+    try {
+      const payload = JSON.parse(body) as Record<string, unknown>;
+      detail = [
+        payload.message,
+        payload.error,
+        payload.code,
+        payload.blocked_by,
+      ].filter((value) => typeof value === "string" && value.trim()).join(" / ");
+    } catch {
+      detail = body.slice(0, 160);
+    }
+    throw new Error(
+      "Mercado Livre catálogo /products/search HTTP " +
+        response.status +
+        (detail ? " (" + detail.slice(0, 180) + ")" : "")
+    );
   }
 
   return response.json() as Promise<MLProductSearchResponse>;
@@ -284,154 +456,64 @@ function catalogSearchVariants(query: string): string[] {
     variants.add("Acer Nitro V 15");
   }
 
-  return Array.from(variants).slice(0, 3);
+  const withoutEditorialCategory = normalized
+    .replace(/\b(?:air fryer|fritadeira sem oleo|fritadeira|aspirador robo|smart lampada|lampada inteligente)\b/ig, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (withoutEditorialCategory.length >= 4 && withoutEditorialCategory !== normalized) {
+    variants.add(withoutEditorialCategory);
+  }
+
+  return Array.from(variants).slice(0, 4);
 }
+
+
+
+type CatalogSearchBatch = {
+  results: MLProductSearchItem[];
+  diagnostics: string[];
+};
 
 async function requestCatalogSearchVariants(
   query: string,
   accessToken: string
-): Promise<MLProductSearchItem[]> {
+): Promise<CatalogSearchBatch> {
   const unique = new Map<string, MLProductSearchItem>();
+  const diagnostics: string[] = [];
+  let successfulVariants = 0;
 
   for (const variant of catalogSearchVariants(query)) {
-    const payload = await requestProductSearch(variant, accessToken);
-    for (const item of Array.isArray(payload.results) ? payload.results : []) {
-      const id = String(item.id || "").trim();
-      if (id && !unique.has(id)) unique.set(id, item);
+    try {
+      const payload = await requestProductSearch(variant, accessToken);
+      successfulVariants += 1;
+      for (const item of Array.isArray(payload.results) ? payload.results : []) {
+        const id = String(item.id || "").trim();
+        if (id && !unique.has(id)) unique.set(id, item);
+      }
+    } catch (error) {
+      diagnostics.push(
+        error instanceof Error ? error.message : "Falha não identificada na busca de catálogo."
+      );
     }
   }
 
-  return Array.from(unique.values())
-    .sort((a, b) => matchScore(query, String(b.name || "")) - matchScore(query, String(a.name || "")))
-    .slice(0, 6);
-}
-
-function publicSearchVariants(query: string): string[] {
-  const variants = new Set<string>();
-  const normalized = stableQuery(query);
-
-  variants.add(normalized);
-
-  if (/\b5[.,]5\s*l\b/i.test(normalized) && /\bmondial\b/i.test(normalized)) {
-    variants.add("Mondial AF55I 5,5L");
-    variants.add("Mondial AF55I 5.5L");
-    variants.add("Fritadeira Mondial AF55I 5,5L");
-  }
-
-  if (/\bnitro\s+v\s*15\b/i.test(normalized)) {
-    variants.add("Acer Nitro V15");
-    variants.add("Acer Nitro V 15");
-  }
-
-  const compact = normalized
-    .replace(/\bair fryer\b/ig, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (compact && compact !== normalized) variants.add(compact);
-
-  const commaDecimal = normalized.replace(/(\d+)\.(\d+)\s*l/gi, "$1,$2L");
-  if (commaDecimal !== normalized) variants.add(commaDecimal);
-
-  return Array.from(variants).slice(0, 3);
-}
-
-async function requestPublicItemSearch(
-  query: string,
-  accessToken: string
-): Promise<MLMatchCandidate[]> {
-  const params = new URLSearchParams({
-    q: query,
-    limit: "20",
-  });
-
-  try {
-    const response = await fetchMercadoLivre(
-      ML_API + "/sites/" + SITE_ID + "/search?" + params.toString(),
-      {
-        headers: {
-          Authorization: "Bearer " + accessToken,
-          Accept: "application/json",
-        },
-        cache: "no-store",
-      },
-      "public item search"
+  if (successfulVariants === 0) {
+    throw new Error(
+      diagnostics.length
+        ? Array.from(new Set(diagnostics)).join(" | ").slice(0, 500)
+        : "Nenhuma variante de busca pôde ser consultada no catálogo do Mercado Livre."
     );
-
-    if (response.status === 429) {
-      return [];
-    }
-
-    if (!response.ok) return [];
-
-    const payload = (await response.json()) as MLItemSearchResponse;
-    return (Array.isArray(payload.results) ? payload.results : [])
-      .map((item): MLMatchCandidate | null => {
-        const itemId = String(item.id || "").trim();
-        const title = String(item.title || "").trim();
-        if (!itemId || !title) return null;
-
-        return {
-          productId: String(item.catalog_product_id || "").trim(),
-          itemId,
-          title,
-          url:
-            String(item.permalink || "").trim() ||
-            ("https://produto.mercadolivre.com.br/" + itemId),
-          soldQuantity: Number.isFinite(Number(item.sold_quantity))
-            ? Number(item.sold_quantity)
-            : 0,
-          price: Number.isFinite(Number(item.price)) ? Number(item.price) : null,
-          categoryId: item.category_id ? String(item.category_id) : null,
-          condition: item.condition ? String(item.condition) : null,
-          sellerId: item.seller?.id == null ? null : Number(item.seller.id),
-          score: matchScore(query, title),
-          isBuyBoxWinner: false,
-        };
-      })
-      .filter((item): item is MLMatchCandidate => Boolean(item));
-  } catch {
-    return [];
-  }
-}
-
-async function requestPublicItemSearchVariants(
-  query: string,
-  accessToken: string
-): Promise<MLMatchCandidate[]> {
-  const unique = new Map<string, MLMatchCandidate>();
-
-  // Sequential on purpose: Mercado Livre rate-limits bursts from one origin.
-  for (const variant of publicSearchVariants(query)) {
-    const candidates = await requestPublicItemSearch(variant, accessToken);
-
-    for (const candidate of candidates) {
-      if (!candidate.itemId) continue;
-
-      const originalScore = matchScore(query, candidate.title);
-      const variantScore = matchScore(variant, candidate.title);
-      const scored = { ...candidate, score: Math.max(originalScore, variantScore) };
-
-      const existing = unique.get(candidate.itemId);
-      if (!existing || scored.score > existing.score) {
-        unique.set(candidate.itemId, scored);
-      }
-    }
-
-    const best = Array.from(unique.values())
-      .sort((a, b) => b.score - a.score)[0];
-
-    if (best && best.score >= 0.78) break;
   }
 
-  return Array.from(unique.values())
-    .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      if ((a.price ?? Infinity) !== (b.price ?? Infinity)) {
-        return (a.price ?? Infinity) - (b.price ?? Infinity);
-      }
-      return b.soldQuantity - a.soldQuantity;
-    })
-    .slice(0, 20);
+  return {
+    results: Array.from(unique.values())
+      .sort((a, b) =>
+        catalogRelevanceScore(query, String(b.name || "")) -
+        catalogRelevanceScore(query, String(a.name || ""))
+      )
+      .slice(0, 12),
+    diagnostics: Array.from(new Set(diagnostics)),
+  };
 }
 
 async function requestProductDetail(productId: string, accessToken: string): Promise<MLProductDetail> {
@@ -605,21 +687,32 @@ export async function searchMercadoLivreProduct(
   sourceUrl?: string
 ): Promise<MLSearchResult> {
   const query = stableQuery(rawQuery);
+
   if (!query) {
     return {
       query,
       candidates: [],
       selected: null,
       matchStatus: "no_match",
-      errorMessage: "Busca vazia.",
+      errorMessage: "Busca vazia; nenhum pedido foi enviado à API.",
+    };
+  }
+
+  if (isPlaceholderQuery(query)) {
+    return {
+      query,
+      candidates: [],
+      selected: null,
+      matchStatus: "review",
+      errorMessage: 'Cadastro genérico ("' + query + '"). Corrija o nome do produto antes de buscar.',
     };
   }
 
   try {
     const accessToken = await getValidAccessToken();
 
-    // Prioridade máxima: quando a Central já guarda um link meli.la,
-    // resolvemos o anúncio exato e consultamos /items/{ITEM_ID}.
+    // Link existente: resolve e consulta o ITEM_ID, mas nunca ignora a validação
+    // de acessórios, variante, marca, capacidade e modelo.
     if (sourceUrl) {
       const directItemId = await resolveToMLBItemId(sourceUrl);
       if (directItemId) {
@@ -628,9 +721,11 @@ export async function searchMercadoLivreProduct(
           const candidate = candidateFromItem(item, query);
 
           if (candidate) {
+            const mismatch = candidateMismatchReason(query, candidate.title);
             const confident =
-              candidate.score >= 0.78 ||
-              normalize(item.title || "").includes(normalize(query));
+              !mismatch &&
+              candidate.score >= 0.84 &&
+              Boolean(candidate.itemId);
 
             return {
               query,
@@ -639,173 +734,184 @@ export async function searchMercadoLivreProduct(
               matchStatus: confident ? "matched" : "review",
               errorMessage: confident
                 ? null
-                : "Anúncio identificado pelo link existente, mas o título tem baixa similaridade; revisão manual recomendada.",
+                : "O anúncio do link existente não foi validado automaticamente: " +
+                  (mismatch || "similaridade insuficiente; revisão manual recomendada."),
             };
           }
-        } catch {
-          // Link curto pode apontar para anúncio encerrado; use a busca atual.
+        } catch (error) {
+          // Um link antigo/encerrado não impede a pesquisa por catálogo.
+          console.warn(
+            "[MercadoLivre] Não foi possível confirmar link de origem:",
+            error instanceof Error ? error.message : "erro não identificado"
+          );
         }
       }
     }
 
-    // Public item search returns active marketplace listings directly.
-    // Prefer it over expanding many catalog products; this avoids bursts and
-    // gives the admin a real ITEM_ID for the affiliate mapping.
-    const directCandidates = await requestPublicItemSearchVariants(query, accessToken);
+    const catalogBatch = await requestCatalogSearchVariants(query, accessToken);
+    const catalogRows = catalogBatch.results;
 
-    const strongDirect = directCandidates.find((candidate) => candidate.score >= 0.62);
-
-    if (strongDirect) {
-      const modelMatch = explicitModelMatch(query, strongDirect.title);
-      const confident =
-        strongDirect.score >= 0.84 ||
-        (modelMatch && strongDirect.score >= 0.72) ||
-        normalize(strongDirect.title).includes(normalize(query));
-
+    if (!catalogRows.length) {
+      const diagnostic = catalogBatch.diagnostics.length
+        ? " Algumas variantes falharam: " + catalogBatch.diagnostics.join(" | ")
+        : "";
       return {
         query,
-        candidates: directCandidates,
-        selected: strongDirect,
-        matchStatus: confident ? "matched" : "review",
-        errorMessage: confident
-          ? null
-          : "Anúncio ativo encontrado, mas a similaridade exige revisão.",
+        candidates: [],
+        selected: null,
+        matchStatus: catalogBatch.diagnostics.length ? "error" : "no_match",
+        errorMessage:
+          (catalogBatch.diagnostics.length
+            ? "A busca ficou incompleta por erro em uma ou mais consultas da API. "
+            : "A busca oficial de catálogo respondeu sem produto ativo para esta consulta. ") +
+          "Isso não prova que não existam anúncios tradicionais fora do catálogo; confira a busca manual e os identificadores." +
+          diagnostic,
       };
     }
 
-    const catalogRows = await requestCatalogSearchVariants(query, accessToken);
-
-    const rows = catalogRows;
-
-    // /sites/MLB/search is returning 403 for this integration. The supported
-    // Product Search API returns catalog products; their detail exposes the
-    // current buy-box item, sold quantity and permalink when available.
-    const productRows = rows
+    const productRows = catalogRows
       .map((item) => ({
         productId: String(item.id || "").trim(),
         title: String(item.name || "").trim(),
         productUrl: String(item.permalink || "").trim(),
       }))
-      .filter((item) => item.productId && item.title);
+      .filter((item) => item.productId && item.title)
+      .sort((a, b) =>
+        catalogRelevanceScore(query, b.title) -
+        catalogRelevanceScore(query, a.title)
+      );
 
-    const detailed = await Promise.all(
-      productRows.slice(0, 12).map(async (row) => {
-        try {
-          return { row, detail: await requestProductDetail(row.productId, accessToken) };
-        } catch {
-          return { row, detail: null };
-        }
-      })
-    );
+    // Sequencial e limitado: evita bursts de 12 chamadas simultâneas que
+    // podem disparar throttling e produzir falsos "sem resultado".
+    const detailed: Array<{
+      row: { productId: string; title: string; productUrl: string };
+      detail: MLProductDetail;
+    }> = [];
+    const detailErrors: string[] = [];
 
-    const candidateGroups = await Promise.all(
-      detailed.map(async ({ row, detail }) => {
-        if (!detail) return [];
+    for (const row of productRows.slice(0, 6)) {
+      try {
+        detailed.push({ row, detail: await requestProductDetail(row.productId, accessToken) });
+      } catch (error) {
+        detailErrors.push(
+          error instanceof Error ? error.message : "Falha ao consultar detalhes de produto do catálogo."
+        );
+      }
+    }
+
+    const candidates: MLMatchCandidate[] = [];
+    for (const { row, detail } of detailed) {
+      try {
+        let expanded: MLMatchCandidate[] = [];
 
         if (detail.buy_box_winner?.item_id) {
-          return expandMercadoLivreCandidates(
+          expanded = await expandMercadoLivreCandidates(
             row,
             detail,
             query,
             accessToken,
             matchScore
           );
+        } else {
+          const childWinner = await findChildBuyBoxCandidate(detail, query, accessToken);
+          expanded = childWinner
+            ? [childWinner]
+            : await expandMercadoLivreCandidates(
+                row,
+                detail,
+                query,
+                accessToken,
+                matchScore
+              );
         }
 
-        const childWinner = await findChildBuyBoxCandidate(
-          detail,
-          query,
-          accessToken
+        candidates.push(...expanded);
+      } catch (error) {
+        detailErrors.push(
+          error instanceof Error ? error.message : "Falha ao verificar anúncios associados ao catálogo."
         );
-
-        if (childWinner) return [childWinner];
-
-        return expandMercadoLivreCandidates(
-          row,
-          detail,
-          query,
-          accessToken,
-          matchScore
-        );
-      })
-    );
-
-    let candidates = candidateGroups.flat();
-
-    // Último fallback: a busca pública de itens lista anúncios ativos diretamente.
-    // É especialmente útil quando o catálogo não possui buy-box/children disponíveis.
-    if (!candidates.length) {
-      candidates = await requestPublicItemSearchVariants(query, accessToken);
+      }
     }
 
-    candidates = candidates
+    const rankedCandidates = candidates
+      .map((candidate) => ({
+        candidate,
+        relevance: catalogRelevanceScore(query, candidate.title),
+        mismatch: candidateMismatchReason(query, candidate.title),
+      }))
       .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        if (Number(b.isBuyBoxWinner) !== Number(a.isBuyBoxWinner)) {
-          return Number(b.isBuyBoxWinner) - Number(a.isBuyBoxWinner);
+        if (Boolean(a.mismatch) !== Boolean(b.mismatch)) {
+          return a.mismatch ? 1 : -1;
         }
-        if ((a.price ?? Number.POSITIVE_INFINITY) !== (b.price ?? Number.POSITIVE_INFINITY)) {
-          return (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY);
+        if (b.relevance !== a.relevance) return b.relevance - a.relevance;
+        if (Number(b.candidate.isBuyBoxWinner) !== Number(a.candidate.isBuyBoxWinner)) {
+          return Number(b.candidate.isBuyBoxWinner) - Number(a.candidate.isBuyBoxWinner);
         }
-        return b.soldQuantity - a.soldQuantity;
-      })
-      .slice(0, 20);
+        if ((a.candidate.price ?? Infinity) !== (b.candidate.price ?? Infinity)) {
+          return (a.candidate.price ?? Infinity) - (b.candidate.price ?? Infinity);
+        }
+        return b.candidate.soldQuantity - a.candidate.soldQuantity;
+      });
 
-    const eligible = candidates.filter((candidate) => candidate.score >= 0.62);
-    const selected = eligible[0] || null;
+    const selectedEntry = rankedCandidates.find((entry) => entry.candidate.score >= 0.55)
+      || rankedCandidates[0]
+      || null;
+    const selected = selectedEntry?.candidate || null;
+
+    const diagnostics = [
+      ...catalogBatch.diagnostics,
+      ...detailErrors,
+    ];
+    const hasApiWarnings = diagnostics.length > 0;
+
     if (!selected) {
+      const catalogDetailMessage = detailErrors.length
+        ? " A API encontrou produtos de catálogo, mas houve falha ao confirmar seus anúncios: " +
+          Array.from(new Set(detailErrors)).join(" | ").slice(0, 320)
+        : " O catálogo retornou produtos, mas nenhum anúncio ativo pôde ser confirmado.";
       return {
         query,
-        candidates,
+        candidates: [],
         selected: null,
-        matchStatus: candidates.length ? "review" : "no_match",
-        errorMessage: candidates.length
-          ? "Resultados encontrados, mas a similaridade do produto ficou baixa."
-          : "Nenhum anúncio atual foi encontrado: o link existente pode estar expirado e o catálogo consultado não apresentou vencedor ou publicação associada.",
+        matchStatus: hasApiWarnings ? "error" : "review",
+        errorMessage:
+          "Não foi possível confirmar um anúncio ativo. Isso não significa necessariamente que o produto não exista no Mercado Livre." +
+          catalogDetailMessage,
       };
     }
 
-    const normalizedQuery = normalize(query);
-    const normalizedTitle = normalize(selected.title);
-    const exactPhrase = normalizedTitle.includes(normalizedQuery);
-
-    const queryTokens = tokens(query);
-    const distinctiveTokens = queryTokens.filter(
-      (token) =>
-        token.length >= 3 &&
-        !new Set([
-          "air", "fryer", "forno", "fritadeira", "amazon", "alexa",
-          "echo", "family", "smart", "plus", "com", "som", "inteligente",
-          "preto", "preta", "branco", "branca"
-        ]).has(token)
-    );
-
-    const titleTokens = new Set(tokens(selected.title));
-    const distinctiveCoverage = distinctiveTokens.length
-      ? distinctiveTokens.filter((token) => titleTokens.has(token)).length /
-        distinctiveTokens.length
-      : 0;
-
+    const mismatch = selectedEntry?.mismatch || candidateMismatchReason(query, selected.title);
+    const exactPhrase = normalize(selected.title).includes(normalize(query));
     const modelMatch = explicitModelMatch(query, selected.title);
-    const attributeMatch = brandMatches(query, selected.title) && capacityMatches(query, selected.title);
-
     const confident =
+      !mismatch &&
+      !hasApiWarnings &&
       Boolean(selected.itemId) &&
-      attributeMatch &&
+      brandMatches(query, selected.title) &&
+      capacityMatches(query, selected.title) &&
       (
         exactPhrase ||
-        selected.score >= 0.84 ||
+        selected.score >= 0.86 ||
         (modelMatch && selected.score >= 0.72)
       );
 
+    const warnings = [
+      mismatch ? "Não aprovado automaticamente: " + mismatch + "." : "",
+      hasApiWarnings
+        ? "A pesquisa ficou incompleta por falha em parte das consultas da API: " +
+          Array.from(new Set(diagnostics)).join(" | ").slice(0, 320)
+        : "",
+    ].filter(Boolean);
+
     return {
       query,
-      candidates,
+      candidates: rankedCandidates.map((entry) => entry.candidate).slice(0, 20),
       selected,
       matchStatus: confident ? "matched" : "review",
       errorMessage: confident
         ? null
-        : "Há correspondência relevante, mas a similaridade ainda não é suficiente para validação automática.",
+        : warnings.join(" ") ||
+          "Candidato encontrado, mas não há evidências suficientes para validação automática; revise título e variante.",
     };
   } catch (error) {
     return {
@@ -813,7 +919,10 @@ export async function searchMercadoLivreProduct(
       candidates: [],
       selected: null,
       matchStatus: "error",
-      errorMessage: error instanceof Error ? error.message : "Falha na consulta ao Mercado Livre.",
+      errorMessage:
+        error instanceof Error
+          ? error.message
+          : "Falha não identificada na API do Mercado Livre; não classificar como produto inexistente.",
     };
   }
 }
