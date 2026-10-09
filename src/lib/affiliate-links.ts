@@ -600,6 +600,8 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
     const name = String(rawName || "").trim();
     const normalized = normalizeAffiliateProductName(name);
     if (!name || !normalized) return;
+    // Rejeita marcadores genéricos/editoriais; não são produtos compráveis.
+    if (/^(concorrente|produto|opcao|alternativa|modelo)\s*\d*$/.test(normalized)) return;
     if (findPublishedProductReview(name, reviewRows)) return;
     if (existingComparisonNames.has(normalized) || articleUrlNames.has(normalized)) return;
 
