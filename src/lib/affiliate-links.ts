@@ -647,7 +647,7 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
     addOrUpdateRow({
       slug,
       name: candidate.name,
-      marketplace: "Outro",
+      marketplace: "Mercado Livre",
       category: candidate.category,
       source_type: "comparison_product",
       source_ref: "comparison-product:" + slug,

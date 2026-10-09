@@ -221,9 +221,15 @@ export async function getValidAccessToken(): Promise<string> {
 }
 
 export async function hasValidSession(): Promise<boolean> {
-  const session = await loadSessionFromSupabase();
-  if (!session) return false;
-  return Date.now() < session.expiresAt - 5 * 60 * 1000;
+  // Let the token loader attempt OAuth refresh before showing the integration
+  // as disconnected. Mercado Livre access tokens expire regularly, while a
+  // valid refresh token can keep the admin integration connected.
+  try {
+    await getValidAccessToken();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function getSessionInfo(): Promise<MLSession | null> {

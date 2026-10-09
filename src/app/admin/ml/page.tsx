@@ -29,6 +29,7 @@ type StatusResponse = {
   total: number;
   checked: number;
   remaining: number;
+  unlinkedComparisonProducts?: number;
   counts: Record<string, number>;
   matches: Match[];
 };
@@ -145,7 +146,7 @@ export default function MercadoLivreAdminPage() {
     setNotice("");
     try {
       let completed = 0;
-      for (let i = 0; i < 40; i += 1) {
+      for (let i = 0; i < 100; i += 1) {
         const response = await fetch("/api/admin/mercadolivre/batch", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -205,7 +206,7 @@ export default function MercadoLivreAdminPage() {
       <header className="mb-7 rounded-2xl border border-border bg-[var(--surface)] p-6 lg:p-7 shadow-sm">
         <span className="inline-flex rounded-full bg-[var(--amber-bg)] px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[var(--amber)]">Pesquisa comercial</span>
         <h1 className="mt-3 font-display text-3xl font-black tracking-tight lg:text-4xl">Mercado Livre · anúncios mais vendidos</h1>
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">Pesquisa os produtos da Central de Afiliados, prioriza anúncios relevantes e guarda a URL encontrada separadamente. Nenhum destino de afiliado é substituído automaticamente nesta etapa.</p>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">Pesquisa também os produtos citados nos comparativos publicados, mesmo quando ainda não têm URL de afiliado. Prioriza esses itens, guarda os anúncios encontrados e nunca substitui o destino central sem aprovação.</p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
           <span className="rounded-full border border-border bg-[var(--surface2)] px-3 py-1.5">1. Pesquisar</span>
           <span className="rounded-full border border-border bg-[var(--surface2)] px-3 py-1.5">2. Revisar match</span>
@@ -216,10 +217,14 @@ export default function MercadoLivreAdminPage() {
       {error && <div className="mb-4 rounded-xl border border-[var(--red)]/30 bg-[var(--red)]/5 text-[var(--red)] px-4 py-3 text-sm">{error}</div>}
       {notice && <div className="mb-4 rounded-xl border border-[var(--green)]/30 bg-[var(--green)]/5 text-[var(--green)] px-4 py-3 text-sm">{notice}</div>}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
         <div className="bg-[var(--surface)] border border-border rounded-2xl p-5 shadow-sm">
           <p className="text-xs text-[var(--muted)]">Links elegíveis</p>
           <p className="text-2xl font-display text-[var(--amber)] mt-1">{status?.total ?? 0}</p>
+        </div>
+        <div className="bg-[var(--surface)] border border-border rounded-2xl p-5 shadow-sm">
+          <p className="text-xs text-[var(--muted)]">Comparativos sem link</p>
+          <p className="text-2xl font-display text-[var(--amber)] mt-1">{status?.unlinkedComparisonProducts ?? 0}</p>
         </div>
         <div className="bg-[var(--surface)] border border-border rounded-2xl p-5 shadow-sm">
           <p className="text-xs text-[var(--muted)]">Pesquisados</p>

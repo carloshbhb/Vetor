@@ -12,6 +12,33 @@ function normalizeMarketplace(value: unknown): string {
   return String(value || "").trim().toLowerCase().replace(/[-_ ]/g, "");
 }
 
+function isPendingComparisonProduct(link: {
+  source_type?: string | null;
+  destination_url?: string | null;
+  status?: string | null;
+}): boolean {
+  return (
+    link.source_type === "comparison_product" &&
+    link.status !== "archived" &&
+    !String(link.destination_url || "").trim()
+  );
+}
+
+function isSearchEligible(link: {
+  marketplace?: string | null;
+  source_type?: string | null;
+  destination_url?: string | null;
+  status?: string | null;
+}): boolean {
+  return (
+    link.status !== "archived" &&
+    (
+      normalizeMarketplace(link.marketplace) === "mercadolivre" ||
+      isPendingComparisonProduct(link)
+    )
+  );
+}
+
 export async function GET(request: Request) {
   const authError = verifyAdminAuth(request);
   if (authError) return authError;
@@ -20,16 +47,22 @@ export async function GET(request: Request) {
   if (!supabase) return NextResponse.json({ error: "Supabase não configurado." }, { status: 500 });
 
   const [{ data: links, error: linksError }, { data: matches, error: matchesError }] = await Promise.all([
-    supabase.from("affiliate_links").select("id,name,marketplace,category,slug,status,destination_url,product_url").order("name"),
+    supabase.from("affiliate_links").select("id,name,marketplace,category,slug,status,destination_url,product_url,source_type").order("name"),
     supabase.from("affiliate_link_ml_matches").select("*").order("updated_at", { ascending: false }),
   ]);
 
   if (linksError) return NextResponse.json({ error: linksError.message }, { status: 500 });
   if (matchesError) return NextResponse.json({ error: matchesError.message }, { status: 500 });
 
-  const mlLinks = (links || []).filter((link) => normalizeMarketplace(link.marketplace) === "mercadolivre" && link.status !== "archived");
+  const allLinks = links || [];
+  const mlLinks = allLinks.filter(isSearchEligible);
   const mlLinkIds = new Set(mlLinks.map((link) => String(link.id)));
   const relevantMatches = (matches || []).filter((match) => mlLinkIds.has(String(match.affiliate_link_id)));
+  const checkedIds = new Set(
+    relevantMatches
+      .filter((match) => Boolean(match.checked_at))
+      .map((match) => String(match.affiliate_link_id))
+  );
 
   const counts = relevantMatches.reduce((acc, match) => {
     const key = String(match.match_status || "pending");
@@ -40,8 +73,9 @@ export async function GET(request: Request) {
   return NextResponse.json({
     siteId: SITE_ID,
     total: mlLinks.length,
-    checked: relevantMatches.filter((match) => Boolean(match.checked_at)).length,
-    remaining: mlLinks.length - relevantMatches.filter((match) => Boolean(match.checked_at)).length,
+    checked: checkedIds.size,
+    remaining: Math.max(0, mlLinks.length - checkedIds.size),
+    unlinkedComparisonProducts: allLinks.filter(isPendingComparisonProduct).length,
     counts,
     matches: relevantMatches,
   });
@@ -67,7 +101,7 @@ export async function POST(request: Request) {
   const [{ data: links, error: linksError }, { data: matches, error: matchesError }] = await Promise.all([
     supabase
       .from("affiliate_links")
-      .select("id,name,marketplace,category,slug,status,destination_url,product_url,final_url")
+      .select("id,name,marketplace,category,slug,status,destination_url,product_url,final_url,source_type,priority")
       .order("priority", { ascending: false })
       .order("name"),
     supabase
@@ -78,15 +112,28 @@ export async function POST(request: Request) {
   if (linksError) return NextResponse.json({ error: linksError.message }, { status: 500 });
   if (matchesError) return NextResponse.json({ error: matchesError.message }, { status: 500 });
 
+  const eligibleLinks = (links || []).filter(isSearchEligible);
+  const eligibleLinkIds = new Set(eligibleLinks.map((link) => String(link.id)));
   const checkedIds = new Set(
     (matches || [])
-      .filter((row) => Boolean(row.checked_at))
+      .filter((row) => Boolean(row.checked_at) && eligibleLinkIds.has(String(row.affiliate_link_id)))
       .map((row) => String(row.affiliate_link_id))
   );
 
-  const selected = (links || [])
-    .filter((link) => normalizeMarketplace(link.marketplace) === "mercadolivre" && link.status !== "archived")
+  const selected = eligibleLinks
     .filter((link) => refresh || !checkedIds.has(String(link.id)))
+    .sort((a, b) => {
+      // Prioritize products mentioned in published comparisons that still lack
+      // an affiliate destination. Searching them first prevents the existing
+      // marketplace links from starving this backlog.
+      const pendingPriority =
+        Number(isPendingComparisonProduct(b)) - Number(isPendingComparisonProduct(a));
+      if (pendingPriority !== 0) return pendingPriority;
+
+      const priorityDifference = Number(b.priority || 0) - Number(a.priority || 0);
+      if (priorityDifference !== 0) return priorityDifference;
+      return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR");
+    })
     .slice(0, limit);
 
   if (!selected.length) {
@@ -94,7 +141,9 @@ export async function POST(request: Request) {
       processed: 0,
       totalCandidates: 0,
       remaining: 0,
-      message: refresh ? "Nenhum link do Mercado Livre disponível." : "Todos os links elegíveis já foram processados.",
+      message: refresh
+        ? "Nenhum produto elegível para reprocessar."
+        : "Todos os produtos elegíveis, incluindo comparativos sem link, já foram pesquisados.",
     });
   }
 
@@ -150,19 +199,13 @@ export async function POST(request: Request) {
     });
   }
 
-  const eligibleMLCount = (links || []).filter(
-    (link) =>
-      normalizeMarketplace(link.marketplace) === "mercadolivre" &&
-      link.status !== "archived"
-  ).length;
-
   return NextResponse.json({
     processed: processed.length,
     totalCandidates: selected.length,
     remaining: Math.max(
       0,
-      eligibleMLCount -
-        (refresh ? checkedIds.size : checkedIds.size + processed.length)
+      eligibleLinks.length -
+        (refresh ? processed.length : checkedIds.size + processed.length)
     ),
     results: processed,
   });
