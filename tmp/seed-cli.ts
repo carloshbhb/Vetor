@@ -72,9 +72,9 @@ const patterns = [
     type: "lesson",
     domain: "seo-optimization",
     pattern: {
-      lesson: "Deploy Vercel + IndexNow + Google Indexing API automatizado no generate pipeline - garante indexacao rapida de novos artigos",
+      lesson: "Deploy Vercel + IndexNow; Google indexing uses sitemap and Search Console for ordinary review pages — notificação não garante indexação; Google usa sitemap, links internos e Search Console",
       tags: ["vercel", "indexnow", "google-indexing", "deploy", "automation"],
-      evidence: "Implementado em tmp/generate-*.ts - submitToIndexNow() + submitToGoogle()",
+      evidence: "IndexNow centralizado; Google Indexing API não é elegível para reviews comuns",
       success: true
     },
     confidence: 0.95

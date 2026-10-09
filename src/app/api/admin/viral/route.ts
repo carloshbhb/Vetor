@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllViralArticles, createViralArticle, deleteViralArticle } from '@/lib/supabase';
 import { verifyAdminAuth } from '@/lib/admin-auth';
+import { buildComparativeIndexNowTargets, pingNewContent } from '@/lib/indexnow';
+import { revalidateComparativeSurfaces } from '@/lib/revalidate-content';
 
 export async function GET(request: NextRequest) {
   const authError = verifyAdminAuth(request);
@@ -43,6 +45,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
+    if (result.data?.slug) {
+      revalidateComparativeSurfaces([result.data.slug]);
+      await pingNewContent(
+        buildComparativeIndexNowTargets(result.data.slug),
+        "admin-comparative-publish"
+      );
+    }
+
     return NextResponse.json(result.data, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -64,7 +74,18 @@ export async function DELETE(request: NextRequest) {
     const result = await deleteViralArticle(slug);
 
     if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 500 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.error === 'Comparative not found' ? 404 : 500 }
+      );
+    }
+
+    if (result.deletedSlug) {
+      revalidateComparativeSurfaces([result.deletedSlug]);
+      await pingNewContent(
+        buildComparativeIndexNowTargets(result.deletedSlug),
+        'admin-comparative-delete'
+      );
     }
 
     return NextResponse.json({ success: true }, { status: 200 });

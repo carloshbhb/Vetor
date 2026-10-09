@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { pingGoogleIndexing, pingIndexNow } from '../src/lib/indexnow';
+import { pingNewContent } from '../src/lib/indexnow';
 
 config({ path: '.env.local' });
 
@@ -10,14 +10,13 @@ async function main() {
     process.exit(1);
   }
 
-  const hasSa = Boolean(
-    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY
-  );
-  const hasKey = Boolean(process.env.GOOGLE_INDEXING_API_KEY);
-  console.log(`service_account=${hasSa} legacy_key=${hasKey}`);
+  const keyConfigured = Boolean(process.env.INDEXNOW_KEY || process.env.INDEXNOW_API_KEY);
+  console.log('indexnow_key_configured=' + keyConfigured + ' url_count=' + urls.length);
 
-  await pingIndexNow(urls);
-  await pingGoogleIndexing(urls);
+  const result = await pingNewContent(urls, 'manual-indexnow-test');
+  console.log('indexnow_status=' + result.status + ' http_status=' + (result.httpStatus ?? 'none'));
+
+  if (result.status !== 'submitted') process.exitCode = 1;
 }
 
 main().catch((err) => {

@@ -4,6 +4,8 @@ import { generateViralArticle } from "@/lib/generate-viral";
 import { resolveProductImage } from "@/lib/image-resolver";
 import { fetchBestSellers } from "@/lib/product-extractor";
 import { verifyAdminAuth } from "@/lib/admin-auth";
+import { buildComparativeIndexNowTargets, pingNewContent } from "@/lib/indexnow";
+import { revalidateComparativeSurfaces } from "@/lib/revalidate-content";
 import {
   getNextReviewProductLink,
   markProductLinkReviewed,
@@ -230,6 +232,11 @@ export async function POST(request: NextRequest) {
             `Artigo "${article.title}": erro ao salvar - ${dbResult.error}`
           );
         } else {
+          revalidateComparativeSurfaces([article.slug]);
+          await pingNewContent(
+            buildComparativeIndexNowTargets(article.slug),
+            "admin-generated-comparative"
+          );
           results.push(`✅ Artigo "${article.title}": criado com sucesso`);
         }
       } catch (err: unknown) {

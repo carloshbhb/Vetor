@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
+import { revalidateReviewSurfaces } from '@/lib/revalidate-content';
 import {
   getAllReviewsAdmin,
   createReview,
@@ -8,12 +8,7 @@ import {
 } from '@/lib/supabase';
 import { verifyAdminAuth } from '@/lib/admin-auth';
 import { markProductLinksForReview } from '@/lib/product-links';
-import { buildContentUrl, pingNewContent } from '@/lib/indexnow';
-
-function revalidateReview(slug: string) {
-  revalidatePath(`/reviews/${slug}`);
-  revalidatePath('/reviews');
-}
+import { buildReviewIndexNowTargets, pingNewContent } from '@/lib/indexnow';
 
 export async function GET(request: NextRequest) {
   const authError = verifyAdminAuth(request);
@@ -59,7 +54,18 @@ export async function POST(request: NextRequest) {
     }
 
     const reviewSlug = typeof result.data?.slug === 'string' ? result.data.slug : body.slug;
-    if (reviewSlug) revalidateReview(reviewSlug);
+    if (reviewSlug) {
+      revalidateReviewSurfaces([reviewSlug], [result.data?.category || body.category || '']);
+    }
+
+    // POST can create a draft or update an already-published review. Notify
+    // search engines only when the saved record is publicly published.
+    if (result.data?.status === 'published' && reviewSlug) {
+      await pingNewContent(
+        buildReviewIndexNowTargets(reviewSlug, result.data.category),
+        'admin-review-upsert'
+      );
+    }
 
     return NextResponse.json(result.data, { status: 201 });
   } catch (err: unknown) {
@@ -98,11 +104,14 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    revalidateReview(slug);
+    revalidateReviewSurfaces([slug], [result.data.category || '']);
 
     if (status === 'published') {
       await markProductLinksForReview(slug);
-      await pingNewContent([buildContentUrl(`/reviews/${slug}`)]);
+      await pingNewContent(
+        buildReviewIndexNowTargets(slug, result.data.category ?? ''),
+        'admin-review-publish'
+      );
     }
 
     return NextResponse.json({ success: true, slug, status }, { status: 200 });
@@ -126,10 +135,21 @@ export async function DELETE(request: NextRequest) {
     const result = await deleteReview(slug);
 
     if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 500 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.error === 'Review not found' ? 404 : 500 }
+      );
     }
 
-    revalidateReview(slug);
+    const deleted = result.deleted;
+    revalidateReviewSurfaces([slug], deleted?.category ? [deleted.category] : []);
+
+    if (deleted?.status === 'published') {
+      await pingNewContent(
+        buildReviewIndexNowTargets(slug, deleted.category ?? ''),
+        'admin-review-delete'
+      );
+    }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err: unknown) {

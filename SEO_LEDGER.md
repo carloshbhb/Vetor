@@ -79,8 +79,8 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 
 | Item | Ação |
 |------|------|
-| `INDEXNOW_KEY` + `INDEXNOW_API_KEY` | ✅ 2026-09-23 no Vercel + `public/{key}.txt` |
-| `GOOGLE_INDEXING_API_KEY` | ✅ 2026-09-23 — OAuth service account (`GOOGLE_SERVICE_ACCOUNT_EMAIL` + `GOOGLE_PRIVATE_KEY`) em `pingGoogleIndexing`; envs no Vercel |
+| IndexNow | Cliente partilhado em `src/lib/indexnow.ts`; arquivo de chave público na raiz retorna HTTP 200. O status de cada POST é registrado como submitted, pending validation, rejected ou retryable. |
+| Google Indexing API | **Não usar para reviews/comparativos**: elegível somente para JobPosting e livestream BroadcastEvent em VideoObject. Sitemap + Search Console + links internos são o fluxo correto para o Vetor.blog. |
 | `NEXT_PUBLIC_SITE_URL` / `SITE_URL` | ✅ = `https://www.vetor.blog` no Vercel |
 | Unique index `slug` | ✅ 2026-09-23 confirmado em `reviews` e `viral_articles` (upsert onConflict) |
 | `public/og.png` | ✅ 2026-09-23 1200×630 + `openGraph.images` |
@@ -123,7 +123,7 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 - **Status:** P0–P3 done + follow-ups Vercel/Supabase/OG/Deploy ✅ 2026-09-23 · restam P2-4/2-5 (author/tag pages) e P4 (GSC/keywords/Vitals)
 
 ### Ciclo 4 — 2026-09-23 (Follow-ups Vercel + Supabase + OG)
-- Env vars Vercel production: `SUPABASE_SERVICE_ROLE_KEY`, `INDEXNOW_KEY`, `INDEXNOW_API_KEY`, `SITE_URL`, `NEXT_PUBLIC_SITE_URL`, `GOOGLE_INDEXING_API_KEY`, `NEXT_PUBLIC_*` analytics
+- Env vars Vercel production: SUPABASE_SERVICE_ROLE_KEY, INDEXNOW_API_KEY, SITE_URL, NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_* analytics. IndexNow key must match the public key file at the domain root.
 - `public/og.png` + key file IndexNow + `openGraph`/`twitter` no layout
 - Unique index `slug` **confirmado** em `reviews` e `viral_articles` (upsert onConflict probe)
 - Domínio realocado: projeto antigo `vetor` → `vetor-blog`; apex `vetor.blog` redirect→`www`
@@ -137,10 +137,10 @@ Canonical: `https://www.vetor.blog` · GSC configurado ✓
 - **Agent D (keywords):** `docs/seo/keyword-clusters-and-briefs.md` — 8 clusters de intenção comercial, 5 briefs competitivos
 - **Orchestrator:** `sitemap.ts` + `/author` + `/tags` + author/tag pages consolidados
 - Gate: `npm run build` · `npm run lint` · **deploy** (Ciclo 5)
-- **Status:** P0–P3 + P2-4/2-5 + P4-1/2/3/5 done · restam P4-4 (GSC, blocked) e `GOOGLE_INDEXING_API_KEY` (service account)
+- **Status:** P0–P3 + P2-4/2-5 + P4-1/2/3/5 done · P4-4 (GSC) remains blocked. Google Indexing API is not an implementation gap for product review pages; those page types are not eligible for that API.
 
 ### Ciclo 6 — 2026-09-23 (Indexing API + titles + GitHub)
-- **Google Indexing API:** `pingGoogleIndexing` → OAuth RS256 JWT (`GOOGLE_SERVICE_ACCOUNT_EMAIL` + `GOOGLE_PRIVATE_KEY`) → `urlNotifications:publish`; cache de access_token; fallback legacy `GOOGLE_INDEXING_API_KEY`
+- **Google Indexing API:** não é usada no fluxo de reviews/comparativos; a API oficial é restrita a JobPosting e BroadcastEvent em VideoObject. Não interpretar uma variável de ambiente como prova de submissão ou indexação.
 - Env vars novas no Vercel production: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY` (adicionadas via CLI)
 - Teste local: IndexNow 3 URLs + Google Indexing 3 URLs OK (`service_account=true`)
 - **P4-4 titles:** layout default/template, `/reviews`, `/comparativos` (+detalhe), categorias, tags, autor, institucionais — keyword + brand + length

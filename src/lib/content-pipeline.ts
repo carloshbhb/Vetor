@@ -2,6 +2,7 @@ import { generateReview } from './generate';
 import { generateAffiliateUrl } from './product-extractor';
 import { createReview } from './supabase';
 import { validateGeneratedReview } from './content-quality';
+import { buildReviewIndexNowTargets, pingNewContent } from './indexnow';
 import type { ProductLink } from './product-links';
 
 export interface PipelineProductInput {
@@ -122,6 +123,15 @@ export async function runReviewPipeline(
       title: review.title,
       error: dbResult.error || 'Unknown database error',
     };
+  }
+
+  // New pipeline reviews default to draft. Only notify search engines when
+  // this operation refreshed an already-public review.
+  if (dbResult.data.status === 'published') {
+    await pingNewContent(
+      buildReviewIndexNowTargets(dbResult.data.slug, dbResult.data.category),
+      'content-pipeline-published-refresh'
+    );
   }
 
   return { status: 'created', slug: dbResult.data.slug, title: review.title };

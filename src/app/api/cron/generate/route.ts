@@ -4,7 +4,8 @@ import { createViralArticle } from '@/lib/supabase';
 import { generateViralArticle } from '@/lib/generate-viral';
 import { resolveProductImage } from '@/lib/image-resolver';
 import { REVIEW_PRODUCTS, VIRAL_TOPICS } from '@/lib/seed-data';
-import { buildContentUrl, pingNewContent } from '@/lib/indexnow';
+import { buildComparativeIndexNowTargets, pingNewContent } from '@/lib/indexnow';
+import { revalidateComparativeSurfaces } from '@/lib/revalidate-content';
 import {
   getNextReviewProductLink,
   markProductLinkReviewed,
@@ -111,7 +112,11 @@ export async function GET(request: NextRequest) {
         result.viralArticle = { slug: article.slug, status: 'failed', error: dbResult.error };
       } else {
         result.viralArticle = { slug: article.slug, status: 'success' };
-        await pingNewContent([buildContentUrl(`/comparativos/${article.slug}`)]);
+        revalidateComparativeSurfaces([article.slug]);
+        await pingNewContent(
+          buildComparativeIndexNowTargets(article.slug),
+          'cron-generated-comparative'
+        );
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);

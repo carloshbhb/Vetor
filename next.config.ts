@@ -176,6 +176,31 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/review/:slug/',
+        destination: '/reviews/:slug/',
+        permanent: true,
+      },
+      {
+        source: '/categoria/acessorios-para-games',
+        destination: '/reviews/categoria/Acess%C3%B3rios%20para%20Games/',
+        permanent: true,
+      },
+      {
+        source: '/categoria/acessorios-para-games/',
+        destination: '/reviews/categoria/Acess%C3%B3rios%20para%20Games/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/categoria/acessorios-para-games',
+        destination: '/reviews/categoria/Acess%C3%B3rios%20para%20Games/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/categoria/acessorios-para-games/',
+        destination: '/reviews/categoria/Acess%C3%B3rios%20para%20Games/',
+        permanent: true,
+      },
+      {
         source: '/categoria/:category/',
         destination: '/reviews/categoria/:category/',
         permanent: true,

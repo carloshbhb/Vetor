@@ -16,7 +16,9 @@
     "mcp:start": "agentdb mcp start",
     "memory:stats": "agentdb stats .agentdb.db",
     "memory:query": "agentdb query --query",
-    "memory:store": "agentdb store-pattern"
+    "memory:store": "agentdb store-pattern",
+    "test:indexing-contract": "tsx scripts/indexing-contract.test.ts",
+    "validate:indexnow-config": "tsx scripts/validate-indexnow-config.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

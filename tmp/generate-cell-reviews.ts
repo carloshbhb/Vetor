@@ -1,8 +1,8 @@
 import { config } from 'dotenv';
+import { buildContentUrl, buildReviewIndexNowTargets, pingNewContent } from '../src/lib/indexnow';
 import { generateReview } from '../src/lib/generate';
 import { resolveProductImage } from '../src/lib/image-resolver';
 import { createReview as createReviewDB } from '../src/lib/supabase';
-import axios from 'axios';
 
 config({ path: '.env.local' });
 
@@ -23,39 +23,17 @@ interface ReviewInput {
   marketplace?: string;
 }
 
-const SITE_URL = 'https://www.vetor.blog';
-
-async function submitToIndexNow(url: string): Promise<void> {
-  try {
-    const apiKey = process.env.INDEXNOW_API_KEY;
-    const locationId = process.env.INDEXNOW_LOCATION_ID;
-    if (!apiKey || !locationId) return;
-
-    await axios.post(
-      `https://api.indexnow.org/indexnow?key=${apiKey}&urlList=${url}`,
-      { urlList: [url], loc: locationId }
-    );
-    console.log(`  ✅ Submitted to IndexNow: ${url}`);
-  } catch {
-    console.log(`  ⚠️  IndexNow submission failed: ${url}`);
+async function submitToIndexNow(slug: string, category: string): Promise<string> {
+  const result = await pingNewContent(
+    buildReviewIndexNowTargets(slug, category),
+    'legacy-generate-cell-reviews'
+  );
+  if (result.status !== 'submitted') {
+    console.warn('  IndexNow result:', result.status, result.reason || '');
   }
+  return buildContentUrl('/reviews/' + slug);
 }
 
-async function submitToGoogle(url: string): Promise<void> {
-  try {
-    const apiKey = process.env.GOOGLE_INDEXING_API_KEY;
-    if (!apiKey) return;
-
-    await axios.post(
-      `https://indexing.googleapis.com/v3/urlNotifications:publish`,
-      { url, type: 'URL_UPDATED', urgency: 'URL_UPDATED' },
-      { headers: { Authorization: `Bearer ${apiKey}` } }
-    );
-    console.log(`  ✅ Submitted to Google: ${url}`);
-  } catch {
-    console.log(`  ⚠️  Google submission failed: ${url}`);
-  }
-}
 
 async function generateReviewArticle(product: ReviewInput): Promise<ArticleResult> {
   try {
@@ -102,17 +80,15 @@ async function generateReviewArticle(product: ReviewInput): Promise<ArticleResul
       return {
         slug: review.slug,
         status: 'failed',
-        url: `${SITE_URL}/reviews/${review.slug}`,
+        url: buildContentUrl('/reviews/' + review.slug),
         type: 'review',
         error: result.error,
       };
     }
 
-    const url = `${SITE_URL}/reviews/${review.slug}`;
+    const url = await submitToIndexNow(review.slug, product.category);
     console.log(`  ✅ Review created: ${review.slug}`);
 
-    await submitToIndexNow(url);
-    await submitToGoogle(url);
 
     return { slug: review.slug, status: 'success', url, type: 'review' };
   } catch (err: unknown) {

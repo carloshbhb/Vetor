@@ -266,7 +266,7 @@ export async function getAllReviewsAdmin(): Promise<Review[]> {
 export async function updateReviewStatus(
   params: { slug: string },
   status: 'draft' | 'published'
-): Promise<{ data: { slug: string } | null; error: string | null }> {
+): Promise<{ data: { slug: string; category: string | null } | null; error: string | null }> {
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
     return { data: null, error: 'Supabase service client not configured' };
@@ -277,14 +277,14 @@ export async function updateReviewStatus(
       .from('reviews')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('slug', params.slug)
-      .select('slug');
+      .select('slug,category');
 
     if (error) return { data: null, error: error.message };
     if (!data || data.length === 0) {
       return { data: null, error: 'Review not found' };
     }
 
-    return { data: data[0] as { slug: string }, error: null };
+    return { data: data[0] as { slug: string; category: string | null }, error: null };
   } catch (err) {
     return {
       data: null,
@@ -424,36 +424,82 @@ export async function updateReviewScore(slug: string, score: number): Promise<{ 
   }
 }
 
-export async function deleteReview(slug: string): Promise<{ error: string | null }> {
-  const supabase = getSupabaseClient();
-  if (!supabase) return { error: null };
+export async function deleteReview(
+  slug: string
+): Promise<{
+  deleted: { slug: string; category: string | null; status: string | null } | null;
+  error: string | null;
+}> {
+  const supabase = getSupabaseServiceKeyClient() ?? getSupabaseClient();
+  if (!supabase) return { deleted: null, error: 'Supabase client not configured' };
 
   try {
-    const { error } = await supabase
+    const { data: existing, error: readError } = await supabase
+      .from('reviews')
+      .select('slug,category,status')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (readError) return { deleted: null, error: readError.message };
+    if (!existing) return { deleted: null, error: 'Review not found' };
+
+    const { data: deletedRow, error } = await supabase
       .from('reviews')
       .delete()
-      .eq('slug', slug);
+      .eq('slug', slug)
+      .select('slug')
+      .maybeSingle();
 
-    return { error: error?.message ?? null };
+    if (error) return { deleted: null, error: error.message };
+    if (!deletedRow) return { deleted: null, error: 'Review deletion affected no rows' };
+    return {
+      deleted: {
+        slug: existing.slug,
+        category: existing.category ?? null,
+        status: existing.status ?? null,
+      },
+      error: null,
+    };
   } catch (err) {
     console.error('[Supabase] deleteReview error:', err);
-    return { error: err instanceof Error ? err.message : String(err) };
+    return {
+      deleted: null,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
-export async function deleteViralArticle(slug: string): Promise<{ error: string | null }> {
-  const supabase = getSupabaseClient();
-  if (!supabase) return { error: null };
+export async function deleteViralArticle(
+  slug: string
+): Promise<{ deletedSlug: string | null; error: string | null }> {
+  const supabase = getSupabaseServiceKeyClient() ?? getSupabaseClient();
+  if (!supabase) return { deletedSlug: null, error: 'Supabase client not configured' };
 
   try {
-    const { error } = await supabase
+    const { data: existing, error: readError } = await supabase
+      .from('viral_articles')
+      .select('slug')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (readError) return { deletedSlug: null, error: readError.message };
+    if (!existing) return { deletedSlug: null, error: 'Comparative not found' };
+
+    const { data: deletedRow, error } = await supabase
       .from('viral_articles')
       .delete()
-      .eq('slug', slug);
+      .eq('slug', slug)
+      .select('slug')
+      .maybeSingle();
 
-    return { error: error?.message ?? null };
+    if (error) return { deletedSlug: null, error: error.message };
+    if (!deletedRow) return { deletedSlug: null, error: 'Comparative deletion affected no rows' };
+    return { deletedSlug: existing.slug, error: null };
   } catch (err) {
     console.error('[Supabase] deleteViralArticle error:', err);
-    return { error: err instanceof Error ? err.message : String(err) };
+    return {
+      deletedSlug: null,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }

@@ -4,7 +4,8 @@ import { createViralArticle } from '@/lib/supabase';
 import { generateViralArticle } from '@/lib/generate-viral';
 import { resolveProductImage } from '@/lib/image-resolver';
 import { VIRAL_TOPICS } from '@/lib/seed-data';
-import { buildContentUrl, pingNewContent } from '@/lib/indexnow';
+import { buildComparativeIndexNowTargets, buildContentUrl, pingNewContent } from '@/lib/indexnow';
+import { revalidateComparativeSurfaces } from '@/lib/revalidate-content';
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -53,7 +54,8 @@ async function publishArticle(topic: {
   }
 
   const url = buildContentUrl(`/comparativos/${article.slug}`);
-  await pingNewContent([url]);
+  revalidateComparativeSurfaces([article.slug]);
+  await pingNewContent(buildComparativeIndexNowTargets(article.slug), 'cron-viral-content');
 
   return { slug: article.slug, url, status: 'published' };
 }

@@ -4,6 +4,7 @@ import { generateViralArticle as generateViralArticleFn } from '../src/lib/gener
 import { resolveProductImage } from '../src/lib/image-resolver';
 import { createReview as createReviewDB, createViralArticle as createViralArticleDB } from '../src/lib/supabase';
 import axios from 'axios';
+import { buildComparativeIndexNowTargets, buildContentUrl, buildReviewIndexNowTargets, pingNewContent } from '../src/lib/indexnow';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -32,37 +33,23 @@ interface ViralInput {
   comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
 }
 
-const SITE_URL = 'https://www.vetor.blog';
-
-async function submitToIndexNow(url: string): Promise<void> {
-  try {
-    const apiKey = process.env.INDEXNOW_API_KEY;
-    const locationId = process.env.INDEXNOW_LOCATION_ID;
-    if (!apiKey || !locationId) return;
-
-    await axios.post(
-      `https://api.indexnow.org/indexnow?key=${apiKey}&urlList=${url}`,
-      { urlList: [url], loc: locationId }
-    );
-    console.log(`  ✅ Submitted to IndexNow: ${url}`);
-  } catch {
-    console.log(`  ⚠️  IndexNow submission failed: ${url}`);
+async function submitReviewToIndexNow(slug: string, category: string): Promise<void> {
+  const result = await pingNewContent(
+    buildReviewIndexNowTargets(slug, category),
+    'github-actions-generate-8-articles-review'
+  );
+  if (result.status !== 'submitted') {
+    console.warn('  IndexNow review notification:', result.status, result.reason || '');
   }
 }
 
-async function submitToGoogle(url: string): Promise<void> {
-  try {
-    const apiKey = process.env.GOOGLE_INDEXING_API_KEY;
-    if (!apiKey) return;
-
-    await axios.post(
-      `https://indexing.googleapis.com/v3/urlNotifications:publish`,
-      { url, type: 'URL_UPDATED', urgency: 'URL_UPDATED' },
-      { headers: { Authorization: `Bearer ${apiKey}` } }
-    );
-    console.log(`  ✅ Submitted to Google: ${url}`);
-  } catch {
-    console.log(`  ⚠️  Google submission failed: ${url}`);
+async function submitComparativeToIndexNow(slug: string): Promise<void> {
+  const result = await pingNewContent(
+    buildComparativeIndexNowTargets(slug),
+    'github-actions-generate-8-articles-comparative'
+  );
+  if (result.status !== 'submitted') {
+    console.warn('  IndexNow comparative notification:', result.status, result.reason || '');
   }
 }
 
@@ -149,18 +136,17 @@ async function generateReviewArticle(product: ReviewInput): Promise<ArticleResul
       return {
         slug: review.slug,
         status: 'failed',
-        url: `${SITE_URL}/reviews/${review.slug}`,
+        url: buildContentUrl('/reviews/' + review.slug),
         type: 'review',
         error: result.error,
       };
     }
 
-    const url = `${SITE_URL}/reviews/${review.slug}`;
+    const url = buildContentUrl('/reviews/' + review.slug);
     console.log(`  ✅ Review created: ${review.slug}`);
 
     await commitToGitHub(review.slug, 'review');
-    await submitToIndexNow(url);
-    await submitToGoogle(url);
+    await submitReviewToIndexNow(review.slug, product.category);
 
     return { slug: review.slug, status: 'success', url, type: 'review' };
   } catch (err: unknown) {
@@ -211,18 +197,17 @@ async function generateViralArticleTopic(topic: ViralInput): Promise<ArticleResu
       return {
         slug: article.slug,
         status: 'failed',
-        url: `${SITE_URL}/${article.slug}`,
+        url: buildContentUrl('/comparativos/' + article.slug),
         type: 'viral',
         error: result.error,
       };
     }
 
-    const url = `${SITE_URL}/${article.slug}`;
+    const url = buildContentUrl('/comparativos/' + article.slug);
     console.log(`  ✅ Viral article created: ${article.slug}`);
 
     await commitToGitHub(article.slug, 'viral');
-    await submitToIndexNow(url);
-    await submitToGoogle(url);
+    await submitComparativeToIndexNow(article.slug);
 
     return { slug: article.slug, status: 'success', url, type: 'viral' };
   } catch (err: unknown) {

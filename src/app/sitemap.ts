@@ -6,6 +6,22 @@ import { buildBuyingGuideCategories, buildBuyingIntentPages } from '@/lib/buying
 
 export const revalidate = 300;
 
+function latestReviewModification(
+  items: Array<{ updated_at?: string | null; created_at?: string | null }>
+): Date | undefined {
+  const timestamps = items
+    .map((item) => item.updated_at || item.created_at)
+    .filter((value): value is string => Boolean(value))
+    .map((value) => Date.parse(value))
+    .filter((value) => Number.isFinite(value));
+
+  return timestamps.length ? new Date(Math.max(...timestamps)) : undefined;
+}
+
+function normalizeCategory(value: string): string {
+  return value.trim().normalize('NFC').toLocaleLowerCase('pt-BR');
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [reviews, viralArticles, categories] = await Promise.all([
     fetchAllReviews(),
@@ -27,7 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticPages: MetadataRoute.Sitemap = [
     {
-      url: baseUrl,
+      url: baseUrl + '/',
       changeFrequency: 'daily',
       priority: 1,
     },
@@ -119,17 +135,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const categoryPages: MetadataRoute.Sitemap = categories.map((c) => ({
-    url: `${baseUrl}/reviews/categoria/${encodeURIComponent(c.name)}/`,
-    changeFrequency: 'weekly' as const,
-    priority: 0.7,
-  }));
+  const categoryPages: MetadataRoute.Sitemap = categories.map((category) => {
+    const lastModified = latestReviewModification(
+      reviews.filter((review) => normalizeCategory(review.category) === normalizeCategory(category.name))
+    );
 
-  const buyingGuidePages: MetadataRoute.Sitemap = buildBuyingGuideCategories(reviews, 3).map((category) => ({
-    url: `${baseUrl}/melhores/${category.slug}/`,
-    changeFrequency: 'weekly' as const,
-    priority: 0.85,
-  }));
+    return {
+      url: baseUrl + '/reviews/categoria/' + encodeURIComponent(category.name) + '/',
+      ...(lastModified ? { lastModified } : {}),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    };
+  });
+
+  const buyingGuidePages: MetadataRoute.Sitemap = buildBuyingGuideCategories(reviews, 3).map((category) => {
+    const lastModified = latestReviewModification(
+      reviews.filter((review) => normalizeCategory(review.category) === normalizeCategory(category.name))
+    );
+
+    return {
+      url: baseUrl + '/melhores/' + category.slug + '/',
+      ...(lastModified ? { lastModified } : {}),
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    };
+  });
 
   const buyingIntentPages: MetadataRoute.Sitemap = buildBuyingIntentPages(reviews, 4).map((item) => ({
     url: `${baseUrl}/melhores/${item.categorySlug}/${item.intent}/`,

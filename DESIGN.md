@@ -152,8 +152,8 @@ npx agentdb@latest promote .agentdb.db --minConfidence 0.85
 ## Deployment
 
 - **Platform**: Vercel (custom domain `www.vetor.blog`)
-- **IndexNow**: Automático via `submitToIndexNow()`
-- **Google Indexing API**: Automático via `submitToGoogle()`
+- **IndexNow**: publicações, atualizações e exclusões de reviews/comparativos passam pelo cliente compartilhado src/lib/indexnow.ts; registra a resposta HTTP do protocolo sem confundir recebimento com indexação.
+- Google Search indexing: reviews/comparativos use the XML sitemap, crawlable internal links and Search Console URL inspection. The Google Indexing API is not used for these page types because documented eligibility is limited to JobPosting and livestream BroadcastEvent pages.
 - **Revalidate**: 5min (home), 1h (reviews)
 
 ## Regras de Ouro (Não Negociáveis)

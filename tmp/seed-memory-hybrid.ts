@@ -67,9 +67,9 @@ async function init() {
       metadata: { domain: 'design-system', tags: ['nexu', 'minimalist', 'tokens', 'typography', 'bento-grid'] }
     },
     {
-      task: 'Deploy Vercel + IndexNow + Google Indexing API automatizado no generate pipeline - garante indexacao rapida de novos artigos',
+      task: 'Deploy Vercel + IndexNow; Google indexing uses sitemap and Search Console for ordinary review pages — notificação não garante indexação; Google usa sitemap, links internos e Search Console',
       input: 'Deploy manual sem indexacao automatica',
-      output: 'Pipeline com submitToIndexNow() + submitToGoogle()',
+      output: 'Pipeline usa o cliente IndexNow compartilhado; Google para reviews depende de sitemap, links internos e Search Console',
       success: true,
       reward: 0.95,
       sessionId: 'session-seo-001',

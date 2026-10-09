@@ -79,9 +79,9 @@ async function init() {
       metadata: { domain: "design-system", type: "lesson" }
     },
     {
-      task: "Deploy Vercel + IndexNow + Google Indexing API automatizado",
+      task: "Deploy Vercel + IndexNow; Google indexing uses sitemap and Search Console for ordinary review pages",
       input: "Deploy manual sem indexacao automatica",
-      output: "Pipeline com submitToIndexNow() + submitToGoogle()",
+      output: "Pipeline usa o cliente IndexNow compartilhado; Google para reviews depende de sitemap, links internos e Search Console",
       success: true,
       reward: 0.95,
       sessionId: "session-seo-001",

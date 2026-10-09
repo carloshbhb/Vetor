@@ -54,11 +54,7 @@ set_vercel_env "GITHUB_REPO" "$(get_env GITHUB_REPO)"
 echo ""
 echo "🔍 IndexNow..."
 set_vercel_env "INDEXNOW_API_KEY" "$(get_env INDEXNOW_API_KEY)"
-set_vercel_env "INDEXNOW_LOCATION_ID" "$(get_env INDEXNOW_LOCATION_ID)"
 
-echo ""
-echo "🌐 Google Indexing..."
-set_vercel_env "GOOGLE_INDEXING_API_KEY" "$(get_env GOOGLE_INDEXING_API_KEY)"
 
 echo ""
 echo "🔗 Site..."
