@@ -23,7 +23,13 @@ import RelatedCommercialProducts from "@/components/RelatedCommercialProducts";
 import ReviewPurchaseIntentLinks from "@/components/ReviewPurchaseIntentLinks";
 import DecisionPath from "@/components/DecisionPath";
 import { getProductLinksByReviewSlug, getReviewedProductLinksByCategory } from "@/lib/product-links";
-import { getAffiliateLinksForReview, type AffiliateLink } from "@/lib/affiliate-links";
+import {
+  getAffiliateLinksForReview,
+  getAffiliateLinksBySlugs,
+  getAffiliateLinksForProductNames,
+  normalizeAffiliateProductName,
+  type AffiliateLink,
+} from "@/lib/affiliate-links";
 import { buildBuyingGuideCategories, buildBuyingIntentPages, buildMarketplaceOffers, isGuideLikeSlug, reviewScore, parseReviewPrice } from "@/lib/buying";
 
 interface PageProps {
@@ -314,9 +320,36 @@ export default async function ReviewPage({ params }: PageProps) {
   const compareRows = normalizeCompareRows(review.compare_table?.rows);
   const compareColumns = normalizeCompareColumns(review.compare_table?.columns);
   const compareProductReviews = compareColumns.map((column, index) =>
-    index === 0 ? null : findComparisonReview(String(column || ""), allReviews, review.slug)
+    index === 0 || normalizeComparableText(String(column || "")) === normalizeComparableText(review.product)
+      ? null
+      : findComparisonReview(String(column || ""), allReviews, review.slug)
   );
   const competitors = compareColumns.slice(1).filter((column) => normalizeComparableText(String(column || "")) !== normalizeComparableText(review.product)).slice(0, 3);
+  const compareColumnReviewSlugs = compareColumns.map((column, index) => {
+    if (index === 0) return null;
+    if (normalizeComparableText(String(column || "")) === normalizeComparableText(review.product)) return review.slug;
+    return compareProductReviews[index]?.slug || null;
+  });
+  const [compareAffiliateLinksBySlug, compareAffiliateLinksByName] = await Promise.all([
+    getAffiliateLinksBySlugs([review.slug, ...compareColumnReviewSlugs.filter((slug): slug is string => Boolean(slug))]),
+    getAffiliateLinksForProductNames(compareColumns.slice(1)),
+  ]);
+  const compareAffiliateBySlug = new Map(compareAffiliateLinksBySlug.map((link) => [link.slug, link]));
+  const compareAffiliateByName = new Map<string, AffiliateLink[]>();
+  for (const link of [...centralAffiliateLinks, ...compareAffiliateLinksByName]) {
+    const key = normalizeAffiliateProductName(link.name);
+    if (!key) continue;
+    const list = compareAffiliateByName.get(key) || [];
+    if (!list.some((item) => item.id === link.id)) list.push(link);
+    compareAffiliateByName.set(key, list);
+  }
+  const compareAffiliateForColumn = compareColumns.map((column, index) => {
+    if (index === 0) return null;
+    const targetSlug = compareColumnReviewSlugs[index];
+    if (targetSlug) return compareAffiliateBySlug.get(targetSlug) || null;
+    const candidates = compareAffiliateByName.get(normalizeAffiliateProductName(column)) || [];
+    return candidates.find((link) => link.status === "active" && Boolean(link.destination_url.trim())) || candidates[0] || null;
+  });
 
   const winCounts = new Map<number, number>();
   for (const row of compareRows) {
@@ -777,11 +810,22 @@ export default async function ReviewPage({ params }: PageProps) {
                             const linkedReview = compareProductReviews[i];
                             return (
                               <th key={i} scope="col">
-                                {linkedReview ? (
-                                  <Link href={"/reviews/" + linkedReview.slug + "/"}>{label}</Link>
-                                ) : (
-                                  label
-                                )}
+                                <div className="compare-product-header">
+                                  {linkedReview ? (
+                                    <Link href={"/reviews/" + linkedReview.slug + "/"}>{label}</Link>
+                                  ) : (
+                                    label
+                                  )}
+                                  {compareAffiliateForColumn[i]?.status === "active" && compareAffiliateForColumn[i]?.destination_url.trim() && (
+                                    <Link
+                                      className="compare-product-buy"
+                                      href={"/go/" + compareAffiliateForColumn[i]!.slug + "/"}
+                                      data-aff-pos={"review-compare-" + review.slug + "-" + i}
+                                    >
+                                      Ver preço →
+                                    </Link>
+                                  )}
+                                </div>
                               </th>
                             );
                           })}

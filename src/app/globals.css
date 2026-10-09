@@ -999,3 +999,34 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
     padding: 12px;
   }
 }
+
+
+/* Links comerciais na tabela comparativa: visíveis, compactos e consistentes. */
+.compare-product-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 96px;
+}
+.compare-product-buy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #765f00;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.compare-product-buy:hover {
+  color: #111827;
+}
+.compare-product-buy:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+  border-radius: 3px;
+}

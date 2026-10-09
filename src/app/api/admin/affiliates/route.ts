@@ -24,6 +24,7 @@ export async function GET(request: Request) {
   const status = searchParams.get("status") as AffiliateLinkStatus | null;
   const source_type = searchParams.get("source_type") as AffiliateSourceType | null;
   const health_status = searchParams.get("health_status") as AffiliateHealthStatus | null;
+  const needs_link = searchParams.get("needs_link") === "true";
   const marketplace = searchParams.get("marketplace") || undefined;
   const search = searchParams.get("search") || undefined;
 
@@ -35,6 +36,7 @@ export async function GET(request: Request) {
     ...(status && statusValues.includes(status) ? { status } : {}),
     ...(source_type && sourceValues.includes(source_type) ? { source_type } : {}),
     ...(health_status && healthValues.includes(health_status) ? { health_status } : {}),
+    ...(needs_link ? { needs_link: true } : {}),
     marketplace,
     search,
     limit: Number.isFinite(limitRaw) ? limitRaw : 50,

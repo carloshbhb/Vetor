@@ -15,7 +15,7 @@ type LinkRow = {
   total_clicks: number; last_clicked_at: string | null; created_at: string; updated_at: string;
 };
 
-type Stats = { total: number; active: number; paused: number; broken: number; archived: number; unchecked: number; healthErrors: number; clicks: number; };
+type Stats = { total: number; active: number; paused: number; broken: number; archived: number; unchecked: number; healthErrors: number; pendingLinks: number; clicks: number; };
 type FormData = Pick<LinkRow, "slug"|"name"|"marketplace"|"category"|"source_type"|"source_ref"|"destination_url"|"product_url"|"affiliate_tag"|"affiliate_checked_at"|"image_url"|"price"|"status"|"priority"|"notes"|"tags">;
 
 type Props = {
@@ -50,6 +50,7 @@ function date(value: string | null) {
 }
 
 function host(value: string) {
+  if (!value.trim()) return "Nenhuma URL de afiliado atribuída";
   try { return new URL(value).hostname.replace(/^www\./, ""); }
   catch { return value.slice(0, 40); }
 }
@@ -71,6 +72,7 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
   const [marketplace, setMarketplace] = useState("");
   const [sourceType, setSourceType] = useState("");
   const [health, setHealth] = useState("");
+  const [needsLink, setNeedsLink] = useState(false);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -103,6 +105,7 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
       if (marketplace) qs.set("marketplace", marketplace);
       if (sourceType) qs.set("source_type", sourceType);
       if (health) qs.set("health_status", health);
+      if (needsLink) qs.set("needs_link", "true");
       const res = await fetch("/api/admin/affiliates?" + qs.toString(), { cache: "no-store" });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(payload.error || "Não foi possível carregar os links.");
@@ -116,22 +119,22 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
     } finally {
       setLoading(false);
     }
-  }, [page, search, status, marketplace, sourceType, health]);
+  }, [page, search, status, marketplace, sourceType, health, needsLink]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => { if (page === 0 && !search && !status && !marketplace && !sourceType && !health) return; void load(); }, 250);
     return () => window.clearTimeout(timer);
-  }, [load, page, search, status, marketplace, sourceType, health]);
+  }, [load, page, search, status, marketplace, sourceType, health, needsLink]);
 
   const filteredCountLabel = useMemo(() => {
     if (loading) return "Atualizando…";
     return total + " link(s) encontrados";
   }, [loading, total]);
 
-  const activeFilters = [search, status, marketplace, sourceType, health].filter(Boolean).length;
+  const activeFilters = [search, status, marketplace, sourceType, health, needsLink ? "needs_link" : ""].filter(Boolean).length;
 
   const resetFilters = () => {
-    setSearch(""); setStatus(""); setMarketplace(""); setSourceType(""); setHealth(""); setPage(0);
+    setSearch(""); setStatus(""); setMarketplace(""); setSourceType(""); setHealth(""); setNeedsLink(false); setPage(0);
     window.setTimeout(() => void load(), 20);
   };
 
@@ -146,7 +149,7 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
       source_type: item.source_type, source_ref: item.source_ref, destination_url: item.destination_url,
       product_url: item.product_url || "", affiliate_tag: item.affiliate_tag || "",
       affiliate_checked_at: item.affiliate_checked_at, image_url: item.image_url || "", price: item.price,
-      status: item.status, priority: item.priority, notes: item.notes, tags: item.tags
+      status: item.destination_url.trim() ? item.status : "active", priority: item.priority, notes: item.notes, tags: item.tags
     });
     setShowModal(true); setNotice(""); setError("");
   };
@@ -190,7 +193,7 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
 
   const save = async () => {
     if (!form.name.trim() || !form.destination_url.trim()) {
-      setError("Nome e URL oficial de afiliado são obrigatórios."); return;
+      setError("Nome e URL de afiliado são obrigatórios. Para ativar um produto pendente, informe o destino HTTPS."); return;
     }
     try {
       new URL(form.destination_url);
@@ -318,10 +321,10 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
             <div className="mt-1 flex items-baseline gap-2"><strong className="font-display text-4xl">{total}</strong><span className="text-sm text-[var(--muted)]">links reais no banco central</span></div>
             <p className="mt-1 text-xs text-[var(--muted)]">Leitura {date(lastRead)} · nenhum contador de inventário antigo · build {buildVersion}.</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2">
             {[
-              ["Ativos", stats.active], ["Problemas", stats.broken + stats.healthErrors],
-              ["Não verificados", stats.unchecked], ["Cliques", stats.clicks]
+              ["Ativos", stats.active], ["Aguardando link", stats.pendingLinks],
+              ["Problemas", stats.broken + stats.healthErrors], ["Não verificados", stats.unchecked], ["Cliques", stats.clicks]
             ].map(([label, value]) => (
               <div key={String(label)} className="rounded-xl border border-border bg-[var(--surface2)] px-3 py-2.5 min-w-[112px]">
                 <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">{label}</p>
@@ -333,12 +336,13 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
       </section>
 
       <section className="mb-6 rounded-2xl border border-border bg-[var(--surface)] p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(280px,1.8fr)_repeat(4,minmax(150px,1fr))_auto] gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,1.7fr)_repeat(5,minmax(130px,1fr))_auto] gap-3">
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} placeholder="Produto, slug, categoria, origem ou observação…" className="rounded-xl border border-border bg-[var(--surface2)] px-4 py-3 text-sm outline-none focus:border-[var(--amber)]" />
           <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }} className="rounded-xl border border-border bg-[var(--surface2)] px-3 py-3 text-sm"><option value="">Todos os status</option><option value="active">Ativos</option><option value="paused">Pausados</option><option value="broken">Com problema</option><option value="archived">Arquivados</option></select>
           <select value={marketplace} onChange={(e) => { setMarketplace(e.target.value); setPage(0); }} className="rounded-xl border border-border bg-[var(--surface2)] px-3 py-3 text-sm"><option value="">Todos os marketplaces</option>{Array.from(new Set([...["Mercado Livre","Amazon","Shopee","Magazine Luiza","Multi","Outro"], ...marketplaces])).map((m) => <option key={m}>{m}</option>)}</select>
           <select value={sourceType} onChange={(e) => { setSourceType(e.target.value); setPage(0); }} className="rounded-xl border border-border bg-[var(--surface2)] px-3 py-3 text-sm"><option value="">Todas as origens</option><option value="review">Reviews</option><option value="comparison_product">Comparativos</option><option value="product_link">Legado</option><option value="manual">Manuais</option></select>
           <select value={health} onChange={(e) => { setHealth(e.target.value); setPage(0); }} className="rounded-xl border border-border bg-[var(--surface2)] px-3 py-3 text-sm"><option value="">Toda saúde</option><option value="unknown">Não verificados</option><option value="healthy">OK</option><option value="redirect">Redirecionando</option><option value="error">Erro</option></select>
+          <select value={needsLink ? "yes" : ""} onChange={(e) => { setNeedsLink(e.target.value === "yes"); setPage(0); }} className="rounded-xl border border-border bg-[var(--surface2)] px-3 py-3 text-sm"><option value="">Situação do destino</option><option value="yes">Pendente de atribuição</option></select>
           <button onClick={resetFilters} disabled={!activeFilters} className="rounded-xl border border-border px-3 py-3 text-sm font-semibold text-[var(--muted)] disabled:opacity-35">Limpar</button>
         </div>
         <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs text-[var(--muted)]"><span>{filteredCountLabel}{activeFilters ? " · " + activeFilters + " filtro(s)" : ""}</span><span>{stats.archived} arquivado(s)</span></div>
@@ -356,11 +360,12 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap gap-2">
-                    <span className={"rounded-full border px-2 py-1 text-[10px] font-bold " + tone(item.status)}>{STATUS_LABEL[item.status]}</span>
+                    <span className={"rounded-full border px-2 py-1 text-[10px] font-bold " + tone(!item.destination_url.trim() ? "paused" : item.status)}>{!item.destination_url.trim() ? "Pendente: atribuir link" : STATUS_LABEL[item.status]}</span>
                     <span className={"rounded-full border px-2 py-1 text-[10px] font-bold " + tone(item.health_status)}>{HEALTH_LABEL[item.health_status]}{item.http_status ? " · " + item.http_status : ""}</span>
                   </div>
                   <h3 className="mt-2 line-clamp-2 font-heading text-base font-bold">{item.name}</h3>
                   <p className="mt-1 text-xs text-[var(--muted)]">{SOURCE_LABEL[item.source_type]} · {item.marketplace} · {item.category || "sem categoria"}</p>
+                  {item.notes && <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-[var(--muted)]">{item.notes}</p>}
                 </div>
                 <div className="shrink-0 rounded-xl border border-border bg-[var(--surface)] px-3 py-2 text-right">
                   <span className="text-[9px] uppercase tracking-[0.12em] text-[var(--muted)]">Cliques</span>
@@ -380,7 +385,7 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <button onClick={() => openEdit(item)} className="rounded-lg bg-[var(--amber)] px-3 py-2 text-xs font-extrabold text-black">Editar oferta</button>
+                <button onClick={() => openEdit(item)} className="rounded-lg bg-[var(--amber)] px-3 py-2 text-xs font-extrabold text-black">{!item.destination_url.trim() ? "Atribuir link" : "Editar oferta"}</button>
                 <button onClick={() => void check([item.id])} disabled={checking} className="rounded-lg border border-border px-3 py-2 text-xs font-semibold disabled:opacity-50">Testar</button>
                 <button onClick={() => void copyPath(item.slug)} className="rounded-lg border border-border px-3 py-2 text-xs font-semibold">{copied === item.slug ? "Copiado" : "Copiar /go/"}</button>
                 {item.status !== "archived" && <button onClick={() => void archive(item)} className="ml-auto rounded-lg px-3 py-2 text-xs font-semibold text-[var(--red)]">Arquivar</button>}
@@ -417,7 +422,7 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
               <button onClick={clearModal} className="rounded-lg px-2 py-1 text-2xl text-[var(--muted)]" aria-label="Fechar">×</button>
             </div>
             <div className="overflow-y-auto p-5 sm:p-6">
-              <div className="rounded-xl border border-[var(--amber)]/20 bg-[var(--amber)]/5 p-4"><p className="text-xs font-bold text-[var(--amber)]">Regra da Central</p><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Cole aqui exatamente o link oficial de afiliado. O site público usa apenas /go/{form.slug || "seu-slug"}/.</p></div>
+              <div className="rounded-xl border border-[var(--amber)]/20 bg-[var(--amber)]/5 p-4"><p className="text-xs font-bold text-[var(--amber)]">Regra da Central</p><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Cole aqui exatamente o link oficial de afiliado. O site público usa apenas /go/{form.slug || "seu-slug"}/.</p>{editing && !editing.destination_url.trim() && <p className="mt-2 text-xs font-semibold text-[var(--amber)]">Este produto foi encontrado em um comparativo e ainda não tem destino. Ao informar uma URL HTTPS e salvar, o link ficará ativo.</p>}</div>
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <label className="text-xs text-[var(--muted)]">Nome do produto *

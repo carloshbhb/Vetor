@@ -37,12 +37,47 @@ export interface AffiliateLink {
 const STATUS_VALUES: AffiliateLinkStatus[] = ["active", "paused", "broken", "archived"];
 const SOURCE_VALUES: AffiliateSourceType[] = ["review", "comparison_product", "product_link", "manual"];
 
+export function normalizeAffiliateProductName(value: unknown): string {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function findPublishedProductReview(
+  productName: string,
+  reviews: Array<{ slug?: unknown; product?: unknown }>
+): { slug: string; product: string } | null {
+  const target = normalizeAffiliateProductName(productName);
+  if (!target) return null;
+  const targetTokens = new Set(target.split(" ").filter((token) => token.length >= 3));
+  let best: { slug: string; product: string; score: number } | null = null;
+
+  for (const row of reviews) {
+    const slug = String(row.slug || "");
+    const product = String(row.product || "");
+    if (!slug || !product || isGuideLikeSlug(slug) || /(?:^|-)vs(?:-|$)/i.test(slug) || /\bvs\b/i.test(product)) continue;
+    const candidate = normalizeAffiliateProductName(product);
+    if (!candidate) continue;
+    let score = candidate === target ? 100 : 0;
+    if (candidate.includes(target) || target.includes(candidate)) score += 50;
+    const tokens = new Set(candidate.split(" ").filter((token) => token.length >= 3));
+    for (const token of targetTokens) if (tokens.has(token)) score += 4;
+    if (!best || score > best.score) best = { slug, product, score };
+  }
+
+  return best && best.score >= 12 ? { slug: best.slug, product: best.product } : null;
+}
+
 type AffiliateLinkFilters = {
   search?: string;
   status?: AffiliateLinkStatus;
   marketplace?: string;
   source_type?: AffiliateSourceType;
   health_status?: AffiliateHealthStatus;
+  needs_link?: boolean;
   limit?: number;
   offset?: number;
 };
@@ -183,6 +218,7 @@ function applyAffiliateLinkFilters(query: any, filters?: AffiliateLinkFilters) {
   if (filters?.status) query = query.eq("status", filters.status);
   if (filters?.source_type) query = query.eq("source_type", filters.source_type);
   if (filters?.health_status) query = query.eq("health_status", filters.health_status);
+  if (filters?.needs_link) query = query.eq("destination_url", "");
   if (filters?.marketplace) {
     const marketplace = canonicalMarketplace(filters.marketplace, "");
     const definition = MARKETPLACE_FILTERS[marketplace];
@@ -254,15 +290,16 @@ export async function getAffiliateLinkStats() {
     archived: 0,
     unchecked: 0,
     healthErrors: 0,
+    pendingLinks: 0,
     clicks: 0,
   };
   if (!supabase) return empty;
 
-  const data: Array<{ status: string; health_status: string; total_clicks: number }> = [];
+  const data: Array<{ status: string; health_status: string; total_clicks: number; destination_url: string }> = [];
   for (let offset = 0; ; offset += 1000) {
     const { data: page, error } = await supabase
       .from("affiliate_links")
-      .select("status,health_status,total_clicks")
+      .select("status,health_status,total_clicks,destination_url")
       .range(offset, offset + 999);
     if (error || !page) return empty;
     data.push(...page);
@@ -277,9 +314,48 @@ export async function getAffiliateLinkStats() {
     if (row.status === "archived") stats.archived += 1;
     if (row.health_status === "unknown") stats.unchecked += 1;
     if (row.health_status === "error") stats.healthErrors += 1;
+    if (!String(row.destination_url || "").trim()) stats.pendingLinks += 1;
     stats.clicks += Number(row.total_clicks || 0);
     return stats;
   }, empty);
+}
+
+
+
+export async function getAffiliateLinksBySlugs(slugs: string[]): Promise<AffiliateLink[]> {
+  const supabase = getSupabaseServiceKeyClient();
+  const uniqueSlugs = Array.from(new Set(slugs.map((slug) => String(slug || "").trim()).filter(Boolean))).slice(0, 100);
+  if (!supabase || !uniqueSlugs.length) return [];
+  const { data, error } = await supabase.from("affiliate_links").select("*").in("slug", uniqueSlugs);
+  if (error) return [];
+  return (data || []).map((row) => normalizeRow(row as Record<string, unknown>));
+}
+
+export async function getAffiliateLinksForProductNames(names: string[]): Promise<AffiliateLink[]> {
+  const supabase = getSupabaseServiceKeyClient();
+  const wanted = new Set(names.map(normalizeAffiliateProductName).filter(Boolean));
+  if (!supabase || !wanted.size) return [];
+
+  const matched: AffiliateLink[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await supabase
+      .from("affiliate_links")
+      .select("*")
+      .range(offset, offset + 499);
+    if (error || !data) return matched;
+    for (const row of data) {
+      const normalized = normalizeRow(row as Record<string, unknown>);
+      if (wanted.has(normalizeAffiliateProductName(normalized.name))) matched.push(normalized);
+    }
+    if (data.length < 500) break;
+  }
+
+  return matched.sort((a, b) =>
+    Number(b.status === "active" && Boolean(b.destination_url)) - Number(a.status === "active" && Boolean(a.destination_url)) ||
+    Number(a.source_type !== "review") - Number(b.source_type !== "review") ||
+    b.priority - a.priority ||
+    new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  );
 }
 
 export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
@@ -292,12 +368,11 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
     { data: productLinks, error: productLinksError },
     { data: articles, error: articlesError },
   ] = await Promise.all([
-    supabase.from("affiliate_links").select("id,slug,source_type,status"),
+    supabase.from("affiliate_links").select("id,slug,name,source_type,status,destination_url,source_ref,notes,tags"),
     supabase
       .from("reviews")
-      .select("slug,product,category,marketplace,affiliate_url")
-      .eq("status", "published")
-      .not("affiliate_url", "is", null),
+      .select("slug,product,category,marketplace,affiliate_url,compare_table")
+      .eq("status", "published"),
     supabase
       .from("product_links")
       .select("id,slug,product_name,category,marketplace,affiliate_url,status,priority,notes,tags,created_at,updated_at"),
@@ -308,13 +383,28 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
 
   if (existingError) return 0;
 
-  const existingBySlug = new Map(
+  type ExistingRow = {
+    id: string;
+    name: string;
+    source_type: string;
+    status: string;
+    destination_url: string;
+    source_ref: string;
+    notes: string;
+    tags: string[];
+  };
+  const existingBySlug = new Map<string, ExistingRow>(
     (existing || []).map((row) => [
       String(row.slug),
       {
         id: String(row.id),
+        name: String(row.name || ""),
         source_type: String(row.source_type || ""),
         status: String(row.status || "active"),
+        destination_url: String(row.destination_url || ""),
+        source_ref: String(row.source_ref || ""),
+        notes: String(row.notes || ""),
+        tags: normalizeTags(row.tags),
       },
     ])
   );
@@ -337,40 +427,52 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
     if (!existingRow) {
       existingBySlug.set(slug, {
         id: "",
+        name: String(row.name || ""),
         source_type: String(row.source_type || ""),
         status: String(row.status || "active"),
+        destination_url: String(row.destination_url || ""),
+        source_ref: String(row.source_ref || ""),
+        notes: String(row.notes || ""),
+        tags: normalizeTags(row.tags),
       });
       rows.push(row);
       return;
     }
 
+    // O registro central é a fonte de verdade. A sincronização pode preencher
+    // um destino que ainda está vazio, mas nunca sobrescreve uma URL atribuída
+    // manualmente nem reativa links que o operador pausou.
     if (String(row.source_type || "") === "comparison_product" && existingRow.id) {
-      queueUpdate(existingRow.id, {
-        name: String(row.name || ""),
-        marketplace: String(row.marketplace || "Outro"),
-        category: String(row.category || ""),
-        source_type: "comparison_product",
-        source_ref: String(row.source_ref || ""),
-        destination_url: String(row.destination_url || ""),
-        status: "active",
-        priority: Number(row.priority || 0),
-        notes: String(row.notes || ""),
-        tags: normalizeTags(row.tags),
-        health_status: "unknown",
-        last_checked_at: null,
-        http_status: null,
-        final_url: null,
-        last_error: null,
-        updated_at: new Date().toISOString(),
-      });
+      const incomingDestination = String(row.destination_url || "").trim();
+      if (!String(existingRow.destination_url || "").trim() && incomingDestination) {
+        queueUpdate(existingRow.id, {
+          destination_url: incomingDestination,
+          status: existingRow.status === "archived" ? "archived" : "active",
+          health_status: "unknown",
+          last_checked_at: null,
+          http_status: null,
+          final_url: null,
+          last_error: null,
+          updated_at: new Date().toISOString(),
+        });
+      }
     }
   };
 
+  const reviewRows = (reviews || []) as unknown as Array<{
+    slug?: unknown;
+    product?: unknown;
+    category?: unknown;
+    marketplace?: unknown;
+    affiliate_url?: unknown;
+    compare_table?: unknown;
+  }>;
+
   if (!reviewsError && reviews) {
-    for (const review of reviews) {
+    for (const review of reviewRows) {
       const slug = String(review.slug || "").trim();
-      const destination = String(review.affiliate_url || "").trim();
-      if (!slug || !destination) continue;
+      const product = String(review.product || slug).trim();
+      if (!slug) continue;
 
       if (isGuideLikeSlug(slug)) {
         const existingRow = existingBySlug.get(slug);
@@ -384,21 +486,29 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
         continue;
       }
 
+      let destination = "";
       try {
-        addOrUpdateRow({
-          slug,
-          name: String(review.product || slug),
-          marketplace: String(review.marketplace || "Outro"),
-          category: String(review.category || ""),
-          source_type: "review",
-          source_ref: slug,
-          destination_url: validateAffiliateDestination(destination),
-          status: "active",
-          priority: 100,
-          notes: "Criado automaticamente a partir de um review publicado.",
-          tags: [],
-        });
-      } catch {}
+        const rawDestination = String(review.affiliate_url || "").trim();
+        if (rawDestination) destination = validateAffiliateDestination(rawDestination);
+      } catch {
+        destination = "";
+      }
+
+      addOrUpdateRow({
+        slug,
+        name: product,
+        marketplace: String(review.marketplace || "Outro"),
+        category: String(review.category || ""),
+        source_type: "review",
+        source_ref: slug,
+        destination_url: destination,
+        status: destination ? "active" : "paused",
+        priority: 100,
+        notes: destination
+          ? "Criado automaticamente a partir de um review publicado."
+          : "Pendente de atribuição de link de afiliado para este review publicado.",
+        tags: destination ? [] : ["pendente-link"],
+      });
     }
   }
 
@@ -428,34 +538,124 @@ export async function syncPublishedReviewAffiliateLinks(): Promise<number> {
     }
   }
 
+  const articleProductRows: Array<{ articleSlug: string; category: string; product: Record<string, unknown>; index: number }> = [];
+  const articleUrlNames = new Set<string>();
   if (!articlesError && articles) {
     for (const article of articles) {
       const articleSlug = String(article.slug || "").trim();
       const products = Array.isArray(article.products) ? article.products : [];
       if (!articleSlug) continue;
 
-      products.forEach((product: Record<string, unknown>, index: number) => {
+      products.forEach((rawProduct: unknown, index: number) => {
+        if (!rawProduct || typeof rawProduct !== "object") return;
+        const product = rawProduct as Record<string, unknown>;
+        articleProductRows.push({ articleSlug, category: String(article.category || ""), product, index });
         const destination = String(product.product_url || "").trim();
-        if (!destination) return;
-        const slug = articleSlug + "-p" + String(index + 1);
-
-        try {
-          addOrUpdateRow({
-            slug,
-            name: String(product.name || "Produto " + String(index + 1)),
-            marketplace: "Mercado Livre",
-            category: String(article.category || ""),
-            source_type: "comparison_product",
-            source_ref: "comparativo:" + articleSlug + "#" + String(index + 1),
-            destination_url: validateAffiliateDestination(destination),
-            status: "active",
-            priority: 50,
-            notes: "Sincronizado automaticamente do comparativo. Edite o destino na Central de Afiliados.",
-            tags: ["comparativo"],
-          });
-        } catch {}
+        if (destination) {
+          try {
+            validateAffiliateDestination(destination);
+            const normalizedName = normalizeAffiliateProductName(product.name);
+            if (normalizedName) articleUrlNames.add(normalizedName);
+          } catch {}
+        }
       });
     }
+
+    for (const item of articleProductRows) {
+      const { articleSlug, category, product, index } = item;
+      const destination = String(product.product_url || "").trim();
+      if (!destination) continue;
+      const slug = articleSlug + "-p" + String(index + 1);
+
+      try {
+        addOrUpdateRow({
+          slug,
+          name: String(product.name || "Produto " + String(index + 1)),
+          marketplace: "Mercado Livre",
+          category,
+          source_type: "comparison_product",
+          source_ref: "comparativo:" + articleSlug + "#" + String(index + 1),
+          destination_url: validateAffiliateDestination(destination),
+          status: "active",
+          priority: 50,
+          notes: "Sincronizado do comparativo. O destino publicado é administrado na Central de Afiliados.",
+          tags: ["comparativo"],
+        });
+      } catch {}
+    }
+  }
+
+  // Completa a fila com produtos citados nas tabelas comparativas dos reviews e
+  // nos comparativos sem URL própria. Um produto com review reaproveita o slug
+  // do review; um produto sem review recebe um único registro compartilhável.
+  const existingComparisonNames = new Set(
+    (existing || [])
+      .filter((row) => String(row.source_type || "") === "comparison_product" && String(row.status || "") !== "archived")
+      .map((row) => normalizeAffiliateProductName(row.name))
+      .filter(Boolean)
+  );
+  const candidateMap = new Map<string, { name: string; category: string; refs: string[] }>();
+
+  const addCandidate = (rawName: unknown, category: string, reference: string) => {
+    const name = String(rawName || "").trim();
+    const normalized = normalizeAffiliateProductName(name);
+    if (!name || !normalized) return;
+    if (findPublishedProductReview(name, reviewRows)) return;
+    if (existingComparisonNames.has(normalized) || articleUrlNames.has(normalized)) return;
+
+    const candidateSlug = "cmp-product-" + slugifyAffiliateName(name);
+    const current = candidateMap.get(candidateSlug);
+    if (current) {
+      if (!current.refs.includes(reference)) current.refs.push(reference);
+      return;
+    }
+    candidateMap.set(candidateSlug, { name, category: category || "", refs: [reference] });
+  };
+
+  if (!reviewsError && reviews) {
+    for (const review of reviewRows) {
+      const reviewSlug = String(review.slug || "").trim();
+      if (!reviewSlug || isGuideLikeSlug(reviewSlug)) continue;
+      const compareTable = review.compare_table && typeof review.compare_table === "object"
+        ? review.compare_table as Record<string, unknown>
+        : {};
+      const columns = Array.isArray(compareTable.columns) ? compareTable.columns : [];
+      for (let index = 1; index < columns.length; index += 1) {
+        const productName = String(columns[index] || "").trim();
+        if (!productName) continue;
+        if (normalizeAffiliateProductName(productName) === normalizeAffiliateProductName(review.product)) continue;
+        addCandidate(productName, String(review.category || ""), "review:" + reviewSlug + "#col-" + String(index));
+      }
+    }
+  }
+
+  for (const item of articleProductRows) {
+    const product = item.product;
+    const productName = String(product.name || "").trim();
+    const existingReview = product.slug
+      ? reviewRows.find((review) => String(review.slug || "") === String(product.slug))
+      : findPublishedProductReview(productName, reviewRows);
+    if (existingReview || String(product.product_url || "").trim()) continue;
+    addCandidate(productName, item.category, "comparativo:" + item.articleSlug + "#product-" + String(item.index + 1));
+  }
+
+  for (const [slug, candidate] of candidateMap.entries()) {
+    const references = candidate.refs.slice(0, 8).join(", ");
+    const more = candidate.refs.length > 8 ? " e mais " + String(candidate.refs.length - 8) : "";
+    addOrUpdateRow({
+      slug,
+      name: candidate.name,
+      marketplace: "Outro",
+      category: candidate.category,
+      source_type: "comparison_product",
+      source_ref: "comparison-product:" + slug,
+      destination_url: "",
+      status: "paused",
+      priority: 40,
+      notes: "Aguardando link de afiliado. Citado em " + candidate.refs.length +
+        " comparativo(s): " + references + more + ".",
+      tags: ["comparativo", "pendente-link"],
+    });
   }
 
   let changed = 0;

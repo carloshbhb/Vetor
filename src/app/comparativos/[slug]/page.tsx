@@ -17,6 +17,11 @@ import {
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from "@/lib/buying";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { generateViralArticleSchema, resolveOgImage } from "@/lib/seo";
+import {
+  getAffiliateLinksBySlugs,
+  getAffiliateLinksForProductNames,
+  normalizeAffiliateProductName,
+} from "@/lib/affiliate-links";
 import { primaryAuthor } from "@/data/authors";
 
 interface PageProps {
@@ -95,6 +100,35 @@ export default async function ViralArticlePage({ params }: PageProps) {
       review: p.slug ? await fetchReviewBySlug(p.slug) : null,
     }))
   );
+  const comparisonRouteSlugs = products.map((_, index) => article.slug + "-p" + String(index + 1));
+  const reviewRouteSlugs = products.map((product) => product.slug || "").filter(Boolean);
+  const [affiliateLinksBySlug, affiliateLinksByProductName] = await Promise.all([
+    getAffiliateLinksBySlugs([...comparisonRouteSlugs, ...reviewRouteSlugs]),
+    getAffiliateLinksForProductNames(products.map((product) => product.name)),
+  ]);
+  const affiliateBySlug = new Map(affiliateLinksBySlug.map((link) => [link.slug, link]));
+  const affiliateByName = new Map<string, typeof affiliateLinksByProductName>();
+  for (const link of affiliateLinksByProductName) {
+    const key = normalizeAffiliateProductName(link.name);
+    if (!key) continue;
+    const list = affiliateByName.get(key) || [];
+    if (!list.some((item) => item.id === link.id)) list.push(link);
+    affiliateByName.set(key, list);
+  }
+  const affiliateForProduct = (
+    product: (typeof products)[number],
+    index: number,
+    linkedReview: Awaited<ReturnType<typeof fetchReviewBySlug>>
+  ) => {
+    const comparisonLink = affiliateBySlug.get(article.slug + "-p" + String(index + 1));
+    if (comparisonLink) return comparisonLink;
+    if (linkedReview) {
+      const reviewLink = affiliateBySlug.get(linkedReview.slug);
+      if (reviewLink) return reviewLink;
+    }
+    const candidates = affiliateByName.get(normalizeAffiliateProductName(product.name)) || [];
+    return candidates.find((link) => link.status === "active" && Boolean(link.destination_url.trim())) || candidates[0] || null;
+  };
   type EnrichedWithReview = { product: (typeof products)[number]; review: NonNullable<Awaited<ReturnType<typeof fetchReviewBySlug>>> };
   const reviewed: EnrichedWithReview[] = enriched.filter(
     (e): e is EnrichedWithReview => e.review !== null
@@ -104,7 +138,27 @@ export default async function ViralArticlePage({ params }: PageProps) {
 
   const vsProducts: VsProduct[] = enriched.map(({ product: p, review }, i) => {
     const score = review?.verdict_score ?? 0;
-    if (p.product_url) {
+    const managedAffiliate = affiliateForProduct(p, i, review);
+    const hasManagedAffiliate = Boolean(managedAffiliate);
+    const activeAffiliate =
+      managedAffiliate?.status === "active" && Boolean(managedAffiliate.destination_url.trim());
+    if (activeAffiliate) {
+      return {
+        name: p.name,
+        imageUrl: p.imageUrl,
+        eyebrow: article.category,
+        summary:
+          review && score > 0
+            ? `Nota ${br(score)}/10 · ${review.category}`
+            : article.category,
+        ctaHref: `/go/${managedAffiliate!.slug}/`,
+        ctaLabel: "Ver preço",
+        ctaPos: i === 0 ? "hero-a" : "hero-b",
+        external: true,
+        fetchPriority: i === 0,
+      };
+    }
+    if (!hasManagedAffiliate && p.product_url) {
       return {
         name: p.name,
         imageUrl: p.imageUrl,
@@ -135,7 +189,7 @@ export default async function ViralArticlePage({ params }: PageProps) {
       name: p.name,
       imageUrl: p.imageUrl,
       eyebrow: article.category,
-      summary: article.category,
+      summary: hasManagedAffiliate ? "Link comercial pausado ou pendente de atribuição." : article.category,
       fetchPriority: i === 0,
     };
   });
@@ -318,6 +372,10 @@ export default async function ViralArticlePage({ params }: PageProps) {
                 <div className="buying-choice-grid">
                   {rankedReviewed.map(({ product: p, review }, i) => {
                     const originalIndex = enriched.findIndex((item) => item.review?.slug === review.slug);
+                    const managedAffiliate = affiliateForProduct(p, originalIndex, review);
+                    const activeAffiliate =
+                      managedAffiliate?.status === "active" && Boolean(managedAffiliate.destination_url.trim());
+                    const legacyArticleOffer = !managedAffiliate && Boolean(p.product_url);
                     return (
                       <BuyingChoiceCard
                         key={review.slug}
@@ -325,8 +383,14 @@ export default async function ViralArticlePage({ params }: PageProps) {
                         rank={i + 1}
                         context="comparison"
                         imageUrl={p.imageUrl || review.image_url}
-                        ctaHref={p.product_url ? `/go/${article.slug}-p${originalIndex + 1}/` : undefined}
-                        ctaLabel={p.product_url ? "Ver preço" : "Ler review"}
+                        ctaHref={
+                          activeAffiliate
+                            ? `/go/${managedAffiliate!.slug}/`
+                            : legacyArticleOffer
+                              ? `/go/${article.slug}-p${originalIndex + 1}/`
+                              : undefined
+                        }
+                        ctaLabel={activeAffiliate || legacyArticleOffer ? "Ver preço" : "Ler review"}
                         ctaPos={`comparativo-${i + 1}`}
                       />
                     );
