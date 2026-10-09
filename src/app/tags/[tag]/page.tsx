@@ -4,7 +4,7 @@ import ReviewCard from "@/components/ReviewCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { ItemListSchema } from "@/components/SchemaMarkup";
 import { fetchAllReviews } from "@/lib/data";
-import { buildTagIndex } from "@/lib/tags";
+import { buildTagIndex, buildIndexableTagIndex, isIndexableTag } from "@/lib/tags";
 
 interface PageProps {
   params: Promise<{ tag: string }>;
@@ -20,7 +20,7 @@ function safeDecode(value: string): string {
 
 export async function generateStaticParams() {
   const reviews = await fetchAllReviews();
-  const tags = buildTagIndex(reviews);
+  const tags = buildIndexableTagIndex(reviews);
   return tags.map((tag) => ({ tag: tag.slug }));
 }
 
@@ -29,12 +29,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const slug = safeDecode(raw);
   const reviews = await fetchAllReviews();
   const entry = buildTagIndex(reviews).find((t) => t.slug === slug);
+  const indexable = Boolean(entry && isIndexableTag(entry));
   const label = entry?.tag || slug;
   return {
-    title: `${label} — Reviews e Análises`,
-    description: `Reviews independentes com a tag ${label}: prós, contras, notas e as melhores ofertas relacionadas.`,
+    title: label + ' — Reviews e Análises',
+    description: 'Reviews independentes com a tag ' + label + ': prós, contras, notas e análises relacionadas.',
     alternates: {
-      canonical: `/tags/${encodeURIComponent(slug)}`,
+      canonical: '/tags/' + encodeURIComponent(slug) + '/',
+    },
+    robots: {
+      index: indexable,
+      follow: true,
+      googleBot: {
+        index: indexable,
+        follow: true,
+      },
     },
   };
 }

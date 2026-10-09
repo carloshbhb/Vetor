@@ -106,6 +106,18 @@ export function extractReviewTags(
   return tags;
 }
 
+// Thin tag archives with fewer than four published reviews remain accessible,
+// but are not indexable until they provide stronger editorial depth.
+export const INDEXABLE_TAG_MIN_COUNT = 4;
+
+export function isIndexableTag(entry: Pick<TagEntry, "count">): boolean {
+  return entry.count >= INDEXABLE_TAG_MIN_COUNT;
+}
+
+export function buildIndexableTagIndex(reviews: Review[]): TagEntry[] {
+  return buildTagIndex(reviews, { minCount: INDEXABLE_TAG_MIN_COUNT });
+}
+
 export function buildTagIndex(
   reviews: Review[],
   options?: { minCount?: number }

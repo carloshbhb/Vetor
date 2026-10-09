@@ -76,6 +76,26 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/review/asus-vivobook-15-essencial',
+        destination: '/reviews/asus-vivobook-15-x1504va/',
+        permanent: true,
+      },
+      {
+        source: '/review/asus-vivobook-15-essencial/',
+        destination: '/reviews/asus-vivobook-15-x1504va/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/asus-vivobook-15-essencial',
+        destination: '/reviews/asus-vivobook-15-x1504va/',
+        permanent: true,
+      },
+      {
+        source: '/reviews/asus-vivobook-15-essencial/',
+        destination: '/reviews/asus-vivobook-15-x1504va/',
+        permanent: true,
+      },
+      {
         source: '/sitemap',
         destination: '/sitemap.xml',
         permanent: true,

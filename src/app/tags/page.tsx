@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { fetchAllReviews } from "@/lib/data";
-import { buildTagIndex } from "@/lib/tags";
+import { buildIndexableTagIndex } from "@/lib/tags";
 
 export const metadata: Metadata = {
   title: "Tags de Reviews — Temas, Marcas e Comparativos",
   description:
     "Navegue por todas as tags de reviews do vetor.blog: temas, marcas e comparações das nossas análises independentes.",
-  alternates: { canonical: "/tags" },
+  alternates: { canonical: "/tags/" },
 };
 
 export default async function TagsIndexPage() {
   const reviews = await fetchAllReviews();
-  const tags = buildTagIndex(reviews);
+  const tags = buildIndexableTagIndex(reviews);
 
   return (
     <>
@@ -29,7 +29,7 @@ export default async function TagsIndexPage() {
             <span className="eyebrow">Tags</span>
             <h1>Todas as tags</h1>
             <p className="hero-lead">
-              Explore reviews por tema, marca e comparação com as tags do vetor.blog.
+              Explore temas e marcas com pelo menos quatro reviews publicados. Priorizamos coleções com profundidade editorial para facilitar a descoberta de análises relacionadas.
             </p>
           </div>
         </section>

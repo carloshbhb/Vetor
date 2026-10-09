@@ -79,6 +79,10 @@ export default async function AuthorPage({ params }: PageProps) {
               "@type": "Organization",
               name: "Vetor.blog",
               url: "https://www.vetor.blog/",
+              logo: {
+                "@type": "ImageObject",
+                url: "https://www.vetor.blog/og.png",
+              },
             },
             knowsAbout: [
               "wearables",

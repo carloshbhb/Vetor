@@ -18,7 +18,8 @@
     "memory:query": "agentdb query --query",
     "memory:store": "agentdb store-pattern",
     "test:indexing-contract": "tsx scripts/indexing-contract.test.ts",
-    "validate:indexnow-config": "tsx scripts/validate-indexnow-config.ts"
+    "validate:indexnow-config": "tsx scripts/validate-indexnow-config.ts",
+    "test:indexing-quality": "tsx scripts/indexing-quality.test.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

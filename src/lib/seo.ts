@@ -151,14 +151,29 @@ export function generateViralArticleSchema(
   article: ViralArticle,
   existingReviewSlugs?: Set<string>
 ): Record<string, unknown> {
+  const articleUrl = SITE_URL + '/comparativos/' + article.slug + '/';
+  const publishedAt = validIsoDate(article.published_at) || validIsoDate(article.created_at);
+  const modifiedAt = validIsoDate(article.updated_at) || publishedAt;
+  const leadImage = article.hero?.imageUrl || article.products?.find((product) => product.imageUrl?.trim())?.imageUrl;
+  const articleImage = resolveOgImage(leadImage);
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
+    '@id': articleUrl + '#article',
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': articleUrl,
+    },
     headline: article.title,
     description: article.description,
+    image: [articleImage],
+    ...(publishedAt ? { datePublished: publishedAt } : {}),
+    ...(modifiedAt ? { dateModified: modifiedAt } : {}),
     author: {
       '@type': 'Person',
       name: 'Editor Vetor',
+      url: SITE_URL + '/author/editor-vetor/',
     },
     publisher: {
       '@id': ORG_ID,
@@ -166,21 +181,23 @@ export function generateViralArticleSchema(
     mainEntity: {
       '@type': 'ItemList',
       itemListElement: article.products.map((product, index) => {
-        // Só aponta para /reviews/ quando o review existe (sem 404 no JSON-LD).
+        // Comparison items link to the review or the comparison section. They do
+        // not declare Product offers because a reliable current price is not guaranteed.
         const url =
           existingReviewSlugs?.has(product.slug) === false
-            ? `${SITE_URL}/comparativos/${article.slug}#escolha`
-            : `${SITE_URL}/reviews/${product.slug}/`;
+            ? SITE_URL + '/comparativos/' + article.slug + '#escolha'
+            : SITE_URL + '/reviews/' + product.slug + '/';
         const item: Record<string, unknown> = {
-          '@type': 'Product',
+          '@type': 'Thing',
           name: product.name,
           url,
         };
 
-        if (product.imageUrl?.trim()) {
-          item.image = product.imageUrl.startsWith('http')
-            ? product.imageUrl
-            : `${SITE_URL}${product.imageUrl}`;
+        const productImage = product.imageUrl?.trim();
+        if (productImage) {
+          item.image = productImage.startsWith('http')
+            ? productImage
+            : SITE_URL + (productImage.startsWith('/') ? '' : '/') + productImage;
         }
 
         return {

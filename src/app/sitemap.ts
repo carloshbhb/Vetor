@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { fetchAllReviews, fetchAllViralArticles, fetchCategories } from '@/lib/data';
 import { authors } from '@/data/authors';
-import { buildTagIndex } from '@/lib/tags';
+import { buildIndexableTagIndex } from '@/lib/tags';
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from '@/lib/buying';
 
 export const revalidate = 300;
@@ -38,6 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     'focusrite-scarlett-2i2-4-geracao',
     'airpods-pro-2',
     'redmi-watch-5',
+    'asus-vivobook-15-essencial',
     'sony-wf-1000xm5',
   ]);
 
@@ -180,7 +181,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  const tagIndex = buildTagIndex(reviews);
+  const tagIndex = buildIndexableTagIndex(reviews);
   const tagPages: MetadataRoute.Sitemap = tagIndex.map((t) => ({
     url: `${baseUrl}/tags/${t.slug}/`,
     changeFrequency: 'weekly' as const,
