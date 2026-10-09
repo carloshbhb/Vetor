@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "date": "2026-10-08",
+  "date": "2026-10-09",
   "property": "properties/458038617",
   "organic": {
     "sessions": 0,
@@ -262,10 +262,14 @@
       {
         "date": "2026-10-08",
         "sessions": 0
+      },
+      {
+        "date": "2026-10-09",
+        "sessions": 0
       }
     ]
   },
   "topPages": [],
   "anomaly": false,
-  "fetchedAt": "2026-10-08T15:54:53.611Z"
+  "fetchedAt": "2026-10-09T15:37:25.424Z"
 }
