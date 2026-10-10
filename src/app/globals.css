@@ -1143,3 +1143,18 @@ pre, code { overflow-wrap: anywhere; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Accessibility: meet WCAG AA contrast for home section eyebrow labels and descriptions. */
+.home-section-head .eyebrow-small {
+  color: #4b5563;
+}
+.home-section-head p {
+  color: #4b5563;
+}
+
+/* Cookie/privacy link: distinguish links without relying on color alone. */
+a[href="/privacidade"] {
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
