@@ -1,6 +1,6 @@
 # Métricas GA4 — resumo diário
 
-- Execução: 2026-10-09 | dados até 2026-10-09 (lag GA4 T-1)
+- Execução: 2026-10-10 | dados até 2026-10-10 (lag GA4 T-1)
 - STALE: zero sessões orgânicas no período analisado (56d)
 ## Tendência (sessões orgânicas)
 - 7d: 0 sessões (Δ7d n/d | Δ28d n/d)
