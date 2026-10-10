@@ -1030,3 +1030,20 @@ footer p { max-width: 720px; font-size: .88rem; color: #94a2af; }
   outline-offset: 3px;
   border-radius: 3px;
 }
+
+
+/* Comparativos: todas as tabelas editoriais rolam horizontalmente sem esmagar colunas. */
+.article .compare-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.article .compare-wrap > table {
+  width: 100%;
+  min-width: 680px;
+}
+.article .compare-wrap--editorial {
+  margin: 18px 0 24px;
+}

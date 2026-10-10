@@ -15,7 +15,8 @@ import {
   normalizeCategoryName,
 } from "@/lib/data";
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from "@/lib/buying";
-import { sanitizeHtml } from "@/lib/sanitize";
+import { sanitizeHtml, wrapTablesForHorizontalScroll } from "@/lib/sanitize";
+import { buildComparisonSummaryRows } from "@/lib/comparison-tables";
 import { generateViralArticleSchema, resolveOgImage } from "@/lib/seo";
 import {
   getAffiliateLinksBySlugs,
@@ -133,7 +134,6 @@ export default async function ViralArticlePage({ params }: PageProps) {
   const reviewed: EnrichedWithReview[] = enriched.filter(
     (e): e is EnrichedWithReview => e.review !== null
   );
-  const bestScore = Math.max(0, ...reviewed.map((e) => e.review.verdict_score ?? 0));
   const rankedReviewed = [...reviewed].sort((a, b) => (b.review.verdict_score ?? 0) - (a.review.verdict_score ?? 0));
 
   const vsProducts: VsProduct[] = enriched.map(({ product: p, review }, i) => {
@@ -194,23 +194,7 @@ export default async function ViralArticlePage({ params }: PageProps) {
     };
   });
 
-  const tableRows: Array<{ label: string; values: string[]; winIdx: number }> =
-    reviewed.length > 0
-      ? [
-          {
-            label: "Preço",
-            values: reviewed.map((e) => e.review.price_new || "—"),
-            winIdx: -1,
-          },
-          {
-            label: "Nota Vetor",
-            values: reviewed.map((e) =>
-              (e.review.verdict_score ?? 0) > 0 ? br(e.review.verdict_score) : "—"
-            ),
-            winIdx: reviewed.findIndex((e) => (e.review.verdict_score ?? 0) === bestScore),
-          },
-        ]
-      : [];
+  const tableRows = buildComparisonSummaryRows(enriched);
 
   const updatedLong = formatDateLong(article.updated_at || article.published_at);
   const articleSchema = generateViralArticleSchema(
@@ -288,7 +272,7 @@ export default async function ViralArticlePage({ params }: PageProps) {
                   </li>
                   {tableRows.length > 0 && (
                     <li>
-                      <a href="#tabela">Comparação lado a lado</a>
+                      <a href="#tabela">Preço e nota editorial</a>
                     </li>
                   )}
                   <li>
@@ -321,14 +305,14 @@ export default async function ViralArticlePage({ params }: PageProps) {
 
               {tableRows.length > 0 && (
                 <section id="tabela">
-                  <h2>Comparação lado a lado</h2>
+                  <h2>Preço e nota editorial</h2>
                   <div className="compare-wrap">
                     <table>
                       <thead>
                         <tr>
                           <th>Critério</th>
-                          {reviewed.map((e) => (
-                            <th key={e.product.name}>{e.product.name}</th>
+                          {enriched.map(({ product }) => (
+                            <th key={product.slug || product.name}>{product.name}</th>
                           ))}
                         </tr>
                       </thead>
@@ -363,7 +347,11 @@ export default async function ViralArticlePage({ params }: PageProps) {
 
               <section id="detalhes">
                 <h2>As diferenças que realmente importam</h2>
-                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }} />
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: wrapTablesForHorizontalScroll(sanitizeHtml(article.content)),
+                  }}
+                />
               </section>
 
               <section id="selecao" className="comparison-selection">

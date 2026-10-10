@@ -80,3 +80,26 @@ export function sanitizeHtml(html: string): string {
   Array.from(body.childNodes).forEach((child) => sanitizeNode(child, dom.window.document));
   return body.innerHTML;
 }
+
+
+/**
+ * Wraps sanitized editorial tables in a horizontally scrollable container.
+ * Existing compare-wrap containers are preserved to avoid nested wrappers.
+ */
+export function wrapTablesForHorizontalScroll(html: string): string {
+  const dom = new JSDOM("<body>" + html + "</body>");
+  const { document } = dom.window;
+
+  for (const table of Array.from(document.querySelectorAll("table"))) {
+    if (table.closest(".compare-wrap")) continue;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "compare-wrap compare-wrap--editorial";
+    table.parentNode?.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  }
+
+  const result = document.body.innerHTML;
+  dom.window.close();
+  return result;
+}
