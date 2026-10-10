@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Review, ViralArticle, Category } from './types';
 import { validateGeneratedViralArticle } from './content-quality';
+import { normalizeReviewCompareRows } from './review-compare';
 
 let client: SupabaseClient | null = null;
 let serviceClient: SupabaseClient | null = null;
@@ -203,10 +204,12 @@ function normalizeReviewFields(data: any): any {
   r.faq = parseJsonArray(r.faq);
   if (typeof r.compare_table === 'string') { try { r.compare_table = JSON.parse(r.compare_table); } catch { r.compare_table = null; } }
   if (r.compare_table && typeof r.compare_table === 'object') {
-    r.compare_table.rows = parseJsonArray(r.compare_table.rows).map((row: any) => ({
-      ...row,
-      values: parseJsonArray(row?.values),
-    }));
+    // Older records store rows as [feature, value1, value2]. Do not spread
+    // arrays into numeric-key objects or discard their values.
+    r.compare_table.rows = normalizeReviewCompareRows(
+      parseJsonArray(r.compare_table.rows),
+      (value) => String(value ?? ''),
+    );
     r.compare_table.columns = parseJsonArray(r.compare_table.columns);
   } else {
     r.compare_table = { rows: [], caption: '', columns: [], winnerCol: 0 };
