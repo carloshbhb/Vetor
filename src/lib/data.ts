@@ -7,6 +7,7 @@ import {
   getSupabaseClient,
 } from './supabase';
 import { reviews as staticReviews } from '@/data/reviews';
+import { normalizeReviewCompareRows } from './review-compare';
 import type { Review, ViralArticle, Category } from './types';
 
 const CATEGORY_ALIASES: Record<string, string> = {
@@ -89,23 +90,9 @@ function normalizeReviewContent(review: Review): Review {
   const columns = Array.isArray(compare?.columns)
     ? compare.columns.map((column) => cleanReviewEditorialText(column).trim())
     : [];
-  const compareRows = Array.isArray(compare?.rows)
-    ? compare.rows.map((row) => {
-        const values = Array.isArray(row?.values)
-          ? row.values.map((value) => cleanReviewEditorialText(String(value ?? '')).trim())
-          : [];
-        const winner =
-          Number.isInteger(row?.winner) && row.winner >= 0 && row.winner < values.length
-            ? row.winner
-            : -1;
-        return {
-          ...row,
-          feature: cleanReviewEditorialText(String(row?.feature ?? '')).trim(),
-          values,
-          winner,
-        };
-      })
-    : [];
+  // Reviews antigos armazenam cada linha como [critério, valor1, valor2].
+  // Reviews novos usam { feature, values, winner }. O normalizador aceita ambos.
+  const compareRows = normalizeReviewCompareRows(compare?.rows, cleanReviewEditorialText);
   const winnerCol =
     Number.isInteger(compare?.winnerCol) &&
     compare.winnerCol >= 0 &&
