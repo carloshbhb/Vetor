@@ -43,6 +43,7 @@ type MLItemDetail = {
   sold_quantity?: number;
   category_id?: string;
   condition?: string;
+  status?: string;
   seller_id?: number;
   catalog_product_id?: string | null;
 };
@@ -469,6 +470,109 @@ function catalogSearchVariants(query: string): string[] {
 
 
 
+/**
+ * The catalog endpoint does not cover every traditional listing. The official
+ * site search returns active listings directly, so use it when catalog search
+ * cannot produce a strong candidate. Keep requests sequential to respect rate limits.
+ */
+type ActiveListingSearchBatch = {
+  candidates: MLMatchCandidate[];
+  diagnostics: string[];
+};
+
+async function searchActiveListingCandidates(
+  query: string,
+  accessToken: string
+): Promise<ActiveListingSearchBatch> {
+  const uniqueItems = new Map<string, NonNullable<MLItemSearchResponse["results"]>[number]>();
+  const diagnostics: string[] = [];
+  let successfulVariants = 0;
+
+  for (const variant of catalogSearchVariants(query).slice(0, 3)) {
+    const params = new URLSearchParams({ q: variant, limit: "50" });
+    try {
+      const response = await fetchMercadoLivre(
+        ML_API + "/sites/" + SITE_ID + "/search?" + params.toString(),
+        {
+          headers: {
+            Authorization: "Bearer " + accessToken,
+            Accept: "application/json",
+          },
+          cache: "no-store",
+        },
+        "active listing search"
+      );
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        let detail = "";
+        try {
+          const payload = JSON.parse(body) as Record<string, unknown>;
+          detail = [payload.message, payload.error, payload.code, payload.blocked_by]
+            .filter((value) => typeof value === "string" && value.trim())
+            .join(" / ");
+        } catch {
+          detail = body.slice(0, 160);
+        }
+        throw new Error(
+          "Mercado Livre /sites/" + SITE_ID + "/search HTTP " +
+            response.status + (detail ? " (" + detail.slice(0, 180) + ")" : "")
+        );
+      }
+
+      const payload = await response.json() as MLItemSearchResponse;
+      successfulVariants += 1;
+      for (const item of Array.isArray(payload.results) ? payload.results : []) {
+        const itemId = String(item.id || "").trim();
+        if (itemId && !uniqueItems.has(itemId)) uniqueItems.set(itemId, item);
+      }
+    } catch (error) {
+      diagnostics.push(
+        error instanceof Error ? error.message : "Falha não identificada na busca de anúncios ativos."
+      );
+    }
+  }
+
+  const candidates = Array.from(uniqueItems.values())
+    .map((item): MLMatchCandidate | null => {
+      const itemId = String(item.id || "").trim();
+      const title = String(item.title || "").trim();
+      const url = String(item.permalink || "").trim() ||
+        (itemId ? "https://produto.mercadolivre.com.br/" + itemId : "");
+      if (!itemId || !title || !url) return null;
+
+      return {
+        productId: String(item.catalog_product_id || "").trim(),
+        itemId,
+        title,
+        url,
+        soldQuantity: Number.isFinite(Number(item.sold_quantity)) ? Number(item.sold_quantity) : 0,
+        price: item.price == null || !Number.isFinite(Number(item.price)) ? null : Number(item.price),
+        categoryId: item.category_id ? String(item.category_id) : null,
+        condition: item.condition ? String(item.condition) : null,
+        sellerId: item.seller?.id == null ? null : Number(item.seller.id),
+        score: matchScore(query, title),
+        isBuyBoxWinner: false,
+      };
+    })
+    .filter((item): item is MLMatchCandidate => Boolean(item))
+    .sort((a, b) => {
+      const mismatchA = candidateMismatchReason(query, a.title);
+      const mismatchB = candidateMismatchReason(query, b.title);
+      if (Boolean(mismatchA) !== Boolean(mismatchB)) return mismatchA ? 1 : -1;
+      const relevanceA = catalogRelevanceScore(query, a.title);
+      const relevanceB = catalogRelevanceScore(query, b.title);
+      if (relevanceB !== relevanceA) return relevanceB - relevanceA;
+      return b.soldQuantity - a.soldQuantity;
+    })
+    .slice(0, 20);
+
+  if (successfulVariants === 0 && diagnostics.length === 0) {
+    diagnostics.push("A busca de anúncios ativos não retornou resposta válida.");
+  }
+  return { candidates, diagnostics: Array.from(new Set(diagnostics)) };
+}
+
 type CatalogSearchBatch = {
   results: MLProductSearchItem[];
   diagnostics: string[];
@@ -658,7 +762,7 @@ function candidateFromItem(
   query: string
 ): MLMatchCandidate | null {
   const itemId = String(item.id || "").trim();
-  if (!itemId) return null;
+  if (!itemId || (item.status && item.status !== "active")) return null;
 
   const title = String(item.title || "").trim();
   const url =
@@ -710,6 +814,7 @@ export async function searchMercadoLivreProduct(
 
   try {
     const accessToken = await getValidAccessToken();
+    let sourceCandidate: MLMatchCandidate | null = null;
 
     // Link existente: resolve e consulta o ITEM_ID, mas nunca ignora a validação
     // de acessórios, variante, marca, capacidade e modelo.
@@ -727,16 +832,19 @@ export async function searchMercadoLivreProduct(
               candidate.score >= 0.84 &&
               Boolean(candidate.itemId);
 
-            return {
-              query,
-              candidates: [candidate],
-              selected: candidate,
-              matchStatus: confident ? "matched" : "review",
-              errorMessage: confident
-                ? null
-                : "O anúncio do link existente não foi validado automaticamente: " +
-                  (mismatch || "similaridade insuficiente; revisão manual recomendada."),
-            };
+            if (confident) {
+              return {
+                query,
+                candidates: [candidate],
+                selected: candidate,
+                matchStatus: "matched",
+                errorMessage: null,
+              };
+            }
+
+            // Keep a weak or mismatching source URL for review while searching
+            // for a better-matching, active listing.
+            sourceCandidate = candidate;
           }
         } catch (error) {
           // Um link antigo/encerrado não impede a pesquisa por catálogo.
@@ -748,26 +856,18 @@ export async function searchMercadoLivreProduct(
       }
     }
 
-    const catalogBatch = await requestCatalogSearchVariants(query, accessToken);
-    const catalogRows = catalogBatch.results;
-
-    if (!catalogRows.length) {
-      const diagnostic = catalogBatch.diagnostics.length
-        ? " Algumas variantes falharam: " + catalogBatch.diagnostics.join(" | ")
-        : "";
-      return {
-        query,
-        candidates: [],
-        selected: null,
-        matchStatus: catalogBatch.diagnostics.length ? "error" : "no_match",
-        errorMessage:
-          (catalogBatch.diagnostics.length
-            ? "A busca ficou incompleta por erro em uma ou mais consultas da API. "
-            : "A busca oficial de catálogo respondeu sem produto ativo para esta consulta. ") +
-          "Isso não prova que não existam anúncios tradicionais fora do catálogo; confira a busca manual e os identificadores." +
-          diagnostic,
+    let catalogBatch: CatalogSearchBatch;
+    try {
+      catalogBatch = await requestCatalogSearchVariants(query, accessToken);
+    } catch (error) {
+      catalogBatch = {
+        results: [],
+        diagnostics: [
+          error instanceof Error ? error.message : "Falha não identificada na busca de catálogo.",
+        ],
       };
     }
+    const catalogRows = catalogBatch.results;
 
     const productRows = catalogRows
       .map((item) => ({
@@ -799,7 +899,7 @@ export async function searchMercadoLivreProduct(
       }
     }
 
-    const candidates: MLMatchCandidate[] = [];
+    const candidates: MLMatchCandidate[] = sourceCandidate ? [sourceCandidate] : [];
     for (const { row, detail } of detailed) {
       try {
         let expanded: MLMatchCandidate[] = [];
@@ -833,7 +933,7 @@ export async function searchMercadoLivreProduct(
       }
     }
 
-    const rankedCandidates = candidates
+    const rankCandidates = () => candidates
       .map((candidate) => ({
         candidate,
         relevance: catalogRelevanceScore(query, candidate.title),
@@ -853,30 +953,74 @@ export async function searchMercadoLivreProduct(
         return b.candidate.soldQuantity - a.candidate.soldQuantity;
       });
 
-    const selectedEntry = rankedCandidates.find((entry) => entry.candidate.score >= 0.55)
-      || rankedCandidates[0]
-      || null;
+    let rankedCandidates = rankCandidates();
+    let listingDiagnostics: string[] = [];
+    let activeListingCandidateIds = new Set<string>();
+    const hasPlausibleCatalogCandidate = rankedCandidates.some((entry) =>
+      Boolean(entry.candidate.itemId) &&
+      !entry.mismatch &&
+      (
+        normalize(entry.candidate.title).includes(normalize(query)) ||
+        entry.candidate.score >= 0.72 ||
+        (explicitModelMatch(query, entry.candidate.title) && entry.candidate.score >= 0.68)
+      )
+    );
+
+    // If the catalog cannot offer a strong candidate, search active site listings directly.
+    if (!hasPlausibleCatalogCandidate) {
+      const listingBatch = await searchActiveListingCandidates(query, accessToken);
+      listingDiagnostics = listingBatch.diagnostics;
+      activeListingCandidateIds = new Set(
+        listingBatch.candidates.map((candidate) => candidate.itemId).filter(Boolean) as string[]
+      );
+      const existingIds = new Set(candidates.map((candidate) => candidate.itemId));
+      for (const candidate of listingBatch.candidates) {
+        if (!existingIds.has(candidate.itemId)) {
+          candidates.push(candidate);
+          existingIds.add(candidate.itemId);
+        }
+      }
+      rankedCandidates = rankCandidates();
+    }
+
+    const selectedEntry =
+      rankedCandidates.find((entry) =>
+        !entry.mismatch &&
+        (
+          normalize(entry.candidate.title).includes(normalize(query)) ||
+          entry.candidate.score >= 0.72 ||
+          (explicitModelMatch(query, entry.candidate.title) && entry.candidate.score >= 0.68)
+        )
+      ) ||
+      rankedCandidates.find((entry) => Boolean(entry.candidate.itemId)) ||
+      rankedCandidates[0] ||
+      null;
     const selected = selectedEntry?.candidate || null;
 
     const diagnostics = [
       ...catalogBatch.diagnostics,
       ...detailErrors,
+      ...listingDiagnostics,
     ];
     const hasApiWarnings = diagnostics.length > 0;
+    const selectedFromActiveListings = Boolean(
+      selected?.itemId && activeListingCandidateIds.has(selected.itemId)
+    );
+    // Strong results from the active listing endpoint stand independently of catalog failures.
+    const hasBlockingApiWarnings = hasApiWarnings &&
+      !(selectedFromActiveListings && listingDiagnostics.length === 0);
 
     if (!selected) {
-      const catalogDetailMessage = detailErrors.length
-        ? " A API encontrou produtos de catálogo, mas houve falha ao confirmar seus anúncios: " +
-          Array.from(new Set(detailErrors)).join(" | ").slice(0, 320)
-        : " O catálogo retornou produtos, mas nenhum anúncio ativo pôde ser confirmado.";
+      const uniqueDiagnostics = Array.from(new Set(diagnostics));
       return {
         query,
         candidates: [],
         selected: null,
-        matchStatus: hasApiWarnings ? "error" : "review",
-        errorMessage:
-          "Não foi possível confirmar um anúncio ativo. Isso não significa necessariamente que o produto não exista no Mercado Livre." +
-          catalogDetailMessage,
+        matchStatus: uniqueDiagnostics.length ? "error" : "no_match",
+        errorMessage: uniqueDiagnostics.length
+          ? "Não foi possível concluir a busca de catálogo e anúncios ativos: " +
+            uniqueDiagnostics.join(" | ").slice(0, 420)
+          : "O catálogo e a busca geral de anúncios ativos não retornaram uma correspondência para esta consulta.",
       };
     }
 
@@ -885,7 +1029,7 @@ export async function searchMercadoLivreProduct(
     const modelMatch = explicitModelMatch(query, selected.title);
     const confident =
       !mismatch &&
-      !hasApiWarnings &&
+      !hasBlockingApiWarnings &&
       Boolean(selected.itemId) &&
       brandMatches(query, selected.title) &&
       capacityMatches(query, selected.title) &&
@@ -897,7 +1041,7 @@ export async function searchMercadoLivreProduct(
 
     const warnings = [
       mismatch ? "Não aprovado automaticamente: " + mismatch + "." : "",
-      hasApiWarnings
+      hasBlockingApiWarnings
         ? "A pesquisa ficou incompleta por falha em parte das consultas da API: " +
           Array.from(new Set(diagnostics)).join(" | ").slice(0, 320)
         : "",
