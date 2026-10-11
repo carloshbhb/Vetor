@@ -8,7 +8,6 @@ import {
 interface KeywordRow {
   keyword: string;
   intent?: string | null;
-  intent?: string | null;
   source?: string | null;
   opportunity_score?: number | null;
   vetor_fit_score?: number | null;
@@ -71,7 +70,7 @@ async function getRelevantKeywordRows(input: {
     const productOverlap = Math.max(0, ...productTokenSets.map((tokens) => tokens.filter((token) => keywordTokens.has(token)).length));
     const productMatched = productTokenSets.some((tokens) => {
       const overlap = tokens.filter((token) => keywordTokens.has(token));
-      const modelTokens = tokens.filter((token) => /\\d/.test(token));
+      const modelTokens = tokens.filter((token) => /\d/.test(token));
       const required = Math.min(2, tokens.length);
       // If the product/model contains digits, require at least one model token as
       // well as enough name overlap. This prevents Galaxy S24 keywords from being
