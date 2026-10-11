@@ -404,18 +404,27 @@ async function processVideo(video) {
     }
 
     const ytTitle = `${video.product_title} - Review Completo | Vetor Blog`.slice(0, 100);
+    const productName = String(video.product_title || 'Produto').trim();
+    const categoryName = String(video.product_category || 'tecnologia').trim();
+    const editorialSummary = script.scenes
+      .map(s => String(s.text || '').trim())
+      .filter(Boolean)
+      .slice(0, 8);
     const ytDescription = [
-      script.hook,
+      `Está pensando em comprar ${productName}? Neste review, veja os principais pontos para avaliar antes de decidir.`,
       '',
-      script.scenes.map(s => s.text).join('\n\n'),
+      `📝 REVIEW COMPLETO E DETALHES: ${reviewUrl}`,
+      `🛒 VER PREÇO E OFERTA: ${purchaseUrl}`,
       '',
-      script.callToAction,
+      'O QUE VOCÊ VAI VER NESTE VÍDEO',
+      ...editorialSummary.map(line => `• ${line}`),
       '',
-      `📝 Review completo: ${reviewUrl}`,
-      `🛒 Compre aqui: ${purchaseUrl}`,
+      `Analisamos os pontos relevantes de ${productName}, incluindo recursos, vantagens, limitações e custo-benefício na categoria ${categoryName}. Confira as especificações e as condições atuais no review antes de comprar.`,
       '',
-      'Confira preço e condições atualizadas antes de comprar.',
-      '#Review #Tecnologia #CustoBeneficio #VetorBlog',
+      'Os preços e a disponibilidade podem mudar. Consulte a página de compra para verificar as condições vigentes.',
+      'Aviso: podemos receber comissão por compras realizadas através de links de afiliado, sem custo adicional para você.',
+      '',
+      '#Review #ValeApena #CustoBeneficio #Tecnologia #VetorBlog',
     ].join('\n').slice(0, 5000);
     const terms = `${video.product_title} ${video.product_category} review análise vale a pena comprar desconto preço 2026`
       .toLowerCase()
