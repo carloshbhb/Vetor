@@ -63,6 +63,9 @@ export async function createReview(data: {
 }, options?: { insertOnly?: boolean }): Promise<{ data: Review | null; error: string | null }> {
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
+    if (options?.insertOnly) {
+      return { data: null, error: 'Supabase Service Role não configurado; persistência real é obrigatória para geração automática.' };
+    }
     return { data: { ...data, id: 'mock-' + Date.now(), status: 'draft', marketplace: data.marketplace || '', price_old: '', affiliate_url: data.affiliate_url || '', ads_enabled: false, meta_keywords: '', meta_reading_time: 5, meta_canonical: null, meta_og_image: null, hero_headline_line1: data.hero_headline_line1 || '', hero_headline_line2: data.hero_headline_line2 || '', hero_headline_em: data.hero_headline_em || '', hero_lead: data.hero_lead || '', hero_bars: data.hero_bars || [], specs: data.specs || [], sections: data.sections || [], compare_table: data.compare_table || { rows: [], caption: '', columns: [], winnerCol: 0 }, testimonials: [], verdict_label: data.verdict_label || '', verdict_text: data.verdict_text || '', verdict_note: data.verdict_note || '', schema_rating_value: data.hero_overall_score ?? 0, schema_review_count: 1, google_rank: null, last_rank_check: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), faq: data.faq || [] } as Review, error: null };
   }
 
@@ -147,6 +150,9 @@ export async function createViralArticle(data: {
 
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
+    if (options?.insertOnly) {
+      return { data: null, error: 'Supabase Service Role não configurado; publicação automática exige persistência real.' };
+    }
     return { data: { ...data, id: 'mock-' + Date.now(), published_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_at: new Date().toISOString() } as ViralArticle, error: null };
   }
 
