@@ -12,6 +12,7 @@ on:
       - 'video/**'
       - 'package.json'
       - 'package-lock.json'
+      - 'tsconfig.tmp.json'
       - '.github/workflows/editorial-quality-checks.yml'
   pull_request:
     branches: [main]
@@ -24,6 +25,7 @@ on:
       - 'video/**'
       - 'package.json'
       - 'package-lock.json'
+      - 'tsconfig.tmp.json'
       - '.github/workflows/editorial-quality-checks.yml'
 
 permissions:
@@ -53,8 +55,10 @@ jobs:
           npm run test:editorial-brief
           npm run test:viral-quality
 
-      - name: Type-check application
-        run: npx tsc --noEmit
+      - name: Type-check application and scheduled scripts
+        run: |
+          npx tsc --noEmit
+          npx tsc --noEmit -p tsconfig.tmp.json
 
       - name: Install video renderer dependencies
         run: npm ci --prefix video
