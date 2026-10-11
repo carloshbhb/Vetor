@@ -191,12 +191,12 @@ export function buildViralPrompt(topic: {
         `Palavra-chave principal: ${brief.primaryKeyword}`,
         `Intenção de busca: ${intentLabels[brief.searchIntent]}`,
         brief.searchQuestion ? `Pergunta principal: ${brief.searchQuestion}` : '',
-        brief.relatedKeywords?.length ? `Sugestões de consultas/termos editoriais (não são dados verificados de volume, tendência ou posição):\\n${brief.relatedKeywords.map((keyword) => `- ${keyword}`).join('\\n')}` : '',
-        brief.keywordEvidence?.length ? `SINAIS DE PESQUISA REAL DO VETOR (só para orientar o ângulo; não apresentar números no artigo):\\n${brief.keywordEvidence.map((item) => `- ${item.keyword}: impressões=${item.impressions ?? 'n/d'}, cliques=${item.clicks ?? 'n/d'}, CTR=${item.ctr ?? 'n/d'}, posição média=${item.position ?? 'n/d'}, score interno=${item.opportunityScore ?? 'n/d'}${item.period ? `, período=${item.period}` : ''}`).join('\\n')}` : '',
-        brief.verifiedFacts?.length ? `FATOS COM FONTES — não extrapole além deles:\\n${brief.verifiedFacts.map((fact) => `- ${fact.claim} | Fonte: ${fact.sourceName}${fact.sourceUrl ? ` | ${fact.sourceUrl}` : ''}`).join('\\n')}` : 'Nenhum fato adicional com fonte foi fornecido. Não invente especificações, medições ou experiência prática.',
-        brief.internalLinks?.length ? `Links internos permitidos (somente se relevantes):\\n${brief.internalLinks.map((link) => `- ${link.title}: ${link.url}${link.anchorText ? ` (âncora: ${link.anchorText})` : ''}`).join('\\n')}` : 'Não invente URLs internas. Use somente links fornecidos pelo sistema.',
+        brief.relatedKeywords?.length ? `Sugestões de consultas/termos editoriais (não são dados verificados de volume, tendência ou posição):\n${brief.relatedKeywords.map((keyword) => `- ${keyword}`).join('\n')}` : '',
+        brief.keywordEvidence?.length ? `SINAIS DE PESQUISA REAL DO VETOR (só para orientar o ângulo; não apresentar números no artigo):\n${brief.keywordEvidence.map((item) => `- ${item.keyword}: impressões=${item.impressions ?? 'n/d'}, cliques=${item.clicks ?? 'n/d'}, CTR=${item.ctr ?? 'n/d'}, posição média=${item.position ?? 'n/d'}, score interno=${item.opportunityScore ?? 'n/d'}${item.period ? `, período=${item.period}` : ''}`).join('\n')}` : '',
+        brief.verifiedFacts?.length ? `FATOS COM FONTES — não extrapole além deles:\n${brief.verifiedFacts.map((fact) => `- ${fact.claim} | Fonte: ${fact.sourceName}${fact.sourceUrl ? ` | ${fact.sourceUrl}` : ''}`).join('\n')}` : 'Nenhum fato adicional com fonte foi fornecido. Não invente especificações, medições ou experiência prática.',
+        brief.internalLinks?.length ? `Links internos permitidos (somente se relevantes):\n${brief.internalLinks.map((link) => `- ${link.title}: ${link.url}${link.anchorText ? ` (âncora: ${link.anchorText})` : ''}`).join('\n')}` : 'Não invente URLs internas. Use somente links fornecidos pelo sistema.',
         brief.callToAction ? `Objetivo do CTA: ${brief.callToAction}` : '',
-      ].filter(Boolean).join('\\n')
+      ].filter(Boolean).join('\n')
     : 'Briefing SEO não fornecido. Não invente volume de busca, posições, tendências nem URLs.';
   const productsList = topic.comparisonProducts
     .map((p) => `- ${p.name} (slug: ${p.slug}, URL: ${p.product_url || 'N/A'})`)
