@@ -28,14 +28,24 @@ jobs:
         run: npm run validate:indexnow-config
         env:
           INDEXNOW_API_KEY: ${{ secrets.INDEXNOW_API_KEY }}
-      - name: Generate content
+      - name: Validate required credentials
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${NVIDIA_API_KEY:-}" || { echo "::error::NVIDIA_API_KEY is missing."; exit 1; }
+          test -n "${SUPABASE_SERVICE_ROLE_KEY:-}${SUPABASE_SERVICE_KEY:-}" || { echo "::error::Configure SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY."; exit 1; }
+          test -n "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" || { echo "::error::NEXT_PUBLIC_SUPABASE_ANON_KEY is missing."; exit 1; }
+          echo "Required NVIDIA and Supabase secrets are present (values are not displayed)."
+      - name: Generate content (NVIDIA only)
         run: npx tsx tmp/generate-8-articles.ts
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           NVIDIA_MODEL: ${{ vars.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b' }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NVIDIA_FALLBACK_MODEL: ${{ vars.NVIDIA_FALLBACK_MODEL || 'nvidia/nemotron-3-super-120b-a12b' }}
           NEXT_PUBLIC_SUPABASE_URL: https://jcfbkwnkruncefrnnwqv.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_KEY }}
