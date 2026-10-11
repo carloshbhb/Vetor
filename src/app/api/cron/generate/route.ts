@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createViralArticle } from '@/lib/supabase';
 import { generateViralArticle } from '@/lib/generate-viral';
 import { resolveProductImage } from '@/lib/image-resolver';
+import { buildComparativeEditorialBrief } from '@/lib/editorial-brief';
 import { REVIEW_PRODUCTS, VIRAL_TOPICS } from '@/lib/seed-data';
 import { buildComparativeIndexNowTargets, pingNewContent } from '@/lib/indexnow';
 import { revalidateComparativeSurfaces } from '@/lib/revalidate-content';
@@ -90,10 +91,12 @@ export async function GET(request: NextRequest) {
         }))
       );
 
+      const editorialBrief = await buildComparativeEditorialBrief(topic);
       const article = await generateViralArticle({
         title: topic.title,
         category: topic.category,
         comparisonProducts: resolvedProducts,
+        editorialBrief,
       });
 
       const dbResult = await createViralArticle({
