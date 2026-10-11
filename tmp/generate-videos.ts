@@ -87,8 +87,19 @@ async function processPendingVideos(): Promise<void> {
     const inputPath = path.join(queueInputDir, `${id}.json`);
     try {
       if (typeof claimed.product_title !== 'string' || !claimed.product_title.trim()) throw new Error('Queue item has no product title.');
-      if (typeof claimed.product_image_url !== 'string' || !/^https?:\\/\\//i.test(claimed.product_image_url)) throw new Error('Queue item has no valid HTTP(S) product image URL.');
-      if (typeof claimed.review_url !== 'string' || !/^https:\\/\\/www\\.vetor\\.blog\\/reviews\\//i.test(claimed.review_url)) {
+      let imageIsValid = false;
+      try {
+        const imageUrl = new URL(String(claimed.product_image_url || ''));
+        imageIsValid = imageUrl.protocol === 'https:' || imageUrl.protocol === 'http:';
+      } catch { /* rejected below */ }
+      if (!imageIsValid) throw new Error('Queue item has no valid HTTP(S) product image URL.');
+
+      let reviewPath = '';
+      try {
+        const reviewUrl = new URL(String(claimed.review_url || ''));
+        if (reviewUrl.protocol === 'https:' && reviewUrl.hostname === 'www.vetor.blog') reviewPath = reviewUrl.pathname;
+      } catch { /* rejected below */ }
+      if (!reviewPath.startsWith('/reviews/')) {
         throw new Error('Only queue entries tied to a canonical Vetor review URL can be rendered by this worker.');
       }
       fs.writeFileSync(inputPath, JSON.stringify(claimed, null, 2), 'utf8');
@@ -101,7 +112,14 @@ async function processPendingVideos(): Promise<void> {
         .eq('id', id)
         .maybeSingle();
       if (finalError) throw finalError;
-      if (finalRow?.status !== 'completed' || !finalRow.youtube_video_id || !/^https:\\/\\/youtube\\.com\\//i.test(finalRow.youtube_url || '')) {
+      let publishedUrlIsValid = false;
+      try {
+        const publishedUrl = new URL(String(finalRow?.youtube_url || ''));
+        publishedUrlIsValid = publishedUrl.protocol === 'https:' &&
+          ['youtube.com', 'www.youtube.com'].includes(publishedUrl.hostname) &&
+          publishedUrl.pathname === '/watch';
+      } catch { /* rejected below */ }
+      if (finalRow?.status !== 'completed' || !finalRow.youtube_video_id || !publishedUrlIsValid) {
         throw new Error(finalRow?.error_message || 'Processor ended without a confirmed YouTube publication URL.');
       }
       completed += 1;
