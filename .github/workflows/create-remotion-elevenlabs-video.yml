@@ -1,0 +1,235 @@
+name: Create Remotion + ElevenLabs social video
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/create-remotion-elevenlabs-video.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vetor-remotion-elevenlabs-social-video
+  cancel-in-progress: false
+
+jobs:
+  render-video:
+    name: Generate MP4 for review (no YouTube upload)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install FFmpeg and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          npm ci
+          cd video
+          npm ci
+
+      - name: Generate ElevenLabs narration and Remotion input
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, json, subprocess, sys, urllib.request, urllib.error
+          from pathlib import Path
+
+          key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+          voice = os.getenv("ELEVENLABS_VOICE_ID", "").strip() or "EXAVITQu4vr4xnSDxMaL"
+          if not key:
+              raise SystemExit("ELEVENLABS_API_KEY is missing in GitHub Actions secrets.")
+
+          work = Path("video/tmp/social-video")
+          work.mkdir(parents=True, exist_ok=True)
+          out = Path("video/out")
+          out.mkdir(parents=True, exist_ok=True)
+
+          hook = "Vai comprar celular barato? Evite estes três erros."
+          scene_texts = [
+              "Erro um: escolher apenas pelo preço. Um desconto enorme não compensa memória insuficiente ou travamentos no uso diário.",
+              "Erro dois: ignorar atualizações e compatibilidade. Confira a versão do Android, o suporte do fabricante e recursos como NFC se você precisa deles.",
+              "Erro três: esquecer o custo total. Some frete, garantia, acessórios e confira se o carregador vem na caixa.",
+              "Antes de comprar, compare a memória, o prazo de atualizações e o preço final. Se o anúncio não deixa isso claro, pesquise mais."
+          ]
+          cta = "Acesse vetor.blog e compare antes de comprar. Link na descrição."
+          segments = [hook] + scene_texts + [cta]
+
+          def probe(path):
+              result = subprocess.run(
+                  ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                   "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+                  check=True, capture_output=True, text=True
+              )
+              return float(result.stdout.strip())
+
+          paths = []
+          for idx, text in enumerate(segments):
+              url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128"
+              payload = {
+                  "text": text,
+                  "model_id": "eleven_multilingual_v2",
+                  "voice_settings": {
+                      "stability": 0.45, "similarity_boost": 0.75,
+                      "style": 0.2, "use_speaker_boost": True
+                  }
+              }
+              request = urllib.request.Request(
+                  url, data=json.dumps(payload).encode("utf-8"),
+                  headers={"xi-api-key": key, "Content-Type": "application/json", "Accept": "audio/mpeg"},
+                  method="POST"
+              )
+              try:
+                  with urllib.request.urlopen(request, timeout=120) as response:
+                      audio = response.read()
+              except urllib.error.HTTPError as exc:
+                  details = exc.read().decode("utf-8", "replace")[:1000]
+                  raise RuntimeError(f"ElevenLabs request {idx + 1} failed with HTTP {exc.code}: {details}") from exc
+              path = work / f"segment-{idx:02d}.mp3"
+              path.write_bytes(audio)
+              if len(audio) < 1000:
+                  raise RuntimeError(f"ElevenLabs segment {idx + 1} returned an unexpectedly small audio file.")
+              paths.append(path)
+              print(f"Generated narration segment {idx + 1}/{len(segments)} ({len(audio)} bytes).")
+
+          # Keep the Remotion hook and final card in sync with their fixed composition durations.
+          normalized = []
+          for idx, path in enumerate(paths):
+              target = 3.0 if idx == 0 else (5.0 if idx == len(paths) - 1 else None)
+              if target is None:
+                  normalized.append(path)
+                  continue
+              source_duration = probe(path)
+              atempo = max(0.5, min(2.0, source_duration / target))
+              fixed = work / f"segment-{idx:02d}-fixed.mp3"
+              subprocess.run(
+                  ["ffmpeg", "-y", "-i", str(path), "-filter:a",
+                   f"atempo={atempo:.6f},apad,atrim=duration={target:.3f}",
+                   "-ar", "44100", "-ac", "2", str(fixed)],
+                  check=True, capture_output=True, text=True
+              )
+              normalized.append(fixed)
+
+          concat_list = work / "concat.txt"
+          concat_list.write_text("".join(f"file '{p.resolve()}'\\n" for p in normalized), encoding="utf-8")
+          audio_path = out / "celular-barato-elevenlabs.mp3"
+          subprocess.run(
+              ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(concat_list), "-c:a", "libmp3lame", "-b:a", "192k", str(audio_path)],
+              check=True, capture_output=True, text=True
+          )
+
+          scene_durations = [probe(p) for p in paths[1:-1]]
+          fps = 30
+          current = 3.0
+          scenes = []
+          subtitles = [{"start": 0, "end": 3, "text": hook}]
+          scene_types = ["product1", "product2", "comparison", "product1"]
+          names = ["Erro 1: preço", "Erro 2: suporte", "Erro 3: custo", "Checklist final"]
+          for idx, (text, duration) in enumerate(zip(scene_texts, scene_durations)):
+              start = current
+              end = current + duration
+              scenes.append({
+                  "id": idx + 1, "text": text, "duration": duration,
+                  "visualCue": names[idx], "brollKeywords": ["smartphone buying advice"],
+                  "startFrame": round(start * fps), "endFrame": round(end * fps),
+                  "type": scene_types[idx]
+              })
+              subtitles.append({"start": round(start, 3), "end": round(end, 3), "text": text})
+              current = end
+          subtitles.append({"start": round(current, 3), "end": round(current + 5, 3), "text": cta})
+
+          # Create simple original local illustrations; no external image service or product claims.
+          image_dir = Path("video/public/images")
+          image_dir.mkdir(parents=True, exist_ok=True)
+          svg = '''<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#34d399"/></linearGradient></defs><rect width="600" height="600" rx="48" fill="#0a1422"/><circle cx="300" cy="285" r="210" fill="url(#g)" opacity=".16"/><rect x="185" y="75" width="230" height="440" rx="38" fill="#17283b" stroke="url(#g)" stroke-width="12"/><rect x="205" y="110" width="190" height="355" rx="18" fill="#09111e"/><rect x="260" y="88" width="80" height="8" rx="4" fill="#94a3b8"/><circle cx="300" cy="488" r="12" fill="#94a3b8"/><path d="M245 240h110M245 280h80M245 320h95" stroke="#60a5fa" stroke-width="14" stroke-linecap="round"/><circle cx="380" cy="390" r="42" fill="#34d399"/><path d="M360 390l14 14 27-31" fill="none" stroke="#052e2b" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>'''
+          (image_dir / "social-budget-phone.svg").write_text(svg, encoding="utf-8")
+          image_url = "/images/social-budget-phone.svg"
+          data = {
+              "title": "3 erros ao comprar um celular barato",
+              "comparisonUrl": "https://www.vetor.blog/",
+              "product1": {"name": "Preço baixo", "imageUrl": image_url, "score": 0},
+              "product2": {"name": "Compra consciente", "imageUrl": image_url, "score": 0},
+              "categories": [],
+              "winner": 0,
+              "hook": hook,
+              "scenes": scenes,
+              "callToAction": cta,
+              "audioUrl": "/audio/celular-barato-elevenlabs.mp3",
+              "subtitleEntries": subtitles,
+              "productImages": [image_url, image_url],
+              "brollVideos": [],
+              "totalDuration": round(current + 5, 3),
+              "fps": fps
+          }
+          data_path = Path("video/tmp/social-video-input.json")
+          data_path.parent.mkdir(parents=True, exist_ok=True)
+          data_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+          # renderVideo bundles public assets; copy narration into the Remotion public directory.
+          audio_dir = Path("video/public/audio")
+          audio_dir.mkdir(parents=True, exist_ok=True)
+          (audio_dir / "celular-barato-elevenlabs.mp3").write_bytes(audio_path.read_bytes())
+          data["audioUrl"] = "/audio/celular-barato-elevenlabs.mp3"
+          data_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+          print(f"Prepared Remotion input: {data_path}; narration duration={probe(audio_path):.2f}s; planned video duration={data['totalDuration']:.2f}s.")
+          PY
+
+      - name: Render with Remotion
+        run: |
+          cd video
+          npx tsx src/utils/renderVideo.ts comparison tmp/social-video-input.json
+
+      - name: Validate rendered MP4
+        run: |
+          set -euo pipefail
+          test -n "$(find video/out -maxdepth 1 -type f -name 'comparison-*.mp4' -print -quit)"
+          FILE="$(find video/out -maxdepth 1 -type f -name 'comparison-*.mp4' -print -quit)"
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height -of json "$FILE" | tee video/out/validation.json
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          files = list(Path("video/out").glob("comparison-*.mp4"))
+          if not files:
+              raise SystemExit("No Remotion MP4 output found.")
+          p = files[0]
+          result = subprocess.run(
+              ["ffprobe", "-v", "error", "-show_entries", "format=duration,size",
+               "-show_entries", "stream=codec_name,width,height", "-of", "json", str(p)],
+              check=True, capture_output=True, text=True
+          )
+          info = json.loads(result.stdout)
+          video = next((s for s in info["streams"] if s.get("codec_name") == "h264"), None)
+          if not video or video.get("width") != 1080 or video.get("height") != 1920:
+              raise SystemExit("Rendered file is not a 1080x1920 H.264 video.")
+          duration = float(info["format"]["duration"])
+          size = int(info["format"]["size"])
+          if duration < 15 or size < 100000:
+              raise SystemExit(f"MP4 validation failed: duration={duration}, size={size}.")
+          print(f"PASS: {p}; duration={duration:.2f}s; size={size} bytes; resolution=1080x1920.")
+          PY
+
+      - name: Upload MP4 artifact for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: vetor-video-celular-barato-remotion-elevenlabs
+          path: |
+            video/out/comparison-*.mp4
+            video/out/validation.json
+          if-no-files-found: error
+          retention-days: 14
