@@ -24,6 +24,7 @@ interface ReviewVideoData {
   brollVideos: string[];
   totalDuration: number;
   fps: number;
+  reviewUrl?: string;
 }
 
 interface ComparisonVideoData {
@@ -140,7 +141,7 @@ async function main() {
     process.exit(1);
   }
 
-  const outputPath = path.resolve(__dirname, '../../out');
+  const outputPath = path.resolve(process.env.VIDEO_OUTPUT_DIR || path.resolve(__dirname, '../../out'));
   if (!fs.existsSync(outputPath)) {
     fs.mkdirSync(outputPath, { recursive: true });
   }
@@ -171,6 +172,7 @@ async function main() {
         callToAction: rawData.callToAction,
         audioUrl: rawData.audioUrl,
         subtitleEntries: rawData.subtitleEntries,
+        reviewUrl: typeof rawData.reviewUrl === 'string' ? rawData.reviewUrl : 'https://www.vetor.blog/reviews/',
         productImages: rawData.productImages || [rawData.imageUrl],
         brollVideos: rawData.brollVideos || [],
         totalDuration,
@@ -206,12 +208,12 @@ async function main() {
     if (type === 'review') {
       const sampleScenes: VideoScene[] = [
         { id: 1, text: 'Chegou o Samsung Galaxy S24 Ultra, será que vale o investimento?', duration: 5, visualCue: 'Produto em destaque com zoom dramático', brollKeywords: ['product reveal', 'tech unboxing'], startFrame: 0, endFrame: 0 },
-        { id: 2, text: 'Pelo preço de R$ 6.999, ele promete muito. Vamos testar.', duration: 7, visualCue: 'Preço aparecendo na tela, transição para produto em mãos', brollKeywords: ['price tag', 'money', 'shopping'], startFrame: 0, endFrame: 0 },
+        { id: 2, text: 'Confira preço, condições e a ficha técnica do modelo exato antes de comprar.', duration: 7, visualCue: 'Preço aparecendo na tela, transição para produto em mãos', brollKeywords: ['price tag', 'money', 'shopping'], startFrame: 0, endFrame: 0 },
         { id: 3, text: 'Design premium, construção sólida. Na mão passa confiança.', duration: 8, visualCue: 'Close nos detalhes, materiais, acabamento', brollKeywords: ['product close up', 'premium design', 'hands on'], startFrame: 0, endFrame: 0 },
-        { id: 4, text: 'Desempenho surpreendeu. Rodo tudo liso, sem engasgos.', duration: 8, visualCue: 'Produto em uso real: apps, jogos, multitarefa', brollKeywords: ['performance test', 'gaming', 'multitasking'], startFrame: 0, endFrame: 0 },
-        { id: 5, text: 'Bateria aguenta o dia todo tranquilo. Carregamento rápido.', duration: 7, visualCue: 'Ícone de bateria, carregador, uso contínuo', brollKeywords: ['battery life', 'charging', 'all day'], startFrame: 0, endFrame: 0 },
-        { id: 6, text: 'Pontos fracos: preço alto e sem carregador na caixa.', duration: 7, visualCue: 'Lista de contras aparecendo, expressão de decepção leve', brollKeywords: ['cons list', 'disappointed', 'expensive'], startFrame: 0, endFrame: 0 },
-        { id: 7, text: 'Veredicto: Galaxy S24 Ultra é top, mas só compre se precisar do melhor.', duration: 8, visualCue: 'Nota final na tela, produto ao lado de concorrentes', brollKeywords: ['verdict', 'rating', 'comparison'], startFrame: 0, endFrame: 0 },
+        { id: 4, text: 'Compare os recursos documentados com as tarefas que você pretende realizar.', duration: 8, visualCue: 'Produto em uso real: apps, jogos, multitarefa', brollKeywords: ['performance test', 'gaming', 'multitasking'], startFrame: 0, endFrame: 0 },
+        { id: 5, text: 'Confirme autonomia e carregamento na ficha técnica oficial da versão exata.', duration: 7, visualCue: 'Ícone de bateria, carregador, uso contínuo', brollKeywords: ['battery life', 'charging', 'all day'], startFrame: 0, endFrame: 0 },
+        { id: 6, text: 'Confira o preço total e confirme o conteúdo da embalagem no anúncio.', duration: 7, visualCue: 'Lista de contras aparecendo, expressão de decepção leve', brollKeywords: ['cons list', 'disappointed', 'expensive'], startFrame: 0, endFrame: 0 },
+        { id: 7, text: 'Veredito: decida com base nos recursos documentados e nas suas necessidades.', duration: 8, visualCue: 'Nota final na tela, produto ao lado de concorrentes', brollKeywords: ['verdict', 'rating', 'comparison'], startFrame: 0, endFrame: 0 },
       ];
 
       const scenesWithFrames = calculateFrameTimings(sampleScenes, fps, hookFrames);
@@ -226,18 +228,18 @@ async function main() {
           const start = 3 + sampleScenes.slice(0, i).reduce((sum, sc) => sum + sc.duration, 0);
           return { start, end: start + s.duration, text: s.text };
         }),
-        { start: 3 + sampleScenes.reduce((sum, s) => sum + s.duration, 0), end: 3 + sampleScenes.reduce((sum, s) => sum + s.duration, 0) + 3, text: 'Link na descrição para comprar com desconto!' },
+        { start: 3 + sampleScenes.reduce((sum, s) => sum + s.duration, 0), end: 3 + sampleScenes.reduce((sum, s) => sum + s.duration, 0) + 3, text: 'Confira preço e condições atuais no link da descrição.' },
       ];
 
       videoData = {
         type: 'review',
         title: 'Samsung Galaxy S24 Ultra',
         imageUrl: '/images/samsung-s24.png',
-        score: 9.2,
+        score: 0,
         category: 'Smartphones',
         hook: 'Pare! Antes de comprar o Galaxy S24 Ultra, veja isso!',
         scenes: scenesWithFrames,
-        callToAction: 'Link na descrição para comprar com desconto!',
+        callToAction: 'Confira preço e condições atuais no link da descrição.',
         audioUrl: '/audio/sample-review.mp3',
         subtitleEntries,
         productImages: ['/images/samsung-s24.png'],
@@ -265,7 +267,7 @@ async function main() {
         { start: 11, end: 19, text: 'iPhone 15: ecossistema Apple, vídeo imbatível, Face ID.' },
         { start: 19, end: 29, text: 'Comparando design, câmera, desempenho, bateria e custo-benefício.' },
         { start: 29, end: 34, text: 'Vencedor: Galaxy S24 com nota 8.8!' },
-        { start: 34, end: 37, text: 'Link na descrição para comprar com desconto!' },
+        { start: 34, end: 37, text: 'Confira preço e condições atuais no link da descrição.' },
       ];
 
       videoData = {
