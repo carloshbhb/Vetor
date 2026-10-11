@@ -1,0 +1,54 @@
+name: YouTube OAuth Diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/youtube-oauth-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-refresh-token:
+    name: Validate YouTube refresh token only
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate required secrets
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          : "${YOUTUBE_CLIENT_ID:?YOUTUBE_CLIENT_ID secret is required}"
+          : "${YOUTUBE_CLIENT_SECRET:?YOUTUBE_CLIENT_SECRET secret is required}"
+          : "${YOUTUBE_REFRESH_TOKEN:?YOUTUBE_REFRESH_TOKEN secret is required}"
+          echo "Required OAuth secrets are present."
+
+      - name: Exchange refresh token without touching video queue
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          code="$(curl -sS --max-time 20 -o oauth-response.json -w '%{http_code}' \
+            -X POST 'https://oauth2.googleapis.com/token' \
+            --data-urlencode "client_id=$YOUTUBE_CLIENT_ID" \
+            --data-urlencode "client_secret=$YOUTUBE_CLIENT_SECRET" \
+            --data-urlencode "refresh_token=$YOUTUBE_REFRESH_TOKEN" \
+            --data-urlencode 'grant_type=refresh_token')"
+          if [ "$code" != "200" ] || ! jq -e '.access_token | type == "string" and length > 0' oauth-response.json >/dev/null; then
+            error="$(jq -r '.error // "unknown_error"' oauth-response.json 2>/dev/null || echo 'invalid OAuth response')"
+            description="$(jq -r '.error_description // ""' oauth-response.json 2>/dev/null || true)"
+            echo "::error::YouTube OAuth diagnostic failed (HTTP $code, $error). $description"
+            exit 1
+          fi
+          expires_in="$(jq -r '.expires_in // 0' oauth-response.json)"
+          token_type="$(jq -r '.token_type // "unknown"' oauth-response.json)"
+          echo "YouTube OAuth diagnostic passed. Token type: $token_type; expires_in: $expires_in seconds."
+          echo "No content was generated and no queue item was read, claimed, modified, or removed."
+          rm -f oauth-response.json
