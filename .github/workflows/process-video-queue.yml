@@ -1,4 +1,5 @@
 name: Process Video Queue
+run-name: Publish queued video(s) — ${{ github.event.inputs.max_videos || '1' }}
 
 concurrency:
   group: vetor-production-video-queue
