@@ -25,6 +25,7 @@ on:
       - '.github/workflows/remotion-render.yml'
     branches:
       - main
+      - fix/remotion-captions-mainline
 
 permissions:
   contents: read
