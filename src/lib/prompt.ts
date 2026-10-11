@@ -233,7 +233,7 @@ Tom: claro, informativo e comparativo. Persuasão somente quando sustentada pelo
 - Não invente testes presenciais, benchmarks, medições, autonomia, defeitos recorrentes, avaliações de compradores ou especificações.
 - Não use "testamos", "em nossos testes" ou equivalentes sem experiência explícita fornecida.
 - Só declare vencedor quando a evidência apresentada permitir uma conclusão clara; caso contrário, compare perfis de uso e limitações sem fabricar um vencedor.
-- content deve ter pelo menos 6 seções com <h2>/<h3>, 8 parágrafos, uma tabela comparativa, análises individuais dos produtos, pelo menos 3 perguntas frequentes e uma CTA objetiva de preço/oferta.
+- content deve ter pelo menos 1.200 palavras visíveis e 5.000 caracteres de texto, 6 seções com <h2>/<h3>, 8 parágrafos, uma tabela comparativa, análises individuais dos produtos, pelo menos 3 perguntas frequentes e uma CTA objetiva de preço/oferta. Desenvolva critérios e trade-offs específicos, sem repetição para preencher tamanho.
 - Mencione os nomes reais de todos os produtos comparados.
 - Se houver palavra-chave principal, use-a no título e naturalmente em um subtítulo; responda à pergunta principal cedo.
 - Trate termos relacionados como sugestões editoriais, não como dados de volume ou ranking. Não repita palavras-chave nem garanta posicionamento.
