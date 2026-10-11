@@ -3,6 +3,7 @@ import { seo } from './seo';
 import { chatCompletion } from './llm-provider';
 import { validateGeneratedViralArticle } from './content-quality';
 import type { EditorialBrief } from './prompt';
+import { slugifyEditorialTitle } from './slug';
 
 interface ViralArticleOutput {
   slug: string;
@@ -71,14 +72,7 @@ export async function generateViralArticle(topic: {
   const { title: seoTitle, description: seoDesc } = seo(generatedTitle, generatedDescription);
 
   const output: ViralArticleOutput = {
-    slug: generatedTitle
-      .normalize('NFD')
-      .replace(/[\\u0300-\\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9\\s-]/g, '')
-      .replace(/\\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, ''),
+    slug: slugifyEditorialTitle(generatedTitle),
     title: generatedTitle,
     description: generatedDescription,
     content: generatedContent,
