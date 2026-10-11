@@ -1,6 +1,7 @@
 import { generateReview } from './generate';
+import { buildReviewEditorialBrief } from './editorial-brief';
 import { generateAffiliateUrl } from './product-extractor';
-import { createReview } from './supabase';
+import { createReview, getSupabaseServiceKeyClient } from './supabase';
 import { validateGeneratedReview } from './content-quality';
 import { buildReviewIndexNowTargets, pingNewContent } from './indexnow';
 import type { ProductLink } from './product-links';
@@ -47,8 +48,14 @@ export async function runReviewPipeline(
       ? `R$${product.price.toFixed(2)}`
       : product.price;
 
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) {
+    return { status: 'db_error', error: 'Supabase Service Role não configurado; o review não será simulado nem marcado como criado.' };
+  }
+
   let review;
   try {
+    const editorialBrief = await buildReviewEditorialBrief({ title: product.title, category: product.category });
     review = await generateReview({
       title: product.title,
       category: product.category,
@@ -56,6 +63,7 @@ export async function runReviewPipeline(
       image: product.image,
       product_url: product.product_url,
       marketplace: product.marketplace || 'mercadolivre',
+      editorialBrief,
     });
   } catch (err: unknown) {
     return {
