@@ -65,14 +65,15 @@ export async function chatCompletion(params: {
     throw new Error('[LLM] NVIDIA_API_KEY ausente. Configure uma chave NVIDIA válida; provedores externos não são utilizados.');
   }
 
-  // Leave time to persist and validate the output inside Vercel's 60-second runtime.
   const deadline = Date.now() + 56000;
   let lastError: unknown = null;
 
-  for (const provider of providers) {
+  for (let index = 0; index < providers.length; index += 1) {
+    const provider = providers[index];
     if (deadline - Date.now() < 5000) break;
 
-    const model = params.model || provider.model;
+    // Honor an explicitly requested model for the first attempt; keep fallback NVIDIA-only.
+    const model = index === 0 && params.model ? params.model : provider.model;
     try {
       const createParams: {
         model: string;
