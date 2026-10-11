@@ -381,7 +381,10 @@ async function renderVideo(propsPath: string, outputPath: string, type: 'review'
       }
 
       const renderedFiles = fs.readdirSync(outputDir)
-        .filter((name) => new RegExp('^' + type + '-\\d+\\.mp4
+        .filter((name) => {
+          const suffix = name.slice(type.length + 1);
+          return name.startsWith(type + '-') && /^\d+\.mp4$/i.test(suffix);
+        })
         .map((name) => ({ path: path.join(outputDir, name), modified: fs.statSync(path.join(outputDir, name)).mtimeMs }))
         .sort((a, b) => b.modified - a.modified);
       const rendered = renderedFiles[0]?.path;
@@ -452,8 +455,19 @@ async function main() {
   }
 
   const videoData: VideoQueueItem = JSON.parse(fs.readFileSync(videoJsonPath, 'utf-8'));
-  const sourceUrl = new URL(String(videoData.review_url || ''));
+  let sourceUrl: URL;
+  try {
+    sourceUrl = new URL(String(videoData.review_url || ''));
+  } catch {
+    throw new Error('URL canônica do conteúdo inválida na fila.');
+  }
+  if (sourceUrl.protocol !== 'https:' || sourceUrl.hostname !== 'www.vetor.blog') {
+    throw new Error('O worker aceita apenas URLs HTTPS canônicas do Vetor.blog.');
+  }
   const isComparison = sourceUrl.pathname.startsWith('/comparativos/');
+  if (!isComparison && !sourceUrl.pathname.startsWith('/reviews/')) {
+    throw new Error('O tipo de conteúdo da URL deve ser review ou comparativo.');
+  }
   console.log(`Processing ${isComparison ? 'comparison' : 'review'} video: ${videoData.product_title} (${videoId})`);
 
   const workDir = path.resolve(__dirname, `../temp/${videoId}`);
@@ -530,7 +544,15 @@ async function main() {
             : '';
         }).filter(Boolean)
       : [videoData.shortened_affiliate_url || videoData.affiliate_url || videoData.product_url]
-          .filter((url): url is string => typeof url === 'string' && /^https?:\\/\\//i.test(url))
+          .filter((url): url is string => {
+            if (typeof url !== 'string') return false;
+            try {
+              const parsed = new URL(url);
+              return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+            } catch {
+              return false;
+            }
+          })
           .map((url) => `Confira preço e condições atuais: ${url}`);
     const description = [
       script.hook,
