@@ -56,12 +56,14 @@ function buildComparisonPairs(products: ProductLink[]): Array<[ProductLink, Prod
 
   return pairs.sort((a, b) =>
     (Number(b[0].priority || 0) + Number(b[1].priority || 0)) -
-    (Number(a[0].priority || 0) + Number(a[1].priority || 0)
+    (Number(a[0].priority || 0) + Number(a[1].priority || 0))
   );
 }
 
 async function generateReview(link: ProductLink): Promise<ArticleResult> {
-  const outcome = await runReviewPipeline(productLinkToPipelineInput(link), 'cron');
+  const pipelineInput = productLinkToPipelineInput(link);
+  pipelineInput.image = await resolveProductImage(pipelineInput.image);
+  const outcome = await runReviewPipeline(pipelineInput, 'cron');
   if (outcome.status !== 'created') {
     const detail = outcome.status === 'validation_failed'
       ? outcome.issues.join('; ')
