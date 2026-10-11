@@ -16,6 +16,9 @@ type KineticCaptionProps = {
  */
 export const KineticCaption: React.FC<KineticCaptionProps> = ({ text, progress, opacity }) => {
   const words = text.trim().split(/\s+/).filter(Boolean);
+  // Keep longer subtitle cues legible without overflowing the portrait frame.
+  const fontSize = words.length > 10 ? 27 : words.length > 7 ? 30 : 34;
+  const horizontalPadding = words.length > 10 ? 16 : 28;
   const activeIndex = Math.min(
     Math.max(0, words.length - 1),
     Math.floor(interpolate(progress, [0, 1], [0, words.length], {
@@ -41,7 +44,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({ text, progress, 
         background: 'rgba(7, 12, 24, 0.92)',
         border: '2px solid rgba(66, 133, 244, 0.8)',
         borderRadius: 22,
-        padding: '20px 28px',
+        padding: `20px ${horizontalPadding}px`,
         maxWidth: '100%',
         textAlign: 'center',
         boxShadow: '0 12px 38px rgba(0,0,0,0.48), 0 0 24px rgba(37,99,235,0.18)',
@@ -52,7 +55,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({ text, progress, 
           justifyContent: 'center',
           columnGap: 10,
           rowGap: 5,
-          fontSize: 34,
+          fontSize,
           fontWeight: 800,
           color: theme.text,
           fontFamily: fonts.heading,
