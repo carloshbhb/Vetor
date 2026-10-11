@@ -111,6 +111,49 @@ async function generateComparison(pair: [ProductLink, ProductLink], existingSlug
   const topic = { title, category, comparisonProducts };
   const editorialBrief = await buildComparativeEditorialBrief(topic);
   const article = await generateViralArticle({ ...topic, editorialBrief });
+
+  if (existingSlugs.has(article.slug)) {
+    return {
+      slug: article.slug,
+      status: 'skipped',
+      url: buildContentUrl('/comparativos/' + article.slug),
+      type: 'comparison',
+      visibility: 'published',
+      error: 'O modelo retornou um slug que já existe; o artigo existente foi preservado.',
+    };
+  }
+
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) {
+    return { slug: article.slug, status: 'failed', url: '', type: 'comparison', error: 'Supabase Service Role ausente; comparativo não foi salvo.' };
+  }
+  const { data: existingInDatabase, error: duplicateCheckError } = await supabase
+    .from('viral_articles')
+    .select('slug')
+    .eq('slug', article.slug)
+    .maybeSingle();
+
+  if (duplicateCheckError) {
+    return {
+      slug: article.slug,
+      status: 'failed',
+      url: '',
+      type: 'comparison',
+      error: 'Não foi possível verificar colisão de slug; gravação bloqueada para preservar o conteúdo existente: ' + duplicateCheckError.message,
+    };
+  }
+  if (existingInDatabase) {
+    existingSlugs.add(article.slug);
+    return {
+      slug: article.slug,
+      status: 'skipped',
+      url: buildContentUrl('/comparativos/' + article.slug),
+      type: 'comparison',
+      visibility: 'published',
+      error: 'Já existe um comparativo com este slug; o artigo existente foi preservado.',
+    };
+  }
+
   const result = await createViralArticle({
     slug: article.slug,
     title: article.title,
