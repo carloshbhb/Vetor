@@ -65,8 +65,7 @@ async function updateVideoStatus(id, updates) {
 }
 
 async function generateVoiceover(text, outputPath) {
-  // Prefer neural voices, with short timeouts; use offline Brazilian Portuguese TTS
-  // when Edge TTS is unavailable so a temporary network failure doesn't block the video.
+  // Prefer ElevenLabs when configured; retain Edge TTS and espeak-ng fallbacks.
   const voices = ['pt-BR-AntonioNeural', 'pt-BR-FranciscaNeural'];
   const tempFile = outputPath.replace('.mp3', '-temp.mp3');
   const textFile = outputPath.replace('.mp3', '-text.txt');
@@ -83,61 +82,88 @@ async function generateVoiceover(text, outputPath) {
   fs.writeFileSync(textFile, safeText, 'utf8');
   const failures = [];
 
-  for (const voice of voices) {
+  if (process.env.ELEVENLABS_API_KEY) {
+    const voiceId = (process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL').trim();
     try {
       if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-      execFileSync(
-        'edge-tts',
-        ['--voice', voice, '--file', textFile, '--write-media', tempFile],
-        { stdio: 'pipe', timeout: 10000 }
+      const response = await fetch(
+        'https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voiceId) + '?output_format=mp3_44100_128',
+        {
+          method: 'POST',
+          headers: {
+            'xi-api-key': process.env.ELEVENLABS_API_KEY,
+            'Content-Type': 'application/json',
+            Accept: 'audio/mpeg',
+          },
+          body: JSON.stringify({
+            text: safeText,
+            model_id: 'eleven_multilingual_v2',
+            voice_settings: { stability: 0.45, similarity_boost: 0.75, style: 0.2, use_speaker_boost: true },
+          }),
+          signal: AbortSignal.timeout(45000),
+        }
       );
 
-      if (!fs.existsSync(tempFile) || fs.statSync(tempFile).size < 1000) {
-        throw new Error('TTS terminou sem gerar um MP3 utilizável.');
+      if (!response.ok) {
+        const detail = (await response.text().catch(() => '')).slice(0, 350);
+        throw new Error('ElevenLabs HTTP ' + response.status + (detail ? ': ' + detail : ''));
       }
 
+      const audio = Buffer.from(await response.arrayBuffer());
+      if (audio.length < 1000) throw new Error('ElevenLabs retornou um MP3 vazio ou muito pequeno.');
+      fs.writeFileSync(tempFile, audio);
       const durationStr = execFileSync(
         'ffprobe',
         ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', tempFile],
         { encoding: 'utf-8', timeout: 10000 }
       ).trim();
       const duration = parseFloat(durationStr);
-      if (!Number.isFinite(duration) || duration <= 0) {
-        throw new Error('ffprobe não conseguiu ler a duração do MP3 gerado.');
-      }
+      if (!Number.isFinite(duration) || duration <= 0) throw new Error('ffprobe não conseguiu validar a duração do MP3 do ElevenLabs.');
 
       fs.renameSync(tempFile, outputPath);
       if (fs.existsSync(textFile)) fs.unlinkSync(textFile);
-      console.log(`   [TTS] Voz neural selecionada: ${voice}`);
+      console.log('   [TTS] ElevenLabs concluído (modelo eleven_multilingual_v2; voz ' + voiceId + ').');
       return duration;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const stderr = error && typeof error === 'object' && 'stderr' in error
-        ? String(error.stderr || '').slice(0, 400)
-        : '';
-      failures.push(`${voice}: ${message}${stderr ? ` | stderr: ${stderr}` : ''}`);
-      console.warn(`   [TTS] ${voice} falhou; tentando fallback. ${stderr || message}`);
+      failures.push('ElevenLabs: ' + message);
+      console.warn('   [TTS] ElevenLabs falhou; tentando Edge TTS. ' + message);
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+    }
+  } else {
+    console.warn('   [TTS] ELEVENLABS_API_KEY ausente; usando Edge TTS.');
+  }
+
+  for (const voice of voices) {
+    try {
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+      execFileSync('edge-tts', ['--voice', voice, '--file', textFile, '--write-media', tempFile], { stdio: 'pipe', timeout: 20000 });
+      if (!fs.existsSync(tempFile) || fs.statSync(tempFile).size < 1000) throw new Error('TTS terminou sem gerar um MP3 utilizável.');
+      const durationStr = execFileSync(
+        'ffprobe',
+        ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', tempFile],
+        { encoding: 'utf-8', timeout: 10000 }
+      ).trim();
+      const duration = parseFloat(durationStr);
+      if (!Number.isFinite(duration) || duration <= 0) throw new Error('ffprobe não conseguiu ler a duração do MP3 gerado.');
+      fs.renameSync(tempFile, outputPath);
+      if (fs.existsSync(textFile)) fs.unlinkSync(textFile);
+      console.log('   [TTS] Voz neural de fallback selecionada: ' + voice);
+      return duration;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stderr = error && typeof error === 'object' && 'stderr' in error ? String(error.stderr || '').slice(0, 400) : '';
+      failures.push(voice + ': ' + message + (stderr ? ' | stderr: ' + stderr : ''));
+      console.warn('   [TTS] ' + voice + ' falhou; tentando fallback. ' + (stderr || message));
       if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
     }
   }
 
   try {
-    execFileSync(
-      'espeak-ng',
-      ['-v', 'pt-br', '-s', '150', '-f', textFile, '-w', wavPath],
-      { stdio: 'pipe', timeout: 15000 }
-    );
-    if (!fs.existsSync(wavPath) || fs.statSync(wavPath).size < 1000) {
-      throw new Error('espeak-ng não produziu WAV utilizável.');
-    }
-    execFileSync(
-      'ffmpeg',
-      ['-y', '-i', wavPath, '-codec:a', 'libmp3lame', '-q:a', '4', outputPath],
-      { stdio: 'pipe', timeout: 15000 }
-    );
-    if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size < 1000) {
-      throw new Error('ffmpeg não conseguiu converter a locução offline para MP3.');
-    }
+    execFileSync('espeak-ng', ['-v', 'pt-br', '-s', '150', '-f', textFile, '-w', wavPath], { stdio: 'pipe', timeout: 15000 });
+    if (!fs.existsSync(wavPath) || fs.statSync(wavPath).size < 1000) throw new Error('espeak-ng não produziu WAV utilizável.');
+    execFileSync('ffmpeg', ['-y', '-i', wavPath, '-codec:a', 'libmp3lame', '-q:a', '4', outputPath], { stdio: 'pipe', timeout: 15000 });
+    if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size < 1000) throw new Error('ffmpeg não conseguiu converter a locução offline para MP3.');
     const durationStr = execFileSync(
       'ffprobe',
       ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', outputPath],
@@ -149,14 +175,10 @@ async function generateVoiceover(text, outputPath) {
     return duration;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const stderr = error && typeof error === 'object' && 'stderr' in error
-      ? String(error.stderr || '').slice(0, 400)
-      : '';
-    throw new Error(`[TTS] Nenhuma voz conseguiu gerar áudio. ${failures.join(' || ')} || espeak-ng: ${message}${stderr ? ` | stderr: ${stderr}` : ''}`);
+    const stderr = error && typeof error === 'object' && 'stderr' in error ? String(error.stderr || '').slice(0, 400) : '';
+    throw new Error('[TTS] Nenhuma voz conseguiu gerar áudio. ' + failures.join(' || ') + ' || espeak-ng: ' + message + (stderr ? ' | stderr: ' + stderr : ''));
   } finally {
-    for (const file of [textFile, tempFile, wavPath]) {
-      if (fs.existsSync(file)) fs.unlinkSync(file);
-    }
+    for (const file of [textFile, tempFile, wavPath]) if (fs.existsSync(file)) fs.unlinkSync(file);
   }
 }
 async function combineAudioFiles(audioFiles, outputPath) {
