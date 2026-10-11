@@ -126,6 +126,118 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
   }
 }
 
+export type ComparisonSceneType = 'product1' | 'product2' | 'comparison';
+
+export interface ComparisonVideoScene extends VideoScene {
+  type: ComparisonSceneType;
+}
+
+export interface ComparisonVideoScript {
+  hook: string;
+  scenes: ComparisonVideoScene[];
+  totalDuration: number;
+  callToAction: string;
+}
+
+export async function generateComparisonVideoScript(input: {
+  title: string;
+  category: string;
+  product1: { name: string };
+  product2: { name: string };
+  comparisonUrl: string;
+}): Promise<ComparisonVideoScript> {
+  if (!input.product1.name.trim() || !input.product2.name.trim()) {
+    throw new Error('[comparison-video-script] Dois nomes de produtos são obrigatórios.');
+  }
+  const prompt = [
+    'Crie um roteiro editorial para YouTube Shorts de 60 a 90 segundos comparando "' + input.product1.name + '" e "' + input.product2.name + '".',
+    'Categoria: ' + input.category,
+    'Título do comparativo: ' + input.title,
+    'URL canônica do comparativo: ' + input.comparisonUrl,
+    '',
+    'DADOS CONFIRMADOS: os nomes dos produtos e a categoria acima. Não foram fornecidas fichas técnicas, medições, preços atuais nem avaliações verificadas.',
+    '',
+    'Retorne somente JSON:',
+    '{',
+    '  "hook": "abertura curta e curiosa, até 20 palavras",',
+    '  "scenes": [',
+    '    { "id": 1, "type": "product1", "text": "narração útil até 24 palavras", "duration": 9, "visualCue": "descrição visual neutra", "brollKeywords": ["product close up", "shopping comparison"] }',
+    '  ],',
+    '  "callToAction": "Veja o comparativo completo e confira os anúncios atualizados."',
+    '}',
+    '',
+    'REGRAS:',
+    '- Use 6 ou 7 cenas, cada uma com duração de 9 a 10 segundos.',
+    '- Cada cena deve usar type "product1", "product2" ou "comparison".',
+    '- Alterne os tipos para manter a edição visual, sem inventar medições, especificações, preços, autonomia, desempenho ou defeitos.',
+    '- Não diga que testamos ou medimos os produtos; não declare vencedor, notas ou superioridade sem dados verificados.',
+    '- Oriente o público a conferir fichas oficiais, compatibilidade, conteúdo da embalagem, garantia, preço total e necessidades pessoais.',
+    '- Enquadre características não fornecidas como pontos a verificar, nunca como fatos.',
+    '- O total renderizado inclui 3 segundos de abertura e 5 segundos de veredito/CTA, além da soma das cenas; deve ficar entre 60 e 90 segundos.',
+    '- CTA sem desconto, estoque ou preço não confirmado. Use a URL canônica apenas no texto de descrição/CTA.',
+    '- Não invente URLs nem citações.',
+    '- Responda em português brasileiro e apenas com JSON válido.',
+  ].join('\n');
+
+  try {
+    getLLMProvider();
+    const response = await chatCompletion({
+      systemPrompt: 'Você é roteirista editorial do Vetor.blog. Priorize precisão factual, comparação útil e JSON válido.',
+      userPrompt: prompt,
+      temperature: 0.35,
+      maxTokens: 2200,
+      responseFormat: { type: 'json_object' },
+    });
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Modelo não retornou JSON.');
+    const parsed = JSON.parse(jsonMatch[0]);
+    const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
+    const validTypes = new Set<ComparisonSceneType>(['product1', 'product2', 'comparison']);
+    if (
+      typeof parsed.hook !== 'string' ||
+      !parsed.hook.trim() ||
+      scenes.length < 6 ||
+      scenes.length > 7 ||
+      scenes.some((scene: unknown) => {
+        if (!scene || typeof scene !== 'object') return true;
+        const item = scene as Partial<ComparisonVideoScene>;
+        return typeof item.text !== 'string' ||
+          !item.text.trim() ||
+          !Number.isFinite(item.duration) ||
+          (item.duration as number) < 9 ||
+          (item.duration as number) > 10 ||
+          !validTypes.has(item.type as ComparisonSceneType) ||
+          !Array.isArray(item.brollKeywords);
+      })
+    ) {
+      throw new Error('Roteiro comparativo inválido: são necessárias 6–7 cenas tipadas com 9–10 segundos cada.');
+    }
+
+    const sceneSeconds = scenes.reduce((sum: number, scene: ComparisonVideoScene) => sum + scene.duration, 0);
+    const totalDuration = sceneSeconds + 8;
+    if (totalDuration < 60 || totalDuration > 90) {
+      throw new Error('Duração comparativa inconsistente: ' + totalDuration + 's; esperado 60–90s.');
+    }
+    const transcript = [parsed.hook, ...scenes.map((scene: ComparisonVideoScene) => scene.text), parsed.callToAction || ''].join(' ');
+    if (/\b(testamos|em nossos testes|nos nossos testes|medimos|garantimos|vencedor|ganhador|superior|rodo tudo liso|sem engasgos)\b/i.test(transcript) ||
+      /\bnota\s*(?:final)?\s*[:=]?\s*\d|\b\d(?:[.,]\d)?\/10\b/i.test(transcript)) {
+      throw new Error('Roteiro comparativo reprovado: alegação ou nota sem evidência.');
+    }
+
+    return {
+      hook: parsed.hook.trim(),
+      scenes: scenes as ComparisonVideoScene[],
+      totalDuration,
+      callToAction: typeof parsed.callToAction === 'string' && parsed.callToAction.trim()
+        ? parsed.callToAction.trim()
+        : 'Veja o comparativo completo: ' + input.comparisonUrl + '. Confira as condições atuais dos anúncios.',
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error('[comparison-video-script] ' + message);
+  }
+}
+
 function generateDefaultScenes(product: ProductInfo): VideoScene[] {
   return [
     {
