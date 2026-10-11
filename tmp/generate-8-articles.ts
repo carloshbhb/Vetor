@@ -1,328 +1,192 @@
 import { config } from 'dotenv';
-import { generateReview } from '../src/lib/generate';
-import { generateViralArticle as generateViralArticleFn } from '../src/lib/generate-viral';
 import { resolveProductImage } from '../src/lib/image-resolver';
-import { createReview as createReviewDB, createViralArticle as createViralArticleDB } from '../src/lib/supabase';
-import axios from 'axios';
-import { buildComparativeIndexNowTargets, buildContentUrl, buildReviewIndexNowTargets, pingNewContent } from '../src/lib/indexnow';
-import * as fs from 'fs';
-import * as path from 'path';
+import { createViralArticle, getSupabaseServiceKeyClient, getAllViralArticles } from '../src/lib/supabase';
+import { getAllProductLinks, markProductLinkReviewed, type ProductLink } from '../src/lib/product-links';
+import { productLinkToPipelineInput, runReviewPipeline } from '../src/lib/content-pipeline';
+import { generateViralArticle } from '../src/lib/generate-viral';
+import { buildComparativeEditorialBrief } from '../src/lib/editorial-brief';
+import { buildComparativeIndexNowTargets, buildContentUrl, pingNewContent } from '../src/lib/indexnow';
+import { slugifyEditorialTitle } from '../src/lib/slug';
 
 config({ path: '.env.local' });
 
-interface ArticleResult {
+type ArticleResult = {
   slug: string;
-  status: 'success' | 'failed';
+  status: 'success' | 'failed' | 'skipped';
   url: string;
-  type: 'review' | 'viral';
+  type: 'review' | 'comparison';
+  visibility?: 'draft' | 'published';
   error?: string;
-}
+};
 
-interface ReviewInput {
-  title: string;
-  category: string;
-  price: string;
-  image: string;
-  product_url: string;
-  marketplace?: string;
-}
-
-interface ViralInput {
-  title: string;
-  category: string;
-  comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
-}
-
-async function submitReviewToIndexNow(slug: string, category: string): Promise<void> {
-  const result = await pingNewContent(
-    buildReviewIndexNowTargets(slug, category),
-    'github-actions-generate-8-articles-review'
-  );
-  if (result.status !== 'submitted') {
-    console.warn('  IndexNow review notification:', result.status, result.reason || '');
-  }
-}
-
-async function submitComparativeToIndexNow(slug: string): Promise<void> {
-  const result = await pingNewContent(
-    buildComparativeIndexNowTargets(slug),
-    'github-actions-generate-8-articles-comparative'
-  );
-  if (result.status !== 'submitted') {
-    console.warn('  IndexNow comparative notification:', result.status, result.reason || '');
-  }
-}
-
-async function commitToGitHub(slug: string, type: 'review' | 'viral'): Promise<void> {
+function isHttpUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || !value.trim()) return false;
   try {
-    const token = process.env.GITHUB_TOKEN;
-    if (!token) {
-      console.log(`  ⚠️  GitHub token not found, skipping commit for ${slug}`);
-      return;
-    }
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
-    const repo = 'vetor-blog/vetor-blog';
-    const file = type === 'review' ? 'src/data/reviews.ts' : 'src/data/articles.ts';
-    const filePath = type === 'review' ? path.join(__dirname, '..', 'src', 'data', 'reviews.ts') : null;
+function normalize(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
 
-    let content = '';
-    let sha: string | undefined;
+function buildComparisonPairs(products: ProductLink[]): Array<[ProductLink, ProductLink]> {
+  const groups = new Map<string, ProductLink[]>();
+  for (const product of products) {
+    const category = normalize(product.category || 'Tecnologia');
+    const group = groups.get(category) || [];
+    group.push(product);
+    groups.set(category, group);
+  }
 
-    const getUrl = `https://api.github.com/repos/${repo}/contents/${file}`;
-
-    try {
-      const getResponse = await axios.get(getUrl, {
-        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' },
-      });
-      sha = getResponse.data.sha;
-      content = Buffer.from(getResponse.data.content, 'base64').toString('utf-8');
-      console.log(`  📄 Read existing file SHA for ${file}`);
-    } catch {
-      if (filePath && fs.existsSync(filePath)) {
-        content = fs.readFileSync(filePath, 'utf-8');
+  const pairs: Array<[ProductLink, ProductLink]> = [];
+  for (const group of groups.values()) {
+    const unique = group.filter((product, index, list) =>
+      list.findIndex((other) => normalize(other.product_name) === normalize(product.product_name)) === index
+    );
+    for (let i = 0; i < unique.length; i += 1) {
+      for (let j = i + 1; j < unique.length; j += 1) {
+        pairs.push([unique[i], unique[j]]);
       }
     }
+  }
 
-    if (!content) {
-      console.log(`  ⚠️  Could not read file content for ${file}, skipping commit`);
-      return;
-    }
+  return pairs.sort((a, b) =>
+    (Number(b[0].priority || 0) + Number(b[1].priority || 0)) -
+    (Number(a[0].priority || 0) + Number(a[1].priority || 0)
+  );
+}
 
-    const timestamp = new Date().toISOString();
-    const commitMessage = `feat: add ${type} ${slug} [${timestamp}]`;
-    const encodedContent = Buffer.from(content).toString('base64');
+async function generateReview(link: ProductLink): Promise<ArticleResult> {
+  const outcome = await runReviewPipeline(productLinkToPipelineInput(link), 'cron');
+  if (outcome.status !== 'created') {
+    const detail = outcome.status === 'validation_failed'
+      ? outcome.issues.join('; ')
+      : outcome.status === 'db_error'
+        ? outcome.error
+        : outcome.error;
+    return { slug: outcome.slug || link.slug, status: 'failed', url: '', type: 'review', error: detail };
+  }
 
-    const payload: Record<string, unknown> = {
-      message: commitMessage,
-      content: encodedContent,
+  const markResult = await markProductLinkReviewed(link.id, outcome.slug);
+  if (markResult.error) {
+    return {
+      slug: outcome.slug,
+      status: 'failed',
+      url: buildContentUrl('/reviews/' + outcome.slug),
+      type: 'review',
+      visibility: 'draft',
+      error: 'Review salvo como rascunho, mas a fila não foi atualizada: ' + markResult.error,
     };
-    if (sha) {
-      payload.sha = sha;
-    }
-
-    await axios.put(getUrl, payload, {
-      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' },
-    });
-
-    console.log(`  ✅ Committed to GitHub: ${slug}`);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.log(`  ⚠️  GitHub commit failed for ${slug}: ${message}`);
   }
+
+  return {
+    slug: outcome.slug,
+    status: 'success',
+    url: buildContentUrl('/reviews/' + outcome.slug),
+    type: 'review',
+    visibility: 'draft',
+  };
 }
 
-async function generateReviewArticle(product: ReviewInput): Promise<ArticleResult> {
-  try {
-    console.log(`\n📝 Generating review: ${product.title}...`);
-
-    const review = await generateReview(product);
-
-    const result = await createReviewDB({
-      slug: review.slug,
-      title: review.title,
-      description: review.description,
-      price: review.price,
-      category: review.category,
-      image: review.image,
-      content: review.content,
-      seo_title: review.seo_title,
-      seo_description: review.seo_description,
-      marketplace: product.marketplace || 'mercadolivre',
-      affiliate_url: product.product_url || product.image,
-    });
-
-    if (result.error) {
-      console.log(`  ❌ DB insert failed for ${review.slug}: ${result.error}`);
-      return {
-        slug: review.slug,
-        status: 'failed',
-        url: buildContentUrl('/reviews/' + review.slug),
-        type: 'review',
-        error: result.error,
-      };
-    }
-
-    const url = buildContentUrl('/reviews/' + review.slug);
-    console.log(`  ✅ Review created: ${review.slug}`);
-
-    await commitToGitHub(review.slug, 'review');
-    await submitReviewToIndexNow(review.slug, product.category);
-
-    return { slug: review.slug, status: 'success', url, type: 'review' };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { slug: product.title, status: 'failed', url: '', type: 'review', error: message };
+async function generateComparison(pair: [ProductLink, ProductLink], existingSlugs: Set<string>): Promise<ArticleResult> {
+  const [first, second] = pair;
+  const category = first.category?.trim() || second.category?.trim() || 'Tecnologia';
+  const title = first.product_name + ' vs ' + second.product_name + ': qual vale a pena?';
+  const expectedSlug = slugifyEditorialTitle(title);
+  if (existingSlugs.has(expectedSlug)) {
+    return { slug: expectedSlug, status: 'skipped', url: buildContentUrl('/comparativos/' + expectedSlug), type: 'comparison', visibility: 'published', error: 'Comparativo equivalente já existe.' };
   }
-}
 
-async function generateViralArticleTopic(topic: ViralInput): Promise<ArticleResult> {
-  try {
-    console.log(`\n🔥 Generating viral: ${topic.title}...`);
+  const comparisonProducts = await Promise.all([first, second].map(async (product) => ({
+    name: product.product_name,
+    slug: product.slug,
+    imageUrl: await resolveProductImage(product.image_url),
+    product_url: product.product_url || product.affiliate_url,
+  })));
+  const topic = { title, category, comparisonProducts };
+  const editorialBrief = await buildComparativeEditorialBrief(topic);
+  const article = await generateViralArticle({ ...topic, editorialBrief });
+  const result = await createViralArticle({
+    slug: article.slug,
+    title: article.title,
+    description: article.description,
+    category: article.category,
+    content: article.content,
+    hero: article.hero,
+    products: article.products,
+    seo_title: article.seo_title,
+    seo_description: article.seo_description,
+  });
 
-    const resolvedProducts = await Promise.all(
-      topic.comparisonProducts.map(async (p) => ({
-        ...p,
-        imageUrl: await resolveProductImage(p.imageUrl),
-      }))
-    );
-
-    const article = await generateViralArticleFn({
-      title: topic.title,
-      category: topic.category,
-      comparisonProducts: resolvedProducts,
-    });
-
-    const hero = {
-      imageUrl: article.hero.imageUrl,
-      bars: article.hero.bars.map((bar) => ({
-        ...bar,
-        imageUrl: bar.imageUrl,
-      })),
-    };
-
-    const result = await createViralArticleDB({
-      slug: article.slug,
-      title: article.title,
-      description: article.description,
-      category: article.category,
-      content: article.content,
-      hero,
-      products: resolvedProducts,
-      seo_title: article.seo_title,
-      seo_description: article.seo_description,
-    });
-
-    if (result.error) {
-      console.log(`  ❌ DB insert failed for ${article.slug}: ${result.error}`);
-      return {
-        slug: article.slug,
-        status: 'failed',
-        url: buildContentUrl('/comparativos/' + article.slug),
-        type: 'viral',
-        error: result.error,
-      };
-    }
-
-    const url = buildContentUrl('/comparativos/' + article.slug);
-    console.log(`  ✅ Viral article created: ${article.slug}`);
-
-    await commitToGitHub(article.slug, 'viral');
-    await submitComparativeToIndexNow(article.slug);
-
-    return { slug: article.slug, status: 'success', url, type: 'viral' };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { slug: topic.title, status: 'failed', url: '', type: 'viral', error: message };
+  if (result.error || !result.data) {
+    return { slug: article.slug, status: 'failed', url: '', type: 'comparison', error: result.error || 'Falha ao persistir o comparativo.' };
   }
+
+  existingSlugs.add(article.slug);
+  await pingNewContent(buildComparativeIndexNowTargets(article.slug), 'generate-8-articles-comparative');
+  return {
+    slug: article.slug,
+    status: 'success',
+    url: buildContentUrl('/comparativos/' + article.slug),
+    type: 'comparison',
+    visibility: 'published',
+  };
 }
-
-const REVIEW_PRODUCTS: ReviewInput[] = [
-  { title: 'Samsung Galaxy Fit3', category: 'Wearables', price: 'R$199', image: 'https://http2.mlstatic.com/D_NQ_NP_samsung-fit3.webp', product_url: 'https://www.mercadolivre.com.br/samsung-galaxy-fit3' },
-  { title: 'Redmi Watch 5', category: 'Wearables', price: 'R$299', image: 'https://http2.mlstatic.com/D_NQ_NP_redmi-watch5.webp', product_url: 'https://www.mercadolivre.com.br/redmi-watch-5' },
-  { title: 'AirPods Pro 2', category: 'Fones de Ouvido', price: 'R$1299', image: 'https://http2.mlstatic.com/D_NQ_NP_airpods-pro2.webp', product_url: 'https://www.mercadolivre.com.br/airpods-pro-2' },
-  { title: 'MacBook Air M3', category: 'Notebooks', price: 'R$8999', image: 'https://http2.mlstatic.com/D_NQ_NP_macbook-air-m3.webp', product_url: 'https://www.mercadolivre.com.br/macbook-air-m3' },
-];
-
-const VIRAL_TOPICS: ViralInput[] = [
-  {
-    title: 'Galaxy S24 vs iPhone 15 vs Pixel 8: O Melhor Smartphone 2026?',
-    category: 'Smartphones',
-    comparisonProducts: [
-      { name: 'Galaxy S24', slug: 'galaxy-s24', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_galaxy-s24.webp', product_url: 'https://www.mercadolivre.com.br/galaxy-s24' },
-      { name: 'iPhone 15', slug: 'iphone-15', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_iphone-15.webp', product_url: 'https://www.mercadolivre.com.br/iphone-15' },
-      { name: 'Pixel 8', slug: 'pixel-8', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_pixel-8.webp', product_url: 'https://www.mercadolivre.com.br/pixel-8' },
-    ],
-  },
-  {
-    title: 'AirPods Pro 2 vs Galaxy Buds Pro vs Sony WF-1000XM5',
-    category: 'Fones de Ouvido',
-    comparisonProducts: [
-      { name: 'AirPods Pro 2', slug: 'airpods-pro-2', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_airpods-pro2.webp', product_url: 'https://www.mercadolivre.com.br/airpods-pro-2' },
-      { name: 'Galaxy Buds Pro', slug: 'galaxy-buds-pro', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_galaxy-buds-pro.webp', product_url: 'https://www.mercadolivre.com.br/galaxy-buds-pro' },
-      { name: 'Sony WF-1000XM5', slug: 'sony-wf-1000xm5', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_sony-wf1000xm5.webp', product_url: 'https://www.mercadolivre.com.br/sony-wf-1000xm5' },
-    ],
-  },
-  {
-    title: 'MacBook Air M3 vs Dell XPS 13 vs Lenovo ThinkPad X1',
-    category: 'Notebooks',
-    comparisonProducts: [
-      { name: 'MacBook Air M3', slug: 'macbook-air-m3', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_macbook-air-m3.webp', product_url: 'https://www.mercadolivre.com.br/macbook-air-m3' },
-      { name: 'Dell XPS 13', slug: 'dell-xps-13', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_dell-xps-13.webp', product_url: 'https://www.mercadolivre.com.br/dell-xps-13' },
-      { name: 'Lenovo ThinkPad X1', slug: 'lenovo-thinkpad-x1', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_lenovo-thinkpad-x1.webp', product_url: 'https://www.mercadolivre.com.br/lenovo-thinkpad-x1' },
-    ],
-  },
-  {
-    title: 'Apple Watch Series 9 vs Galaxy Watch 6 vs Pixel Watch 2',
-    category: 'Wearables',
-    comparisonProducts: [
-      { name: 'Apple Watch Series 9', slug: 'apple-watch-series-9', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_apple-watch-s9.webp', product_url: 'https://www.mercadolivre.com.br/apple-watch-series-9' },
-      { name: 'Galaxy Watch 6', slug: 'galaxy-watch-6', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_galaxy-watch-6.webp', product_url: 'https://www.mercadolivre.com.br/galaxy-watch-6' },
-      { name: 'Pixel Watch 2', slug: 'pixel-watch-2', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_pixel-watch-2.webp', product_url: 'https://www.mercadolivre.com.br/pixel-watch-2' },
-    ],
-  },
-];
 
 async function main(): Promise<ArticleResult[]> {
+  if (!process.env.NVIDIA_API_KEY?.trim()) throw new Error('[content-generation] NVIDIA_API_KEY ausente.');
+  const serviceClient = getSupabaseServiceKeyClient();
+  if (!serviceClient) throw new Error('[content-generation] Supabase Service Role ausente; a execução não simulará persistência.');
+
+  const allLinks = (await getAllProductLinks({ limit: 100 }))
+    .filter((link) => link.status !== 'archived' && link.product_name?.trim() && isHttpUrl(link.product_url) && isHttpUrl(link.affiliate_url) && isHttpUrl(link.image_url));
+  const reviewCandidates = allLinks.filter((link) => !link.has_review).slice(0, 4);
+  const comparisons = buildComparisonPairs(allLinks);
+  const existingArticles = await getAllViralArticles();
+  const existingSlugs = new Set(existingArticles.map((article) => article.slug));
   const results: ArticleResult[] = [];
-  const timeoutMs = 20 * 60 * 1000;
-  const startTime = Date.now();
 
-  console.log('🚀 Iniciando geração de 8 artigos (4 reviews + 4 virais)...\n');
+  console.log(`[content-generation] ${allLinks.length} produtos reais elegíveis; ${reviewCandidates.length} novos reviews elegíveis; ${comparisons.length} pares comparáveis.`);
 
-  for (const product of REVIEW_PRODUCTS) {
-    if (Date.now() - startTime > timeoutMs) {
-      console.log('⏰ Timeout de 20 minutos atingido!');
-      break;
-    }
+  for (const product of reviewCandidates) {
     try {
-      const result = await generateReviewArticle(product);
+      const result = await generateReview(product);
       results.push(result);
-      console.log(`  📊 Progresso: ${results.length}/8`);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.log(`  ❌ Falha em ${product.title}: ${message}`);
-      results.push({ slug: product.title, status: 'failed', url: '', type: 'review', error: message });
+      console.log(`[content-generation] review ${result.status}: ${result.slug}${result.error ? ' — ' + result.error : ''}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      results.push({ slug: product.slug, status: 'failed', url: '', type: 'review', error: message });
     }
   }
 
-  for (const topic of VIRAL_TOPICS) {
-    if (Date.now() - startTime > timeoutMs) {
-      console.log('⏰ Timeout de 20 minutos atingido!');
-      break;
-    }
+  let createdComparisons = 0;
+  for (const pair of comparisons) {
+    if (createdComparisons >= 4) break;
     try {
-      const result = await generateViralArticleTopic(topic);
+      const result = await generateComparison(pair, existingSlugs);
       results.push(result);
-      console.log(`  📊 Progresso: ${results.length}/8`);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.log(`  ❌ Falha em ${topic.title}: ${message}`);
-      results.push({ slug: topic.title, status: 'failed', url: '', type: 'viral', error: message });
+      if (result.status === 'success') createdComparisons += 1;
+      console.log(`[content-generation] comparativo ${result.status}: ${result.slug}${result.error ? ' — ' + result.error : ''}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const slug = slugifyEditorialTitle(pair[0].product_name + '-vs-' + pair[1].product_name);
+      results.push({ slug, status: 'failed', url: '', type: 'comparison', error: message });
     }
   }
 
-  console.log('\n📋 RESUMO DOS 8 ARTIGOS:\n');
-  console.log('═'.repeat(70));
-  for (const r of results) {
-    const icon = r.status === 'success' ? '✅' : '❌';
-    console.log(`${icon} [${r.type.toUpperCase()}] ${r.slug} → ${r.url}`);
-    if (r.error) console.log(`     Erro: ${r.error}`);
-  }
-  console.log('═'.repeat(70));
-
-  const successCount = results.filter((r) => r.status === 'success').length;
-  console.log(`\n🎯 ${successCount}/8 artigos gerados com sucesso\n`);
-
-  const failedCount = results.filter((result) => result.status !== 'success').length;
-  if (results.length !== 8 || failedCount > 0) {
-    console.error(`[content-generation] Workflow failure: ${results.filter((result) => result.status === 'success').length}/8 articles persisted; ${failedCount} failed.`);
-    process.exitCode = 1;
-  }
-
+  const successful = results.filter((result) => result.status === 'success').length;
+  const failed = results.filter((result) => result.status === 'failed').length;
+  const skipped = results.filter((result) => result.status === 'skipped').length;
+  console.log(`[content-generation] Finalizado: ${successful} sucesso, ${failed} falha, ${skipped} ignorados. Reviews ficam em rascunho; comparativos persistidos ficam publicados.`);
+  if (failed > 0 || results.length < 8) process.exitCode = 1;
   return results;
 }
 
-main().catch((err) => {
-  console.error('❌ Erro fatal:', err);
+main().catch((error) => {
+  console.error('[content-generation] Fatal error:', error instanceof Error ? error.message : String(error));
   process.exit(1);
 });
