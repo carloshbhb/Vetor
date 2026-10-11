@@ -23,9 +23,9 @@ export type PipelineOutcome =
 
 export function productLinkToPipelineInput(link: ProductLink): PipelineProductInput {
   const price =
-    typeof link.price === 'number' && Number.isFinite(link.price)
-      ? `R$${link.price.toFixed(2)}`
-      : 'R$0';
+    typeof link.price === 'number' && Number.isFinite(link.price) && link.price > 0
+      ? `R$${link.price.toFixed(2).replace('.', ',')}`
+      : 'Consulte o preço atual';
 
   return {
     title: link.product_name,

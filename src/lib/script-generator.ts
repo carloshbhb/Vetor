@@ -75,8 +75,8 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     const content = await chatCompletion({
       systemPrompt: 'Você é um roteirista especialista em vídeos virais de review tech para YouTube Shorts/Reels. Responda APENAS em JSON válido, sem texto adicional.',
       userPrompt: prompt,
-      temperature: 0.7,
-      maxTokens: 4000,
+      temperature: 0.45,
+      maxTokens: 1600,
       responseFormat: provider.provider !== 'gemini' ? { type: 'json_object' } : undefined,
     });
 
@@ -85,15 +85,31 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     if (jsonMatch) parsedContent = jsonMatch[0];
     const parsed = JSON.parse(parsedContent);
 
+    const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
+    if (
+      typeof parsed.hook !== 'string' ||
+      scenes.length < 5 ||
+      scenes.length > 7 ||
+      scenes.some((scene: unknown) =>
+        !scene || typeof scene !== 'object' ||
+        typeof (scene as { text?: unknown }).text !== 'string' ||
+        !(scene as { text: string }).text.trim()
+      )
+    ) {
+      throw new Error('Modelo retornou roteiro incompleto: são necessárias 5–7 cenas válidas.');
+    }
     return {
-      hook: parsed.hook || `Conheça o ${product.title} - vale a pena?`,
-      scenes: parsed.scenes || generateDefaultScenes(product),
-      totalDuration: parsed.totalDuration || 60,
-      callToAction: parsed.callToAction || 'Link na descrição para comprar com desconto!',
+      hook: parsed.hook,
+      scenes,
+      totalDuration: Number(parsed.totalDuration) || 60,
+      callToAction: typeof parsed.callToAction === 'string' && parsed.callToAction.trim()
+        ? parsed.callToAction
+        : 'Confira o review completo e o link de compra na descrição.',
     };
   } catch (error) {
-    console.error('Error generating script:', error);
-    return generateDefaultScript(product);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[video-script] generation failed:', message);
+    throw new Error(`[video-script] generation failed: ${message}`);
   }
 }
 

@@ -313,6 +313,12 @@ async function main(): Promise<ArticleResult[]> {
   const successCount = results.filter((r) => r.status === 'success').length;
   console.log(`\n🎯 ${successCount}/8 artigos gerados com sucesso\n`);
 
+  const failedCount = results.filter((result) => result.status !== 'success').length;
+  if (results.length !== 8 || failedCount > 0) {
+    console.error(`[content-generation] Workflow failure: ${results.filter((result) => result.status === 'success').length}/8 articles persisted; ${failedCount} failed.`);
+    process.exitCode = 1;
+  }
+
   return results;
 }
 

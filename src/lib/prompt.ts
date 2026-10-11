@@ -6,82 +6,79 @@ export function buildReviewPrompt(product: {
   product_url?: string;
   marketplace?: string;
 }): string {
-  return `Gere uma review profissional e completa para o produto "${product.title}" no site vetor.blog.
+  return `Produza um review editorial completo para o Vetor.blog, em português brasileiro, sobre o produto abaixo.
 
-Produto: ${product.title}
-Categoria: ${product.category}
-Preço: ${product.price}
-URL do Produto: ${product.product_url || 'N/A'}
-Marketplace: ${product.marketplace || 'mercadolivre'}
+PRODUTO: ${product.title}
+CATEGORIA: ${product.category}
+PREÇO INFORMADO: ${product.price}
+URL DO PRODUTO: ${product.product_url || 'N/A'}
+MARKETPLACE: ${product.marketplace || 'mercadolivre'}
 
-Responda APENAS em JSON válido com esta estrutura exata:
+Retorne somente JSON válido, sem markdown fora do JSON, com esta estrutura:
 {
-  "title": "Título SEO otimizado",
-  "description": "Descrição SEO informativa (100-160 chars, sem CTA agressiva)",
-  "content": "HTML completo do artigo com h2, p, ul/li, table. Use <h2> para seções, <p> para parágrafos, <ul><li> para listas",
-  "hero_overall_score": 8.5,
+  "title": "Review [nome do produto]: análise e vale a pena?",
+  "description": "descrição informativa de 100–160 caracteres",
+  "meta_title": "título SEO com 35–65 caracteres",
+  "meta_description": "meta description com 100–160 caracteres",
+  "content": "<h2>HTML integral do review</h2>",
+  "hero_overall_score": 7.5,
   "hero_bars": [
-    { "pct": 90, "label": "Qualidade", "value": 9 },
-    { "pct": 85, "label": "Custo-Benefício", "value": 8.5 },
-    { "pct": 80, "label": "Design", "value": 8 }
+    {"pct": 80, "label": "Recursos", "value": 8},
+    {"pct": 70, "label": "Custo-benefício", "value": 7},
+    {"pct": 80, "label": "Usabilidade", "value": 8}
   ],
   "specs": [
-    { "label": "Marca", "value": "Samsung", "highlight": false },
-    { "label": "Modelo", "value": "Galaxy Fit3", "highlight": true }
+    {"label": "Categoria", "value": "${product.category}", "highlight": false},
+    {"label": "Preço informado", "value": "${product.price}", "highlight": true},
+    {"label": "Marca/modelo", "value": "informação verificável", "highlight": false},
+    {"label": "Recurso principal", "value": "informação verificável", "highlight": false}
   ],
   "sections": [
-    {
-      "id": "design",
-      "heading": "Design e Construção",
-      "tocEmoji": "🎨",
-      "tocLabel": "Design",
-      "content": "<p>Conteúdo da seção...</p>"
-    }
+    {"id": "overview", "heading": "Visão geral", "tocEmoji": "📝", "tocLabel": "Visão geral", "content": "<p>...</p>"},
+    {"id": "design", "heading": "Design e construção", "tocEmoji": "🎨", "tocLabel": "Design", "content": "<p>...</p>"},
+    {"id": "features", "heading": "Recursos e funcionamento", "tocEmoji": "⚙️", "tocLabel": "Recursos", "content": "<p>...</p>"},
+    {"id": "value", "heading": "Preço e alternativas", "tocEmoji": "💰", "tocLabel": "Preço", "content": "<p>...</p>"}
   ],
-  "pros": ["Ponto forte 1", "Ponto forte 2"],
-  "cons": ["Ponto fraco 1", "Ponto fraco 2"],
+  "pros": ["vantagem específica 1", "vantagem específica 2", "vantagem específica 3"],
+  "cons": ["limitação específica 1", "limitação específica 2", "ponto que deve ser verificado antes da compra"],
   "compare_table": {
-    "columns": ["Produto", "Preço", "Nota"],
+    "columns": ["Critério", "${product.title}", "concorrente real da categoria"],
     "rows": [
-      { "feature": "Preço", "values": ["${product.price}", "R$ ..."], "winner": 0 }
+      {"feature": "Preço", "values": ["${product.price}", "não informado"], "winner": -1},
+      {"feature": "Recursos principais", "values": ["recurso confirmado", "recurso confirmado ou não informado"], "winner": -1},
+      {"feature": "Perfil de uso", "values": ["perfil sustentado pelo review", "perfil sustentado ou não informado"], "winner": -1}
     ],
-    "caption": "Tabela comparativa do produto com alternativas relevantes",
+    "caption": "Comparação de características conhecidas; dados indisponíveis são identificados",
     "winnerCol": 1
   },
-  "verdict_score": 8.5,
-  "verdict_label": "Excelente",
-  "verdict_text": "O ${product.title} é uma excelente opção...",
-  "verdict_note": "Recomendado para quem busca qualidade.",
-  "faq": [
-    { "question": "Vale a pena comprar?", "answer": "Sim, pelo preço é uma ótima opção." }
-  ],
-  "hero_lead": "Parágrafo de introdução envolvente",
-  "hero_headline_line1": "Análise Completa do",
+  "verdict_score": 7.5,
+  "verdict_label": "Depende do perfil de uso",
+  "verdict_text": "veredito explicado pelos fatos descritos no artigo",
+  "verdict_note": "limitação ou condição importante para decidir",
+  "hero_lead": "introdução editorial com pelo menos 80 caracteres",
+  "hero_headline_line1": "Review completo do",
   "hero_headline_line2": "${product.title}",
-  "hero_headline_em": "Vale a Pena?"
+  "hero_headline_em": "Vale a pena?",
+  "faq": [
+    {"question": "O produto vale a pena?", "answer": "Resposta contextual com pelo menos 30 caracteres."},
+    {"question": "Quais são as principais limitações?", "answer": "Resposta contextual com pelo menos 30 caracteres."},
+    {"question": "O que conferir antes de comprar?", "answer": "Resposta contextual com pelo menos 30 caracteres."}
+  ]
 }
 
-Regras:
-- content deve ser HTML válido com <h2>, <p>, <ul>, <li>, <table>
-- Use somente fatos que você consegue sustentar a partir dos dados fornecidos e conhecimento verificável; nunca invente teste presencial, benchmark, defeito recorrente, autonomia medida, avaliação de comprador ou especificação.
-- Se uma informação importante não estiver disponível, deixe a limitação explícita em vez de preencher com um palpite.
-- Não use frases que insinuem experiência prática ("testamos", "em nossos testes", "medimos") quando essa experiência não foi fornecida.
-- Não use linguagem absoluta ou promocional como "escolha definitiva", "padrão ouro", "líder do mercado", "compra certa", "deve ser evitado" ou "não tem rivais à altura"; prefira comparar características, limitações e perfis de uso.
-- Não apresente recursos de saúde como "nível médico" ou "clinicamente útil". Descreva o recurso e seus limites conforme a informação verificável.
-- Cada nota e conclusão deve ser explicada por critérios observáveis no próprio conteúdo.
-- hero_bars deve ter 3-5 barras com pct (0-100) e value (0-10)
-- specs deve ter 4-8 especificações
-- sections deve ter 4-6 seções com conteúdo HTML
-- pros e cons devem ter 3-5 itens cada
-- compare_table deve comparar com 1-2 concorrentes reais e verificáveis
-- Na tabela, "columns[0]" é o critério; "values" contém somente os produtos comparados, na mesma ordem de "columns". "winner" é índice 0-based dentro de "values"; use -1 quando não houver vencedor claro. "winnerCol" usa o índice da coluna completa, incluindo "columns[0]". Nunca use um índice fora do tamanho da lista.
-- Todas as especificações, preços, recursos e afirmações comparativas precisam ser sustentáveis pelos dados disponíveis; quando não houver dado suficiente, declare a limitação em vez de inventar.
-- faq deve ter 3-5 perguntas
-- Meta title: 35-65 caracteres, com o nome do produto e a intenção de busca principal, sem palavras promocionais vazias.
-- Meta description: 100-160 caracteres, informativa, natural e sem "garanta", "compre agora", "clique e confira" ou equivalentes.
-- Não use linguagem promocional em title/description. A chamada para compra fica no conteúdo e nos componentes comerciais.
-- Tom: profissional, objetivo, confiável
-- Idioma: português brasileiro`;
+REGRAS OBRIGATÓRIAS:
+- "content" deve conter no mínimo 5.000 caracteres de texto visível (desconsiderando tags HTML), com pelo menos 8 parágrafos, 6 subtítulos <h2>/<h3>, análise de recursos, limitações, preço, público indicado, comparação e conclusão. Não encerre antes de retornar o JSON completo.
+- "sections" deve incluir 4–6 seções substantivas, cada uma com pelo menos 120 caracteres de HTML.
+- Inclua 4–8 "specs", 3–5 "hero_bars", 3–5 "pros", 3–5 "cons" e 3–5 perguntas em "faq".
+- Em "hero_bars", pct deve ser exatamente value multiplicado por 10. Justifique notas usando critérios observáveis; não as apresente como medições laboratoriais.
+- "meta_title" deve ter 35–65 caracteres. "meta_description" e "description" devem ter 100–160 caracteres.
+- "compare_table.columns" deve ter 2–4 colunas. A primeira é "Critério"; as restantes são os nomes dos produtos. Cada linha contém em "values" uma célula para cada produto (número de colunas menos um). Inclua pelo menos 3 linhas. Use winner=-1 se não existir base factual para apontar um vencedor. Não invente preços.
+- Use apenas especificações e fatos sustentáveis por dados confiáveis/conhecimento verificável. Se houver dúvida, escreva "não informado" e recomende consultar a ficha oficial; não invente números, autonomia, testes, benchmarks, defeitos recorrentes ou avaliações de compradores.
+- Não afirme experiência prática ("testamos", "em nossos testes", "medimos") nem invente citações ou análises de clientes.
+- Não use clichês vazios como "bom custo-benefício", "design moderno", "boa qualidade de construção" ou "recomendado para quem busca qualidade". Explique vantagens e limitações específicas.
+- Não force um vencedor. Compare o que é verificável e informe quando faltam dados.
+- Tom profissional, objetivo e confiável. O link de compra fica nos componentes comerciais do site; não invente links.
+`;
 }
 
 export function buildViralPrompt(topic: {

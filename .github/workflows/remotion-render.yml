@@ -45,12 +45,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: video/package-lock.json
 
@@ -58,7 +58,7 @@ jobs:
         run: npm ci
 
       - name: Install Chrome for headless rendering
-        uses: browser-actions/setup-chrome@d771e13e1a05ec71f4c8e347b30fa5e74d2c1b5d # v1.2.0
+        uses: browser-actions/setup-chrome@v1.2.0
         with:
           chrome-version: stable
 
@@ -76,7 +76,7 @@ jobs:
           REMOTION_CHROME_PATH: /usr/bin/google-chrome
           REMOTION_GL: angle
         run: |
-          TYPE="${{ github.event.inputs.video_type }}"
+          TYPE="${{ github.event.inputs.video_type || 'review' }}"
           DATA_FILE="${{ github.event.inputs.data_file }}"
           TITLE="${{ github.event.inputs.title }}"
 
@@ -105,7 +105,7 @@ jobs:
           echo "Found video: $VIDEO_FILE"
 
       - name: Upload video artifact
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0db45cf0a # v4.6.0
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.inputs.video_type || 'remotion-video' }}-${{ github.run_number }}
           path: ${{ steps.find-video.outputs.video_path }}
@@ -113,7 +113,7 @@ jobs:
           compression-level: 6
 
       - name: Upload all rendered videos
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0db45cf0a # v4.6.0
+        uses: actions/upload-artifact@v4
         with:
           name: all-videos-${{ github.run_number }}
           path: video/out/*.mp4

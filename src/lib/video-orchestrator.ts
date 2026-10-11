@@ -14,6 +14,7 @@ export interface VideoQueueInput {
 export interface VideoQueueItem {
   id: string;
   product_url: string;
+  review_url: string | null;
   product_title: string;
   product_category: string;
   product_price: string;
@@ -48,11 +49,23 @@ export async function createVideoJob(input: VideoQueueInput): Promise<VideoQueue
   const productData = await extractProductData(input.productUrl);
   const affiliateUrl = generateAffiliateUrl(input.productUrl, productData.marketplace);
   const shortenedUrl = await shortenUrl(affiliateUrl);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
+  const { data: matchingReview } = await getServiceSupabase()
+    .from('reviews')
+    .select('slug')
+    .eq('status', 'published')
+    .eq('product', productData.title)
+    .limit(1)
+    .maybeSingle();
+  const reviewUrl = matchingReview?.slug
+    ? new URL(`/reviews/${matchingReview.slug}/`, siteUrl).toString()
+    : null;
 
   const { data, error } = await getServiceSupabase()
     .from('video_queue')
     .insert({
       product_url: input.productUrl,
+      review_url: reviewUrl,
       product_title: productData.title,
       product_category: productData.category,
       product_price: productData.price,

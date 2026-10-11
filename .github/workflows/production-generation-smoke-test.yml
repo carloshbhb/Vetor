@@ -1,0 +1,156 @@
+name: Production Generation Smoke Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/app/api/cron/production-generation-test/route.ts'
+      - '.github/workflows/production-generation-smoke-test.yml'
+      - 'src/lib/prompt.ts'
+      - 'src/lib/generate.ts'
+      - 'src/lib/llm-provider.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng
+      - name: Install TTS
+        run: pip install edge-tts aiohttp
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd video
+          npm ci
+      - name: Wait for current production queue API deployment
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+        run: |
+          set -euo pipefail
+          : "${CRON_SECRET:?CRON_SECRET secret is required}"
+          ready=0
+          for attempt in $(seq 1 24); do
+            curl_exit=0
+            code="$(curl -sS --max-time 12 -o queue-api-ready.json -w '%{http_code}' \
+              -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              -d '{"action":"recent"}' || curl_exit=$?)"
+            if [ "$curl_exit" -eq 0 ] && [ "$code" = "200" ] && jq -e '.success == true' queue-api-ready.json >/dev/null; then
+              echo "Current production deployment is ready."
+              ready=1
+              break
+            fi
+            echo "Current production deployment not ready (attempt $attempt, curl=$curl_exit, HTTP=${code:-000})."
+            if [ "$attempt" -lt 24 ]; then sleep 10; fi
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat queue-api-ready.json 2>/dev/null || true
+            echo "::error::Current production queue API did not become ready; refusing to test stale code."
+            exit 1
+          fi
+      - name: Validate YouTube OAuth before generation
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          : "${YOUTUBE_CLIENT_ID:?YOUTUBE_CLIENT_ID secret is required}"
+          : "${YOUTUBE_CLIENT_SECRET:?YOUTUBE_CLIENT_SECRET secret is required}"
+          : "${YOUTUBE_REFRESH_TOKEN:?YOUTUBE_REFRESH_TOKEN secret is required}"
+          code="$(curl -sS --max-time 12 -o oauth-check.json -w '%{http_code}' -X POST \
+            'https://oauth2.googleapis.com/token' \
+            --data-urlencode "client_id=$YOUTUBE_CLIENT_ID" \
+            --data-urlencode "client_secret=$YOUTUBE_CLIENT_SECRET" \
+            --data-urlencode "refresh_token=$YOUTUBE_REFRESH_TOKEN" \
+            --data-urlencode 'grant_type=refresh_token')"
+          if [ "$code" != "200" ] || ! jq -e '.access_token | type == "string" and length > 0' oauth-check.json >/dev/null; then
+            error="$(jq -r '.error // "unknown_error"' oauth-check.json 2>/dev/null || echo 'invalid OAuth response')"
+            echo "::error::YouTube OAuth preflight failed (HTTP $code, $error). Refresh OAuth and update YOUTUBE_REFRESH_TOKEN in GitHub Actions Secrets."
+            exit 1
+          fi
+          echo "YouTube OAuth preflight passed."
+      - name: Generate one real review and queue its video
+        id: create
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+        run: |
+          set -euo pipefail
+          : "${CRON_SECRET:?CRON_SECRET secret is required}"
+          curl_status=0
+          code="$(curl -sS --max-time 70 -o smoke-result.json -w '%{http_code}' \
+            -X POST "$VETOR_SITE_URL/api/cron/production-generation-test/" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" -d '{}' || echo 000)"
+          echo "Production generation HTTP=$code"
+          cat smoke-result.json
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "::error::Generation failed; see the structured error above. Not retrying a definitive client/quality error."
+            exit 1
+          fi
+          jq .
+          VIDEO_ID="$(jq -r '.videoId // empty' smoke-result.json)"
+          REVIEW_URL="$(jq -r '.reviewUrl // empty' smoke-result.json)"
+          if [ -z "$VIDEO_ID" ] || [ -z "$REVIEW_URL" ]; then
+            echo "::error::Production endpoint did not return videoId and reviewUrl."
+            exit 1
+          fi
+          echo "video_id=$VIDEO_ID" >> "$GITHUB_OUTPUT"
+          echo "review_url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
+      - name: Render and upload the video
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          VIDEO_ID: ${{ steps.create.outputs.video_id }}
+          MAX_VIDEOS: '1'
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: node video/scripts/process-video.mjs
+      - name: Verify video, review URL, and purchase URL
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          VIDEO_ID: ${{ steps.create.outputs.video_id }}
+          EXPECTED_REVIEW_URL: ${{ steps.create.outputs.review_url }}
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 20 -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d "{\"action\":\"get\",\"id\":\"$VIDEO_ID\"}" > video-result.json
+          jq .
+          jq -e --arg id "$VIDEO_ID" --arg review "$EXPECTED_REVIEW_URL" '
+            .success == true and .video.id == $id and
+            .video.status == "completed" and
+            ((.video.youtube_url // "") | test("^https://(www\\.)?youtube\\.com/watch\\?v=|^https://youtu\\.be/")) and
+            .video.review_url == $review and
+            ((.video.affiliate_url // "") | test("^https?://"))
+          ' video-result.json >/dev/null || {
+            echo "::error::Video upload or required metadata not confirmed."
+            exit 1
+          }
+          echo "Verified YouTube upload with review and purchase links."

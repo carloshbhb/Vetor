@@ -4,54 +4,53 @@ on:
   workflow_dispatch:
     inputs:
       video_id:
-        description: 'Video queue ID to process (leave empty for all pending)'
+        description: 'Video queue ID to process (leave empty for pending queue)'
         required: false
-  schedule:
-    - cron: '0 4 * * *'
+        type: string
+      max_videos:
+        description: 'Maximum videos when no ID is provided'
+        required: false
+        default: '1'
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
-
-      - name: Setup Python
+      - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-
+          python-version: '3.12'
       - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
       - name: Install edge-tts
-        run: pip install edge-tts
-
+        run: pip install edge-tts aiohttp
       - name: Install dependencies
         run: |
           npm ci
-          cd video && npm ci && cd ..
-
-      - name: Process pending videos
+          cd video
+          npm ci
+      - name: Render and upload
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          VIDEO_ID: ${{ inputs.video_id || '' }}
+          MAX_VIDEOS: ${{ inputs.max_videos || '1' }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          VIDEO_ID: ${{ github.event.inputs.video_id }}
         run: node video/scripts/process-video.mjs

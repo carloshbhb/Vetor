@@ -1,235 +1,113 @@
 name: Process Video Queue
 
+concurrency:
+  group: vetor-production-video-queue
+  cancel-in-progress: false
+
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/process-video-queue.yml'
+      - 'video/scripts/process-video.mjs'
+      - 'src/app/api/cron/video-queue-worker/route.ts'
   schedule:
-    # Run every 2 hours
     - cron: '0 */2 * * *'
   workflow_dispatch:
     inputs:
-      max_videos:
-        description: 'Máximo de vídeos para processar'
+      video_id:
+        description: 'Optional queue item ID to retry after OAuth is fixed'
         required: false
-        default: '3'
+        default: ''
+        type: string
+      max_videos:
+        description: 'Maximum videos to process'
+        required: false
+        default: '1'
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
   process-queue:
-    name: Processar Fila de Vídeos
+    name: Render and publish queued videos
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    permissions:
-      contents: read
-      id-token: write
+    timeout-minutes: 90
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Setup Python
+          cache: 'npm'
+      - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install Python dependencies
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng
+      - name: Install Python TTS
         run: pip install edge-tts aiohttp
-
       - name: Install dependencies
         run: |
           npm ci
-          cd video && npm ci && cd ..
-
-      - name: Fetch pending videos
-        id: fetch
-        run: |
-          HTTP_CODE=$(curl -s -o response.json -w '%{http_code}' -X GET \
-            -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-            "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?status=eq.pending&order=scheduled_at.asc&limit=${{ inputs.max_videos || 3 }}")
-
-          # Um erro do PostgREST volta como JSON objeto, e `jq length` de um objeto
-          # devolve a contagem de chaves (ex.: 4) - o workflow achava que havia
-          # videos e entrava no loop com strings em vez de registros. Falha alto.
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "::error::Supabase respondeu HTTP $HTTP_CODE"
-            cat response.json
-            exit 1
-          fi
-
-          if [ "$(jq -r 'type' response.json)" != "array" ]; then
-            echo "::error::Resposta do Supabase nao e uma lista:"
-            cat response.json
-            exit 1
-          fi
-
-          mv response.json pending.json
-          COUNT=$(jq 'length' pending.json)
-          echo "Registros pendentes retornados: $COUNT"
-          jq -r '.[] | "  - \(.id) \(.status) \(.product_title)"' pending.json || true
-          echo "count=$COUNT" >> $GITHUB_OUTPUT
-          echo "has_videos=$( [ "$COUNT" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
-
-      - name: Process videos
-        if: steps.fetch.outputs.has_videos == 'true'
-        run: |
-          MAX=${{ inputs.max_videos || 3 }}
-          PROCESSED=0
-          TOTAL=$(jq 'length' pending.json)
-          INDEX=0
-          
-          # Iterate by index instead of `jq | while read`: `read` stops at the
-          # first newline, and script_text is a multi-line JSON blob stored as
-          # TEXT, so every field extracted from `$video` came out truncated.
-          while [ "$INDEX" -lt "$TOTAL" ]; do
-            if [ "$PROCESSED" -ge "$MAX" ]; then break; fi
-            INDEX=$((INDEX + 1))
-            
-            video=$(jq -c ".[$((INDEX - 1))]" pending.json)
-            ID=$(echo "$video" | jq -r '.id')
-            TITLE=$(echo "$video" | jq -r '.product_title')
-            IMAGE=$(echo "$video" | jq -r '.product_image_url')
-            CATEGORY=$(echo "$video" | jq -r '.product_category')
-            HOOK=$(echo "$video" | jq -r '.script_hook // "Confira esta análise completa!"')
-            AFFILIATE=$(echo "$video" | jq -r '.affiliate_url // ""')
-            SCRIPT_RAW=$(echo "$video" | jq -r '.script_text // "{}"')
-            
-            echo "=== Processing: $TITLE ($ID) ==="
-            
-            # Mark as processing
-            curl -s -X PATCH \
-              -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
-              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-              -H "Content-Type: application/json" \
-              -d '{"status":"processing","started_at":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' \
-              "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$ID" > /dev/null
-            
-            # Parse script or create default.
-            # script_text is stored as TEXT, so it arrives here as a JSON string
-            # and must be decoded before use. Empty/garbage/null all fall back to {}
-            # so --argjson below never receives invalid JSON.
-            SCRIPT=$(printf '%s' "$SCRIPT_RAW" | jq -R 'fromjson? // {}' 2>/dev/null | jq -c 'if type == "object" then . else {} end' 2>/dev/null || echo '{}')
-            SCRIPT=${SCRIPT:-{}}
-            echo "Roteiro: $(echo "$SCRIPT" | jq -r '(.scenes | if type == "array" then length else 0 end)') cenas"
-            
-            # Generate TTS audio for the hook. The file has to live inside the
-            # Remotion publicDir to be served to the renderer, otherwise
-            # renderMedia gets a 404 trying to fetch it.
-            HOOK_AUDIO="video/public/tmp/video-$ID.mp3"
-            mkdir -p video/public/tmp
-            python scripts/tts.py "$HOOK" "$HOOK_AUDIO" "pt-BR-FranciscaNeural" || true
-            
-            if [ -s "$HOOK_AUDIO" ]; then
-              AUDIO_URL="tmp/video-$ID.mp3"
-            else
-              echo "::warning::TTS falhou; renderizando sem audio"
-              AUDIO_URL=""
-            fi
-            
-            # Build the Remotion input with jq. Interpolating the raw title/hook
-            # into a heredoc produced invalid JSON whenever they contained a quote,
-            # so every value goes through --arg instead.
-            jq -n \
-              --arg title "$TITLE" \
-              --arg imageUrl "$IMAGE" \
-              --arg category "$CATEGORY" \
-              --arg hook "$HOOK" \
-              --arg audioUrl "$AUDIO_URL" \
-              --argjson script "$SCRIPT" \
-              '{
-                type: "review",
-                title: $title,
-                imageUrl: $imageUrl,
-                score: 8.5,
-                category: $category,
-                hook: $hook,
-                audioUrl: $audioUrl,
-                callToAction: "Link na descricao para comprar com desconto!",
-                scenes: (if (($script.scenes | type) == "array" and ($script.scenes | length) > 0) then $script.scenes else [
-                  {"id":1,"text":$hook,"duration":5,"visualCue":"Produto em destaque","brollKeywords":["product reveal"]},
-                  {"id":2,"text":"Vamos analisar os pontos fortes e fracos.","duration":8,"visualCue":"Analise detalhada","brollKeywords":["analysis"]},
-                  {"id":3,"text":"Design e construcao sao pontos positivos.","duration":7,"visualCue":"Close no produto","brollKeywords":["design"]},
-                  {"id":4,"text":"Desempenho no dia a dia surpreende.","duration":8,"visualCue":"Uso real","brollKeywords":["performance"]},
-                  {"id":5,"text":"Veredicto: vale a pena? Confira na descricao!","duration":7,"visualCue":"Nota final","brollKeywords":["verdict"]}
-                ] end),
-                subtitleEntries: [],
-                productImages: [$imageUrl],
-                brollVideos: [],
-                totalDuration: 45,
-                fps: 30
-              }' > "/tmp/video-$ID.json"
-            
-            # Render video with Remotion
-            echo "Rendering..."
-            npx tsx video/src/utils/renderVideo.ts review "/tmp/video-$ID.json" || {
-              echo "Render failed"
-              curl -s -X PATCH \
-                -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
-                -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-                -H "Content-Type: application/json" \
-                -d '{"status":"failed","error_message":"Render failed"}' \
-                "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$ID"
-              continue
-            }
-            
-            # Find rendered video
-            VIDEO_FILE=$(ls -t video/out/*.mp4 2>/dev/null | head -1)
-            
-            if [ -z "$VIDEO_FILE" ]; then
-              echo "No video file found"
-              curl -s -X PATCH \
-                -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
-                -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-                -H "Content-Type: application/json" \
-                -d '{"status":"failed","error_message":"No video file generated"}' \
-                "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$ID"
-              continue
-            fi
-            
-            echo "Video rendered: $VIDEO_FILE"
-            
-            # Upload to YouTube
-            export VIDEO_PATH="$VIDEO_FILE"
-            export VIDEO_TITLE="$TITLE | Vetor Blog"
-            export VIDEO_DESCRIPTION="$(printf 'Review completo: %s\n\nLeia a analise completa: https://www.vetor.blog\nCompre com desconto: %s\n\n#Review #Tech #VetorBlog' "$TITLE" "$AFFILIATE")"
-            export VIDEO_TAGS="review,tech,vetorblog,$( echo "$CATEGORY" | tr '[:upper:]' '[:lower:]' )"
-            export YOUTUBE_CLIENT_ID="${{ secrets.YOUTUBE_CLIENT_ID }}"
-            export YOUTUBE_CLIENT_SECRET="${{ secrets.YOUTUBE_CLIENT_SECRET }}"
-            export YOUTUBE_REFRESH_TOKEN="${{ secrets.YOUTUBE_REFRESH_TOKEN }}"
-            
-            cd video && node scripts/upload-to-youtube.js && cd ..
-            
-            if [ $? -eq 0 ]; then
-              # Get YouTube URL
-              YOUTUBE_URL=$(cat video/logs/upload-log.json 2>/dev/null | jq -r 'last(.[]?.videoUrl)' 2>/dev/null || echo "")
-              
-              curl -s -X PATCH \
-                -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
-                -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-                -H "Content-Type: application/json" \
-                -d '{"status":"completed","completed_at":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","youtube_url":"'"$YOUTUBE_URL"'"}' \
-                "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$ID"
-              
-              echo "✅ Completed: $TITLE"
-              PROCESSED=$((PROCESSED + 1))
-            else
-              curl -s -X PATCH \
-                -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
-                -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-                -H "Content-Type: application/json" \
-                -d '{"status":"failed","error_message":"YouTube upload failed"}' \
-                "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/video_queue?id=eq.$ID"
-            fi
-            
-            sleep 5
-          done
+          cd video
+          npm ci
+      - name: Wait for authenticated production queue API
         env:
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          NEXT_PUBLIC_SITE_URL: https://www.vetor.blog
-
-      - name: Summary
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
         run: |
-          echo "## 📹 Video Queue Processing" >> $GITHUB_STEP_SUMMARY
-          echo "- **Videos found:** ${{ steps.fetch.outputs.count }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          set -euo pipefail
+          : "${CRON_SECRET:?CRON_SECRET secret is required}"
+          ready=0
+          for attempt in $(seq 1 24); do
+            curl_exit=0
+            code="$(curl -sS --max-time 12 -o queue-api-ready.json -w '%{http_code}' \
+              -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              -d '{"action":"recent"}' || curl_exit=$?)"
+            if [ "$curl_exit" -eq 0 ] && [ "$code" = "200" ] && jq -e '.success == true' queue-api-ready.json >/dev/null; then
+              echo "Production queue API is ready."
+              ready=1
+              break
+            fi
+            echo "Queue API not ready yet (attempt $attempt, curl=$curl_exit, HTTP=${code:-000})."
+            if [ "$attempt" -lt 24 ]; then sleep 10; fi
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat queue-api-ready.json 2>/dev/null || true
+            echo "::error::Production queue API did not become ready; refusing to use stale/incorrect database credentials."
+            exit 1
+          fi
+      - name: Render, describe, and upload videos
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          VIDEO_ID: ${{ github.event.inputs.video_id || '' }}
+          MAX_VIDEOS: ${{ github.event.inputs.max_videos || '1' }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: node video/scripts/process-video.mjs
+      - name: Report latest queue status
+        if: always()
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "Queue state unavailable because CRON_SECRET is missing."
+            exit 0
+          fi
+          curl -fsS --max-time 20 -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"recent"}' | jq .

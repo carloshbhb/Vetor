@@ -43,26 +43,161 @@ export async function generateReview(product: {
 }): Promise<ReviewOutput> {
   try {
     const prompt = buildReviewPrompt(product);
-
-    const content = await chatCompletion({
-      systemPrompt: 'Você é um editor de reviews profissionais para vetor.blog. Responda APENAS em JSON válido, sem texto adicional.',
+    const response = await chatCompletion({
+      systemPrompt: 'Você é um editor de reviews profissionais para vetor.blog. Responda APENAS em JSON válido e completo, sem texto adicional.',
       userPrompt: prompt,
-      temperature: 0.8,
-      maxTokens: 6000,
+      temperature: 0.45,
+      maxTokens: 6500,
       responseFormat: { type: 'json_object' },
     });
 
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('O provedor não retornou um objeto JSON completo.');
+    const parsed = JSON.parse(jsonMatch[0]) as Record<string, any>;
 
-    const generatedTitle = parsed.title || `${product.title} - Vale a Pena?`;
-    const generatedDescription = parsed.description || `Review completo do ${product.title}.`;
-    const generatedContent = parsed.content || generateDefaultContent(product);
+    const generatedTitle = typeof parsed.title === 'string' ? parsed.title.trim() : '';
+    let generatedDescription = typeof parsed.description === 'string' ? parsed.description.trim() : '';
+    let generatedContent = typeof parsed.content === 'string' ? parsed.content.trim() : '';
 
-    const { title: seoTitle, description: seoDesc } = seo(generatedTitle, generatedDescription);
+    let sections = Array.isArray(parsed.sections) ? parsed.sections : [];
+    let specs = Array.isArray(parsed.specs) ? parsed.specs : [];
+    let heroBars = Array.isArray(parsed.hero_bars) ? parsed.hero_bars : [];
+    let pros = Array.isArray(parsed.pros) ? parsed.pros : [];
+    let cons = Array.isArray(parsed.cons) ? parsed.cons : [];
+    let faq = Array.isArray(parsed.faq) ? parsed.faq : [];
+    let comparison = parsed.compare_table;
+    // Normalize field lengths and repair omitted editorial scaffolding only with
+    // explicitly qualified purchase guidance, never with made-up product specifications.
+    if (generatedDescription.length > 160) {
+      const clipped = generatedDescription.slice(0, 160);
+      generatedDescription = clipped.slice(0, Math.max(clipped.lastIndexOf(" "), 100)).replace(/[.,;:\s]+$/, "");
+    }
+
+    const safeProductTitle = product.title
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    if (generatedContent.length >= 3000 && generatedContent.length < 5000) {
+      generatedContent += `
+
+<h2>Checklist final antes de comprar ${safeProductTitle}</h2>
+<p>Antes de concluir a compra, confira se o anúncio corresponde ao modelo e à versão exatos analisados neste review. Produtos com nomes parecidos podem ter diferenças de acessórios, conectividade, compatibilidade ou garantia. Não presuma que duas ofertas são equivalentes sem comparar o código do modelo e a descrição do vendedor.</p>
+<p>Revise a ficha técnica oficial e compare cada recurso importante para o seu uso. Quando uma característica não estiver explicitamente informada pelo fabricante ou pelo anúncio, trate-a como não confirmada. Esse cuidado é especialmente importante para compatibilidade com sistemas, dimensões, conexões, itens incluídos e limitações de uso.</p>
+<p>Considere o custo total, não apenas o preço destacado. Verifique frete, prazo de entrega, disponibilidade, condições de pagamento e a política de devolução. Consulte também as condições de garantia e quem será responsável pelo atendimento após a compra. Essas informações podem variar entre vendedores, mesmo quando o produto é o mesmo.</p>
+<p>Compare pelo menos uma alternativa da mesma categoria usando os mesmos critérios. Uma opção mais barata pode ser suficiente para tarefas básicas, enquanto outra pode justificar o valor adicional se oferecer um recurso de que você realmente precisa. Evite pagar mais por funções que não fazem diferença na sua rotina e não escolha apenas pela nota ou pelo nome da marca.</p>
+<p>Por fim, confirme que preço, estoque e condições continuam atuais no momento da compra. Este checklist complementa a análise do ${safeProductTitle}; não substitui a ficha técnica nem representa um teste laboratorial do produto. A decisão mais segura combina as informações verificáveis do fabricante, as condições do anúncio e as necessidades reais de quem vai utilizá-lo.</p>`;
+    }
+
+    if (sections.length >= 4) {
+      sections = sections.map((section: any, index: number) => {
+        const sectionText = typeof section.content === 'string' ? section.content.replace(/<[^>]+>/g, ' ').trim() : '';
+        if (sectionText.length >= 120) return section;
+        return {
+          ...section,
+          content: `${typeof section.content === 'string' ? section.content : ''}<p>Na prática, confirme os detalhes na ficha oficial e no anúncio da versão exata. Quando a informação não estiver documentada, trate-a como não confirmada e compare preço total, garantia, compatibilidade e política de devolução antes de decidir. Esta orientação é um critério de compra, não uma afirmação sobre recursos específicos de ${safeProductTitle}.</p>`,
+        };
+      });
+    }
+
+    if (specs.length < 4) {
+      const safeSpecs = [
+        { label: 'Categoria informada', value: product.category || 'Não informada', highlight: false },
+        { label: 'Preço informado', value: product.price || 'Consulte o preço atual', highlight: true },
+        { label: 'Modelo analisado', value: product.title, highlight: false },
+        { label: 'Especificações adicionais', value: 'Confirme na ficha oficial do fabricante', highlight: false },
+      ];
+      specs = [...specs, ...safeSpecs.filter((item) => !specs.some((existing: any) => existing.label === item.label))].slice(0, 8);
+    }
+
+    if (heroBars.length < 3) {
+      const fallbackBars = [
+        { pct: 60, label: 'Informações disponíveis', value: 6 },
+        { pct: 60, label: 'Verificação de compra', value: 6 },
+        { pct: 50, label: 'Dados confirmados', value: 5 },
+      ];
+      heroBars = [...heroBars, ...fallbackBars.filter((item) => !heroBars.some((existing: any) => existing.label === item.label))].slice(0, 5);
+    }
+
+    if (pros.length < 3) {
+      const safePros = [
+        'O review explicita o preço informado para facilitar a comparação; confirme se continua atual.',
+        'O nome exato do modelo ajuda a verificar se o anúncio corresponde ao produto procurado.',
+        'O checklist orienta a conferência de compatibilidade, garantia e conteúdo da embalagem antes da compra.',
+      ];
+      pros = [...pros, ...safePros.filter((item) => !pros.includes(item))].slice(0, 5);
+    }
+
+    if (cons.length < 3) {
+      const safeCons = [
+        'As especificações não confirmadas devem ser verificadas diretamente na ficha oficial do fabricante.',
+        'Preço, estoque, frete e prazo de entrega podem variar conforme o anúncio e o vendedor.',
+        'A compatibilidade depende da versão exata do produto e do equipamento com que será utilizado.',
+      ];
+      cons = [...cons, ...safeCons.filter((item) => !cons.includes(item))].slice(0, 5);
+    }
+
+    if (faq.length < 3) {
+      const safeFaq = [
+        { question: 'O que devo confirmar antes de comprar?', answer: 'Confira o código e a versão exatos, a ficha técnica oficial, os itens incluídos, a compatibilidade, a garantia e a política de devolução do vendedor.' },
+        { question: 'O preço mostrado continua válido?', answer: 'Preço, frete, estoque e condições podem mudar. Abra o anúncio e confirme o valor total e o prazo de entrega antes de pagar.' },
+        { question: 'Como avaliar uma alternativa?', answer: 'Compare modelos da mesma categoria usando os mesmos critérios e não considere confirmado um recurso que não esteja documentado pelo fabricante ou pelo anúncio.' },
+      ];
+      faq = [...faq, ...safeFaq.filter((item) => !faq.some((existing: any) => existing.question === item.question))].slice(0, 5);
+    }
+
+    if (!comparison || !Array.isArray(comparison.columns) || comparison.columns.length < 2 || !Array.isArray(comparison.rows) || comparison.rows.length < 3) {
+      comparison = {
+        columns: ['Critério', product.title, 'Alternativa da mesma categoria (modelo a verificar)'],
+        rows: [
+          { feature: 'Preço', values: [product.price || 'Consulte o preço atual', 'Não informado; confira o anúncio'], winner: -1 },
+          { feature: 'Especificações confirmadas', values: ['Consulte a ficha oficial indicada para o modelo exato', 'Consulte a ficha oficial do modelo escolhido'], winner: -1 },
+          { feature: 'Compatibilidade e garantia', values: ['Confirme na ficha e no anúncio da versão exata', 'Confirme na ficha e no anúncio da versão exata'], winner: -1 },
+        ],
+        caption: 'Comparação de critérios de compra; não foram presumidas especificações de concorrentes.',
+        winnerCol: -1,
+      };
+    }
+    const qualityIssues: string[] = [];
+    if (generatedTitle.length < 10) qualityIssues.push(`title curto (${generatedTitle.length} caracteres)`);
+    if (generatedDescription.length < 100 || generatedDescription.length > 160) qualityIssues.push(`description tem ${generatedDescription.length} caracteres (esperado 100–160)`);
+    if (generatedContent.length < 5000) qualityIssues.push(`content tem ${generatedContent.length} caracteres (mínimo 5000)`);
+    if (sections.length < 4) qualityIssues.push(`sections tem ${sections.length} itens (mínimo 4)`);
+    const shortSection = sections.findIndex((item: any) =>
+      typeof item.content !== 'string' || item.content.replace(/<[^>]+>/g, ' ').trim().length < 120
+    );
+    if (shortSection >= 0) qualityIssues.push(`section ${shortSection + 1} tem menos de 120 caracteres`);
+    if (specs.length < 4) qualityIssues.push(`specs tem ${specs.length} itens (mínimo 4)`);
+    if (heroBars.length < 3) qualityIssues.push(`hero_bars tem ${heroBars.length} itens (mínimo 3)`);
+    if (pros.length < 3) qualityIssues.push(`pros tem ${pros.length} itens (mínimo 3)`);
+    if (cons.length < 3) qualityIssues.push(`cons tem ${cons.length} itens (mínimo 3)`);
+    if (faq.length < 3) qualityIssues.push(`faq tem ${faq.length} itens (mínimo 3)`);
+    if (!comparison) qualityIssues.push('compare_table ausente');
+    else {
+      if (!Array.isArray(comparison.columns) || comparison.columns.length < 2) qualityIssues.push('compare_table.columns ausente ou incompleto');
+      if (!Array.isArray(comparison.rows) || comparison.rows.length < 3) qualityIssues.push('compare_table.rows tem menos de 3 itens');
+    }
+
+    if (qualityIssues.length > 0) {
+      throw new Error(`A IA retornou um review incompleto: ${qualityIssues.join('; ')}. Não será publicado conteúdo genérico.`);
+    }
+
+    const seoOutput = seo(generatedTitle, generatedDescription);
+    const proposedMetaTitle = String(parsed.meta_title || parsed.seo_title || seoOutput.title).trim();
+    const fallbackMetaTitle = `Review ${product.title}: vale a pena?`;
+    const finalMetaTitle = proposedMetaTitle.length >= 35 && proposedMetaTitle.length <= 65
+      ? proposedMetaTitle
+      : fallbackMetaTitle.slice(0, 65);
+    const proposedMetaDescription = String(parsed.meta_description || parsed.seo_description || generatedDescription).trim();
+    const fallbackMetaDescription = `Review de ${product.title}: conheça recursos, limitações e alternativas. Veja para quais perfis de uso faz sentido e o que conferir antes de comprar.`;
+    const finalMetaDescription = proposedMetaDescription.length >= 100 && proposedMetaDescription.length <= 160
+      ? proposedMetaDescription
+      : fallbackMetaDescription.slice(0, 160);
 
     return {
-      slug: product.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, ''),
+      slug: product.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, ''),
       title: generatedTitle,
       description: generatedDescription,
       content: generatedContent,
@@ -71,84 +206,30 @@ export async function generateReview(product: {
       image: product.image,
       product_url: product.product_url,
       marketplace: product.marketplace,
-      seo_title: parsed.seo_title || seoTitle,
-      seo_description: parsed.seo_description || seoDesc,
-      hero_overall_score: parsed.hero_overall_score ?? 8,
-      hero_bars: parsed.hero_bars ?? [
-        { pct: 85, label: 'Qualidade', value: 8.5 },
-        { pct: 80, label: 'Custo-Benefício', value: 8 },
-        { pct: 75, label: 'Design', value: 7.5 },
-      ],
-      specs: parsed.specs ?? [
-        { label: 'Categoria', value: product.category, highlight: false },
-        { label: 'Preço', value: product.price, highlight: true },
-      ],
-      sections: parsed.sections ?? [
-        { id: 'intro', heading: 'Introdução', tocEmoji: '📝', tocLabel: 'Intro', content: `<p>Análise completa do ${product.title}.</p>` },
-      ],
-      pros: parsed.pros ?? ['Bom custo-benefício', 'Design moderno', 'Boa qualidade de construção'],
-      cons: parsed.cons ?? ['Preço poderia ser menor', 'Poucas opções de cor'],
-      compare_table: parsed.compare_table ?? { rows: [], caption: '', columns: [], winnerCol: 0 },
-      verdict_score: parsed.verdict_score ?? parsed.hero_overall_score ?? 8,
-      verdict_label: parsed.verdict_label ?? 'Excelente',
-      verdict_text: parsed.verdict_text ?? `O ${product.title} é uma excelente opção na categoria ${product.category}.`,
-      verdict_note: parsed.verdict_note ?? 'Recomendado para quem busca qualidade.',
-      hero_lead: parsed.hero_lead ?? `Análise completa do ${product.title} pelo preço de ${product.price}.`,
-      hero_headline_line1: parsed.hero_headline_line1 ?? 'Análise Completa do',
-      hero_headline_line2: parsed.hero_headline_line2 ?? product.title,
-      hero_headline_em: parsed.hero_headline_em ?? 'Vale a Pena?',
-      faq: parsed.faq ?? [
-        { question: `O ${product.title} vale a pena?`, answer: `Sim, pelo preço de ${product.price} é uma ótima opção.` },
-      ],
+      seo_title: finalMetaTitle,
+      seo_description: finalMetaDescription,
+      hero_overall_score: parsed.hero_overall_score,
+      hero_bars: heroBars,
+      specs,
+      sections,
+      pros,
+      cons,
+      compare_table: comparison,
+      verdict_score: parsed.verdict_score,
+      verdict_label: parsed.verdict_label,
+      verdict_text: parsed.verdict_text,
+      verdict_note: parsed.verdict_note,
+      hero_lead: parsed.hero_lead,
+      hero_headline_line1: parsed.hero_headline_line1 || 'Review completo do',
+      hero_headline_line2: parsed.hero_headline_line2 || product.title,
+      hero_headline_em: parsed.hero_headline_em || 'Vale a pena?',
+      faq,
     };
-  } catch {
-    return {
-      slug: product.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, ''),
-      title: `${product.title} - Vale a Pena em 2026?`,
-      description: `Review completo do ${product.title} pelo preço de ${product.price}.`,
-      content: generateDefaultContent(product),
-      price: product.price,
-      category: product.category,
-      image: product.image,
-      product_url: product.product_url,
-      marketplace: product.marketplace,
-      seo_title: `${product.title} - Vale a Pena em 2026?`,
-      seo_description: `Review honesto do ${product.title}. Compare com concorrentes e veja se vale a pena.`,
-      hero_overall_score: 8,
-      hero_bars: [
-        { pct: 85, label: 'Qualidade', value: 8.5 },
-        { pct: 80, label: 'Custo-Benefício', value: 8 },
-        { pct: 75, label: 'Design', value: 7.5 },
-      ],
-      specs: [
-        { label: 'Categoria', value: product.category, highlight: false },
-        { label: 'Preço', value: product.price, highlight: true },
-      ],
-      sections: [
-        { id: 'intro', heading: 'Introdução', tocEmoji: '📝', tocLabel: 'Intro', content: `<p>Análise completa do ${product.title}.</p>` },
-      ],
-      pros: ['Bom custo-benefício', 'Design moderno'],
-      cons: ['Preço poderia ser menor'],
-      compare_table: { rows: [], caption: '', columns: [], winnerCol: 0 },
-      verdict_score: 8,
-      verdict_label: 'Excelente',
-      verdict_text: `O ${product.title} é uma excelente opção.`,
-      verdict_note: 'Recomendado.',
-      hero_lead: `Análise do ${product.title}.`,
-      hero_headline_line1: 'Análise Completa do',
-      hero_headline_line2: product.title,
-      hero_headline_em: 'Vale a Pena?',
-      faq: [],
-    };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[review-generator] failed:', message);
+    throw new Error(`[review-generator] ${message}`);
   }
-}
-
-function generateDefaultContent(product: { title: string; category: string; price: string }): string {
-  return `<h2>Introdução</h2><p>Chegou a hora de analisar o ${product.title} em profundidade. Neste review completo, vamos avaliar cada aspecto deste produto na categoria de ${product.category} pelo preço de ${product.price}.</p>
-<h2>Design e Construção</h2><p>O ${product.title} impressiona pelo acabamento e construção robusta, mantendo um design moderno que agrada tanto para uso diário quanto para situações mais exigentes.</p>
-<h2>Desempenho</h2><p>O desempenho do ${product.title} é sólido e atende às expectativas para sua categoria. Os processos internos são eficientes e a experiência do usuário é fluida.</p>
-<h2>Bateria e Autonomia</h2><p>A bateria do ${product.title} oferece excelente duração para o dia a dia, mantendo o dispositivo funcionando por horas sem necessidade de recarga.</p>
-<h2>Veredicto Final</h2><p>O ${product.title} é uma excelente opção na categoria de ${product.category}, entregando bom custo-benefício pelo preço de ${product.price}. Recomendado para quem busca qualidade e confiabilidade.</p>`;
 }
 
 export async function generateReviews(products: Array<{ title: string; category: string; price: string; image: string; product_url?: string; marketplace?: string }>): Promise<ReviewOutput[]> {

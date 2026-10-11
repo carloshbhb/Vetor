@@ -1,38 +1,76 @@
-import { createClient } from '@supabase/supabase-js';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: false },
-  realtime: { params: { eventsPerSecond: 0 } },
-});
+const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
+const CRON_SECRET = process.env.CRON_SECRET;
 
-async function getPendingVideos(limit = 16) {
-  const { data, error } = await supabase
-    .from('video_queue')
-    .select('*')
-    .eq('status', 'pending')
-    .order('scheduled_at', { ascending: true })
-    .limit(limit);
+async function verifyYouTubeOAuth() {
+  const clientId = process.env.YOUTUBE_CLIENT_ID;
+  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
+  const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error('YouTube OAuth preflight failed: required client ID, client secret or refresh token is missing.');
+  }
 
-  if (error) throw new Error(error.message);
-  return data || [];
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }),
+    signal: AbortSignal.timeout(12000),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || typeof result.access_token !== 'string' || !result.access_token) {
+    const reason = typeof result.error === 'string' ? result.error : `HTTP ${response.status}`;
+    throw new Error(`YouTube OAuth preflight failed (${reason}). No queue item was claimed or changed.`);
+  }
+  console.log('YouTube OAuth preflight passed.');
+}
+
+async function queueApi(action, payload = {}) {
+  if (!CRON_SECRET) throw new Error('CRON_SECRET ausente: o worker precisa acessar a fila autenticada do Vetor.');
+  const response = await fetch(`${SITE_URL}/api/cron/video-queue-worker/`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${CRON_SECRET}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ action, ...payload }),
+    signal: AbortSignal.timeout(30000),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || result.success !== true) {
+    throw new Error(`Queue API failure (HTTP ${response.status}): ${result.error || 'invalid response'}`);
+  }
+  return result;
+}
+
+async function getPendingVideos(limit = Number(process.env.MAX_VIDEOS || 1)) {
+  const result = await queueApi('next', { limit });
+  return Array.isArray(result.videos) ? result.videos : [];
+}
+
+async function getVideoById(id) {
+  const result = await queueApi('get', { id });
+  return result.video || null;
 }
 
 async function updateVideoStatus(id, updates) {
-  await supabase
-    .from('video_queue')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id);
+  await queueApi('update', { id, updates });
 }
 
 async function generateVoiceover(text, outputPath) {
-  const voice = 'pt-BR-ThiagoNeural';
+  // Prefer neural voices, with short timeouts; use offline Brazilian Portuguese TTS
+  // when Edge TTS is unavailable so a temporary network failure doesn't block the video.
+  const voices = ['pt-BR-AntonioNeural', 'pt-BR-FranciscaNeural'];
   const tempFile = outputPath.replace('.mp3', '-temp.mp3');
   const textFile = outputPath.replace('.mp3', '-text.txt');
+  const wavPath = outputPath.replace('.mp3', '-espeak.wav');
   const safeText = text
     .replace(/[\u2014\u2013]/g, '-')
     .replace(/[\u2018\u2019]/g, "'")
@@ -40,34 +78,87 @@ async function generateVoiceover(text, outputPath) {
     .replace(/\n/g, ' ')
     .trim();
 
-  try {
-    fs.writeFileSync(textFile, safeText);
-    execSync(
-      `edge-tts --voice "${voice}" --file "${textFile}" --write-media "${tempFile}"`,
-      { stdio: 'pipe', timeout: 60000 }
-    );
+  if (!safeText) throw new Error('[TTS] Não é possível gerar áudio de uma cena vazia.');
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(textFile, safeText, 'utf8');
+  const failures = [];
 
-    if (!fs.existsSync(tempFile)) {
-      console.error(`   ⚠️ TTS file not created: ${tempFile}`);
-      return 5;
+  for (const voice of voices) {
+    try {
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+      execFileSync(
+        'edge-tts',
+        ['--voice', voice, '--file', textFile, '--write-media', tempFile],
+        { stdio: 'pipe', timeout: 10000 }
+      );
+
+      if (!fs.existsSync(tempFile) || fs.statSync(tempFile).size < 1000) {
+        throw new Error('TTS terminou sem gerar um MP3 utilizável.');
+      }
+
+      const durationStr = execFileSync(
+        'ffprobe',
+        ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', tempFile],
+        { encoding: 'utf-8', timeout: 10000 }
+      ).trim();
+      const duration = parseFloat(durationStr);
+      if (!Number.isFinite(duration) || duration <= 0) {
+        throw new Error('ffprobe não conseguiu ler a duração do MP3 gerado.');
+      }
+
+      fs.renameSync(tempFile, outputPath);
+      if (fs.existsSync(textFile)) fs.unlinkSync(textFile);
+      console.log(`   [TTS] Voz neural selecionada: ${voice}`);
+      return duration;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stderr = error && typeof error === 'object' && 'stderr' in error
+        ? String(error.stderr || '').slice(0, 400)
+        : '';
+      failures.push(`${voice}: ${message}${stderr ? ` | stderr: ${stderr}` : ''}`);
+      console.warn(`   [TTS] ${voice} falhou; tentando fallback. ${stderr || message}`);
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
     }
+  }
 
-    const durationStr = execSync(
-      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${tempFile}"`,
+  try {
+    execFileSync(
+      'espeak-ng',
+      ['-v', 'pt-br', '-s', '150', '-f', textFile, '-w', wavPath],
+      { stdio: 'pipe', timeout: 15000 }
+    );
+    if (!fs.existsSync(wavPath) || fs.statSync(wavPath).size < 1000) {
+      throw new Error('espeak-ng não produziu WAV utilizável.');
+    }
+    execFileSync(
+      'ffmpeg',
+      ['-y', '-i', wavPath, '-codec:a', 'libmp3lame', '-q:a', '4', outputPath],
+      { stdio: 'pipe', timeout: 15000 }
+    );
+    if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size < 1000) {
+      throw new Error('ffmpeg não conseguiu converter a locução offline para MP3.');
+    }
+    const durationStr = execFileSync(
+      'ffprobe',
+      ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', outputPath],
       { encoding: 'utf-8', timeout: 10000 }
     ).trim();
-
-    const duration = parseFloat(durationStr) || 5;
-    fs.renameSync(tempFile, outputPath);
+    const duration = parseFloat(durationStr);
+    if (!Number.isFinite(duration) || duration <= 0) throw new Error('Duração do áudio offline inválida.');
+    console.warn('   [TTS] Usando voz offline espeak-ng pt-br como fallback.');
     return duration;
   } catch (error) {
-    console.error(`   ⚠️ TTS error for "${text.slice(0, 30)}...":`, error.message?.slice(0, 100));
-    if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-    if (fs.existsSync(textFile)) fs.unlinkSync(textFile);
-    return 5;
+    const message = error instanceof Error ? error.message : String(error);
+    const stderr = error && typeof error === 'object' && 'stderr' in error
+      ? String(error.stderr || '').slice(0, 400)
+      : '';
+    throw new Error(`[TTS] Nenhuma voz conseguiu gerar áudio. ${failures.join(' || ')} || espeak-ng: ${message}${stderr ? ` | stderr: ${stderr}` : ''}`);
+  } finally {
+    for (const file of [textFile, tempFile, wavPath]) {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    }
   }
 }
-
 async function combineAudioFiles(audioFiles, outputPath) {
   const existingFiles = audioFiles.filter(f => fs.existsSync(f));
   if (existingFiles.length === 0) {
@@ -94,37 +185,57 @@ async function combineAudioFiles(audioFiles, outputPath) {
 }
 
 async function renderWithRemotion(videoData, outputPath) {
-  const dataPath = path.resolve(outputPath, '../remotion-input.json');
+  const outputDir = path.dirname(outputPath);
+  const dataPath = path.join(outputDir, 'remotion-input.json');
+  fs.mkdirSync(outputDir, { recursive: true });
   fs.writeFileSync(dataPath, JSON.stringify(videoData, null, 2));
 
   try {
     execSync(
       `npx tsx video/src/utils/renderVideo.ts review "${dataPath}"`,
       {
-        stdio: 'pipe',
-        timeout: 300000,
+        stdio: 'inherit',
+        timeout: 600000,
         cwd: path.resolve(process.cwd()),
       }
     );
+
+    // Remotion writes timestamped files into video/out. Normalize the newest
+    // result to this queue item's ID so uploads cannot accidentally use old output.
+    const renderedDir = path.resolve('video/out');
+    const candidates = fs.readdirSync(renderedDir)
+      .filter((name) => name.endsWith('.mp4') && path.join(renderedDir, name) !== outputPath)
+      .map((name) => ({
+        path: path.join(renderedDir, name),
+        mtime: fs.statSync(path.join(renderedDir, name)).mtimeMs,
+      }))
+      .sort((left, right) => right.mtime - left.mtime);
+
+    if (!fs.existsSync(outputPath)) {
+      if (candidates.length === 0) throw new Error('Remotion finished without producing an MP4 file.');
+      fs.renameSync(candidates[0].path, outputPath);
+    }
+    if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size < 10000) {
+      throw new Error('Rendered MP4 is missing or unexpectedly small.');
+    }
   } finally {
     if (fs.existsSync(dataPath)) fs.unlinkSync(dataPath);
   }
 }
-
 async function uploadToYouTube(videoPath, title, description, tags) {
   const clientId = process.env.YOUTUBE_CLIENT_ID;
   const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
   const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
 
   if (!clientId || !clientSecret || !refreshToken) {
-    console.log('   ⚠️ YouTube credentials not configured, skipping upload');
-    return null;
+    throw new Error('Credenciais de upload do YouTube incompletas (YOUTUBE_CLIENT_ID/SECRET/REFRESH_TOKEN).');
   }
 
   try {
     const { google } = await import('googleapis');
-    const { OAuth2Client } = google.auth;
-    const oauth2Client = new OAuth2Client(clientId, clientSecret);
+    // googleapis exposes OAuth2 through google.auth.OAuth2; OAuth2Client is
+    // a separate google-auth-library export and is not a constructor here.
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
     oauth2Client.setCredentials({ refresh_token: refreshToken });
 
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
@@ -155,8 +266,9 @@ async function uploadToYouTube(videoPath, title, description, tags) {
     console.log(`   📤 YouTube: ${videoUrl}`);
     return { videoId, videoUrl };
   } catch (error) {
-    console.error('   ❌ YouTube upload failed:', error.message);
-    return null;
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('   ❌ YouTube upload failed:', message);
+    throw new Error(`YouTube upload failed: ${message}`);
   }
 }
 
@@ -166,22 +278,41 @@ async function processVideo(video) {
   console.log(`   Hook: ${video.script_hook}`);
 
   await updateVideoStatus(video.id, { status: 'processing', started_at: new Date().toISOString() });
+  const publicAudioPath = path.resolve('video/public/tmp', `video-${video.id}.mp3`);
 
   try {
-    let script;
-    try {
-      script = JSON.parse(video.script_text);
-    } catch {
-      script = {
-        hook: video.script_hook,
-        scenes: [
-          { id: 1, text: `Conheça o ${video.product_title}`, duration: 8, visualCue: 'Produto em destaque', brollKeywords: ['product'] },
-          { id: 2, text: `Vale a pena? Descubra agora!`, duration: 8, visualCue: 'Análise', brollKeywords: ['review'] },
-          { id: 3, text: `Link na descrição!`, duration: 5, visualCue: 'CTA', brollKeywords: ['link'] },
-        ],
-        totalDuration: 21,
-        callToAction: 'Link na descrição para comprar com desconto!',
-      };
+    let script = null;
+    if (typeof video.script_text === 'string' && video.script_text.trim()) {
+      try {
+        const candidate = JSON.parse(video.script_text);
+        if (candidate && typeof candidate === 'object' && Array.isArray(candidate.scenes) && candidate.scenes.length >= 5) {
+          script = candidate;
+        }
+      } catch {
+        script = null;
+      }
+    }
+    if (!script) {
+      const siteUrl = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
+      const cronSecret = process.env.CRON_SECRET;
+      if (!cronSecret) throw new Error('CRON_SECRET ausente: não é possível solicitar o roteiro de produção.');
+      const response = await fetch(`${siteUrl}/api/cron/generate-video-script/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${cronSecret}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoId: video.id }),
+        signal: AbortSignal.timeout(60000),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.script) {
+        throw new Error(`Falha na geração do roteiro em produção (HTTP ${response.status}): ${payload.error || 'resposta inválida'}`);
+      }
+      script = payload.script;
+      if (!Array.isArray(script.scenes) || script.scenes.length < 5) {
+        throw new Error('Roteiro retornado pela API não passou pela validação mínima de cenas.');
+      }
     }
 
     console.log('   [1/4] Gerando voiceover...');
@@ -211,9 +342,14 @@ async function processVideo(video) {
     console.log('   [2/4] Combinando áudio...');
     const combinedAudioPath = path.join(audioDir, 'combined.mp3');
     await combineAudioFiles(audioFiles, combinedAudioPath);
+    if (!fs.existsSync(combinedAudioPath) || fs.statSync(combinedAudioPath).size < 1000) {
+      throw new Error('A locução combinada não foi produzida corretamente.');
+    }
+    fs.mkdirSync(path.dirname(publicAudioPath), { recursive: true });
+    fs.copyFileSync(combinedAudioPath, publicAudioPath);
 
     console.log('   [3/4] Renderizando vídeo com Remotion...');
-    const outputDir = path.resolve('out');
+    const outputDir = path.resolve('video/out');
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
     const fps = 30;
@@ -236,7 +372,7 @@ async function processVideo(video) {
       hook: script.hook,
       scenes: scenesWithFrames,
       callToAction: script.callToAction,
-      audioUrl: combinedAudioPath,
+      audioUrl: `tmp/video-${video.id}.mp3`,
       subtitleEntries: [
         { start: 0, end: hookDuration, text: script.hook },
         ...script.scenes.map((scene, i) => {
@@ -257,31 +393,67 @@ async function processVideo(video) {
     await renderWithRemotion(videoData, videoPath);
 
     console.log('   [4/4] Upload para YouTube...');
-    const ytTitle = `${video.product_title} - Review Completo 2026 | Vetor Blog`;
-    const ytDescription = `${script.hook}\n\n${script.scenes.map(s => s.text).join('\n\n')}\n\n${script.callToAction}\n\n🔗 Links na descrição do vídeo no site: https://vetor.blog`;
-    const ytTags = ['review', 'tech', 'produto', video.product_category, 'vetor blog', '2026'];
+    const siteUrl = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
+    const reviewUrl = (typeof video.review_url === 'string' && video.review_url.startsWith('https://'))
+      ? video.review_url
+      : '';
+    const purchaseUrl = video.shortened_affiliate_url || video.affiliate_url;
+    if (!reviewUrl) throw new Error('review_url ausente: não publicar vídeo sem link do review.');
+    if (!purchaseUrl || !String(purchaseUrl).startsWith('http')) {
+      throw new Error('Link de compra/afiliado ausente ou inválido; upload bloqueado.');
+    }
+
+    const ytTitle = `${video.product_title} - Review Completo | Vetor Blog`.slice(0, 100);
+    const ytDescription = [
+      script.hook,
+      '',
+      script.scenes.map(s => s.text).join('\n\n'),
+      '',
+      script.callToAction,
+      '',
+      `📝 Review completo: ${reviewUrl}`,
+      `🛒 Compre aqui: ${purchaseUrl}`,
+      '',
+      'Confira preço e condições atualizadas antes de comprar.',
+      '#Review #Tecnologia #CustoBeneficio #VetorBlog',
+    ].join('\n').slice(0, 5000);
+    const terms = `${video.product_title} ${video.product_category} review análise vale a pena comprar desconto preço 2026`
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .split(/[^a-z0-9]+/)
+      .filter(term => term.length >= 3);
+    const ytTags = [...new Set([
+      'review', 'análise de produto', 'vale a pena', 'custo-benefício',
+      'tecnologia', 'comprar com desconto', 'Vetor Blog', '2026',
+      video.product_category,
+      ...terms,
+    ])].filter(Boolean).slice(0, 30);
 
     const ytResult = await uploadToYouTube(videoPath, ytTitle, ytDescription, ytTags);
+    if (!ytResult?.videoId || !ytResult?.videoUrl) {
+      throw new Error('O YouTube não confirmou a criação do vídeo; item não marcado como concluído.');
+    }
 
     const updates = {
       status: 'completed',
-      video_url: `/videos/${videoFileName}`,
+      video_url: `${siteUrl}/videos/${videoFileName}`,
       voiceover_url: combinedAudioPath,
       voiceover_duration: totalDuration,
       completed_at: new Date().toISOString(),
+      youtube_video_id: ytResult.videoId,
+      youtube_url: ytResult.videoUrl,
+      error_message: null,
     };
 
-    if (ytResult) {
-      updates.youtube_video_id = ytResult.videoId;
-      updates.youtube_url = ytResult.videoUrl;
-    }
-
     await updateVideoStatus(video.id, updates);
-
     console.log(`   ✅ Vídeo concluído: ${video.product_title}`);
-    if (ytResult) console.log(`   📺 YouTube: ${ytResult.videoUrl}`);
+    console.log(`   📝 Review: ${reviewUrl}`);
+    console.log(`   🛒 Compra: ${purchaseUrl}`);
+    console.log(`   📺 YouTube: ${ytResult.videoUrl}`);
 
     if (fs.existsSync(audioDir)) fs.rmSync(audioDir, { recursive: true });
+    if (fs.existsSync(publicAudioPath)) fs.unlinkSync(publicAudioPath);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error(`   ❌ Erro: ${message}`);
@@ -289,38 +461,37 @@ async function processVideo(video) {
       status: 'failed',
       error_message: message,
     });
+    if (fs.existsSync(publicAudioPath)) fs.unlinkSync(publicAudioPath);
+    return false;
   }
+  return true;
 }
 
 async function main() {
-  const videoId = process.env.VIDEO_ID;
-
   console.log('🎬 Iniciando processamento de vídeos...');
   console.log(`   Timestamp: ${new Date().toISOString()}`);
-
+  // Never claim a queue item if the destination channel cannot accept uploads.
+  await verifyYouTubeOAuth();
+  const videoId = process.env.VIDEO_ID;
+  let failures = 0;
   if (videoId) {
-    const { data, error } = await supabase
-      .from('video_queue')
-      .select('*')
-      .eq('id', videoId)
-      .single();
-
-    if (error || !data) {
-      console.error(`   Vídeo ${videoId} não encontrado`);
-      process.exit(1);
-    }
-
-    await processVideo(data);
+    const video = await getVideoById(videoId);
+    if (!video) throw new Error(`Vídeo ${videoId} não encontrado na fila autenticada do Supabase conectado ao Vetor.`);
+    if (!(await processVideo(video))) failures += 1;
   } else {
-    const videos = await getPendingVideos(16);
-    console.log(`   ${videos.length} vídeos pendentes encontrados`);
-
+    const limit = Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 10);
+    const videos = await getPendingVideos(limit);
+    console.log(`   ${videos.length} vídeos pendentes encontrados (limite: ${limit})`);
     for (const video of videos) {
-      await processVideo(video);
+      if (!(await processVideo(video))) failures += 1;
     }
   }
-
-  console.log('\n✅ Processamento concluído!');
+  if (failures > 0) {
+    console.error(`[video-worker] ${failures} vídeo(s) falharam. Confira error_message no Supabase.`);
+    process.exitCode = 1;
+  } else {
+    console.log('\n✅ Processamento concluído e uploads confirmados!');
+  }
 }
 
 main().catch((error) => {
