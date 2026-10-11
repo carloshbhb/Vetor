@@ -149,7 +149,7 @@ export async function runReviewPipeline(
     };
   }
 
-  const dbResult = await createReview(payload);
+  const dbResult = await createReview(payload, { insertOnly: source === 'cron' });
   if (dbResult.error || !dbResult.data) {
     return {
       status: 'db_error',
