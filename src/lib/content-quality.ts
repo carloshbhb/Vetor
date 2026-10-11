@@ -257,7 +257,7 @@ export const generatedViralQualitySchema = z
     seo_description: z.string().trim().min(40),
   })
   .superRefine((val, ctx) => {
-    const visibleContent = val.content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\\s+/g, ' ').trim();
+    const visibleContent = val.content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
     const visibleLength = visibleTextLength(val.content);
     if (visibleLength < MIN_VIRAL_CONTENT_LENGTH) {
       ctx.addIssue({
@@ -266,7 +266,7 @@ export const generatedViralQualitySchema = z
         message: `visible article text must have at least ${MIN_VIRAL_CONTENT_LENGTH} characters`,
       });
     }
-    const visibleWords = visibleContent ? visibleContent.split(/\\s+/).length : 0;
+    const visibleWords = visibleContent ? visibleContent.split(/\s+/).length : 0;
     if (visibleWords < MIN_VIRAL_CONTENT_WORDS) {
       ctx.addIssue({
         code: 'custom',
