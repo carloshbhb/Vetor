@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createViralArticle } from '@/lib/supabase';
 import { generateViralArticle } from '@/lib/generate-viral';
 import { resolveProductImage } from '@/lib/image-resolver';
+import { buildComparativeEditorialBrief } from '@/lib/editorial-brief';
 import { VIRAL_TOPICS } from '@/lib/seed-data';
 import { buildComparativeIndexNowTargets, buildContentUrl, pingNewContent } from '@/lib/indexnow';
 import { revalidateComparativeSurfaces } from '@/lib/revalidate-content';
@@ -23,10 +24,12 @@ async function publishArticle(topic: {
     }))
   );
 
+  const editorialBrief = await buildComparativeEditorialBrief(topic);
   const article = await generateViralArticle({
     title: topic.title,
     category: topic.category,
     comparisonProducts: resolvedProducts,
+    editorialBrief,
   });
 
   const hero = {
