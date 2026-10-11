@@ -109,9 +109,11 @@ function evidenceFromRow(row: KeywordRow) {
 
 function enrichBrief(defaultBrief: EditorialBrief, rows: Array<{ row: KeywordRow; productOverlap: number }>): EditorialBrief {
   if (!rows.length) return defaultBrief;
-  const primaryRow = rows.find((item) => item.productOverlap > 0)?.row || rows[0].row;
-  const related = rows.map((item) => item.row.keyword).filter((keyword) => normalize(keyword) !== normalize(primaryRow.keyword));
-  const normalizedIntent = normalize(primaryRow.intent || '');
+  const primaryMatch = rows.find((item) => item.productOverlap > 0);
+  const primaryRow = primaryMatch?.row;
+  const primaryKeyword = primaryRow?.keyword || defaultBrief.primaryKeyword;
+  const related = rows.map((item) => item.row.keyword).filter((keyword) => normalize(keyword) !== normalize(primaryKeyword));
+  const normalizedIntent = normalize(primaryRow?.intent || '');
   const searchIntent: EditorialBrief['searchIntent'] =
     normalizedIntent.includes('transacional') || normalizedIntent.includes('transactional')
       ? 'transactional'
@@ -123,7 +125,7 @@ function enrichBrief(defaultBrief: EditorialBrief, rows: Array<{ row: KeywordRow
   return {
     ...defaultBrief,
     searchIntent,
-    primaryKeyword: primaryRow.keyword,
+    primaryKeyword,
     relatedKeywords: Array.from(new Set([...related, ...(defaultBrief.relatedKeywords || [])])).slice(0, 10),
     keywordEvidence: rows.map((item) => evidenceFromRow(item.row)),
   };
