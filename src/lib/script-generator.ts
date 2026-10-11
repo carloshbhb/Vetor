@@ -65,7 +65,7 @@ REGRAS:
 6. CTA neutro: peça que a pessoa confira preço e condições no link da descrição; não prometa desconto ou estoque não confirmado.
 7. Use exclusivamente informações presentes no campo Especificações. Não invente testes, uso pessoal, autonomia, desempenho, compatibilidade ou acessórios incluídos.
 8. Não diga "testamos", "em nossos testes", "medimos", "rodo tudo liso" ou equivalentes; quando faltar um dado, diga que precisa ser confirmado na ficha oficial.
-9. A soma das durações das cenas, mais 6 segundos para hook e CTA, deve ser de 60 a 90 segundos.
+9. A soma das durações das cenas, mais 11 segundos de abertura, nota final e CTA, deve ser de 60 a 90 segundos.
 10. Responda APENAS o JSON válido, sem texto adicional`;
 }
 
@@ -103,7 +103,7 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
       throw new Error('Modelo retornou roteiro incompleto: são necessárias 5–7 cenas válidas.');
     }
     const sceneSeconds = scenes.reduce((sum: number, scene: VideoScene) => sum + scene.duration, 0);
-    const computedDuration = sceneSeconds + 6; // 3 s de hook + 3 s de CTA
+    const computedDuration = sceneSeconds + 11; // 3 s de hook + 4 s de nota + 4 s de CTA
     if (computedDuration < 60 || computedDuration > 90) {
       throw new Error(`Duração inconsistente: cenas + hook/CTA totalizam ${computedDuration}s; esperado 60–90s.`);
     }
