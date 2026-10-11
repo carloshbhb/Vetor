@@ -24,7 +24,8 @@
     "validate:indexnow-config": "tsx scripts/validate-indexnow-config.ts",
     "test:indexing-quality": "tsx scripts/indexing-quality.test.ts",
     "test:comparison-tables": "tsx scripts/comparison-tables.test.ts",
-    "test:review-compare": "tsx scripts/review-compare.test.ts"
+    "test:review-compare": "tsx scripts/review-compare.test.ts",
+    "test:viral-quality": "tsx scripts/viral-quality.test.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
