@@ -2,6 +2,7 @@ import { buildViralPrompt } from './prompt';
 import { seo } from './seo';
 import { chatCompletion } from './llm-provider';
 import { validateGeneratedViralArticle } from './content-quality';
+import type { EditorialBrief } from './prompt';
 
 interface ViralArticleOutput {
   slug: string;
@@ -30,6 +31,7 @@ export async function generateViralArticle(topic: {
   title: string;
   category: string;
   comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
+  editorialBrief?: EditorialBrief;
 }): Promise<ViralArticleOutput> {
   if (topic.comparisonProducts.length < 2) {
     throw new Error('[viral-generator] comparison requires at least 2 products');
@@ -105,6 +107,7 @@ export async function generateViralArticles(topics: Array<{
   title: string;
   category: string;
   comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
+  editorialBrief?: EditorialBrief;
 }>): Promise<ViralArticleOutput[]> {
   const results = await Promise.all(
     topics.map((topic) => generateViralArticle(topic))
