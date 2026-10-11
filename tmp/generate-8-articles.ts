@@ -164,7 +164,7 @@ async function generateComparison(pair: [ProductLink, ProductLink], existingSlug
     products: article.products,
     seo_title: article.seo_title,
     seo_description: article.seo_description,
-  });
+  }, { insertOnly: true });
 
   if (result.error || !result.data) {
     return { slug: article.slug, status: 'failed', url: '', type: 'comparison', error: result.error || 'Falha ao persistir o comparativo.' };
