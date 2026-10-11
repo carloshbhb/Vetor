@@ -16,6 +16,7 @@
     "setup:supabase": "bash scripts/setup-supabase.sh",
     "mcp:start": "agentdb mcp start",
     "test:content-quality": "tsx scripts/content-quality.test.ts",
+    "test:editorial-brief": "tsx scripts/editorial-brief.test.ts",
     "memory:stats": "agentdb stats .agentdb.db",
     "memory:query": "agentdb query --query",
     "memory:store": "agentdb store-pattern",
