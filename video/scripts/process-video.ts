@@ -39,11 +39,15 @@ interface VideoQueueItem {
   completed_at?: string;
 }
 
-async function updateVideoStatus(id: string, updates: Partial<VideoQueueItem>) {
-  await supabase
+async function updateVideoStatus(id: string, updates: Record<string, unknown>): Promise<void> {
+  const { data, error } = await supabase
     .from('video_queue')
     .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
+  if (error) throw new Error(`Falha ao atualizar a fila do vídeo ${id}: ${error.message}`);
+  if (!data) throw new Error(`A fila não retornou a linha ${id} após atualizar o status.`);
 }
 
 async function downloadFile(url: string, outputPath: string): Promise<void> {
@@ -183,13 +187,16 @@ async function prepareRemotionProps(videoData: any, script: any, voiceover: any,
   const fps = 30;
   const hookFrames = 3 * fps;
 
+  const sceneSeconds = script.scenes.reduce((sum: number, scene: any) => sum + scene.duration, 0);
+  const ctaStart = 3 + sceneSeconds + 4; // 3 s hook + scenes + 4 s score card
+
   const subtitleEntries = [
     { start: 0, end: 3, text: script.hook },
-    ...script.scenes.map((s: any, i: number) => {
-      const prevDuration = script.scenes.slice(0, i).reduce((sum: number, sc: any) => sum + sc.duration, 0);
-      return { start: 3 + prevDuration, end: 3 + prevDuration + s.duration, text: s.text };
+    ...script.scenes.map((scene: any, index: number) => {
+      const previousSeconds = script.scenes.slice(0, index).reduce((sum: number, previous: any) => sum + previous.duration, 0);
+      return { start: 3 + previousSeconds, end: 3 + previousSeconds + scene.duration, text: scene.text };
     }),
-    { start: 3 + script.scenes.reduce((sum: number, s: any) => sum + s.duration, 0), end: 3 + script.scenes.reduce((sum: number, s: any) => sum + s.duration, 0) + 3, text: script.callToAction },
+    { start: ctaStart, end: ctaStart + 4, text: script.callToAction },
   ];
 
   const scenesWithFrames = script.scenes.map((scene: any, index: number) => {
@@ -299,7 +306,9 @@ async function uploadToYouTube(videoPath: string, title: string, description: st
     },
   });
 
-  return response.data.id || '';
+  const uploadedId = response.data.id;
+  if (!uploadedId) throw new Error('YouTube não retornou um ID para o vídeo enviado.');
+  return uploadedId;
 }
 
 async function main() {
@@ -373,13 +382,25 @@ async function main() {
     console.log('🎞️ Rendering video with Remotion...');
     const finalVideoPath = await renderVideo(propsPath, outputPath);
 
-    // Step 7: Upload to YouTube
+    // Step 7: Upload to YouTube with the canonical review and actual purchase URL.
     console.log('📤 Uploading to YouTube...');
+    const reviewUrl = typeof videoData.review_url === 'string' && videoData.review_url.startsWith('https://www.vetor.blog/reviews/')
+      ? videoData.review_url
+      : 'https://www.vetor.blog/reviews/';
+    const purchaseUrl = videoData.shortened_affiliate_url || videoData.affiliate_url || videoData.product_url;
+    const description = [
+      script.hook,
+      ...script.scenes.map((scene: any) => scene.text),
+      script.callToAction,
+      `Review completo: ${reviewUrl}`,
+      purchaseUrl ? `Confira preço e condições: ${purchaseUrl}` : '',
+      'Preço, estoque e condições podem mudar. Confirme as informações no anúncio antes de comprar.',
+    ].filter(Boolean).join('\n\n');
     const youtubeId = await uploadToYouTube(
       finalVideoPath,
-      `${videoData.product_title} - Review Completo`,
-      `${script.hook}\n\n${script.scenes.map((s: any) => s.text).join('\n\n')}\n\n${script.callToAction}\n\nCompre aqui: ${videoData.shortened_affiliate_url || videoData.affiliate_url}`,
-      ['review', 'tech', videoData.product_category.toLowerCase(), 'unboxing', 'vale a pena']
+      `${videoData.product_title} - Review e vale a pena? #Shorts`,
+      description,
+      ['review', 'tech', videoData.product_category.toLowerCase(), 'vale a pena', 'shorts']
     );
 
     const youtubeUrl = `https://youtube.com/watch?v=${youtubeId}`;
