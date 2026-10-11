@@ -1,6 +1,6 @@
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { NextRequest, NextResponse } from 'next/server';
-import { createViralArticle } from '@/lib/supabase';
+import { createViralArticle, getSupabaseServiceKeyClient } from '@/lib/supabase';
 import { generateViralArticle } from '@/lib/generate-viral';
 import { resolveProductImage } from '@/lib/image-resolver';
 import { buildComparativeEditorialBrief } from '@/lib/editorial-brief';
@@ -99,27 +99,44 @@ export async function GET(request: NextRequest) {
         editorialBrief,
       });
 
-      const dbResult = await createViralArticle({
-        slug: article.slug,
-        title: article.title,
-        description: article.description,
-        category: article.category,
-        content: article.content,
-        hero: article.hero,
-        products: resolvedProducts,
-        seo_title: article.seo_title,
-        seo_description: article.seo_description,
-      });
-
-      if (dbResult.error) {
-        result.viralArticle = { slug: article.slug, status: 'failed', error: dbResult.error };
+      const comparisonDb = getSupabaseServiceKeyClient();
+      if (!comparisonDb) {
+        result.viralArticle = { slug: article.slug, status: 'failed', error: 'Supabase Service Role ausente; o comparativo não foi simulado.' };
       } else {
-        result.viralArticle = { slug: article.slug, status: 'success' };
-        revalidateComparativeSurfaces([article.slug]);
-        await pingNewContent(
-          buildComparativeIndexNowTargets(article.slug),
-          'cron-generated-comparative'
-        );
+        const { data: existingArticle, error: existingArticleError } = await comparisonDb
+          .from('viral_articles')
+          .select('slug')
+          .eq('slug', article.slug)
+          .maybeSingle();
+
+        if (existingArticleError) {
+          result.viralArticle = { slug: article.slug, status: 'failed', error: 'Não foi possível conferir colisão de slug: ' + existingArticleError.message };
+        } else if (existingArticle) {
+          result.viralArticle = { slug: article.slug, status: 'skipped', error: 'O comparativo já existe; o conteúdo publicado foi preservado.' };
+        } else {
+          const dbResult = await createViralArticle({
+            slug: article.slug,
+            title: article.title,
+            description: article.description,
+            category: article.category,
+            content: article.content,
+            hero: article.hero,
+            products: resolvedProducts,
+            seo_title: article.seo_title,
+            seo_description: article.seo_description,
+          }, { insertOnly: true });
+
+          if (dbResult.error) {
+            result.viralArticle = { slug: article.slug, status: 'failed', error: dbResult.error };
+          } else {
+            result.viralArticle = { slug: article.slug, status: 'success' };
+            revalidateComparativeSurfaces([article.slug]);
+            await pingNewContent(
+              buildComparativeIndexNowTargets(article.slug),
+              'cron-generated-comparative'
+            );
+          }
+        }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
