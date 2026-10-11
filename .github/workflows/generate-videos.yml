@@ -86,23 +86,19 @@ jobs:
           npm run test:editorial-brief
           npx tsc --noEmit
 
-      - name: Queue one video from an eligible published review
+      - name: Queue eligible published reviews
         run: |
           set -euo pipefail
           COUNT="${COUNT:-1}"
-          if [ "${COUNT}" -gt 10 ]; then COUNT=10; fi
-          code="$(curl -sS --max-time 25 -o queue-result.json -w '%{http_code}' \\
-            -X POST "https://www.vetor.blog/api/cron/video-queue-worker/" \\
-            -H "Authorization: Bearer ${CRON_SECRET}" \\
-            -H "Content-Type: application/json" \\
-            -d "{\\"action\\":\\"queueFromReviews\\",\\"limit\\":${COUNT}}")"
+          if [ "$COUNT" -gt 10 ]; then COUNT=10; fi
+          payload="$(jq -n --argjson limit "$COUNT" '{action:"queueFromReviews", limit:$limit}')"
+          code="$(curl -sS --max-time 25 -o queue-result.json -w '%{http_code}' -X POST "https://www.vetor.blog/api/cron/video-queue-worker/" -H "Authorization: Bearer ${CRON_SECRET}" -H "Content-Type: application/json" -d "$payload")"
           if [ "$code" != "200" ] || ! jq -e '.success == true and (.queued | type == "number")' queue-result.json >/dev/null; then
             cat queue-result.json 2>/dev/null || true
             echo "::error::Production queue API failed (HTTP $code)."
             exit 1
           fi
           jq . queue-result.json
-
       - name: Render MP4 and publish to YouTube
         run: npm run generate-videos
 
