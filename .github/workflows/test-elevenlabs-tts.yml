@@ -1,0 +1,129 @@
+name: Test ElevenLabs TTS (isolated)
+
+on:
+  push:
+    branches:
+      - test/elevenlabs-tts-isolated
+    paths:
+      - .github/workflows/test-elevenlabs-tts.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolated-elevenlabs-tts-test
+  cancel-in-progress: false
+
+jobs:
+  test-tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install audio tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install requests edge-tts
+
+      - name: Test real ElevenLabs API
+        id: elevenlabs
+        continue-on-error: true
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+        run: |
+          python - <<'PY'
+          import os, sys, requests, subprocess
+          from pathlib import Path
+
+          key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+          voice = os.getenv("ELEVENLABS_VOICE_ID", "").strip() or "EXAVITQu4vr4xnSDxMaL"
+          if not key:
+              print("FAIL: secret ELEVENLABS_API_KEY is missing or empty.")
+              sys.exit(2)
+
+          url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128"
+          payload = {
+              "text": "Este é um teste isolado de voz para o Vetor.blog. A integração de áudio está sendo validada sem publicar vídeos.",
+              "model_id": "eleven_multilingual_v2",
+              "voice_settings": {
+                  "stability": 0.45,
+                  "similarity_boost": 0.75,
+                  "style": 0.2,
+                  "use_speaker_boost": True
+              }
+          }
+          try:
+              response = requests.post(
+                  url,
+                  headers={"xi-api-key": key, "Content-Type": "application/json", "Accept": "audio/mpeg"},
+                  json=payload,
+                  timeout=90
+              )
+              if response.status_code != 200:
+                  print(f"FAIL: ElevenLabs returned HTTP {response.status_code}.")
+                  print(response.text[:1200])
+                  sys.exit(1)
+              audio = response.content
+              if len(audio) < 1000 or not audio.startswith(b"ID3") and not audio.startswith(b"\xff\xfb") and not audio.startswith(b"\xff\xf3") and not audio.startswith(b"\xff\xf2"):
+                  print(f"FAIL: response did not look like a valid MP3 ({len(audio)} bytes).")
+                  sys.exit(1)
+              Path("/tmp/elevenlabs-test.mp3").write_bytes(audio)
+              result = subprocess.run(
+                  ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                   "-of", "default=noprint_wrappers=1:nokey=1", "/tmp/elevenlabs-test.mp3"],
+                  check=True, capture_output=True, text=True
+              )
+              duration = float(result.stdout.strip())
+              if duration <= 0:
+                  raise ValueError("audio duration is not positive")
+              print(f"PASS: ElevenLabs returned valid MP3; bytes={len(audio)}, duration_seconds={duration:.2f}, voice_id_configured={'yes' if os.getenv('ELEVENLABS_VOICE_ID') else 'default'}.")
+          except Exception as exc:
+              print(f"FAIL: ElevenLabs test error: {type(exc).__name__}: {exc}")
+              sys.exit(1)
+          PY
+
+      - name: Test Edge TTS fallback
+        id: fallback
+        run: |
+          python - <<'PY'
+          import asyncio, subprocess
+          from pathlib import Path
+          import edge_tts
+
+          async def main():
+              path = "/tmp/edge-tts-fallback-test.mp3"
+              communicate = edge_tts.Communicate(
+                  "Este é o teste alternativo de voz em português do Brasil.",
+                  "pt-BR-AntonioNeural"
+              )
+              await communicate.save(path)
+              p = Path(path)
+              if not p.exists() or p.stat().st_size < 1000:
+                  raise RuntimeError("Edge TTS did not produce a usable audio file")
+              probe = subprocess.run(
+                  ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                   "-of", "default=noprint_wrappers=1:nokey=1", path],
+                  check=True, capture_output=True, text=True
+              )
+              duration = float(probe.stdout.strip())
+              if duration <= 0:
+                  raise RuntimeError("Fallback audio duration is invalid")
+              print(f"PASS: Edge TTS fallback produced valid audio; bytes={p.stat().st_size}, duration_seconds={duration:.2f}.")
+          asyncio.run(main())
+          PY
+
+      - name: Require ElevenLabs test to pass
+        if: steps.elevenlabs.outcome != 'success'
+        run: |
+          echo "::error::The real ElevenLabs API test failed. The Edge TTS fallback was tested separately; review the ElevenLabs step logs."
+          exit 1
+
+      - name: Summary
+        if: success()
+        run: echo "PASS: ElevenLabs API and Edge TTS fallback tested. No production queue, Supabase, rendering, or YouTube upload was invoked."
