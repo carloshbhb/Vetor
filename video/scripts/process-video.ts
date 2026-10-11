@@ -3,22 +3,27 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
+import { generateVideoScript } from '../../src/lib/script-generator';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são obrigatórios para processar vídeos.');
+}
+const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 
 interface VideoQueueItem {
   id: string;
   product_url: string;
+  review_url?: string;
   product_title: string;
   product_category: string;
   product_price: string;
   product_image_url: string;
+  score?: number;
   affiliate_url: string;
   shortened_affiliate_url: string;
   script_text: string;
@@ -49,91 +54,51 @@ async function downloadFile(url: string, outputPath: string): Promise<void> {
   fs.writeFileSync(outputPath, buffer);
 }
 
-async function generateScript(productData: any): Promise<any> {
-  const marketplace = (productData.product_url || '').includes('amazon') ? 'Amazon' :
-    (productData.product_url || '').includes('shopee') ? 'Shopee' : 'Mercado Livre';
-  const prompt = `Crie um roteiro de vídeo curto (60-90 segundos) para o produto "${productData.product_title}" focado em conversão para YouTube Shorts/Reels/TikTok.
+async function loadReviewFacts(productData: VideoQueueItem): Promise<{ specifications: Record<string, string>; score?: number }> {
+  const reviewUrl = typeof productData.review_url === 'string' ? productData.review_url : '';
+  const slugPart = reviewUrl.includes('/reviews/') ? reviewUrl.split('/reviews/')[1] : '';
+  const slug = slugPart.split('/')[0].split('?')[0].split('#')[0];
+  if (!slug) return { specifications: {} };
 
-PRODUTO:
-- Título: ${productData.product_title}
-- Categoria: ${productData.product_category}
-- Preço: ${productData.product_price}
-- Marketplace: ${marketplace}
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('specs,hero_overall_score')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error) {
+    console.warn('[video] Could not load verified review specifications; avoiding unsupported product claims:', error.message);
+    return { specifications: {} };
+  }
 
-ESTRUTURA OBRIGATÓRIA (JSON):
-{
-  "hook": "Frase de impacto nos primeiros 3 segundos (máx 20 palavras)",
-  "scenes": [
-    {
-      "id": 1,
-      "text": "Narração da cena 1 (máx 30 palavras)",
-      "duration": 5,
-      "visualCue": "Descrição visual",
-      "brollKeywords": ["palavra-chave1", "palavra-chave2"]
+  let specs: unknown = data?.specs;
+  if (typeof specs === 'string') {
+    try { specs = JSON.parse(specs); } catch { specs = []; }
+  }
+  const specifications: Record<string, string> = {};
+  if (Array.isArray(specs)) {
+    for (const item of specs) {
+      if (!item || typeof item !== 'object') continue;
+      const label = typeof item.label === 'string' ? item.label.trim() : '';
+      const value = typeof item.value === 'string' ? item.value.trim() : '';
+      if (label && value && !/^não informado$/i.test(value)) specifications[label] = value;
     }
-  ],
-  "totalDuration": 60,
-  "callToAction": "Link na bio/Descrição para comprar com desconto!"
+  }
+  const score = Number(data?.hero_overall_score);
+  return { specifications, ...(Number.isFinite(score) && score > 0 ? { score } : {}) };
 }
 
-REGRAS:
-1. Hook deve ser irresistível: problema, curiosidade ou benefício imediato
-2. 5-7 cenas no total, cada uma com 5-10 segundos
-3. Texto conversacional, direto, tom de especialista
-4. visualCue deve sugerir: produto em uso, detalhes, comparação, lifestyle
-5. brollKeywords para buscar vídeos de estoque no Pexels
-6. callToAction direto para link de afiliado
-7. Total entre 60-90 segundos
-8. Responda APENAS o JSON válido`;
-
-  const useGemini = !!process.env.GOOGLE_AI_API_KEY;
-  const apiUrl = useGemini
-    ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
-    : 'https://api.groq.com/openai/v1/chat/completions';
-  const apiKey = useGemini ? process.env.GOOGLE_AI_API_KEY : process.env.GROQ_API_KEY;
-  const model = useGemini ? 'gemini-2.5-flash' : 'groq/compound';
-
-  const body: any = {
-    model,
-    messages: [
-      { role: 'system', content: 'Você é um roteirista especialista em vídeos virais de review tech. Responda APENAS em JSON válido, sem texto adicional.' },
-      { role: 'user', content: prompt },
-    ],
-    temperature: 0.7,
-    max_tokens: 4000,
-  };
-
-  if (!useGemini) {
-    body.response_format = { type: 'json_object' };
-  }
-
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
+async function generateScript(productData: VideoQueueItem): Promise<any> {
+  const { specifications, score } = await loadReviewFacts(productData);
+  if (score) productData.score = score;
+  const url = (productData.product_url || '').toLowerCase();
+  const marketplace = url.includes('amazon') ? 'Amazon' : url.includes('shopee') ? 'Shopee' : 'Mercado Livre';
+  return generateVideoScript({
+    title: productData.product_title,
+    category: productData.product_category || 'Tecnologia',
+    price: productData.product_price || 'consulte o preço atual',
+    marketplace,
+    specifications,
   });
-
-  if (!response.ok) {
-    throw new Error(`AI API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  let content = data.choices[0].message.content || '{}';
-
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    content = jsonMatch[0];
-  }
-
-  try {
-    return JSON.parse(content);
-  } catch {
-    const fixed = content.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
-    return JSON.parse(fixed);
-  }
 }
 
 async function generateVoiceover(script: any, outputDir: string): Promise<{ audioPath: string; duration: number }> {
@@ -245,15 +210,16 @@ async function prepareRemotionProps(videoData: any, script: any, voiceover: any,
   return {
     type: 'review',
     title: videoData.product_title,
-    imageUrl: videoData.product_image_url,
-    score: videoData.score || 8.5,
+    imageUrl: `/assets/product-${videoId}${path.extname(productImagePath) || '.webp'}`,
+    score: typeof videoData.score === 'number' && Number.isFinite(videoData.score) && videoData.score > 0 ? videoData.score : 0,
     category: videoData.product_category,
     hook: script.hook,
     scenes: scenesWithFrames,
     callToAction: script.callToAction,
     audioUrl: '/assets/voiceover-' + videoId + '.mp3',
+    reviewUrl: videoData.review_url || 'https://www.vetor.blog/reviews/',
     subtitleEntries,
-    productImages: [productImagePath],
+    productImages: [`/assets/product-${videoId}${path.extname(productImagePath) || '.webp'}`],
     brollVideos: brollPaths,
     totalDuration,
     fps,
@@ -261,22 +227,40 @@ async function prepareRemotionProps(videoData: any, script: any, voiceover: any,
 }
 
 async function renderVideo(propsPath: string, outputPath: string): Promise<string> {
+  const videoRoot = path.resolve(__dirname, '..');
+  const outputDir = path.dirname(outputPath);
+  fs.mkdirSync(outputDir, { recursive: true });
+
   return new Promise((resolve, reject) => {
-    const child = spawn('npx', ['remotion', 'render', 'ReviewVideo', outputPath, `--props=${propsPath}`], {
-      cwd: path.resolve(__dirname, '..'),
+    const child = spawn('npm', ['run', 'render-review', '--', propsPath], {
+      cwd: videoRoot,
+      env: { ...process.env, VIDEO_OUTPUT_DIR: outputDir },
       stdio: 'inherit',
+      shell: process.platform === 'win32',
     });
 
-    child.on('close', (code) => {
+    child.once('error', reject);
+    child.once('close', (code) => {
       if (code !== 0) {
-        reject(new Error(`Remotion render failed with code ${code}`));
+        reject(new Error(`Remotion render script exited with code ${code ?? 'unknown'}`));
         return;
       }
-      resolve(outputPath);
-    });
 
-    child.on('error', (err) => {
-      reject(new Error(`Failed to spawn remotion: ${err.message}`));
+      const renderedFiles = fs.readdirSync(outputDir)
+        .filter((name) => /^review-\d+\.mp4$/i.test(name))
+        .map((name) => ({ path: path.join(outputDir, name), modified: fs.statSync(path.join(outputDir, name)).mtimeMs }))
+        .sort((a, b) => b.modified - a.modified);
+      const rendered = renderedFiles[0]?.path;
+      if (!rendered || !fs.existsSync(rendered) || fs.statSync(rendered).size === 0) {
+        reject(new Error('Remotion terminou sem produzir um arquivo MP4 válido.'));
+        return;
+      }
+      try {
+        if (rendered !== outputPath) fs.renameSync(rendered, outputPath);
+        resolve(outputPath);
+      } catch (error) {
+        reject(error);
+      }
     });
   });
 }
@@ -363,22 +347,27 @@ async function main() {
     const allKeywords = script.scenes.flatMap((s: any) => s.brollKeywords);
     const brollPaths = await fetchBrollVideos(allKeywords, assetsDir);
 
-    // Step 5: Prepare Remotion props
-    console.log('⚙️ Preparing Remotion props...');
-    const props = await prepareRemotionProps(videoData, script, voiceover, productImagePath, brollPaths, videoId);
-    fs.writeFileSync(propsPath, JSON.stringify(props, null, 2));
-
-    // Copy assets to public folder for Remotion
-    const publicAssetsDir = path.resolve(__dirname, '../../public/assets');
+    // Copy generated assets into the public directory bundled by Remotion.
+    const publicAssetsDir = path.resolve(__dirname, '../public/assets');
+    const publicBrollDir = path.join(publicAssetsDir, 'broll');
     fs.mkdirSync(publicAssetsDir, { recursive: true });
-    fs.mkdirSync(path.join(publicAssetsDir, 'broll'), { recursive: true });
-    
-    fs.copyFileSync(productImagePath, path.join(publicAssetsDir, `product-${videoId}.webp`));
+    fs.mkdirSync(publicBrollDir, { recursive: true });
+
+    const productExtension = path.extname(productImagePath) || '.webp';
+    const productAssetName = `product-${videoId}${productExtension}`;
+    fs.copyFileSync(productImagePath, path.join(publicAssetsDir, productAssetName));
     fs.copyFileSync(voiceover.audioPath, path.join(publicAssetsDir, `voiceover-${videoId}.mp3`));
-    
-    brollPaths.forEach((broll, i) => {
-      fs.copyFileSync(broll, path.join(publicAssetsDir, 'broll', `broll-${videoId}-${i}.mp4`));
+    const publicBrollPaths = brollPaths.map((broll, index) => {
+      const extension = path.extname(broll) || '.mp4';
+      const filename = `broll-${videoId}-${index}${extension}`;
+      fs.copyFileSync(broll, path.join(publicBrollDir, filename));
+      return `/assets/broll/${filename}`;
     });
+
+    // Remotion reads assets from video/public, so props use the copied public paths.
+    console.log('⚙️ Preparing Remotion props...');
+    const props = await prepareRemotionProps(videoData, script, voiceover, productImagePath, publicBrollPaths, videoId);
+    fs.writeFileSync(propsPath, JSON.stringify(props, null, 2));
 
     // Step 6: Render video
     console.log('🎞️ Rendering video with Remotion...');
