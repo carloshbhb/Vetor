@@ -209,9 +209,17 @@ export async function POST(request: NextRequest) {
           : "Tecnologia";
         const title = `${first.name} vs ${second.name}`;
         const comparisonUrl = `https://www.vetor.blog/comparativos/${article.slug}/`;
-        const purchaseUrl = typeof first.product_url === "string" && /^https?:\\/\\//i.test(first.product_url)
-          ? first.product_url
-          : comparisonUrl;
+        let purchaseUrl = comparisonUrl;
+        if (typeof first.product_url === "string") {
+          try {
+            const parsedProductUrl = new URL(first.product_url);
+            if (parsedProductUrl.protocol === "https:" || parsedProductUrl.protocol === "http:") {
+              purchaseUrl = parsedProductUrl.toString();
+            }
+          } catch {
+            // Keep the canonical comparison URL when the product URL is invalid.
+          }
+        }
         const script = {
           type: "comparison",
           hook: `Antes de escolher entre ${first.name} e ${second.name}, compare os recursos documentados e as condições atuais.`,
