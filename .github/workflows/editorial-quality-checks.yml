@@ -51,6 +51,7 @@ jobs:
         run: |
           npm run test:content-quality
           npm run test:editorial-brief
+          npm run test:viral-quality
 
       - name: Type-check application
         run: npx tsc --noEmit
