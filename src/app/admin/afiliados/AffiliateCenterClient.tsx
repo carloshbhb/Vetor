@@ -11,7 +11,7 @@ type LinkRow = {
   source_type: SourceType; source_ref: string; destination_url: string; product_url: string;
   affiliate_tag: string; affiliate_checked_at: string | null; image_url: string; price: number | null;
   status: Status; priority: number; notes: string; tags: string[];
-  health_status: Health; last_checked_at: string | null; http_status: number | null;
+  health_status: Health; last_checked_at: string | null; http_status: number | null; last_error: string | null;
   total_clicks: number; last_clicked_at: string | null; created_at: string; updated_at: string;
 };
 
@@ -76,6 +76,7 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingDestinationId, setSavingDestinationId] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -86,6 +87,7 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
   const [lastRead, setLastRead] = useState(generatedAt);
+  const [destinationDrafts, setDestinationDrafts] = useState<Record<string, string>>(() => Object.fromEntries(initialLinks.map((item) => [item.id, item.destination_url || ""])));
 
   useEffect(() => {
     const handlePageShow = (event: PageTransitionEvent) => {
@@ -109,7 +111,13 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
       const res = await fetch("/api/admin/affiliates?" + qs.toString(), { cache: "no-store" });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(payload.error || "Não foi possível carregar os links.");
-      setLinks(payload.data || []);
+      const rows = (payload.data || []) as LinkRow[];
+      setLinks(rows);
+      setDestinationDrafts((current) => {
+        const next = { ...current };
+        for (const item of rows) next[item.id] = item.destination_url || "";
+        return next;
+      });
       setTotal(Number(payload.total || 0));
       if (payload.stats) setStats(payload.stats);
       if (payload.marketplaces) setMarketplaces(payload.marketplaces);
@@ -235,6 +243,40 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
     }
   };
 
+  const saveDestination = async (item: LinkRow) => {
+    const destinationUrl = (destinationDrafts[item.id] ?? item.destination_url ?? "").trim();
+    try {
+      const parsed = new URL(destinationUrl);
+      if (parsed.protocol !== "https:") throw new Error();
+    } catch {
+      setError("Cole uma URL HTTPS válida do Portal de Afiliados.");
+      return;
+    }
+
+    setSavingDestinationId(item.id);
+    setError("");
+    setNotice("");
+    try {
+      const update: Record<string, string> = { destination_url: destinationUrl };
+      // Itens sem destino são pendentes; ao configurar o primeiro link, ativar como no modal.
+      if (!item.destination_url.trim()) update.status = "active";
+      const res = await fetch("/api/admin/affiliates/" + item.id, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(update),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.error || "Não foi possível salvar o link.");
+      setDestinationDrafts((current) => ({ ...current, [item.id]: destinationUrl }));
+      setNotice("Link oficial salvo. Rota pública: /go/" + item.slug + "/");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao salvar o link.");
+    } finally {
+      setSavingDestinationId(null);
+    }
+  };
+
   const check = async (ids?: string[]) => {
     setChecking(true); setError("");
     try {
@@ -350,13 +392,13 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
 
       <section className="rounded-2xl border border-border bg-[var(--surface)]">
         <div className="flex flex-col gap-2 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <div><h2 className="font-heading text-lg font-bold">Ofertas cadastradas</h2><p className="mt-1 text-xs text-[var(--muted)]">Edite aqui. As páginas públicas continuam usando a rota estável /go/.</p></div>
+          <div><h2 className="font-heading text-lg font-bold">Ofertas cadastradas</h2><p className="mt-1 text-xs text-[var(--muted)]">Os destinos ficam editáveis no próprio card. O teste verifica a resposta HTTP do destino a partir do servidor; não confirma atribuição de comissão. HTTP 403 pode ser bloqueio a robôs, não um link quebrado.</p></div>
           <button onClick={() => void check()} disabled={checking || stats.active === 0} className="rounded-lg border border-border px-3 py-2 text-xs font-bold disabled:opacity-50">{checking ? "Verificando…" : "Testar links ativos"}</button>
         </div>
 
         <div className="grid gap-3 p-3 sm:p-4 xl:grid-cols-2">
           {links.map((item) => (
-            <article key={item.id} className="rounded-2xl border border-border bg-[var(--surface2)] p-4 hover:border-[var(--amber)]/30">
+            <article key={item.id} className={"rounded-2xl border p-4 transition-colors hover:border-[var(--amber)]/30 " + (item.destination_url.trim() ? "border-emerald-200 bg-emerald-50/50" : "border-border bg-[var(--surface2)]")}>
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap gap-2">
@@ -377,6 +419,28 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
                 <p className="text-[9px] uppercase tracking-[0.12em] text-[var(--muted)]">Rota pública</p>
                 <p className="mt-1 font-mono text-xs break-all">/go/{item.slug}/</p>
                 <p className="mt-1 truncate text-[11px] text-[var(--muted)]">{host(item.destination_url)}</p>
+              </div>
+
+              <div className={"mt-3 rounded-xl border p-3 " + (item.destination_url.trim() ? "border-emerald-200/80 bg-white/70" : "border-border bg-[var(--surface)]")}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[9px] uppercase tracking-[0.12em] text-[var(--muted)]">URL oficial de afiliado</p>
+                  {item.destination_url.trim()
+                    ? <span className="rounded-full border border-emerald-200 bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-800">CONFIGURADO</span>
+                    : <span className="rounded-full border border-[var(--amber)]/25 bg-[var(--amber)]/10 px-2 py-1 text-[10px] font-bold text-[var(--amber)]">PENDENTE</span>}
+                </div>
+                <input
+                  type="url"
+                  value={destinationDrafts[item.id] ?? item.destination_url}
+                  onChange={(event) => setDestinationDrafts((current) => ({ ...current, [item.id]: event.target.value }))}
+                  placeholder="Cole aqui o link oficial gerado no Portal de Afiliados"
+                  aria-label={"URL oficial de afiliado para " + item.name}
+                  className="mt-2 w-full rounded-lg border border-border bg-white px-3 py-2.5 font-mono text-xs text-slate-800 outline-none focus:border-[var(--amber)]"
+                />
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {item.destination_url.trim() && <a href={item.destination_url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-[var(--amber)] hover:underline">Abrir destino ↗</a>}
+                  <button onClick={() => void saveDestination(item)} disabled={savingDestinationId === item.id || !(destinationDrafts[item.id] ?? item.destination_url).trim()} className="rounded-lg bg-[var(--amber)] px-3 py-2 text-xs font-extrabold text-black disabled:opacity-50">{savingDestinationId === item.id ? "Salvando…" : "Salvar link"}</button>
+                </div>
+                {item.last_error && <p className="mt-2 text-[11px] leading-5 text-[var(--muted)]">{item.last_error}</p>}
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-[var(--muted)]">

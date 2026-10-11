@@ -5,24 +5,43 @@ import { getAffiliateLinksByIds, updateAffiliateHealth, type AffiliateLink } fro
 async function checkDestination(item: AffiliateLink) {
   const started = Date.now();
   try {
-    const response = await fetch(item.destination_url, {
+    let response = await fetch(item.destination_url, {
       method: "HEAD",
       redirect: "follow",
       cache: "no-store",
       signal: AbortSignal.timeout(10000),
     });
+
+    // Alguns destinos não aceitam HEAD. Tente uma leitura mínima via GET nesses casos.
+    if (response.status === 405 || response.status === 501) {
+      response = await fetch(item.destination_url, {
+        method: "GET",
+        headers: { Range: "bytes=0-0" },
+        redirect: "follow",
+        cache: "no-store",
+        signal: AbortSignal.timeout(10000),
+      });
+    }
+
     const finalUrl = response.url || item.destination_url;
-    const healthStatus = response.status >= 400
-      ? "error"
-      : finalUrl !== item.destination_url
-        ? "redirect"
-        : "healthy";
+    // 401/403/429 frequentemente significam bloqueio a robôs ou limitação de taxa.
+    // Não são evidência suficiente de que o link falha para um usuário no navegador.
+    const blockedByAutomatedCheck = [401, 403, 429].includes(response.status);
+    const healthStatus = blockedByAutomatedCheck
+      ? "unknown"
+      : response.status >= 400
+        ? "error"
+        : finalUrl !== item.destination_url
+          ? "redirect"
+          : "healthy";
     return {
       id: item.id,
-      healthStatus: healthStatus as "error" | "redirect" | "healthy",
+      healthStatus: healthStatus as "unknown" | "error" | "redirect" | "healthy",
       httpStatus: response.status,
       finalUrl,
-      lastError: response.status >= 400 ? `HTTP ${response.status}` : null,
+      lastError: blockedByAutomatedCheck
+        ? `HTTP ${response.status}: o destino bloqueou a verificação automatizada; isso não confirma que o link esteja quebrado. Teste a rota no navegador.`
+        : response.status >= 400 ? `HTTP ${response.status}` : null,
       latencyMs: Date.now() - started,
     };
   } catch (error) {
