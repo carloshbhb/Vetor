@@ -60,7 +60,7 @@ export async function createReview(data: {
   hero_headline_line2?: string;
   hero_headline_em?: string;
   faq?: Array<{ question: string; answer: string }>;
-}): Promise<{ data: Review | null; error: string | null }> {
+}, options?: { insertOnly?: boolean }): Promise<{ data: Review | null; error: string | null }> {
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
     return { data: { ...data, id: 'mock-' + Date.now(), status: 'draft', marketplace: data.marketplace || '', price_old: '', affiliate_url: data.affiliate_url || '', ads_enabled: false, meta_keywords: '', meta_reading_time: 5, meta_canonical: null, meta_og_image: null, hero_headline_line1: data.hero_headline_line1 || '', hero_headline_line2: data.hero_headline_line2 || '', hero_headline_em: data.hero_headline_em || '', hero_lead: data.hero_lead || '', hero_bars: data.hero_bars || [], specs: data.specs || [], sections: data.sections || [], compare_table: data.compare_table || { rows: [], caption: '', columns: [], winnerCol: 0 }, testimonials: [], verdict_label: data.verdict_label || '', verdict_text: data.verdict_text || '', verdict_note: data.verdict_note || '', schema_rating_value: data.hero_overall_score ?? 0, schema_review_count: 1, google_rank: null, last_rank_check: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), faq: data.faq || [] } as Review, error: null };
@@ -111,11 +111,10 @@ export async function createReview(data: {
     faq: data.faq ?? [],
   };
 
-  const { data: result, error } = await supabase
-    .from('reviews')
-    .upsert(row, { onConflict: 'slug' })
-    .select()
-    .single();
+  const writeResult = options?.insertOnly
+    ? await supabase.from('reviews').insert(row).select().single()
+    : await supabase.from('reviews').upsert(row, { onConflict: 'slug' }).select().single();
+  const { data: result, error } = writeResult;
 
   if (error) {
     return { data: null, error: error.message };
@@ -134,7 +133,7 @@ export async function createViralArticle(data: {
   products: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
   seo_title: string;
   seo_description: string;
-}): Promise<{ data: ViralArticle | null; error: string | null }> {
+}, options?: { insertOnly?: boolean }): Promise<{ data: ViralArticle | null; error: string | null }> {
   const validation = validateGeneratedViralArticle(data, {
     source: 'persistence',
     slug: data.slug,
@@ -173,11 +172,10 @@ export async function createViralArticle(data: {
     created_at: existing?.created_at ?? now,
   };
 
-  const { data: result, error } = await supabase
-    .from('viral_articles')
-    .upsert(row, { onConflict: 'slug' })
-    .select()
-    .single();
+  const writeResult = options?.insertOnly
+    ? await supabase.from('viral_articles').insert(row).select().single()
+    : await supabase.from('viral_articles').upsert(row, { onConflict: 'slug' }).select().single();
+  const { data: result, error } = writeResult;
 
   if (error) {
     return { data: null, error: error.message };
