@@ -2,6 +2,7 @@ import { buildReviewPrompt } from './prompt';
 import { seo } from './seo';
 import { chatCompletion } from './llm-provider';
 import { validateGeneratedReview } from './content-quality';
+import { slugifyEditorialTitle } from './slug';
 import type { ReviewHeroBar, ReviewSpec, ReviewSection, ReviewCompareTable, ReviewFaq } from './types';
 
 interface ReviewOutput {
@@ -120,93 +121,6 @@ export async function generateReview(product: {
       generatedDescription = clipped.slice(0, Math.max(clipped.lastIndexOf(" "), 100)).replace(/[.,;:\s]+$/, "");
     }
 
-    const safeProductTitle = product.title
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-
-    if (generatedContent.length >= 3000 && generatedContent.length < 5000) {
-      generatedContent += `
-
-<h2>Checklist final antes de comprar ${safeProductTitle}</h2>
-<p>Antes de concluir a compra, confira se o anúncio corresponde ao modelo e à versão exatos analisados neste review. Produtos com nomes parecidos podem ter diferenças de acessórios, conectividade, compatibilidade ou garantia. Não presuma que duas ofertas são equivalentes sem comparar o código do modelo e a descrição do vendedor.</p>
-<p>Revise a ficha técnica oficial e compare cada recurso importante para o seu uso. Quando uma característica não estiver explicitamente informada pelo fabricante ou pelo anúncio, trate-a como não confirmada. Esse cuidado é especialmente importante para compatibilidade com sistemas, dimensões, conexões, itens incluídos e limitações de uso.</p>
-<p>Considere o custo total, não apenas o preço destacado. Verifique frete, prazo de entrega, disponibilidade, condições de pagamento e a política de devolução. Consulte também as condições de garantia e quem será responsável pelo atendimento após a compra. Essas informações podem variar entre vendedores, mesmo quando o produto é o mesmo.</p>
-<p>Compare pelo menos uma alternativa da mesma categoria usando os mesmos critérios. Uma opção mais barata pode ser suficiente para tarefas básicas, enquanto outra pode justificar o valor adicional se oferecer um recurso de que você realmente precisa. Evite pagar mais por funções que não fazem diferença na sua rotina e não escolha apenas pela nota ou pelo nome da marca.</p>
-<p>Por fim, confirme que preço, estoque e condições continuam atuais no momento da compra. Este checklist complementa a análise do ${safeProductTitle}; não substitui a ficha técnica nem representa um teste laboratorial do produto. A decisão mais segura combina as informações verificáveis do fabricante, as condições do anúncio e as necessidades reais de quem vai utilizá-lo.</p>`;
-    }
-
-    if (sections.length >= 4) {
-      sections = sections.map((section: any, index: number) => {
-        const sectionText = typeof section.content === 'string' ? section.content.replace(/<[^>]+>/g, ' ').trim() : '';
-        if (sectionText.length >= 120) return section;
-        return {
-          ...section,
-          content: `${typeof section.content === 'string' ? section.content : ''}<p>Na prática, confirme os detalhes na ficha oficial e no anúncio da versão exata. Quando a informação não estiver documentada, trate-a como não confirmada e compare preço total, garantia, compatibilidade e política de devolução antes de decidir. Esta orientação é um critério de compra, não uma afirmação sobre recursos específicos de ${safeProductTitle}.</p>`,
-        };
-      });
-    }
-
-    if (specs.length < 4) {
-      const safeSpecs = [
-        { label: 'Categoria informada', value: product.category || 'Não informada', highlight: false },
-        { label: 'Preço informado', value: product.price || 'Consulte o preço atual', highlight: true },
-        { label: 'Modelo analisado', value: product.title, highlight: false },
-        { label: 'Especificações adicionais', value: 'Confirme na ficha oficial do fabricante', highlight: false },
-      ];
-      specs = [...specs, ...safeSpecs.filter((item) => !specs.some((existing: any) => existing.label === item.label))].slice(0, 8);
-    }
-
-    if (heroBars.length < 3) {
-      const fallbackBars = [
-        { pct: 60, label: 'Informações disponíveis', value: 6 },
-        { pct: 60, label: 'Verificação de compra', value: 6 },
-        { pct: 50, label: 'Dados confirmados', value: 5 },
-      ];
-      heroBars = [...heroBars, ...fallbackBars.filter((item) => !heroBars.some((existing: any) => existing.label === item.label))].slice(0, 5);
-    }
-
-    if (pros.length < 3) {
-      const safePros = [
-        'O review explicita o preço informado para facilitar a comparação; confirme se continua atual.',
-        'O nome exato do modelo ajuda a verificar se o anúncio corresponde ao produto procurado.',
-        'O checklist orienta a conferência de compatibilidade, garantia e conteúdo da embalagem antes da compra.',
-      ];
-      pros = [...pros, ...safePros.filter((item) => !pros.includes(item))].slice(0, 5);
-    }
-
-    if (cons.length < 3) {
-      const safeCons = [
-        'As especificações não confirmadas devem ser verificadas diretamente na ficha oficial do fabricante.',
-        'Preço, estoque, frete e prazo de entrega podem variar conforme o anúncio e o vendedor.',
-        'A compatibilidade depende da versão exata do produto e do equipamento com que será utilizado.',
-      ];
-      cons = [...cons, ...safeCons.filter((item) => !cons.includes(item))].slice(0, 5);
-    }
-
-    if (faq.length < 3) {
-      const safeFaq = [
-        { question: 'O que devo confirmar antes de comprar?', answer: 'Confira o código e a versão exatos, a ficha técnica oficial, os itens incluídos, a compatibilidade, a garantia e a política de devolução do vendedor.' },
-        { question: 'O preço mostrado continua válido?', answer: 'Preço, frete, estoque e condições podem mudar. Abra o anúncio e confirme o valor total e o prazo de entrega antes de pagar.' },
-        { question: 'Como avaliar uma alternativa?', answer: 'Compare modelos da mesma categoria usando os mesmos critérios e não considere confirmado um recurso que não esteja documentado pelo fabricante ou pelo anúncio.' },
-      ];
-      faq = [...faq, ...safeFaq.filter((item) => !faq.some((existing: any) => existing.question === item.question))].slice(0, 5);
-    }
-
-    if (!comparison || !Array.isArray(comparison.columns) || comparison.columns.length < 2 || !Array.isArray(comparison.rows) || comparison.rows.length < 3) {
-      comparison = {
-        columns: ['Critério', product.title, 'Alternativa da mesma categoria (modelo a verificar)'],
-        rows: [
-          { feature: 'Preço', values: [product.price || 'Consulte o preço atual', 'Não informado; confira o anúncio'], winner: -1 },
-          { feature: 'Especificações confirmadas', values: ['Consulte a ficha oficial indicada para o modelo exato', 'Consulte a ficha oficial do modelo escolhido'], winner: -1 },
-          { feature: 'Compatibilidade e garantia', values: ['Confirme na ficha e no anúncio da versão exata', 'Confirme na ficha e no anúncio da versão exata'], winner: -1 },
-        ],
-        caption: 'Comparação de critérios de compra; não foram presumidas especificações de concorrentes.',
-        winnerCol: -1,
-      };
-    }
     const qualityIssues: string[] = [];
     if (generatedTitle.length < 10) qualityIssues.push(`title curto (${generatedTitle.length} caracteres)`);
     if (generatedDescription.length < 100 || generatedDescription.length > 160) qualityIssues.push(`description tem ${generatedDescription.length} caracteres (esperado 100–160)`);
@@ -269,7 +183,7 @@ export async function generateReview(product: {
     }
 
     return {
-      slug: product.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, ''),
+      slug: slugifyEditorialTitle(product.title),
       title: generatedTitle,
       description: generatedDescription,
       content: generatedContent,
