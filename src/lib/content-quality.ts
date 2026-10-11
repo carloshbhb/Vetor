@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
 const MIN_CONTENT_LENGTH = 4500;
+const MIN_CONTENT_WORDS = 1500;
+const MIN_REVIEW_HEADINGS = 6;
+const MIN_REVIEW_PARAGRAPHS = 8;
 const MIN_HERO_LEAD_LENGTH = 80;
 const MIN_SECTIONS = 4;
 const MIN_PROS = 3;
@@ -101,7 +104,7 @@ export const generatedReviewQualitySchema = z
         ).min(3),
         caption: z.string().trim().min(4),
         columns: z.array(z.string().trim().min(2)).min(2).max(4),
-        winnerCol: z.number().int().min(0),
+        winnerCol: z.number().int().min(-1),
       }),
 
   })
@@ -112,6 +115,19 @@ export const generatedReviewQualitySchema = z
         path: ['content'],
         message: `visible article text must have at least ${MIN_CONTENT_LENGTH} characters`,
       });
+    }
+    const visibleContent = val.content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+    const visibleWords = visibleContent ? visibleContent.split(/\s+/).length : 0;
+    if (visibleWords < MIN_CONTENT_WORDS) {
+      ctx.addIssue({ code: 'custom', path: ['content'], message: `visible article text must have at least ${MIN_CONTENT_WORDS} words (received ${visibleWords})` });
+    }
+    const reviewHeadings = countHtmlTags(val.content, 'h2') + countHtmlTags(val.content, 'h3');
+    if (reviewHeadings < MIN_REVIEW_HEADINGS) {
+      ctx.addIssue({ code: 'custom', path: ['content'], message: `review must contain at least ${MIN_REVIEW_HEADINGS} H2/H3 headings` });
+    }
+    const reviewParagraphs = countHtmlTags(val.content, 'p');
+    if (reviewParagraphs < MIN_REVIEW_PARAGRAPHS) {
+      ctx.addIssue({ code: 'custom', path: ['content'], message: `review must contain at least ${MIN_REVIEW_PARAGRAPHS} paragraphs` });
     }
     const normalized = val.content.toLowerCase();
     const forbiddenFallbacks = [
@@ -137,8 +153,11 @@ export const generatedReviewQualitySchema = z
 
     if (val.compare_table.columns.length > 0) {
       const productColumnCount = val.compare_table.columns.length - 1;
+      if (val.compare_table.winnerCol !== -1 && val.compare_table.winnerCol < 1) {
+        ctx.addIssue({ code: 'custom', path: ['compare_table', 'winnerCol'], message: 'winnerCol must be -1 (no winner) or point to a product column' });
+      }
       if (val.compare_table.winnerCol >= val.compare_table.columns.length) {
-        ctx.addIssue({ code: 'custom', path: ['compare_table', 'winnerCol'], message: 'winnerCol must point to a valid product column' });
+        ctx.addIssue({ code: 'custom', path: ['compare_table', 'winnerCol'], message: 'winnerCol must point to a valid product column or be -1' });
       }
       for (const [index, row] of val.compare_table.rows.entries()) {
         if (row.values.length !== productColumnCount) {
@@ -166,6 +185,11 @@ export const generatedReviewQualitySchema = z
     ].filter(Boolean).join(' ');
 
     const normalizedEditorial = normalizeReviewEditorialText(editorialCorpus);
+    const normalizedContent = normalizeReviewEditorialText(val.content);
+    const primaryProductName = normalizeReviewEditorialText(val.product.trim());
+    if (primaryProductName.length >= 4 && !normalizedContent.includes(primaryProductName)) {
+      ctx.addIssue({ code: 'custom', path: ['content'], message: 'article content must mention the exact product name' });
+    }
     for (const phrase of FORBIDDEN_REVIEW_EDITORIAL_SIGNALS) {
       if (normalizedEditorial.includes(normalizeReviewEditorialText(phrase))) {
         ctx.addIssue({

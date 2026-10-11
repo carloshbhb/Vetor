@@ -1,6 +1,7 @@
 import { buildReviewPrompt } from './prompt';
 import { seo } from './seo';
 import { chatCompletion } from './llm-provider';
+import { validateGeneratedReview } from './content-quality';
 import type { ReviewHeroBar, ReviewSpec, ReviewSection, ReviewCompareTable, ReviewFaq } from './types';
 
 interface ReviewOutput {
@@ -40,6 +41,7 @@ export async function generateReview(product: {
   image: string;
   product_url?: string;
   marketplace?: string;
+  editorialBrief?: import('./prompt').EditorialBrief;
 }): Promise<ReviewOutput> {
   try {
     const prompt = buildReviewPrompt(product);
@@ -66,6 +68,51 @@ export async function generateReview(product: {
     let cons = Array.isArray(parsed.cons) ? parsed.cons : [];
     let faq = Array.isArray(parsed.faq) ? parsed.faq : [];
     let comparison = parsed.compare_table;
+
+    // Reject deficient model output before legacy fallback code can pad it with generic prose.
+    const visibleText = (value: string) => value
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const visibleContent = visibleText(generatedContent);
+    const visibleWordCount = visibleContent ? visibleContent.split(/\s+/).length : 0;
+    const headingCount = (generatedContent.match(/<h[23]\b/gi) ?? []).length;
+    const paragraphCount = (generatedContent.match(/<p\b/gi) ?? []).length;
+    const preflightIssues: string[] = [];
+
+    if (generatedContent.length < 5000) preflightIssues.push('HTML do review tem menos de 5.000 caracteres; não será alongado com texto genérico');
+    if (visibleContent.length < 4500) preflightIssues.push(`texto visível tem ${visibleContent.length} caracteres (mínimo 4.500)`);
+    if (visibleWordCount < 1500) preflightIssues.push(`texto visível tem ${visibleWordCount} palavras (mínimo 1.500)`);
+    if (headingCount < 6) preflightIssues.push(`conteúdo tem ${headingCount} subtítulos H2/H3 (mínimo 6)`);
+    if (paragraphCount < 8) preflightIssues.push(`conteúdo tem ${paragraphCount} parágrafos (mínimo 8)`);
+    if (sections.length < 4) preflightIssues.push('sections deve conter pelo menos 4 seções substantivas');
+    if (sections.some((section: any) => typeof section?.heading !== 'string' || visibleText(String(section.content ?? '')).length < 120)) {
+      preflightIssues.push('cada seção precisa de título e pelo menos 120 caracteres de texto');
+    }
+    if (specs.length < 4) preflightIssues.push('specs deve conter pelo menos 4 itens');
+    if (heroBars.length < 3 || heroBars.length > 5) preflightIssues.push('hero_bars deve conter de 3 a 5 itens');
+    if (pros.length < 3) preflightIssues.push('pros deve conter pelo menos 3 itens');
+    if (cons.length < 3) preflightIssues.push('cons deve conter pelo menos 3 itens');
+    if (faq.length < 3) preflightIssues.push('faq deve conter pelo menos 3 perguntas');
+    if (!comparison || !Array.isArray(comparison.columns) || comparison.columns.length < 2 || comparison.columns.length > 4) {
+      preflightIssues.push('compare_table precisa de 2 a 4 colunas');
+    } else {
+      if (!Array.isArray(comparison.rows) || comparison.rows.length < 3) {
+        preflightIssues.push('compare_table precisa de pelo menos 3 linhas');
+      } else if (comparison.rows.some((row: any) => !Array.isArray(row?.values) || row.values.length !== comparison.columns.length - 1)) {
+        preflightIssues.push('cada linha da comparação deve ter um valor para cada produto');
+      }
+      const winnerCol = comparison.winnerCol;
+      if (!Number.isInteger(winnerCol) || (winnerCol !== -1 && winnerCol < 1) || winnerCol >= comparison.columns.length) {
+        preflightIssues.push('compare_table.winnerCol deve ser -1 (sem vencedor) ou apontar para uma coluna de produto existente');
+      }
+    }
+
+    if (preflightIssues.length > 0) {
+      throw new Error(`quality gate prévio reprovou o review: ${preflightIssues.join('; ')}`);
+    }
+
     // Normalize field lengths and repair omitted editorial scaffolding only with
     // explicitly qualified purchase guidance, never with made-up product specifications.
     if (generatedDescription.length > 160) {
@@ -196,6 +243,31 @@ export async function generateReview(product: {
       ? proposedMetaDescription
       : fallbackMetaDescription.slice(0, 160);
 
+    const qualityValidation = validateGeneratedReview({
+      product: product.title,
+      category: product.category || 'Não informada',
+      content: generatedContent,
+      sections,
+      hero_lead: parsed.hero_lead,
+      specs,
+      hero_bars: heroBars,
+      pros,
+      cons,
+      faq,
+      meta_title: finalMetaTitle,
+      meta_description: finalMetaDescription,
+      hero_overall_score: parsed.hero_overall_score,
+      verdict_score: parsed.verdict_score,
+      verdict_label: parsed.verdict_label,
+      verdict_text: parsed.verdict_text,
+      verdict_note: parsed.verdict_note,
+      compare_table: comparison,
+    }, { source: 'cron', slug: generatedTitle });
+
+    if (!qualityValidation.ok) {
+      throw new Error(`quality gate editorial reprovou o review: ${qualityValidation.issues.join('; ')}`);
+    }
+
     return {
       slug: product.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, ''),
       title: generatedTitle,
@@ -232,7 +304,7 @@ export async function generateReview(product: {
   }
 }
 
-export async function generateReviews(products: Array<{ title: string; category: string; price: string; image: string; product_url?: string; marketplace?: string }>): Promise<ReviewOutput[]> {
+export async function generateReviews(products: Array<{ title: string; category: string; price: string; image: string; product_url?: string; marketplace?: string; editorialBrief?: import('./prompt').EditorialBrief }>): Promise<ReviewOutput[]> {
   const results = await Promise.all(
     products.map((product) => generateReview(product))
   );
