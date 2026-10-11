@@ -224,7 +224,8 @@ export function validateGeneratedReview(
 }
 
 
-const MIN_VIRAL_CONTENT_LENGTH = 3500;
+const MIN_VIRAL_CONTENT_LENGTH = 5000;
+const MIN_VIRAL_CONTENT_WORDS = 1200;
 const MIN_VIRAL_HEADINGS = 6;
 const MIN_VIRAL_PARAGRAPHS = 8;
 const MIN_VIRAL_FAQ_QUESTIONS = 3;
@@ -256,11 +257,21 @@ export const generatedViralQualitySchema = z
     seo_description: z.string().trim().min(40),
   })
   .superRefine((val, ctx) => {
-    if (visibleTextLength(val.content) < MIN_VIRAL_CONTENT_LENGTH) {
+    const visibleContent = val.content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\\s+/g, ' ').trim();
+    const visibleLength = visibleTextLength(val.content);
+    if (visibleLength < MIN_VIRAL_CONTENT_LENGTH) {
       ctx.addIssue({
         code: 'custom',
         path: ['content'],
         message: `visible article text must have at least ${MIN_VIRAL_CONTENT_LENGTH} characters`,
+      });
+    }
+    const visibleWords = visibleContent ? visibleContent.split(/\\s+/).length : 0;
+    if (visibleWords < MIN_VIRAL_CONTENT_WORDS) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['content'],
+        message: `visible article text must have at least ${MIN_VIRAL_CONTENT_WORDS} words (received ${visibleWords})`,
       });
     }
 
