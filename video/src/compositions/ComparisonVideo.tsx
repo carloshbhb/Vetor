@@ -16,6 +16,23 @@ import { AnimatedText } from '../components/AnimatedText';
 import { ProductCard } from '../components/ProductCard';
 import { ScoreBar } from '../components/ScoreBar';
 import { createTikTokStyleCaptions } from '@remotion/captions';
+import { TransitionSeries, linearTiming } from '@remotion/transitions';
+import { fade } from '@remotion/transitions/fade';
+
+const SceneTransition: React.FC<{ durationInFrames: number; children: React.ReactNode }> = ({ durationInFrames, children }) => {
+  const transitionFrames = Math.min(12, Math.max(1, Math.floor(durationInFrames / 4)));
+  return (
+    <TransitionSeries>
+      <TransitionSeries.Sequence durationInFrames={transitionFrames}>
+        <AbsoluteFill style={{ background: theme.bg }} />
+      </TransitionSeries.Sequence>
+      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: transitionFrames })} />
+      <TransitionSeries.Sequence durationInFrames={durationInFrames}>
+        <AbsoluteFill>{children}</AbsoluteFill>
+      </TransitionSeries.Sequence>
+    </TransitionSeries>
+  );
+};
 
 export interface SubtitleEntry {
   start: number;
@@ -280,12 +297,13 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
       <Audio src={audioUrl} />
 
       <Sequence from={0} durationInFrames={hookFrames}>
-        <HookScene hook={hook} product1Image={product1.imageUrl} product2Image={product2.imageUrl} />
+        <SceneTransition durationInFrames={hookFrames}><HookScene hook={hook} product1Image={product1.imageUrl} product2Image={product2.imageUrl} /></SceneTransition>
       </Sequence>
 
       {scenes.map((scene) => (
         <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.endFrame - scene.startFrame}>
           {scene.type === 'product1' && (
+            <SceneTransition durationInFrames={scene.endFrame - scene.startFrame}>
             <ProductScene
               product={product1}
               borderColor={theme.blue}
@@ -298,8 +316,10 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
               brollVideos={brollVideos}
               sceneIndex={scene.id}
             />
+            </SceneTransition>
           )}
           {scene.type === 'product2' && (
+            <SceneTransition durationInFrames={scene.endFrame - scene.startFrame}>
             <ProductScene
               product={product2}
               borderColor={theme.green}
@@ -312,8 +332,10 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
               brollVideos={brollVideos}
               sceneIndex={scene.id}
             />
+            </SceneTransition>
           )}
           {scene.type === 'comparison' && (
+            <SceneTransition durationInFrames={scene.endFrame - scene.startFrame}>
             <ComparisonScene
               product1Name={product1.name}
               product2Name={product2.name}
@@ -323,11 +345,13 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
               duration={scene.duration}
               fps={fps}
             />
+            </SceneTransition>
           )}
         </Sequence>
       ))}
 
       <Sequence from={hookFrames + contentFrames} durationInFrames={verdictFrames}>
+        <SceneTransition durationInFrames={verdictFrames}>
         <VerdictScene
           winnerName={winnerProduct.name}
           winnerScore={winnerProduct.score}
@@ -340,6 +364,7 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
           duration={verdictFrames}
           fps={fps}
         />
+        </SceneTransition>
       </Sequence>
 
       <SubtitleOverlay subtitles={subtitleEntries} currentFrame={frame} fps={fps} />
