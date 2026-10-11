@@ -277,7 +277,7 @@ async function main() {
         title: 'Galaxy S24 vs iPhone 15: Qual Comprar em 2026?',
         product1: { name: 'Galaxy S24', imageUrl: '/images/samsung-s24.png', score: 0 },
         product2: { name: 'iPhone 15', imageUrl: '/images/iphone15.png', score: 0 },
-        categories: []
+        categories: [],
         winner: 0,
         comparisonUrl: 'https://www.vetor.blog/comparativos/',
         hook: 'Galaxy S24 vs iPhone 15 - qual comprar em 2026?',
