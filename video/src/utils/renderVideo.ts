@@ -1,3 +1,5 @@
+import type { VideoScene } from '../compositions/ReviewVideo';
+import type { ComparisonSceneData, SubtitleEntry } from '../compositions/ComparisonVideo';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, getCompositions } from '@remotion/renderer';
 import path from 'path';
@@ -96,17 +98,6 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
     outputLocation,
     inputProps: data as unknown as InputProps,
     crf: 18,
-    codecOptions: {
-      preset: 'slow',
-      profile: 'high',
-      level: '4.2',
-      pix_fmt: 'yuv420p',
-    },
-    onStart: ({ command }) => {
-      if (command) {
-        console.log('FFmpeg command:', command.join(' '));
-      }
-    },
   });
 
   return outputLocation;
