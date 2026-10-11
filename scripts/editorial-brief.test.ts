@@ -35,7 +35,7 @@ const reviewPrompt = buildReviewPrompt({
 assert.ok(reviewPrompt.includes('Palavra-chave principal: Samsung Galaxy Fit3 vale a pena'));
 assert.ok(reviewPrompt.includes('SINAIS DE PESQUISA REAL DO VETOR'));
 assert.ok(reviewPrompt.includes('impressões no Search Console=34'));
-assert.ok(reviewPrompt.includes('não apresentar como volume geral de busca'));
+assert.ok(reviewPrompt.includes('nunca apresentar como volume geral de busca'));
 assert.ok(reviewPrompt.includes('https://www.vetor.blog/reviews/'));
 
 const products = [
