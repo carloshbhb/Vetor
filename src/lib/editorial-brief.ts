@@ -8,6 +8,7 @@ import {
 interface KeywordRow {
   keyword: string;
   intent?: string | null;
+  intent?: string | null;
   source?: string | null;
   opportunity_score?: number | null;
   vetor_fit_score?: number | null;
@@ -105,8 +106,18 @@ function enrichBrief(defaultBrief: EditorialBrief, rows: Array<{ row: KeywordRow
   if (!rows.length) return defaultBrief;
   const primaryRow = rows.find((item) => item.productOverlap > 0)?.row || rows[0].row;
   const related = rows.map((item) => item.row.keyword).filter((keyword) => normalize(keyword) !== normalize(primaryRow.keyword));
+  const normalizedIntent = normalize(primaryRow.intent || '');
+  const searchIntent: EditorialBrief['searchIntent'] =
+    normalizedIntent.includes('transacional') || normalizedIntent.includes('transactional')
+      ? 'transactional'
+      : normalizedIntent.includes('informacional') || normalizedIntent.includes('informational')
+        ? 'informational'
+        : normalizedIntent.includes('navegacional') || normalizedIntent.includes('navigational')
+          ? 'navigational'
+          : 'commercial';
   return {
     ...defaultBrief,
+    searchIntent,
     primaryKeyword: primaryRow.keyword,
     relatedKeywords: Array.from(new Set([...related, ...(defaultBrief.relatedKeywords || [])])).slice(0, 10),
     keywordEvidence: rows.map((item) => evidenceFromRow(item.row)),
