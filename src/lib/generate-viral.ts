@@ -46,7 +46,8 @@ export async function generateViralArticle(topic: {
         'Você é um editor de comparativos do vetor.blog. Responda APENAS em JSON válido, sem texto adicional.',
       userPrompt: prompt,
       temperature: 0.55,
-      maxTokens: 4200,
+      maxTokens: 5500,
+      responseFormat: { type: 'json_object' },
     });
 
     const jsonMatch = response.match(/\{[\s\S]*\}/);
