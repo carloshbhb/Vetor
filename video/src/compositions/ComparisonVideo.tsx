@@ -39,7 +39,8 @@ interface ComparisonVideoProps {
   product1: { name: string; imageUrl: string; score: number };
   product2: { name: string; imageUrl: string; score: number };
   categories: Array<{ label: string; score1: number; score2: number }>;
-  winner: 1 | 2;
+  winner: 0 | 1 | 2;
+  comparisonUrl?: string;
   hook: string;
   scenes: ComparisonSceneData[];
   callToAction: string;
@@ -96,6 +97,8 @@ const ProductScene: React.FC<{
 }> = ({ product, borderColor, scoreColor, label, currentFrame, startFrame, duration, fps, brollVideos, sceneIndex }) => {
   const frameInScene = currentFrame - startFrame;
   const progress = frameInScene / (duration * fps);
+  const hasScore = Number.isFinite(product.score) && product.score > 0;
+  const displayedScoreColor = hasScore ? scoreColor : theme.muted;
 
   const useBroll = brollVideos.length > 0 && progress > 0.3 && progress < 0.9;
   const brollIndex = (sceneIndex + Math.floor(progress * 2)) % brollVideos.length;
@@ -129,8 +132,8 @@ const ProductScene: React.FC<{
           <AnimatedText text={label} fontSize={32} color={theme.muted} />
           <Img src={product.imageUrl} style={{ width: 350, height: 350, objectFit: 'contain', borderRadius: 24 }} />
           <div style={{ fontSize: 36, fontWeight: 'bold', color: theme.text, fontFamily: fonts.heading }}>{product.name}</div>
-          <div style={{ width: 180, height: 180, borderRadius: '50%', border: `5px solid ${scoreColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: theme.surface2, boxShadow: `0 0 40px ${scoreColor}40` }}>
-            <span style={{ fontSize: 72, fontWeight: 'bold', color: scoreColor, fontFamily: fonts.mono }}>{product.score.toFixed(1)}</span>
+          <div style={{ width: 180, height: 180, borderRadius: '50%', border: `5px solid ${displayedScoreColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: theme.surface2, boxShadow: `0 0 40px ${displayedScoreColor}40` }}>
+            <span style={{ fontSize: 72, fontWeight: 'bold', color: displayedScoreColor, fontFamily: fonts.mono }}>{hasScore ? product.score.toFixed(1) : '—'}</span>
           </div>
         </div>
       </div>
@@ -158,6 +161,15 @@ const ComparisonScene: React.FC<{
           <span style={{ fontSize: 28, fontWeight: 'bold', color: theme.blue, fontFamily: fonts.heading }}>{product1Name}</span>
           <span style={{ fontSize: 28, fontWeight: 'bold', color: theme.green, fontFamily: fonts.heading }}>{product2Name}</span>
         </div>
+        {categories.length === 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 22, width: '100%', maxWidth: 900 }}>
+            {['Recursos documentados', 'Compatibilidade com seu uso', 'Preço total e condições', 'Garantia e política de devolução'].map((criterion) => (
+              <div key={criterion} style={{ width: '100%', padding: '20px 26px', borderRadius: 18, background: theme.surface, border: '1px solid rgba(255,255,255,0.15)', color: theme.text, fontSize: 28, fontFamily: fonts.body, textAlign: 'center' }}>
+                {criterion}
+              </div>
+            ))}
+          </div>
+        )}
         {categories.map((cat, index) => {
           const barProgress = Math.max(0, Math.min(1, (progress - index * 0.15) / 0.15));
           return (
@@ -183,6 +195,7 @@ const VerdictScene: React.FC<{
   winnerName: string;
   winnerScore: number;
   loserName: string;
+  hasWinner: boolean;
   callToAction: string;
   title: string;
   shortenedUrl: string;
@@ -190,34 +203,45 @@ const VerdictScene: React.FC<{
   startFrame: number;
   duration: number;
   fps: number;
-}> = ({ winnerName, winnerScore, loserName, callToAction, title, shortenedUrl, currentFrame, startFrame, duration, fps }) => {
+}> = ({ winnerName, winnerScore, loserName, hasWinner, callToAction, title, shortenedUrl, currentFrame, startFrame, duration, fps }) => {
   const frameInScene = currentFrame - startFrame;
   const progress = frameInScene / (duration * fps);
-
   const crownScale = interpolate(progress, [0.2, 0.4], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  const ctaOpacity = interpolate(progress, [0.5, 0.7], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  const urlOpacity = interpolate(progress, [0.6, 0.8], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const ctaOpacity = interpolate(progress, [0.25, 0.45], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const urlOpacity = interpolate(progress, [0.45, 0.7], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <GradientBackground>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30, height: '100%' }}>
-        <AnimatedText text="VENCEDOR" fontSize={44} color={theme.green} />
-        <div style={{ transform: `scale(${crownScale})`, fontSize: 90 }}>👑</div>
-        <AnimatedText text={winnerName} fontSize={56} delay={10} color={theme.text} />
-        <div style={{ background: theme.surface, borderRadius: 24, padding: '28px 56px', border: `2px solid ${theme.green}`, boxShadow: `0 0 40px ${theme.green}40` }}>
-          <span style={{ fontSize: 40, fontWeight: 'bold', color: theme.green, fontFamily: fonts.mono }}>{winnerScore.toFixed(1)}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30, height: '100%', padding: '0 42px' }}>
+        <AnimatedText text={hasWinner ? 'VENCEDOR PELOS CRITÉRIOS ANALISADOS' : 'COMO ESCOLHER'} fontSize={38} color={hasWinner ? theme.green : theme.blue} />
+        {hasWinner && <div style={{ transform: 'scale(' + crownScale + ')', fontSize: 90 }}>👑</div>}
+        <AnimatedText
+          text={hasWinner ? winnerName : 'Não há dados suficientes para declarar um vencedor'}
+          fontSize={hasWinner ? 48 : 38}
+          color={theme.text}
+          maxWidth={920}
+        />
+        {hasWinner && (
+          <div style={{ background: theme.surface, borderRadius: 24, padding: '28px 56px', border: '2px solid ' + theme.green, boxShadow: '0 0 40px rgba(0,0,0,0.25)' }}>
+            <span style={{ fontSize: 40, fontWeight: 'bold', color: theme.green, fontFamily: fonts.mono }}>{winnerScore.toFixed(1)}</span>
+          </div>
+        )}
+        <AnimatedText
+          text={hasWinner ? 'vs ' + loserName : 'Compare ficha oficial, compatibilidade, preço total e garantia dos dois modelos.'}
+          fontSize={30}
+          color={theme.muted}
+          fontWeight="normal"
+          maxWidth={900}
+        />
+        <div style={{ opacity: ctaOpacity, marginTop: 20, background: theme.blue, borderRadius: 20, padding: '24px 46px', boxShadow: '0 10px 40px rgba(37,99,235,0.3)' }}>
+          <span style={{ fontSize: 30, fontWeight: 'bold', color: theme.text, fontFamily: fonts.heading }}>{callToAction}</span>
         </div>
-        <AnimatedText text={`vs ${loserName}`} fontSize={30} color={theme.muted} delay={20} fontWeight="normal" />
-        <div style={{ opacity: ctaOpacity, marginTop: 20, background: theme.blue, borderRadius: 20, padding: '24px 70px', boxShadow: `0 10px 40px ${theme.blue}60` }}>
-          <span style={{ fontSize: 32, fontWeight: 'bold', color: theme.text, fontFamily: fonts.heading }}>{callToAction}</span>
-        </div>
-        <AnimatedText text={shortenedUrl} fontSize={28} color={theme.green} delay={30} style={{ opacity: urlOpacity, fontFamily: fonts.mono, background: theme.surface, padding: '12px 24px', borderRadius: 12, border: `1px solid ${theme.green}40` }} />
-        <AnimatedText text={title} fontSize={24} color={theme.muted} delay={38} style={{ opacity: urlOpacity }} />
+        <AnimatedText text={shortenedUrl} fontSize={24} color={theme.green} delay={20} style={{ opacity: urlOpacity, fontFamily: fonts.mono, background: theme.surface, padding: '12px 24px', borderRadius: 12, border: '1px solid rgba(34,197,94,0.25)' }} />
+        <AnimatedText text={title} fontSize={22} color={theme.muted} delay={28} style={{ opacity: urlOpacity }} />
       </div>
     </GradientBackground>
   );
 };
-
 const SubtitleOverlay: React.FC<{ subtitles: SubtitleEntry[]; currentFrame: number; fps: number }> = ({ subtitles, currentFrame, fps }) => {
   const currentTime = currentFrame / fps;
   const activeSubtitle = subtitles.find(s => currentTime >= s.start && currentTime < s.end);
@@ -238,6 +262,7 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
   product2,
   categories,
   winner,
+  comparisonUrl,
   hook,
   scenes,
   callToAction,
@@ -251,9 +276,12 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
 
-  const winnerProduct = winner === 1 ? product1 : product2;
+  const hasWinner = winner === 1 || winner === 2;
+  const winnerProduct = winner === 2 ? product2 : product1;
   const loserProduct = winner === 1 ? product2 : product1;
-  const shortenedUrl = `vetor.blog/${title.toLowerCase().replace(/\s+/g, '-').slice(0, 50)}`;
+  const shortenedUrl = typeof comparisonUrl === 'string' && comparisonUrl.startsWith('https://www.vetor.blog/comparativos/')
+    ? comparisonUrl.replace('https://www.vetor.blog', 'vetor.blog')
+    : 'vetor.blog/comparativos/';
 
   const hookFrames = 3 * fps;
   const verdictFrames = 5 * fps;
@@ -316,6 +344,7 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
           winnerName={winnerProduct.name}
           winnerScore={winnerProduct.score}
           loserName={loserProduct.name}
+          hasWinner={hasWinner}
           callToAction={callToAction}
           title={title}
           shortenedUrl={shortenedUrl}

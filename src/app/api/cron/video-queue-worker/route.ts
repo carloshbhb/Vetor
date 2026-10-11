@@ -158,6 +158,102 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, queued: queued.length, videos: queued });
     }
 
+    if (action === "queueFromComparatives") {
+      const limit = Math.min(Math.max(Number(body.limit || 1), 1), 10);
+      const { data: articles, error: articlesError } = await supabase
+        .from("viral_articles")
+        .select("slug,title,category,products,published_at,updated_at")
+        .order("published_at", { ascending: false })
+        .limit(200);
+      if (articlesError) throw articlesError;
+
+      const { data: existing, error: existingError } = await supabase
+        .from("video_queue")
+        .select("review_url,status")
+        .in("status", ["pending", "processing", "completed"]);
+      if (existingError) throw existingError;
+      const existingUrls = new Set((existing || []).map((item) => item.review_url).filter(Boolean));
+
+      const candidates = (articles || []).filter((article) => {
+        if (typeof article.slug !== "string" || !article.slug.trim()) return false;
+        if (typeof article.title !== "string" || !article.title.trim()) return false;
+        let products: unknown = article.products;
+        if (typeof products === "string") {
+          try { products = JSON.parse(products); } catch { return false; }
+        }
+        if (!Array.isArray(products) || products.length < 2) return false;
+        const validProducts = products.slice(0, 2).every((product: any) => {
+          if (!product || typeof product.name !== "string" || !product.name.trim()) return false;
+          try {
+            const image = new URL(String(product.imageUrl || ""));
+            return image.protocol === "https:" || image.protocol === "http:";
+          } catch {
+            return false;
+          }
+        });
+        if (!validProducts) return false;
+        return !existingUrls.has(`https://www.vetor.blog/comparativos/${article.slug}/`);
+      }).slice(0, limit);
+
+      const queued = [];
+      for (const article of candidates) {
+        let products: any[] = Array.isArray(article.products) ? article.products : [];
+        if (typeof article.products === "string") {
+          try { products = JSON.parse(article.products); } catch { products = []; }
+        }
+        if (products.length < 2) continue;
+        const first = products[0];
+        const second = products[1];
+        const category = typeof article.category === "string" && article.category.trim()
+          ? article.category.trim()
+          : "Tecnologia";
+        const title = `${first.name} vs ${second.name}`;
+        const comparisonUrl = `https://www.vetor.blog/comparativos/${article.slug}/`;
+        let purchaseUrl = comparisonUrl;
+        if (typeof first.product_url === "string") {
+          try {
+            const parsedProductUrl = new URL(first.product_url);
+            if (parsedProductUrl.protocol === "https:" || parsedProductUrl.protocol === "http:") {
+              purchaseUrl = parsedProductUrl.toString();
+            }
+          } catch {
+            // Keep the canonical comparison URL when the product URL is invalid.
+          }
+        }
+        const script = {
+          type: "comparison",
+          hook: `Antes de escolher entre ${first.name} e ${second.name}, compare os recursos documentados e as condições atuais.`,
+          callToAction: `Veja o comparativo completo em ${comparisonUrl} e confira os anúncios dos produtos.`,
+        };
+
+        const { data: inserted, error: insertError } = await supabase
+          .from("video_queue")
+          .insert({
+            product_url: purchaseUrl,
+            product_title: title,
+            product_category: category,
+            product_price: "Consulte os preços atuais dos anúncios",
+            product_image_url: first.imageUrl,
+            affiliate_url: purchaseUrl,
+            shortened_affiliate_url: purchaseUrl,
+            script_text: JSON.stringify(script),
+            script_hook: script.hook,
+            voiceover_url: "",
+            voiceover_duration: 0,
+            media_assets: [],
+            status: "pending",
+            review_url: comparisonUrl,
+            scheduled_at: new Date().toISOString(),
+          })
+          .select("id,product_title,status,review_url,affiliate_url")
+          .single();
+        if (insertError) throw insertError;
+        queued.push({ ...inserted, type: "comparison" });
+        existingUrls.add(comparisonUrl);
+      }
+      return NextResponse.json({ success: true, queued: queued.length, videos: queued });
+    }
+
     if (action === "next") {
       const limit = Math.min(Math.max(Number(body.limit || 1), 1), 10);
       const { data, error } = await supabase
@@ -214,7 +310,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, videos: data || [] });
     }
 
-    return NextResponse.json({ success: false, error: "Ação inválida. Use queueFromReviews, next, get, update ou recent." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Ação inválida. Use queueFromReviews, queueFromComparatives, next, get, update ou recent." }, { status: 400 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[video-queue-worker] failed:", message);

@@ -35,6 +35,7 @@ export interface VideoScene {
 interface ReviewVideoProps {
   title: string;
   imageUrl: string;
+  reviewUrl?: string;
   score: number;
   category: string;
   hook: string;
@@ -208,7 +209,8 @@ const ScoreScene: React.FC<{ score: number; productImage: string }> = ({ score, 
   const sceneFrames = 4 * fps;
   const progress = frame / sceneFrames;
 
-  const scoreColor = score >= 9 ? theme.green : score >= 7 ? theme.blue : score >= 5 ? theme.yellow : theme.red;
+  const hasScore = Number.isFinite(score) && score > 0;
+  const scoreColor = !hasScore ? theme.muted : score >= 9 ? theme.green : score >= 7 ? theme.blue : score >= 5 ? theme.yellow : theme.red;
 
   const scale = interpolate(progress, [0, 0.3], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const numberValue = interpolate(progress, [0.1, 0.6], [0, score], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
@@ -216,7 +218,7 @@ const ScoreScene: React.FC<{ score: number; productImage: string }> = ({ score, 
   return (
     <GradientBackground>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30, height: '100%' }}>
-        <AnimatedText text="NOTA FINAL" fontSize={36} color={theme.muted} />
+        <AnimatedText text={hasScore ? "NOTA FINAL" : "NOTA NÃO INFORMADA"} fontSize={36} color={theme.muted} />
         <div
           style={{
             width: 280,
@@ -232,11 +234,11 @@ const ScoreScene: React.FC<{ score: number; productImage: string }> = ({ score, 
           }}
         >
           <span style={{ fontSize: 110, fontWeight: 'bold', color: scoreColor, fontFamily: fonts.mono }}>
-            {numberValue.toFixed(1)}
+            {hasScore ? numberValue.toFixed(1) : '—'}
           </span>
         </div>
         <AnimatedText
-          text={score >= 8 ? 'EXCELENTE!' : score >= 6 ? 'BOM!' : 'REGULAR'}
+          text={!hasScore ? 'Sem avaliação cadastrada' : score >= 8 ? 'EXCELENTE!' : score >= 6 ? 'BOM!' : 'REGULAR'}
           fontSize={44}
           color={scoreColor}
           delay={15}
@@ -299,12 +301,15 @@ export const ReviewVideo: React.FC<ReviewVideoProps> = ({
   brollVideos = [],
   totalDuration,
   fps,
+  reviewUrl,
 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
 
   const mainProductImage = productImages[0] || imageUrl;
-  const shortenedUrl = `vetor.blog/${title.toLowerCase().replace(/\s+/g, '-').slice(0, 50)}`;
+  const shortenedUrl = typeof reviewUrl === 'string' && reviewUrl.startsWith('https://www.vetor.blog/')
+    ? reviewUrl.replace('https://www.vetor.blog', 'vetor.blog')
+    : 'vetor.blog/reviews/';
 
   const hookFrames = 3 * fps;
   const scoreFrames = 4 * fps;

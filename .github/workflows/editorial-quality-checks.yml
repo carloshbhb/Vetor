@@ -1,0 +1,71 @@
+name: Editorial Quality Checks
+
+on:
+  push:
+    branches: ['fix/editorial-quality-*']
+    paths:
+      - 'src/lib/**'
+      - 'src/app/api/cron/**'
+      - 'scripts/**'
+      - 'tmp/generate-8-articles.ts'
+      - 'tmp/generate-videos.ts'
+      - 'video/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.tmp.json'
+      - '.github/workflows/editorial-quality-checks.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/lib/**'
+      - 'src/app/api/cron/**'
+      - 'scripts/**'
+      - 'tmp/generate-8-articles.ts'
+      - 'tmp/generate-videos.ts'
+      - 'video/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.tmp.json'
+      - '.github/workflows/editorial-quality-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Run editorial quality tests
+        run: |
+          npm run test:content-quality
+          npm run test:editorial-brief
+          npm run test:viral-quality
+
+      - name: Type-check application and scheduled scripts
+        run: |
+          npx tsc --noEmit
+          npx tsc --noEmit -p tsconfig.tmp.json
+
+      - name: Install video renderer dependencies
+        run: npm ci --prefix video
+
+      - name: Type-check Remotion project
+        working-directory: video
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Validate production build
+        run: npm run build

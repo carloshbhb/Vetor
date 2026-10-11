@@ -3,7 +3,6 @@ import { Config } from '@remotion/cli/config';
 Config.setVideoImageFormat('jpeg');
 Config.setOverwriteOutput(true);
 Config.setJpegQuality(95);
-Config.setParallelism(4);
 
 export const remotionConfig = {
   // Enable hardware acceleration for faster encoding

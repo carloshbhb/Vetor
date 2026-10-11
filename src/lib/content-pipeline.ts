@@ -1,6 +1,7 @@
 import { generateReview } from './generate';
+import { buildReviewEditorialBrief } from './editorial-brief';
 import { generateAffiliateUrl } from './product-extractor';
-import { createReview } from './supabase';
+import { createReview, getSupabaseServiceKeyClient } from './supabase';
 import { validateGeneratedReview } from './content-quality';
 import { buildReviewIndexNowTargets, pingNewContent } from './indexnow';
 import type { ProductLink } from './product-links';
@@ -47,8 +48,14 @@ export async function runReviewPipeline(
       ? `R$${product.price.toFixed(2)}`
       : product.price;
 
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) {
+    return { status: 'db_error', error: 'Supabase Service Role não configurado; o review não será simulado nem marcado como criado.' };
+  }
+
   let review;
   try {
+    const editorialBrief = await buildReviewEditorialBrief({ title: product.title, category: product.category });
     review = await generateReview({
       title: product.title,
       category: product.category,
@@ -56,6 +63,7 @@ export async function runReviewPipeline(
       image: product.image,
       product_url: product.product_url,
       marketplace: product.marketplace || 'mercadolivre',
+      editorialBrief,
     });
   } catch (err: unknown) {
     return {
@@ -78,7 +86,7 @@ export async function runReviewPipeline(
 
   const payload = {
     slug: review.slug,
-    product: review.title,
+    product: product.title,
     category: review.category,
     price_new: review.price,
     image_url: review.image,
@@ -105,6 +113,32 @@ export async function runReviewPipeline(
     affiliate_url: affiliateUrl || '',
   };
 
+  if (source === 'cron') {
+    const { data: existingReview, error: existingReviewError } = await supabase
+      .from('reviews')
+      .select('slug,status')
+      .eq('slug', review.slug)
+      .maybeSingle();
+
+    if (existingReviewError) {
+      return {
+        status: 'db_error',
+        slug: review.slug,
+        title: review.title,
+        error: 'Não foi possível conferir se o review já existe; a gravação foi bloqueada para evitar sobrescrever conteúdo: ' + existingReviewError.message,
+      };
+    }
+
+    if (existingReview) {
+      return {
+        status: 'db_error',
+        slug: review.slug,
+        title: review.title,
+        error: 'Já existe um review com o slug "' + review.slug + '" (status: ' + existingReview.status + '); a geração automática não o sobrescreveu.',
+      };
+    }
+  }
+
   const validation = validateGeneratedReview(payload, { source, slug: review.slug });
   if (!validation.ok) {
     return {
@@ -115,7 +149,7 @@ export async function runReviewPipeline(
     };
   }
 
-  const dbResult = await createReview(payload);
+  const dbResult = await createReview(payload, { insertOnly: source === 'cron' });
   if (dbResult.error || !dbResult.data) {
     return {
       status: 'db_error',

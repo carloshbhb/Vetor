@@ -15,6 +15,8 @@
     "setup:vercel": "bash scripts/setup-vercel-env.sh",
     "setup:supabase": "bash scripts/setup-supabase.sh",
     "mcp:start": "agentdb mcp start",
+    "test:content-quality": "tsx scripts/content-quality.test.ts",
+    "test:editorial-brief": "tsx scripts/editorial-brief.test.ts",
     "memory:stats": "agentdb stats .agentdb.db",
     "memory:query": "agentdb query --query",
     "memory:store": "agentdb store-pattern",
@@ -22,7 +24,8 @@
     "validate:indexnow-config": "tsx scripts/validate-indexnow-config.ts",
     "test:indexing-quality": "tsx scripts/indexing-quality.test.ts",
     "test:comparison-tables": "tsx scripts/comparison-tables.test.ts",
-    "test:review-compare": "tsx scripts/review-compare.test.ts"
+    "test:review-compare": "tsx scripts/review-compare.test.ts",
+    "test:viral-quality": "tsx scripts/viral-quality.test.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

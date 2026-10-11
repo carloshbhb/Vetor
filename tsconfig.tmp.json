@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "tmp/generate-8-articles.ts",
+    "tmp/generate-videos.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "video"
+  ]
+}

@@ -2,6 +2,8 @@ import { buildViralPrompt } from './prompt';
 import { seo } from './seo';
 import { chatCompletion } from './llm-provider';
 import { validateGeneratedViralArticle } from './content-quality';
+import type { EditorialBrief } from './prompt';
+import { slugifyEditorialTitle } from './slug';
 
 interface ViralArticleOutput {
   slug: string;
@@ -30,6 +32,7 @@ export async function generateViralArticle(topic: {
   title: string;
   category: string;
   comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
+  editorialBrief?: EditorialBrief;
 }): Promise<ViralArticleOutput> {
   if (topic.comparisonProducts.length < 2) {
     throw new Error('[viral-generator] comparison requires at least 2 products');
@@ -43,7 +46,8 @@ export async function generateViralArticle(topic: {
         'Você é um editor de comparativos do vetor.blog. Responda APENAS em JSON válido, sem texto adicional.',
       userPrompt: prompt,
       temperature: 0.55,
-      maxTokens: 4200,
+      maxTokens: 5500,
+      responseFormat: { type: 'json_object' },
     });
 
     const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -69,14 +73,7 @@ export async function generateViralArticle(topic: {
   const { title: seoTitle, description: seoDesc } = seo(generatedTitle, generatedDescription);
 
   const output: ViralArticleOutput = {
-    slug: generatedTitle
-      .normalize('NFD')
-      .replace(/[\\u0300-\\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9\\s-]/g, '')
-      .replace(/\\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, ''),
+    slug: slugifyEditorialTitle(generatedTitle),
     title: generatedTitle,
     description: generatedDescription,
     content: generatedContent,
@@ -105,6 +102,7 @@ export async function generateViralArticles(topics: Array<{
   title: string;
   category: string;
   comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
+  editorialBrief?: EditorialBrief;
 }>): Promise<ViralArticleOutput[]> {
   const results = await Promise.all(
     topics.map((topic) => generateViralArticle(topic))

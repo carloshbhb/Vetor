@@ -1,283 +1,147 @@
 import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-config({ path: '../.env.local' });
+const projectRoot = process.cwd();
+config({ path: path.resolve(projectRoot, '.env.local') });
 
-interface Review {
-  id: string;
-  slug: string;
-  title: string;
-  image: string;
-  score: number;
-  pros: string[];
-  cons: string[];
-  category: string;
-  price_new?: string;
-  product_url?: string;
+function requiredEnv(name: string, fallbackName?: string): string {
+  const value = process.env[name] || (fallbackName ? process.env[fallbackName] : undefined);
+  if (!value?.trim()) throw new Error(`[video-worker] Missing required environment variable: ${name}`);
+  return value.trim();
 }
 
-interface ViralArticle {
-  id: string;
-  slug: string;
-  title: string;
-  products: Array<{ name: string; slug: string; imageUrl: string }>;
+const supabaseUrl = requiredEnv('SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL');
+const serviceKey = requiredEnv('SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY');
+requiredEnv('NVIDIA_API_KEY');
+requiredEnv('YOUTUBE_CLIENT_ID');
+requiredEnv('YOUTUBE_CLIENT_SECRET');
+requiredEnv('YOUTUBE_REFRESH_TOKEN');
+const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+const videoRoot = path.resolve(projectRoot, 'video');
+const queueInputDir = path.join(videoRoot, 'temp', 'queue-input');
+
+function runVideoProcessor(videoId: string, inputPath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn('npm', ['run', 'process-video', '--', videoId, inputPath], {
+      cwd: videoRoot,
+      env: {
+        ...process.env,
+        SUPABASE_URL: supabaseUrl,
+        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || supabaseUrl,
+        SUPABASE_SERVICE_ROLE_KEY: serviceKey,
+      },
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    });
+    child.once('error', reject);
+    child.once('close', (code) => code === 0 ? resolve() : reject(new Error(`Video processor exited with code ${code ?? 'unknown'}`)));
+  });
 }
 
-interface VideoManifest {
-  generatedAt: string;
-  videos: Array<{
-    type: 'review' | 'comparison';
-    slug: string;
-    title: string;
-    videoUrl: string;
-    status: 'success' | 'failed';
-    error?: string;
-    videoId?: string;
-  }>;
-}
-
-function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url) {
-    console.error('❌ Missing Supabase URL in .env.local');
-    process.exit(1);
-  }
-
-  return createClient(url, serviceKey || anonKey!);
-}
-
-async function getRecentReviews(supabase: ReturnType<typeof createClient>): Promise<Review[]> {
-  const { data, error } = await supabase
-    .from('reviews')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  if (error) {
-    console.error('Error fetching reviews:', error.message);
-    return [];
-  }
-
-  return (data ?? []) as Review[];
-}
-
-async function getRecentViralArticles(supabase: ReturnType<typeof createClient>): Promise<ViralArticle[]> {
-  const { data, error } = await supabase
-    .from('viral_articles')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  if (error) {
-    console.error('Error fetching viral articles:', error.message);
-    return [];
-  }
-
-  return (data ?? []) as ViralArticle[];
-}
-
-async function createVideoJob(supabase: ReturnType<typeof createClient>, review: Review): Promise<string | null> {
-  const productUrl = review.product_url || review.image || '';
-  const { data, error } = await supabase
+async function processPendingVideos(): Promise<void> {
+  const requestedLimit = Number.parseInt(process.env.VIDEO_LIMIT || '1', 10);
+  if (!Number.isInteger(requestedLimit) || requestedLimit < 1) throw new Error('[video-worker] VIDEO_LIMIT must be a positive integer.');
+  const limit = Math.min(requestedLimit, 10);
+  const { data: pending, error: pendingError } = await supabase
     .from('video_queue')
-    .insert({
-      product_url: productUrl,
-      product_title: review.title,
-      product_category: review.category,
-      product_price: review.price_new || 'R$0',
-      product_image_url: review.image,
-      affiliate_url: productUrl,
-      shortened_affiliate_url: productUrl,
-      status: 'pending',
-      scheduled_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error creating video job:', error.message);
-    return null;
+    .select('*')
+    .eq('status', 'pending')
+    .not('review_url', 'is', null)
+    .lte('scheduled_at', new Date().toISOString())
+    .order('scheduled_at', { ascending: true })
+    .limit(limit);
+  if (pendingError) throw pendingError;
+  if (!pending?.length) {
+    console.log('[video-worker] No due review video jobs pending.');
+    return;
   }
 
-  return data.id;
-}
+  fs.mkdirSync(queueInputDir, { recursive: true });
+  let completed = 0;
+  let failed = 0;
+  for (const job of pending) {
+    const id = typeof job.id === 'string' ? job.id : '';
+    if (!id) {
+      failed += 1;
+      console.error('[video-worker] Skipping queue row without an ID.');
+      continue;
+    }
 
-async function generateReviewVideo(supabase: ReturnType<typeof createClient>, review: Review): Promise<{ url: string; videoId?: string; status: string }> {
-  const videoId = await createVideoJob(supabase, review);
+    const claimedAt = new Date().toISOString();
+    const { data: claimed, error: claimError } = await supabase
+      .from('video_queue')
+      .update({ status: 'processing', started_at: claimedAt, error_message: null, updated_at: claimedAt })
+      .eq('id', id)
+      .eq('status', 'pending')
+      .select('*')
+      .maybeSingle();
+    if (claimError) throw claimError;
+    if (!claimed) {
+      console.log(`[video-worker] Job ${id} was claimed by another worker; skipping.`);
+      continue;
+    }
 
-  if (!videoId) {
-    return { url: '', status: 'failed', error: 'Failed to create video job' };
-  }
-
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
-  return {
-    url: `${baseUrl}/videos/review-${review.slug}.mp4`,
-    videoId,
-    status: 'pending',
-  };
-}
-
-async function generateComparisonVideo(supabase: ReturnType<typeof createClient>, article: ViralArticle): Promise<{ url: string; videoId?: string; status: string }> {
-  const products = Array.isArray(article.products) ? article.products : [];
-  if (products.length < 2) {
-    throw new Error('Not enough products for comparison');
-  }
-
-  const firstProduct = products[0];
-  const secondProduct = products[1];
-
-  const { data, error } = await supabase
-    .from('video_queue')
-    .insert({
-      product_url: firstProduct.imageUrl,
-      product_title: `${firstProduct.name} vs ${secondProduct.name}`,
-      product_category: 'Comparação',
-      product_price: '',
-      product_image_url: firstProduct.imageUrl,
-      affiliate_url: firstProduct.imageUrl,
-      shortened_affiliate_url: firstProduct.imageUrl,
-      status: 'pending',
-      scheduled_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error creating comparison video job:', error.message);
-    return { url: '', status: 'failed', error: 'Failed to create video job' };
-  }
-
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.vetor.blog';
-  return {
-    url: `${baseUrl}/videos/comparison-${article.slug}.mp4`,
-    videoId: data.id,
-    status: 'pending',
-  };
-}
-
-async function generateVideos() {
-  const supabase = getSupabaseClient();
-  const manifest: VideoManifest = {
-    generatedAt: new Date().toISOString(),
-    videos: [],
-  };
-
-  console.log('🎬 Starting video generation pipeline...\n');
-
-  const reviews = await getRecentReviews(supabase);
-  console.log(`📋 Found ${reviews.length} recent reviews\n`);
-
-  for (const review of reviews) {
-    console.log(`\n🎥 Generating review video: ${review.title}`);
-
+    const inputPath = path.join(queueInputDir, `${id}.json`);
     try {
-      const result = await generateReviewVideo(supabase, review);
+      if (typeof claimed.product_title !== 'string' || !claimed.product_title.trim()) throw new Error('Queue item has no product title.');
+      let imageIsValid = false;
+      try {
+        const imageUrl = new URL(String(claimed.product_image_url || ''));
+        imageIsValid = imageUrl.protocol === 'https:' || imageUrl.protocol === 'http:';
+      } catch { /* rejected below */ }
+      if (!imageIsValid) throw new Error('Queue item has no valid HTTP(S) product image URL.');
 
-      manifest.videos.push({
-        type: 'review',
-        slug: review.slug,
-        title: review.title,
-        videoUrl: result.url,
-        status: result.status === 'pending' ? 'success' : 'failed',
-        videoId: result.videoId,
-        error: result.status !== 'pending' ? (result as any).error : undefined,
-      });
-
-      console.log(`  ✅ Video queued: ${result.url}`);
-      if (result.videoId) {
-        console.log(`  📋 Video ID: ${result.videoId} (will be rendered by pipeline)`);
+      let sourcePath = '';
+      try {
+        const sourceUrl = new URL(String(claimed.review_url || ''));
+        if (sourceUrl.protocol === 'https:' && sourceUrl.hostname === 'www.vetor.blog') sourcePath = sourceUrl.pathname;
+      } catch { /* rejected below */ }
+      if (!sourcePath.startsWith('/reviews/') && !sourcePath.startsWith('/comparativos/')) {
+        throw new Error('Only queue entries tied to a canonical Vetor review or comparative URL can be rendered by this worker.');
       }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`  ❌ Failed: ${message}`);
 
-      manifest.videos.push({
-        type: 'review',
-        slug: review.slug,
-        title: review.title,
-        videoUrl: '',
-        status: 'failed',
-        error: message,
-      });
+      fs.writeFileSync(inputPath, JSON.stringify(claimed, null, 2), 'utf8');
+      console.log(`[video-worker] Processing ${id}: ${claimed.product_title}`);
+      await runVideoProcessor(id, inputPath);
+
+      const { data: finalRow, error: finalError } = await supabase
+        .from('video_queue')
+        .select('status,youtube_url,youtube_video_id,error_message')
+        .eq('id', id)
+        .maybeSingle();
+      if (finalError) throw finalError;
+      let publishedUrlIsValid = false;
+      try {
+        const publishedUrl = new URL(String(finalRow?.youtube_url || ''));
+        publishedUrlIsValid = publishedUrl.protocol === 'https:' &&
+          ['youtube.com', 'www.youtube.com'].includes(publishedUrl.hostname) &&
+          publishedUrl.pathname === '/watch';
+      } catch { /* rejected below */ }
+      if (finalRow?.status !== 'completed' || !finalRow.youtube_video_id || !publishedUrlIsValid) {
+        throw new Error(finalRow?.error_message || 'Processor ended without a confirmed YouTube publication URL.');
+      }
+      completed += 1;
+      console.log(`[video-worker] Published: ${finalRow.youtube_url}`);
+    } catch (error) {
+      failed += 1;
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[video-worker] Job ${id} failed: ${message}`);
+      await supabase.from('video_queue')
+        .update({ status: 'failed', error_message: message.slice(0, 4000), updated_at: new Date().toISOString() })
+        .eq('id', id);
+    } finally {
+      try { if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath); } catch { /* best-effort cleanup */ }
     }
   }
 
-  const viralArticles = await getRecentViralArticles(supabase);
-  console.log(`\n📋 Found ${viralArticles.length} recent viral articles\n`);
-
-  for (const article of viralArticles) {
-    console.log(`\n🎥 Generating comparison video: ${article.title}`);
-
-    try {
-      const products = Array.isArray(article.products) ? article.products : [];
-      if (products.length < 2) {
-        throw new Error('Not enough products for comparison');
-      }
-
-      console.log(`  📦 Products: ${products.map((p) => p.name).join(' vs ')}`);
-
-      const result = await generateComparisonVideo(supabase, article);
-
-      manifest.videos.push({
-        type: 'comparison',
-        slug: article.slug,
-        title: article.title,
-        videoUrl: result.url,
-        status: result.status === 'pending' ? 'success' : 'failed',
-        videoId: result.videoId,
-        error: result.status !== 'pending' ? (result as any).error : undefined,
-      });
-
-      console.log(`  ✅ Video queued: ${result.url}`);
-      if (result.videoId) {
-        console.log(`  📋 Video ID: ${result.videoId} (will be rendered by pipeline)`);
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`  ❌ Failed: ${message}`);
-
-      manifest.videos.push({
-        type: 'comparison',
-        slug: article.slug,
-        title: article.title,
-        videoUrl: '',
-        status: 'failed',
-        error: message,
-      });
-    }
-  }
-
-  const manifestPath = path.resolve(__dirname, '../../video/out/manifest.json');
-  const manifestDir = path.dirname(manifestPath);
-
-  if (!fs.existsSync(manifestDir)) {
-    fs.mkdirSync(manifestDir, { recursive: true });
-  }
-
-  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-  console.log(`\n📄 Manifest saved to: ${manifestPath}`);
-
-  const successCount = manifest.videos.filter((v) => v.status === 'success').length;
-  const failedCount = manifest.videos.filter((v) => v.status === 'failed').length;
-  const pendingCount = manifest.videos.filter((v) => v.videoId).length;
-
-  console.log('\n' + '='.repeat(50));
-  console.log('📊 VIDEO GENERATION SUMMARY');
-  console.log('='.repeat(50));
-  console.log(`✅ Queued: ${pendingCount}`);
-  console.log(`✅ Successful: ${successCount}`);
-  console.log(`❌ Failed: ${failedCount}`);
-  console.log('='.repeat(50));
-
-  return manifest;
+  console.log(`[video-worker] Summary: ${completed} published, ${failed} failed, ${pending.length} selected.`);
+  if (failed > 0) process.exitCode = 1;
 }
 
-generateVideos().catch((err) => {
-  console.error('❌ Fatal error:', err);
+processPendingVideos().catch((error) => {
+  console.error('[video-worker] Fatal error:', error instanceof Error ? error.message : String(error));
   process.exit(1);
 });
