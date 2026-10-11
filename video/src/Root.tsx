@@ -66,7 +66,7 @@ export const RemotionRoot = () => {
           comparisonUrl: 'https://www.vetor.blog/comparativos/',
           product1: { name: 'Galaxy S24', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_galaxy-s24.webp', score: 0 },
           product2: { name: 'iPhone 15', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_iphone-15.webp', score: 0 },
-          categories: []
+          categories: [],
           winner: 0,
           hook: 'Galaxy S24 vs iPhone 15 - qual comprar em 2026?',
           scenes: [
