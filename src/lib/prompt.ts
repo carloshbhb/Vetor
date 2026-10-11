@@ -6,6 +6,53 @@ export interface EditorialBrief {
   verifiedFacts?: Array<{ claim: string; sourceName: string; sourceUrl?: string }>;
   internalLinks?: Array<{ title: string; url: string; anchorText?: string }>;
   callToAction?: string;
+  keywordEvidence?: Array<{
+    keyword: string;
+    impressions?: number;
+    clicks?: number;
+    ctr?: number;
+    position?: number | null;
+    opportunityScore?: number;
+    sources?: string[];
+    period?: string;
+  }>;
+}
+
+export function buildDefaultReviewEditorialBrief(input: { title: string; category: string }): EditorialBrief {
+  const title = input.title.trim();
+  return {
+    primaryKeyword: title,
+    searchIntent: 'commercial',
+    searchQuestion: title + ' vale a pena?',
+    relatedKeywords: [title + ' preço', title + ' ficha técnica', title + ' prós e contras', title + ' review', 'alternativas ao ' + title],
+    internalLinks: [
+      { title: 'Reviews de produtos do Vetor.blog', url: 'https://www.vetor.blog/reviews/', anchorText: 'reviews de produtos' },
+      { title: 'Comparativos do Vetor.blog', url: 'https://www.vetor.blog/comparativos/', anchorText: 'comparativos de produtos' },
+    ],
+    callToAction: 'Compare os recursos documentados, confira as condições atuais do anúncio e escolha conforme seu uso.',
+  };
+}
+
+export function buildDefaultComparativeEditorialBrief(input: {
+  title: string;
+  category: string;
+  comparisonProducts: Array<{ name: string }>;
+}): EditorialBrief {
+  const title = input.title.trim();
+  const names = input.comparisonProducts.map((product) => product.name.trim()).filter(Boolean);
+  const pair = names.slice(0, 2);
+  const category = input.category.trim() || 'Tecnologia';
+  return {
+    primaryKeyword: title,
+    searchIntent: 'commercial',
+    searchQuestion: pair.length === 2 ? 'Qual escolher entre ' + pair[0] + ' e ' + pair[1] + '?' : title + ' vale a pena?',
+    relatedKeywords: [title + ' comparação', ...(pair.length === 2 ? [pair[0] + ' vs ' + pair[1], pair[0] + ' ou ' + pair[1]] : []), 'melhores opções de ' + category, 'qual ' + category + ' escolher'],
+    internalLinks: [
+      { title: 'Comparativos do Vetor.blog', url: 'https://www.vetor.blog/comparativos/', anchorText: 'comparativos de produtos' },
+      { title: 'Reviews de produtos do Vetor.blog', url: 'https://www.vetor.blog/reviews/', anchorText: 'análises individuais de produtos' },
+    ],
+    callToAction: 'Compare as características documentadas e confira preço, estoque e condições atuais antes de comprar.',
+  };
 }
 
 export function buildReviewPrompt(product: {
@@ -30,7 +77,10 @@ export function buildReviewPrompt(product: {
         `Intenção de busca: ${intentLabels[brief.searchIntent]}`,
         brief.searchQuestion ? `Pergunta principal: ${brief.searchQuestion}` : '',
         brief.relatedKeywords?.length
-          ? `Consultas relacionadas (usar naturalmente):\n${brief.relatedKeywords.map((keyword) => `- ${keyword}`).join('\n')}`
+          ? `Sugestões de consultas/termos editoriais (não são dados verificados de volume, tendência ou posição):\n${brief.relatedKeywords.map((keyword) => `- ${keyword}`).join('\n')}`
+          : '',
+        brief.keywordEvidence?.length
+          ? `SINAIS DE PESQUISA REAL DO VETOR (usar só para priorizar ângulo/estrutura; nunca apresentar como volume geral de busca nem inserir números no artigo):\n${brief.keywordEvidence.map((item) => `- ${item.keyword}: impressões no Search Console=${item.impressions ?? 'n/d'}, cliques=${item.clicks ?? 'n/d'}, CTR=${item.ctr ?? 'n/d'}, posição média=${item.position ?? 'n/d'}, score interno de oportunidade=${item.opportunityScore ?? 'n/d'}, fontes=${item.sources?.join(', ') || 'n/d'}${item.period ? `, período=${item.period}` : ''}`).join('\n')}`
           : '',
         brief.verifiedFacts?.length
           ? `FATOS COM FONTES — não extrapole além deles:\n${brief.verifiedFacts.map((fact) => `- ${fact.claim} | Fonte: ${fact.sourceName}${fact.sourceUrl ? ` | ${fact.sourceUrl}` : ''}`).join('\n')}`
@@ -127,7 +177,27 @@ export function buildViralPrompt(topic: {
   title: string;
   category: string;
   comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
+  editorialBrief?: EditorialBrief;
 }): string {
+  const brief = topic.editorialBrief;
+  const intentLabels = {
+    informational: 'informacional: explicar e orientar antes da decisão',
+    commercial: 'investigação comercial: comparar opções e ajudar a escolher',
+    transactional: 'transacional: ajudar a concluir uma compra informada',
+    navigational: 'navegacional: ajudar a encontrar a página ou produto certo',
+  } as const;
+  const seoBrief = brief
+    ? [
+        `Palavra-chave principal: ${brief.primaryKeyword}`,
+        `Intenção de busca: ${intentLabels[brief.searchIntent]}`,
+        brief.searchQuestion ? `Pergunta principal: ${brief.searchQuestion}` : '',
+        brief.relatedKeywords?.length ? `Sugestões de consultas/termos editoriais (não são dados verificados de volume, tendência ou posição):\\n${brief.relatedKeywords.map((keyword) => `- ${keyword}`).join('\\n')}` : '',
+        brief.keywordEvidence?.length ? `SINAIS DE PESQUISA REAL DO VETOR (só para orientar o ângulo; não apresentar números no artigo):\\n${brief.keywordEvidence.map((item) => `- ${item.keyword}: impressões=${item.impressions ?? 'n/d'}, cliques=${item.clicks ?? 'n/d'}, CTR=${item.ctr ?? 'n/d'}, posição média=${item.position ?? 'n/d'}, score interno=${item.opportunityScore ?? 'n/d'}${item.period ? `, período=${item.period}` : ''}`).join('\\n')}` : '',
+        brief.verifiedFacts?.length ? `FATOS COM FONTES — não extrapole além deles:\\n${brief.verifiedFacts.map((fact) => `- ${fact.claim} | Fonte: ${fact.sourceName}${fact.sourceUrl ? ` | ${fact.sourceUrl}` : ''}`).join('\\n')}` : 'Nenhum fato adicional com fonte foi fornecido. Não invente especificações, medições ou experiência prática.',
+        brief.internalLinks?.length ? `Links internos permitidos (somente se relevantes):\\n${brief.internalLinks.map((link) => `- ${link.title}: ${link.url}${link.anchorText ? ` (âncora: ${link.anchorText})` : ''}`).join('\\n')}` : 'Não invente URLs internas. Use somente links fornecidos pelo sistema.',
+        brief.callToAction ? `Objetivo do CTA: ${brief.callToAction}` : '',
+      ].filter(Boolean).join('\\n')
+    : 'Briefing SEO não fornecido. Não invente volume de busca, posições, tendências nem URLs.';
   const productsList = topic.comparisonProducts
     .map((p) => `- ${p.name} (slug: ${p.slug}, URL: ${p.product_url || 'N/A'})`)
     .join('\n');
@@ -137,6 +207,9 @@ export function buildViralPrompt(topic: {
 Categoria: ${topic.category}
 Produtos comparados:
 ${productsList}
+
+BRIEFING SEO E EVIDÊNCIAS:
+${seoBrief}
 
 Responda APENAS em JSON válido com esta estrutura:
 {
@@ -162,6 +235,9 @@ Tom: claro, informativo e comparativo. Persuasão somente quando sustentada pelo
 - Só declare vencedor quando a evidência apresentada permitir uma conclusão clara; caso contrário, compare perfis de uso e limitações sem fabricar um vencedor.
 - content deve ter pelo menos 6 seções com <h2>/<h3>, 8 parágrafos, uma tabela comparativa, análises individuais dos produtos, pelo menos 3 perguntas frequentes e uma CTA objetiva de preço/oferta.
 - Mencione os nomes reais de todos os produtos comparados.
+- Se houver palavra-chave principal, use-a no título e naturalmente em um subtítulo; responda à pergunta principal cedo.
+- Trate termos relacionados como sugestões editoriais, não como dados de volume ou ranking. Não repita palavras-chave nem garanta posicionamento.
+- Só cite fontes e inclua URLs internas que tenham sido fornecidas no briefing.
 - Não use conteúdo genérico ou texto de preenchimento.
 Idioma: português brasileiro.`;
 }
