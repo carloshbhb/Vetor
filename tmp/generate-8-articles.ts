@@ -67,10 +67,9 @@ async function generateReview(link: ProductLink): Promise<ArticleResult> {
   if (outcome.status !== 'created') {
     const detail = outcome.status === 'validation_failed'
       ? outcome.issues.join('; ')
-      : outcome.status === 'db_error'
-        ? outcome.error
-        : outcome.error;
-    return { slug: outcome.slug || link.slug, status: 'failed', url: '', type: 'review', error: detail };
+      : outcome.error;
+    const failedSlug = 'slug' in outcome && outcome.slug ? outcome.slug : link.slug;
+    return { slug: failedSlug, status: 'failed', url: '', type: 'review', error: detail };
   }
 
   const markResult = await markProductLinkReviewed(link.id, outcome.slug);
