@@ -94,14 +94,15 @@ async function processPendingVideos(): Promise<void> {
       } catch { /* rejected below */ }
       if (!imageIsValid) throw new Error('Queue item has no valid HTTP(S) product image URL.');
 
-      let reviewPath = '';
+      let sourcePath = '';
       try {
-        const reviewUrl = new URL(String(claimed.review_url || ''));
-        if (reviewUrl.protocol === 'https:' && reviewUrl.hostname === 'www.vetor.blog') reviewPath = reviewUrl.pathname;
+        const sourceUrl = new URL(String(claimed.review_url || ''));
+        if (sourceUrl.protocol === 'https:' && sourceUrl.hostname === 'www.vetor.blog') sourcePath = sourceUrl.pathname;
       } catch { /* rejected below */ }
-      if (!reviewPath.startsWith('/reviews/')) {
-        throw new Error('Only queue entries tied to a canonical Vetor review URL can be rendered by this worker.');
+      if (!sourcePath.startsWith('/reviews/') && !sourcePath.startsWith('/comparativos/')) {
+        throw new Error('Only queue entries tied to a canonical Vetor review or comparative URL can be rendered by this worker.');
       }
+
       fs.writeFileSync(inputPath, JSON.stringify(claimed, null, 2), 'utf8');
       console.log(`[video-worker] Processing ${id}: ${claimed.product_title}`);
       await runVideoProcessor(id, inputPath);
