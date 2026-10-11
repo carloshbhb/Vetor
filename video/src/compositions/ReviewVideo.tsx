@@ -14,6 +14,7 @@ import { fonts } from '../styles/fonts';
 import { GradientBackground } from '../components/GradientBackground';
 import { AnimatedText } from '../components/AnimatedText';
 import { ScoreBar } from '../components/ScoreBar';
+import { KineticCaption } from '../components/KineticCaption';
 
 export interface SubtitleEntry {
   start: number;
@@ -274,7 +275,7 @@ const SubtitleOverlay: React.FC<{ subtitles: SubtitleEntry[]; currentFrame: numb
   const currentTime = currentFrame / fps;
   const activeSubtitle = subtitles.find(s => currentTime >= s.start && currentTime < s.end);
 
-  if (!activeSubtitle) return null;
+  if (!activeSubtitle || activeSubtitle.end <= activeSubtitle.start) return null;
 
   const progress = (currentTime - activeSubtitle.start) / (activeSubtitle.end - activeSubtitle.start);
   const opacity = interpolate(progress, [0, 0.1, 0.9, 1], [0, 1, 1, 0], {
@@ -282,37 +283,8 @@ const SubtitleOverlay: React.FC<{ subtitles: SubtitleEntry[]; currentFrame: numb
     extrapolateRight: 'clamp',
   });
 
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 120,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 100,
-        opacity,
-      }}
-    >
-      <div
-        style={{
-          background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: 16,
-          padding: '16px 32px',
-          maxWidth: '90%',
-          textAlign: 'center',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          border: `1px solid ${theme.border}`,
-        }}
-      >
-        <span style={{ fontSize: 32, fontWeight: '600', color: theme.text, fontFamily: fonts.body, lineHeight: 1.3, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-          {activeSubtitle.text}
-        </span>
-      </div>
-    </div>
-  );
+  return <KineticCaption text={activeSubtitle.text} progress={progress} opacity={opacity} />;
 };
-
 export const ReviewVideo: React.FC<ReviewVideoProps> = ({
   title,
   imageUrl,
