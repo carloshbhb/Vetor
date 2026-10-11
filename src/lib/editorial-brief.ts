@@ -70,8 +70,14 @@ async function getRelevantKeywordRows(input: {
     const keywordTokens = new Set(keywordText.split(/\s+/));
     const productOverlap = Math.max(0, ...productTokenSets.map((tokens) => tokens.filter((token) => keywordTokens.has(token)).length));
     const productMatched = productTokenSets.some((tokens) => {
+      const overlap = tokens.filter((token) => keywordTokens.has(token));
+      const modelTokens = tokens.filter((token) => /\\d/.test(token));
       const required = Math.min(2, tokens.length);
-      return tokens.filter((token) => keywordTokens.has(token)).length >= required;
+      // If the product/model contains digits, require at least one model token as
+      // well as enough name overlap. This prevents Galaxy S24 keywords from being
+      // attached to the Galaxy Fit3 review just because both contain Samsung/Galaxy.
+      return overlap.length >= required &&
+        (modelTokens.length === 0 || modelTokens.some((token) => keywordTokens.has(token)));
     });
     const categoryMatched = categoryTokens.some((token) => keywordTokens.has(token));
     const categoryIntent = /\b(melhor|melhores|comparativo|comparar|preco|comprar|vale a pena|review|analise)\b/.test(keywordText);
