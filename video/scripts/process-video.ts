@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
-import { generateVideoScript } from '../../src/lib/script-generator';
+import { generateVideoScript, generateComparisonVideoScript, type VideoScript, type ComparisonVideoScript } from '../../src/lib/script-generator';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,6 +89,80 @@ async function loadReviewFacts(productData: VideoQueueItem): Promise<{ specifica
   }
   const score = Number(data?.hero_overall_score);
   return { specifications, ...(Number.isFinite(score) && score > 0 ? { score } : {}) };
+}
+
+interface ComparisonArticleForVideo {
+  slug: string;
+  title: string;
+  category: string;
+  products: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
+}
+
+async function loadComparisonArticle(videoData: VideoQueueItem): Promise<ComparisonArticleForVideo> {
+  let canonical: URL;
+  try {
+    canonical = new URL(String(videoData.review_url || ''));
+  } catch {
+    throw new Error('URL do comparativo inválida na fila de vídeos.');
+  }
+  if (canonical.protocol !== 'https:' || canonical.hostname !== 'www.vetor.blog' || !canonical.pathname.startsWith('/comparativos/')) {
+    throw new Error('O worker de comparativos só aceita URLs canônicas HTTPS do Vetor.blog.');
+  }
+  const slug = canonical.pathname.slice('/comparativos/'.length).split('/')[0];
+  if (!slug) throw new Error('Slug do comparativo ausente na URL canônica.');
+
+  const { data, error } = await supabase
+    .from('viral_articles')
+    .select('slug,title,category,products')
+    .eq('slug', decodeURIComponent(slug))
+    .maybeSingle();
+  if (error) throw new Error('Não foi possível carregar o comparativo: ' + error.message);
+  if (!data) throw new Error('O artigo comparativo não existe mais no Supabase.');
+
+  let rawProducts: unknown = data.products;
+  if (typeof rawProducts === 'string') {
+    try { rawProducts = JSON.parse(rawProducts); } catch { rawProducts = []; }
+  }
+  if (!Array.isArray(rawProducts) || rawProducts.length < 2) {
+    throw new Error('O comparativo precisa ter pelo menos dois produtos.');
+  }
+  const products = rawProducts.slice(0, 2).map((product: any) => {
+    let imageUrl = '';
+    try {
+      const parsed = new URL(String(product?.imageUrl || ''));
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') imageUrl = parsed.toString();
+    } catch { /* invalid images are rejected below */ }
+    const productUrl = typeof product?.product_url === 'string' ? product.product_url : '';
+    return {
+      name: typeof product?.name === 'string' ? product.name.trim() : '',
+      slug: typeof product?.slug === 'string' ? product.slug : '',
+      imageUrl,
+      ...(productUrl ? { product_url: productUrl } : {}),
+    };
+  });
+  if (products.some((product: ComparisonArticleForVideo['products'][number]) => !product.name || !product.imageUrl)) {
+    throw new Error('O comparativo contém um produto sem nome ou imagem HTTP(S) válida.');
+  }
+
+  return {
+    slug: String(data.slug),
+    title: typeof data.title === 'string' ? data.title : videoData.product_title,
+    category: typeof data.category === 'string' && data.category.trim() ? data.category.trim() : 'Tecnologia',
+    products,
+  };
+}
+
+async function generateComparisonScript(
+  videoData: VideoQueueItem,
+  article: ComparisonArticleForVideo
+): Promise<ComparisonVideoScript> {
+  return generateComparisonVideoScript({
+    title: article.title || videoData.product_title,
+    category: article.category || videoData.product_category || 'Tecnologia',
+    product1: { name: article.products[0].name },
+    product2: { name: article.products[1].name },
+    comparisonUrl: String(videoData.review_url),
+  });
 }
 
 async function generateScript(productData: VideoQueueItem): Promise<any> {
@@ -233,13 +307,66 @@ async function prepareRemotionProps(videoData: any, script: any, voiceover: any,
   };
 }
 
-async function renderVideo(propsPath: string, outputPath: string): Promise<string> {
+async function prepareComparisonRemotionProps(
+  videoData: VideoQueueItem,
+  article: ComparisonArticleForVideo,
+  script: ComparisonVideoScript,
+  productImage1Path: string,
+  productImage2Path: string,
+  brollPaths: string[],
+  videoId: string
+): Promise<any> {
+  const fps = 30;
+  const hookFrames = 3 * fps;
+  const sceneSeconds = script.scenes.reduce((sum, scene) => sum + scene.duration, 0);
+  const scenesWithFrames = script.scenes.map((scene, index) => {
+    const previousFrames = script.scenes.slice(0, index).reduce((sum, previous) => sum + previous.duration * fps, 0);
+    return {
+      ...scene,
+      startFrame: hookFrames + previousFrames,
+      endFrame: hookFrames + previousFrames + scene.duration * fps,
+    };
+  });
+  const subtitleEntries = [
+    { start: 0, end: 3, text: script.hook },
+    ...script.scenes.map((scene, index) => {
+      const previousSeconds = script.scenes.slice(0, index).reduce((sum, previous) => sum + previous.duration, 0);
+      return { start: 3 + previousSeconds, end: 3 + previousSeconds + scene.duration, text: scene.text };
+    }),
+    { start: 3 + sceneSeconds, end: 3 + sceneSeconds + 5, text: script.callToAction },
+  ];
+  const image1Extension = path.extname(productImage1Path) || '.webp';
+  const image2Extension = path.extname(productImage2Path) || '.webp';
+  const image1Url = '/assets/product-' + videoId + '-1' + image1Extension;
+  const image2Url = '/assets/product-' + videoId + '-2' + image2Extension;
+  return {
+    type: 'comparison',
+    title: videoData.product_title || article.title,
+    product1: { name: article.products[0].name, imageUrl: image1Url, score: 0 },
+    product2: { name: article.products[1].name, imageUrl: image2Url, score: 0 },
+    categories: [],
+    winner: 0,
+    comparisonUrl: videoData.review_url,
+    hook: script.hook,
+    scenes: scenesWithFrames,
+    callToAction: script.callToAction,
+    audioUrl: '/assets/voiceover-' + videoId + '.mp3',
+    subtitleEntries,
+    productImages: [image1Url, image2Url],
+    brollVideos: brollPaths,
+    totalDuration: 3 + sceneSeconds + 5,
+    fps,
+  };
+}
+
+async function renderVideo(propsPath: string, outputPath: string, type: 'review' | 'comparison'): Promise<string> {
   const videoRoot = path.resolve(__dirname, '..');
   const outputDir = path.dirname(outputPath);
   fs.mkdirSync(outputDir, { recursive: true });
 
   return new Promise((resolve, reject) => {
-    const child = spawn('npm', ['run', 'render-review', '--', propsPath], {
+    const scriptName = type === 'comparison' ? 'render-comparison' : 'render-review';
+    const child = spawn('npm', ['run', scriptName, '--', propsPath], {
       cwd: videoRoot,
       env: { ...process.env, VIDEO_OUTPUT_DIR: outputDir },
       stdio: 'inherit',
@@ -254,7 +381,7 @@ async function renderVideo(propsPath: string, outputPath: string): Promise<strin
       }
 
       const renderedFiles = fs.readdirSync(outputDir)
-        .filter((name) => /^review-\d+\.mp4$/i.test(name))
+        .filter((name) => new RegExp('^' + type + '-\\d+\\.mp4
         .map((name) => ({ path: path.join(outputDir, name), modified: fs.statSync(path.join(outputDir, name)).mtimeMs }))
         .sort((a, b) => b.modified - a.modified);
       const rendered = renderedFiles[0]?.path;
@@ -316,55 +443,64 @@ async function main() {
   const videoJsonPath = process.argv[3];
 
   if (!videoId || !videoJsonPath) {
-    console.error('Usage: node process-video.js <video-id> <video-json-path>');
+    console.error('Usage: tsx process-video.ts <video-id> <video-json-path>');
     process.exit(1);
   }
-
   if (!fs.existsSync(videoJsonPath)) {
     console.error(`Video JSON file not found: ${videoJsonPath}`);
     process.exit(1);
   }
 
   const videoData: VideoQueueItem = JSON.parse(fs.readFileSync(videoJsonPath, 'utf-8'));
-  console.log(`Processing video: ${videoData.product_title} (${videoId})`);
+  const sourceUrl = new URL(String(videoData.review_url || ''));
+  const isComparison = sourceUrl.pathname.startsWith('/comparativos/');
+  console.log(`Processing ${isComparison ? 'comparison' : 'review'} video: ${videoData.product_title} (${videoId})`);
 
   const workDir = path.resolve(__dirname, `../temp/${videoId}`);
   const assetsDir = path.join(workDir, 'assets');
   const outputPath = path.join(workDir, 'output.mp4');
   const propsPath = path.join(workDir, 'props.json');
-
   fs.mkdirSync(assetsDir, { recursive: true });
-  fs.mkdirSync(path.join(workDir, 'out'), { recursive: true });
 
   try {
-    // Step 1: Generate script
-    console.log('📝 Generating script...');
-    const script = await generateScript(videoData);
+    const comparisonArticle = isComparison ? await loadComparisonArticle(videoData) : null;
+
+    console.log('📝 Generating fact-safe script...');
+    const script: VideoScript | ComparisonVideoScript = comparisonArticle
+      ? await generateComparisonScript(videoData, comparisonArticle)
+      : await generateScript(videoData);
     await updateVideoStatus(videoId, { script_text: JSON.stringify(script), script_hook: script.hook });
 
-    // Step 2: Download product image
-    console.log('📸 Downloading product image...');
-    const productImagePath = await downloadProductImage(videoData.product_image_url, assetsDir);
+    console.log('📸 Downloading product image(s)...');
+    const productImage1Url = comparisonArticle ? comparisonArticle.products[0].imageUrl : videoData.product_image_url;
+    const productImage1Path = await downloadProductImage(productImage1Url, assetsDir);
+    const productImage2Path = comparisonArticle
+      ? await downloadProductImage(comparisonArticle.products[1].imageUrl, assetsDir)
+      : null;
 
-    // Step 3: Generate voiceover
     console.log('🎙️ Generating voiceover...');
     const voiceover = await generateVoiceover(script, assetsDir);
     await updateVideoStatus(videoId, { voiceover_url: voiceover.audioPath, voiceover_duration: voiceover.duration });
 
-    // Step 4: Fetch B-roll videos
     console.log('🎬 Fetching B-roll videos...');
-    const allKeywords = script.scenes.flatMap((s: any) => s.brollKeywords);
+    const allKeywords = script.scenes.flatMap((scene: any) => scene.brollKeywords);
     const brollPaths = await fetchBrollVideos(allKeywords, assetsDir);
 
-    // Copy generated assets into the public directory bundled by Remotion.
     const publicAssetsDir = path.resolve(__dirname, '../public/assets');
     const publicBrollDir = path.join(publicAssetsDir, 'broll');
     fs.mkdirSync(publicAssetsDir, { recursive: true });
     fs.mkdirSync(publicBrollDir, { recursive: true });
 
-    const productExtension = path.extname(productImagePath) || '.webp';
-    const productAssetName = `product-${videoId}${productExtension}`;
-    fs.copyFileSync(productImagePath, path.join(publicAssetsDir, productAssetName));
+    const product1Extension = path.extname(productImage1Path) || '.webp';
+    const product1AssetName = isComparison
+      ? `product-${videoId}-1${product1Extension}`
+      : `product-${videoId}${product1Extension}`;
+    fs.copyFileSync(productImage1Path, path.join(publicAssetsDir, product1AssetName));
+
+    if (productImage2Path) {
+      const product2Extension = path.extname(productImage2Path) || '.webp';
+      fs.copyFileSync(productImage2Path, path.join(publicAssetsDir, `product-${videoId}-2${product2Extension}`));
+    }
     fs.copyFileSync(voiceover.audioPath, path.join(publicAssetsDir, `voiceover-${videoId}.mp3`));
     const publicBrollPaths = brollPaths.map((broll, index) => {
       const extension = path.extname(broll) || '.mp4';
@@ -373,38 +509,49 @@ async function main() {
       return `/assets/broll/${filename}`;
     });
 
-    // Remotion reads assets from video/public, so props use the copied public paths.
     console.log('⚙️ Preparing Remotion props...');
-    const props = await prepareRemotionProps(videoData, script, voiceover, productImagePath, publicBrollPaths, videoId);
+    const props = comparisonArticle && script && productImage2Path
+      ? await prepareComparisonRemotionProps(videoData, comparisonArticle, script as ComparisonVideoScript, productImage1Path, productImage2Path, publicBrollPaths, videoId)
+      : await prepareRemotionProps(videoData, script as VideoScript, voiceover, productImage1Path, publicBrollPaths, videoId);
     fs.writeFileSync(propsPath, JSON.stringify(props, null, 2));
 
-    // Step 6: Render video
     console.log('🎞️ Rendering video with Remotion...');
-    const finalVideoPath = await renderVideo(propsPath, outputPath);
+    const finalVideoPath = await renderVideo(propsPath, outputPath, isComparison ? 'comparison' : 'review');
 
-    // Step 7: Upload to YouTube with the canonical review and actual purchase URL.
     console.log('📤 Uploading to YouTube...');
-    const reviewUrl = typeof videoData.review_url === 'string' && videoData.review_url.startsWith('https://www.vetor.blog/reviews/')
-      ? videoData.review_url
-      : 'https://www.vetor.blog/reviews/';
-    const purchaseUrl = videoData.shortened_affiliate_url || videoData.affiliate_url || videoData.product_url;
+    const canonicalContentUrl = isComparison
+      ? `https://www.vetor.blog/comparativos/${comparisonArticle?.slug || ''}/`
+      : `https://www.vetor.blog/reviews/${sourceUrl.pathname.split('/reviews/')[1]?.split('/')[0] || ''}/`;
+    const purchaseLinks = comparisonArticle
+      ? comparisonArticle.products.map((product, index) => {
+          const productUrl = product.product_url || '';
+          return productUrl.startsWith('https://') || productUrl.startsWith('http://')
+            ? `Produto ${index + 1} — ${product.name}: ${productUrl}`
+            : '';
+        }).filter(Boolean)
+      : [videoData.shortened_affiliate_url || videoData.affiliate_url || videoData.product_url]
+          .filter((url): url is string => typeof url === 'string' && /^https?:\\/\\//i.test(url))
+          .map((url) => `Confira preço e condições atuais: ${url}`);
     const description = [
       script.hook,
       ...script.scenes.map((scene: any) => scene.text),
       script.callToAction,
-      `Review completo: ${reviewUrl}`,
-      purchaseUrl ? `Confira preço e condições: ${purchaseUrl}` : '',
-      'Preço, estoque e condições podem mudar. Confirme as informações no anúncio antes de comprar.',
+      `Conteúdo completo: ${canonicalContentUrl}`,
+      ...purchaseLinks,
+      'Preço, estoque e condições podem mudar. Confirme as informações nos anúncios antes de comprar.',
     ].filter(Boolean).join('\n\n');
+    const youtubeTitle = isComparison
+      ? `${comparisonArticle?.title || videoData.product_title} — comparativo e como escolher #Shorts`
+      : `${videoData.product_title} — review e vale a pena? #Shorts`;
+    const categoryTag = (videoData.product_category || 'tecnologia').toLowerCase();
     const youtubeId = await uploadToYouTube(
       finalVideoPath,
-      `${videoData.product_title} - Review e vale a pena? #Shorts`,
+      youtubeTitle,
       description,
-      ['review', 'tech', videoData.product_category.toLowerCase(), 'vale a pena', 'shorts']
+      ['review', 'tech', categoryTag, isComparison ? 'comparativo' : 'vale a pena', 'shorts']
     );
-
     const youtubeUrl = `https://youtube.com/watch?v=${youtubeId}`;
-    
+
     await updateVideoStatus(videoId, {
       status: 'completed',
       video_url: youtubeUrl,
@@ -412,16 +559,20 @@ async function main() {
       youtube_url: youtubeUrl,
       completed_at: new Date().toISOString(),
     });
-
     console.log(`✅ Video published: ${youtubeUrl}`);
-
   } catch (error) {
     console.error('❌ Error:', error);
-    await updateVideoStatus(videoId, {
-      status: 'failed',
-      error_message: error instanceof Error ? error.message : String(error),
-    });
+    try {
+      await updateVideoStatus(videoId, {
+        status: 'failed',
+        error_message: error instanceof Error ? error.message : String(error),
+      });
+    } catch (statusError) {
+      console.error('[video-worker] Could not persist failed status:', statusError);
+    }
     process.exit(1);
+  } finally {
+    try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch { /* best-effort cleanup */ }
   }
 }
 
