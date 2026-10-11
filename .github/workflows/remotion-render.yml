@@ -25,6 +25,7 @@ on:
       - '.github/workflows/remotion-render.yml'
     branches:
       - main
+      - feat/remotion-visual-quality
 
 permissions:
   contents: read
