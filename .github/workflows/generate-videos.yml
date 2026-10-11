@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       count:
-        description: 'Number of real published reviews to queue and process'
+        description: 'Videos to queue from each published content type (review and comparative)'
         required: false
         default: '1'
         type: string
@@ -50,7 +50,7 @@ jobs:
         run: npm ci
 
       - name: Install video renderer dependencies
-        run: npm install --prefix video --no-save --package-lock=false
+        run: npm ci --prefix video
 
       - name: Install FFmpeg
         run: |
@@ -75,10 +75,12 @@ jobs:
             echo "::error::COUNT must be a positive integer"
             exit 1
           fi
-          if [ "${COUNT}" -gt 10 ]; then
-            echo "::warning::COUNT capped at 10"
-            echo 'VIDEO_LIMIT=10' >> "$GITHUB_ENV"
+          if [ "${COUNT}" -gt 5 ]; then
+            echo "::warning::COUNT capped at 5 per content type so the worker handles at most 10 videos per run."
+            COUNT=5
+            echo 'COUNT=5' >> "$GITHUB_ENV"
           fi
+          echo "VIDEO_LIMIT=$((COUNT * 2))" >> "$GITHUB_ENV"
 
       - name: Run content quality regression tests
         run: |
@@ -86,19 +88,44 @@ jobs:
           npm run test:editorial-brief
           npx tsc --noEmit
 
+      - name: Run content regression tests and type checks
+        run: |
+          set -euo pipefail
+          npm run test:content-quality
+          npm run test:editorial-brief
+          npm run test:viral-quality
+          npx tsc --noEmit
+
+      - name: Type-check Remotion project
+        working-directory: video
+        run: npx tsc --noEmit -p tsconfig.json
+
       - name: Queue eligible published reviews
         run: |
           set -euo pipefail
           COUNT="${COUNT:-1}"
-          if [ "$COUNT" -gt 10 ]; then COUNT=10; fi
           payload="$(jq -n --argjson limit "$COUNT" '{action:"queueFromReviews", limit:$limit}')"
-          code="$(curl -sS --max-time 25 -o queue-result.json -w '%{http_code}' -X POST "https://www.vetor.blog/api/cron/video-queue-worker/" -H "Authorization: Bearer ${CRON_SECRET}" -H "Content-Type: application/json" -d "$payload")"
-          if [ "$code" != "200" ] || ! jq -e '.success == true and (.queued | type == "number")' queue-result.json >/dev/null; then
-            cat queue-result.json 2>/dev/null || true
-            echo "::error::Production queue API failed (HTTP $code)."
+          code="$(curl -sS --max-time 25 -o queue-reviews.json -w '%{http_code}' -X POST "https://www.vetor.blog/api/cron/video-queue-worker/" -H "Authorization: Bearer ${CRON_SECRET}" -H "Content-Type: application/json" -d "$payload")"
+          if [ "$code" != "200" ] || ! jq -e '.success == true and (.queued | type == "number")' queue-reviews.json >/dev/null; then
+            cat queue-reviews.json 2>/dev/null || true
+            echo "::error::Review queue API failed (HTTP $code)."
             exit 1
           fi
-          jq . queue-result.json
+          jq . queue-reviews.json
+
+      - name: Queue eligible published comparatives
+        run: |
+          set -euo pipefail
+          COUNT="${COUNT:-1}"
+          payload="$(jq -n --argjson limit "$COUNT" '{action:"queueFromComparatives", limit:$limit}')"
+          code="$(curl -sS --max-time 25 -o queue-comparatives.json -w '%{http_code}' -X POST "https://www.vetor.blog/api/cron/video-queue-worker/" -H "Authorization: Bearer ${CRON_SECRET}" -H "Content-Type: application/json" -d "$payload")"
+          if [ "$code" != "200" ] || ! jq -e '.success == true and (.queued | type == "number")' queue-comparatives.json >/dev/null; then
+            cat queue-comparatives.json 2>/dev/null || true
+            echo "::error::Comparative queue API failed (HTTP $code)."
+            exit 1
+          fi
+          jq . queue-comparatives.json
+
       - name: Render MP4 and publish to YouTube
         run: npm run generate-videos
 
