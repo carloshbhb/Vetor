@@ -70,14 +70,14 @@ REGRAS:
 export async function generateVideoScript(product: ProductInfo): Promise<VideoScript> {
   try {
     const prompt = buildScriptPrompt(product);
-    const provider = getLLMProvider();
+    getLLMProvider();
 
     const content = await chatCompletion({
       systemPrompt: 'Você é um roteirista especialista em vídeos virais de review tech para YouTube Shorts/Reels. Responda APENAS em JSON válido, sem texto adicional.',
       userPrompt: prompt,
       temperature: 0.45,
       maxTokens: 1600,
-      responseFormat: provider.provider !== 'gemini' ? { type: 'json_object' } : undefined,
+      responseFormat: { type: 'json_object' },
     });
 
     let parsedContent = content;
