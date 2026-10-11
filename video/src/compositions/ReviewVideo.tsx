@@ -14,6 +14,7 @@ import { fonts } from '../styles/fonts';
 import { GradientBackground } from '../components/GradientBackground';
 import { AnimatedText } from '../components/AnimatedText';
 import { ScoreBar } from '../components/ScoreBar';
+import { createTikTokStyleCaptions } from '@remotion/captions';
 
 export interface SubtitleEntry {
   start: number;
@@ -271,43 +272,30 @@ const CTAScene: React.FC<{ callToAction: string; title: string; shortenedUrl: st
 };
 
 const SubtitleOverlay: React.FC<{ subtitles: SubtitleEntry[]; currentFrame: number; fps: number }> = ({ subtitles, currentFrame, fps }) => {
-  const currentTime = currentFrame / fps;
-  const activeSubtitle = subtitles.find(s => currentTime >= s.start && currentTime < s.end);
-
-  if (!activeSubtitle) return null;
-
-  const progress = (currentTime - activeSubtitle.start) / (activeSubtitle.end - activeSubtitle.start);
-  const opacity = interpolate(progress, [0, 0.1, 0.9, 1], [0, 1, 1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
+  const currentTimeMs = (currentFrame / fps) * 1000;
+  const captions = subtitles.flatMap((subtitle) => {
+    const words = subtitle.text.trim().split(/\s+/).filter(Boolean);
+    const startMs = Math.max(0, subtitle.start * 1000);
+    const endMs = Math.max(startMs + 1, subtitle.end * 1000);
+    const wordDuration = (endMs - startMs) / Math.max(words.length, 1);
+    return words.map((word, index) => ({
+      text: index === 0 ? word : ` ${word}`,
+      startMs: startMs + index * wordDuration,
+      endMs: index === words.length - 1 ? endMs : startMs + (index + 1) * wordDuration,
+      timestampMs: startMs + (index + 0.5) * wordDuration,
+      confidence: null,
+    }));
   });
-
+  const { pages } = createTikTokStyleCaptions({ captions, combineTokensWithinMilliseconds: 1400, breakOnSilenceAfterMilliseconds: 500 });
+  const activePage = pages.find((page) => currentTimeMs >= page.startMs && currentTimeMs < page.startMs + page.durationMs);
+  if (!activePage) return null;
+  const activeToken = activePage.tokens?.find((token) => currentTimeMs >= token.fromMs && currentTimeMs < token.toMs);
   return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 120,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 100,
-        opacity,
-      }}
-    >
-      <div
-        style={{
-          background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: 16,
-          padding: '16px 32px',
-          maxWidth: '90%',
-          textAlign: 'center',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          border: `1px solid ${theme.border}`,
-        }}
-      >
-        <span style={{ fontSize: 32, fontWeight: '600', color: theme.text, fontFamily: fonts.body, lineHeight: 1.3, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-          {activeSubtitle.text}
-        </span>
+    <div style={{ position: 'absolute', bottom: 150, left: '50%', transform: 'translateX(-50%)', zIndex: 100, width: '88%' }}>
+      <div style={{ background: 'rgba(5, 10, 20, 0.88)', backdropFilter: 'blur(12px)', borderRadius: 18, padding: '14px 22px', textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', border: `1px solid ${theme.border}`, fontFamily: fonts.body, fontSize: 34, fontWeight: 700, lineHeight: 1.25, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+        {activePage.tokens?.map((token, index) => (
+          <span key={`${token.fromMs}-${index}`} style={{ color: activeToken === token ? '#FFFFFF' : '#D7E3FF', background: activeToken === token ? theme.blue : 'transparent', borderRadius: 5, padding: activeToken === token ? '0 3px' : 0 }}>{token.text}</span>
+        )) || activePage.text}
       </div>
     </div>
   );
