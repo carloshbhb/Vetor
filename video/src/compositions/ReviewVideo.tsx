@@ -15,6 +15,23 @@ import { GradientBackground } from '../components/GradientBackground';
 import { AnimatedText } from '../components/AnimatedText';
 import { ScoreBar } from '../components/ScoreBar';
 import { createTikTokStyleCaptions } from '@remotion/captions';
+import { TransitionSeries, linearTiming } from '@remotion/transitions';
+import { fade } from '@remotion/transitions/fade';
+
+const SceneTransition: React.FC<{ durationInFrames: number; children: React.ReactNode }> = ({ durationInFrames, children }) => {
+  const transitionFrames = Math.min(12, Math.max(1, Math.floor(durationInFrames / 4)));
+  return (
+    <TransitionSeries>
+      <TransitionSeries.Sequence durationInFrames={transitionFrames}>
+        <AbsoluteFill style={{ background: theme.bg }} />
+      </TransitionSeries.Sequence>
+      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: transitionFrames })} />
+      <TransitionSeries.Sequence durationInFrames={durationInFrames}>
+        <AbsoluteFill>{children}</AbsoluteFill>
+      </TransitionSeries.Sequence>
+    </TransitionSeries>
+  );
+};
 
 export interface SubtitleEntry {
   start: number;
@@ -332,11 +349,12 @@ export const ReviewVideo: React.FC<ReviewVideoProps> = ({
       <Audio src={audioUrl} />
 
       <Sequence from={0} durationInFrames={hookFrames}>
-        <HookScene hook={hook} productImage={mainProductImage} />
+        <SceneTransition durationInFrames={hookFrames}><HookScene hook={hook} productImage={mainProductImage} /></SceneTransition>
       </Sequence>
 
       {scenes.map((scene, index) => (
         <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.endFrame - scene.startFrame}>
+          <SceneTransition durationInFrames={scene.endFrame - scene.startFrame}>
           <ContentScene
             scene={scene}
             currentFrame={frame}
@@ -344,15 +362,16 @@ export const ReviewVideo: React.FC<ReviewVideoProps> = ({
             brollVideos={brollVideos}
             sceneIndex={index}
           />
+          </SceneTransition>
         </Sequence>
       ))}
 
       <Sequence from={hookFrames + contentFrames} durationInFrames={scoreFrames}>
-        <ScoreScene score={score} productImage={mainProductImage} />
+        <SceneTransition durationInFrames={scoreFrames}><ScoreScene score={score} productImage={mainProductImage} /></SceneTransition>
       </Sequence>
 
       <Sequence from={hookFrames + contentFrames + scoreFrames} durationInFrames={ctaFrames}>
-        <CTAScene callToAction={callToAction} title={title} shortenedUrl={shortenedUrl} />
+        <SceneTransition durationInFrames={ctaFrames}><CTAScene callToAction={callToAction} title={title} shortenedUrl={shortenedUrl} /></SceneTransition>
       </Sequence>
 
       <SubtitleOverlay subtitles={subtitleEntries} currentFrame={frame} fps={fps} />
