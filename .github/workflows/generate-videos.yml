@@ -82,12 +82,6 @@ jobs:
           fi
           echo "VIDEO_LIMIT=$((COUNT * 2))" >> "$GITHUB_ENV"
 
-      - name: Run content quality regression tests
-        run: |
-          npm run test:content-quality
-          npm run test:editorial-brief
-          npx tsc --noEmit
-
       - name: Run content regression tests and type checks
         run: |
           set -euo pipefail
