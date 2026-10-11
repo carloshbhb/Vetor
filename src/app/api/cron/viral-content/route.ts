@@ -1,6 +1,6 @@
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { NextRequest, NextResponse } from 'next/server';
-import { createViralArticle } from '@/lib/supabase';
+import { createViralArticle, getSupabaseServiceKeyClient } from '@/lib/supabase';
 import { generateViralArticle } from '@/lib/generate-viral';
 import { resolveProductImage } from '@/lib/image-resolver';
 import { buildComparativeEditorialBrief } from '@/lib/editorial-brief';
@@ -40,6 +40,24 @@ async function publishArticle(topic: {
     })),
   };
 
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) {
+    throw new Error('Supabase Service Role ausente; o comparativo não foi simulado.');
+  }
+  const { data: existingArticle, error: existingArticleError } = await supabase
+    .from('viral_articles')
+    .select('slug')
+    .eq('slug', article.slug)
+    .maybeSingle();
+
+  if (existingArticleError) {
+    throw new Error('Não foi possível verificar se o comparativo já existe: ' + existingArticleError.message);
+  }
+  const url = buildContentUrl(`/comparativos/${article.slug}`);
+  if (existingArticle) {
+    return { slug: article.slug, url, status: 'skipped' };
+  }
+
   const result = await createViralArticle({
     slug: article.slug,
     title: article.title,
@@ -50,13 +68,12 @@ async function publishArticle(topic: {
     products: resolvedProducts,
     seo_title: article.seo_title,
     seo_description: article.seo_description,
-  });
+  }, { insertOnly: true });
 
   if (result.error) {
     throw new Error(String(result.error));
   }
 
-  const url = buildContentUrl(`/comparativos/${article.slug}`);
   revalidateComparativeSurfaces([article.slug]);
   await pingNewContent(buildComparativeIndexNowTargets(article.slug), 'cron-viral-content');
 
