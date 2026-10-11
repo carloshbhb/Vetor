@@ -33,7 +33,7 @@ interface ComparisonVideoData {
   product1: { name: string; imageUrl: string; score: number };
   product2: { name: string; imageUrl: string; score: number };
   categories: Array<{ label: string; score1: number; score2: number }>;
-  winner: 1 | 2;
+  winner: 0 | 1 | 2;
   hook: string;
   scenes: ComparisonSceneData[];
   callToAction: string;
@@ -43,6 +43,7 @@ interface ComparisonVideoData {
   brollVideos: string[];
   totalDuration: number;
   fps: number;
+  comparisonUrl?: string;
 }
 
 type VideoData = ReviewVideoData | ComparisonVideoData;
@@ -191,6 +192,7 @@ async function main() {
         product2: rawData.product2,
         categories: rawData.categories,
         winner: rawData.winner,
+        comparisonUrl: typeof rawData.comparisonUrl === 'string' ? rawData.comparisonUrl : 'https://www.vetor.blog/comparativos/',
         hook: rawData.hook,
         scenes: scenesWithFrames,
         callToAction: rawData.callToAction,
@@ -250,10 +252,10 @@ async function main() {
     } else {
       const sampleScenes: ComparisonSceneData[] = [
         { id: 1, text: 'Galaxy S24 vs iPhone 15 - qual comprar em 2026?', duration: 4, visualCue: 'Dois produtos lado a lado', brollKeywords: ['smartphone comparison'], startFrame: 0, endFrame: 0, type: 'intro' },
-        { id: 2, text: 'Galaxy S24: tela incrível, câmera versátil, S Pen opcional.', duration: 8, visualCue: 'Galaxy S24 em close, demonstrando features', brollKeywords: ['samsung galaxy', 'android phone'], startFrame: 0, endFrame: 0, type: 'product1' },
-        { id: 3, text: 'iPhone 15: ecossistema Apple, vídeo imbatível, Face ID.', duration: 8, visualCue: 'iPhone 15 em uso, demonstrando ecossistema', brollKeywords: ['iphone', 'apple ecosystem'], startFrame: 0, endFrame: 0, type: 'product2' },
+        { id: 2, text: 'Confira na ficha oficial os recursos de tela, câmera e acessórios de cada modelo.', duration: 8, visualCue: 'Galaxy S24 em close, demonstrando features', brollKeywords: ['samsung galaxy', 'android phone'], startFrame: 0, endFrame: 0, type: 'product1' },
+        { id: 3, text: 'Compare a compatibilidade e os recursos listados pelo fabricante para cada modelo.', duration: 8, visualCue: 'iPhone 15 em uso, demonstrando ecossistema', brollKeywords: ['iphone', 'apple ecosystem'], startFrame: 0, endFrame: 0, type: 'product2' },
         { id: 4, text: '', duration: 10, visualCue: 'Barras comparativas lado a lado', brollKeywords: ['comparison chart', 'vs'], startFrame: 0, endFrame: 0, type: 'comparison' },
-        { id: 5, text: '', duration: 5, visualCue: 'Coroa no vencedor', brollKeywords: ['winner', 'trophy'], startFrame: 0, endFrame: 0, type: 'verdict' },
+        { id: 5, text: '', duration: 5, visualCue: 'Cartela final com critérios de escolha', brollKeywords: ['comparison verdict'], startFrame: 0, endFrame: 0, type: 'verdict' },
       ];
 
       const scenesWithFrames = calculateComparisonFrameTimings(sampleScenes, fps, hookFrames);
@@ -263,26 +265,21 @@ async function main() {
 
       const subtitleEntries: SubtitleEntry[] = [
         { start: 0, end: 3, text: 'Galaxy S24 vs iPhone 15 - qual comprar em 2026?' },
-        { start: 3, end: 11, text: 'Galaxy S24: tela incrível, câmera versátil, S Pen opcional.' },
-        { start: 11, end: 19, text: 'iPhone 15: ecossistema Apple, vídeo imbatível, Face ID.' },
+        { start: 3, end: 11, text: 'Confira na ficha oficial os recursos de tela, câmera e acessórios de cada modelo.' },
+        { start: 11, end: 19, text: 'Compare a compatibilidade e os recursos listados pelo fabricante para cada modelo.' },
         { start: 19, end: 29, text: 'Comparando design, câmera, desempenho, bateria e custo-benefício.' },
-        { start: 29, end: 34, text: 'Vencedor: Galaxy S24 com nota 8.8!' },
+        { start: 29, end: 34, text: 'A escolha depende dos critérios documentados e do seu perfil de uso.' },
         { start: 34, end: 37, text: 'Confira preço e condições atuais no link da descrição.' },
       ];
 
       videoData = {
         type: 'comparison',
         title: 'Galaxy S24 vs iPhone 15: Qual Comprar em 2026?',
-        product1: { name: 'Galaxy S24', imageUrl: '/images/samsung-s24.png', score: 8.8 },
-        product2: { name: 'iPhone 15', imageUrl: '/images/iphone15.png', score: 8.5 },
-        categories: [
-          { label: 'Design', score1: 8.5, score2: 9.0 },
-          { label: 'Câmera', score1: 9.0, score2: 8.5 },
-          { label: 'Desempenho', score1: 9.0, score2: 9.0 },
-          { label: 'Bateria', score1: 8.5, score2: 7.5 },
-          { label: 'Custo-Benefício', score1: 8.0, score2: 7.0 },
-        ],
-        winner: 1,
+        product1: { name: 'Galaxy S24', imageUrl: '/images/samsung-s24.png', score: 0 },
+        product2: { name: 'iPhone 15', imageUrl: '/images/iphone15.png', score: 0 },
+        categories: []
+        winner: 0,
+        comparisonUrl: 'https://www.vetor.blog/comparativos/',
         hook: 'Galaxy S24 vs iPhone 15 - qual comprar em 2026?',
         scenes: scenesWithFrames,
         callToAction: 'Confira a análise completa!',
