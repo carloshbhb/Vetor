@@ -249,9 +249,11 @@ async function fetchAffiliateLinksPage(filters: AffiliateLinkFilters | undefined
   let query = supabase
     .from("affiliate_links")
     .select("*", withCount ? { count: "exact" } : {})
-    .order("status", { ascending: true })
+    // Ordem estável: editar um link não altera sua posição na lista.
+    // Não ordenar por status/updated_at, pois ambos mudam durante a configuração.
     .order("priority", { ascending: false })
-    .order("updated_at", { ascending: false });
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
   query = applyAffiliateLinkFilters(query, filters);
   const limit = Math.min(Math.max(filters?.limit ?? 100, 1), 200);
   const offset = Math.max(filters?.offset ?? 0, 0);
