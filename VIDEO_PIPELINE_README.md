@@ -213,7 +213,9 @@ const BRAZILIAN_VOICES = [
 ```
 
 ### Alterar Template de Vídeo
-Edite `video/src/compositions/ReviewVideo.tsx` ou `ComparisonVideo.tsx`
+Os reviews gerados usam `video/src/compositions/EditorialReview.tsx`, adaptado do modelo do projeto Remotion. O roteiro, as imagens, o áudio do `edge-tts` e o B-roll entram como propriedades da composição. O Studio abre com `cd video && npm start`.
+
+Comparações manuais continuam usando `video/src/compositions/ComparisonVideo.tsx`.
 
 ### Adicionar Marketplaces
 Edite `src/lib/product-extractor.ts` - adicione seletores CSS

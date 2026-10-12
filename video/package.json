@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "remotion studio",
+    "start": "remotion studio src/Root.tsx",
     "build": "remotion render",
     "render-review": "tsx src/utils/renderVideo.ts review",
     "render-comparison": "tsx src/utils/renderVideo.ts comparison",
@@ -12,16 +12,14 @@
     "upload-youtube": "node scripts/upload-to-youtube.js"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/player": "^4.0.0",
+    "@remotion/cli": "4.0.534",
+    "@remotion/player": "4.0.534",
     "@supabase/supabase-js": "^2.39.0",
     "edge-tts": "^1.0.1",
     "googleapis": "^128.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "remotion": "^4.0.0",
-    "@remotion/bundler": "^4.0.0",
-    "@remotion/renderer": "^4.0.0"
+    "remotion": "4.0.534"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

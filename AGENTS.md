@@ -41,3 +41,12 @@ Antes de escolher o próximo item do `SEO_LEDGER.md`, cruzar com `metrics/SUMMAR
 - página com **subida ≥30% em 7d** → item `P3` "reforçar internal links/schema: <path>";
 - `P4` (keywords novas) só com tendência 28d estável/positiva; se cair, defender o que já ranqueia (P0/P1);
 - todo item `done` ganha `outcome: improved|neutral|worse` 7 dias depois → sinal de `agentdb train`.
+
+## Delegação de Processamento (NVIDIA NIM Routing)
+
+Para economizar a janela de contexto e os tokens do Antigravity, tarefas de geração pesada, scaffolding, templates longos e refatorações extensas devem ser delegadas ao NVIDIA NIM via `python llm_task.py "prompt"` ou `.\llm_task.ps1 "prompt"`.
+- **Configuração**: Chave `NVIDIA_API_KEY` carregada automaticamente de `.env.local`.
+- **Modelo Padrão**: `nvidia/nemotron-3-ultra-550b-a55b` (ultra performance 550B).
+- **Modelo Rápido**: `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`.
+- **Regras detalhadas**: [.agents/rules/nim-routing.md](file:///.agents/rules/nim-routing.md).
+

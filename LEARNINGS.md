@@ -87,3 +87,13 @@ Admin registries should return an exact filtered total with explicit limit and o
 Admin screens should read and mutate the same persisted backend collection through authenticated server APIs; synthetic queue rows and browser-side database writes bypassing custom admin auth create misleading controls.
   Evidência: The old video admin synthesized jobs while video_queue contained 591 rows; the consolidated screen now reads the real queue through authenticated routes.
   Confiança: 0.70 · sucesso
+
+### 2026-10-11 · code-quality · #16
+Em um repositório Vetor que já contém um projeto Remotion em video/, não rodar o scaffold create-video por cima; instalar as skills oficiais com npx skills add remotion-dev/skills --yes na raiz para disponibilizá-las no projeto todo. Se npx remotion skills add falhar antes de executar por incompatibilidade de config, conferir APIs @remotion/cli instaladas: setParallelism foi substituído por setConcurrency.
+  Evidência: Instalação das 12 skills oficiais confirmou no .agents/skills e skills-lock.json; npx remotion skills add inicialmente falhou com Config.setParallelism is not a function; config instalada fornece setConcurrency.
+  Confiança: 0.70 · sucesso
+
+### 2026-10-11 · code-quality · #17
+Ao adaptar template Remotion para pipeline externo, manter caminhos de assets como URLs relativas à pasta public do projeto Remotion e copiar arquivos para essa pasta antes do render; caminhos absolutos do filesystem não são acessíveis ao Chromium da composição. Derivar duração da composição do mesmo timeline de frames usado pelas cenas para evitar trechos silenciosos excedentes.
+  Evidência: process-video.ts copiava assets para public/assets na raiz do Next, mas o renderer usa video/public; mudança alinha cópia e props sob video/public/assets e duração passa a ser hook + cenas + CTA.
+  Confiança: 0.70 · sucesso

@@ -42,79 +42,98 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     'sony-wf-1000xm5',
   ]);
 
+  const latestSiteUpdate = latestReviewModification(reviews) || new Date('2026-10-12T00:00:00.000Z');
+  const editorialDate = new Date('2026-10-01T00:00:00.000Z');
+  const legalDate = new Date('2026-09-23T00:00:00.000Z');
+
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: baseUrl + '/',
+      lastModified: latestSiteUpdate,
       changeFrequency: 'daily',
       priority: 1,
     },
     {
       url: `${baseUrl}/reviews/`,
+      lastModified: latestSiteUpdate,
       changeFrequency: 'daily',
       priority: 0.9,
     },
     {
       url: `${baseUrl}/melhores/`,
+      lastModified: latestSiteUpdate,
       changeFrequency: 'weekly',
       priority: 0.9,
     },
     {
       url: `${baseUrl}/comparativos/`,
+      lastModified: latestSiteUpdate,
       changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
       url: `${baseUrl}/sobre/`,
+      lastModified: editorialDate,
       changeFrequency: 'monthly',
       priority: 0.5,
     },
     {
       url: `${baseUrl}/privacidade/`,
+      lastModified: legalDate,
       changeFrequency: 'yearly',
       priority: 0.3,
     },
     {
       url: `${baseUrl}/contato/`,
+      lastModified: legalDate,
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
       url: `${baseUrl}/author/`,
+      lastModified: latestSiteUpdate,
       changeFrequency: 'monthly',
       priority: 0.6,
     },
     {
       url: `${baseUrl}/tags/`,
+      lastModified: latestSiteUpdate,
       changeFrequency: 'weekly',
       priority: 0.6,
     },
     {
       url: `${baseUrl}/guias/`,
+      lastModified: latestSiteUpdate,
       changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
       url: `${baseUrl}/ofertas/`,
+      lastModified: latestSiteUpdate,
       changeFrequency: 'daily',
       priority: 0.7,
     },
     {
       url: `${baseUrl}/como-avaliamos/`,
+      lastModified: editorialDate,
       changeFrequency: 'monthly',
       priority: 0.5,
     },
     {
       url: `${baseUrl}/politica-editorial/`,
+      lastModified: editorialDate,
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
       url: `${baseUrl}/afiliados/`,
+      lastModified: editorialDate,
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
       url: `${baseUrl}/termos/`,
+      lastModified: legalDate,
       changeFrequency: 'yearly',
       priority: 0.3,
     },
@@ -177,16 +196,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const authorPages: MetadataRoute.Sitemap = authors.map((a) => ({
     url: `${baseUrl}/author/${a.slug}/`,
+    lastModified: latestSiteUpdate,
     changeFrequency: 'weekly' as const,
     priority: 0.6,
   }));
 
   const tagIndex = buildIndexableTagIndex(reviews);
-  const tagPages: MetadataRoute.Sitemap = tagIndex.map((t) => ({
-    url: `${baseUrl}/tags/${t.slug}/`,
-    changeFrequency: 'weekly' as const,
-    priority: 0.5,
-  }));
+  const tagPages: MetadataRoute.Sitemap = tagIndex.map((t) => {
+    const tagReviews = reviews.filter((r) => {
+      const kw = (r.meta_keywords || '').toLowerCase();
+      return kw.includes(t.tag.toLowerCase());
+    });
+    const lastModified = latestReviewModification(tagReviews) || latestSiteUpdate;
+
+    return {
+      url: `${baseUrl}/tags/${t.slug}/`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.5,
+    };
+  });
 
   return [
     ...staticPages,
