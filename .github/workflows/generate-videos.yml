@@ -75,10 +75,10 @@ jobs:
             echo "::error::COUNT must be a positive integer"
             exit 1
           fi
-          if [ "${COUNT}" -gt 5 ]; then
-            echo "::warning::COUNT capped at 5 per content type so the worker handles at most 10 videos per run."
-            COUNT=5
-            echo 'COUNT=5' >> "$GITHUB_ENV"
+          if [ "${COUNT}" -gt 15 ]; then
+            echo "::warning::COUNT capped at 15 per content type so the worker stays inside 45min timeout (Remotion render ~3min/video)."
+            COUNT=15
+            echo 'COUNT=15' >> "$GITHUB_ENV"
           fi
           echo "VIDEO_LIMIT=$((COUNT * 2))" >> "$GITHUB_ENV"
 
@@ -133,3 +133,4 @@ jobs:
             video/logs/upload-log.json
           if-no-files-found: ignore
           retention-days: 7
+
