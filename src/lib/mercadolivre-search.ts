@@ -165,13 +165,47 @@ const ACCESSORY_MARKERS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\bbotoes? (?:para|de)\b/, label: "botão de reposição" },
   { pattern: /\bmouse para\b|\bteclado para\b|\bmicrofone para fones\b/, label: "acessório compatível" },
   { pattern: /\bcompat[ií]vel com\b|\bcompativel com\b/, label: "item compatível/acessório" },
-  { pattern: /\bkit\s+\d+\s+(?:lampadas?|unidades?)\b/, label: "kit com várias unidades" },
+  { pattern: /\b(?:espumas?|almofadas?|ear\s*cushions?|ear\s*pads?|earpads?|foam\s+(?:ear\s*)?pads?)\b/, label: "espuma/almofada de reposição" },
+  { pattern: /\b(?:mop\s*pads?|pads?\s+(?:para|de)\s+mop|panos?\s+(?:para|de)\s+esfregao)\b/, label: "refil/pano de mop" },
+  { pattern: /\b(?:teclas?\s+(?:avulsas?|soltas?|de\s+reposicao)|keycaps?)\b/, label: "tecla avulsa/keycap" },
+  { pattern: /\b(?:ponteiras?|ear\s*tips?|eartips?|foam\s*tips?)\b/, label: "ponteira de fone" },
+  { pattern: /\b(?:kit|pack|pacote|conjunto|combo)\s*(?:com|de)?\s*\d{1,2}\s+(?:unidades?|itens?|pecas?|cameras?|lampadas?|controles?|fones?|headsets?|cabos?|teclas?|almofadas?|filtros?|baterias?|sensores?|panos?|refis?)\b/, label: "kit com várias unidades" },
 ];
 
 const VARIANT_MARKERS = [
   "neo", "pro", "plus", "max", "mini", "lite", "ultra", "fe", "se", "kids", "x",
-  "mkii", "mk2", "gen2", "gen3", "gen4", "gen5",
+  "active", "core", "revolver", "revolution", "pulse", "fabric", "classic", "elite",
+  "ii", "iii", "iv", "mkii", "mk2", "gen2", "gen3", "gen4", "gen5",
 ];
+
+const NUMBERED_PRODUCT_FAMILIES: Array<{ label: string; pattern: RegExp }> = [
+  { label: "Galaxy Buds", pattern: /\b(?:galaxy\s+)?buds\s*(\d{1,2})\b/ },
+  { label: "AirPods Pro", pattern: /\bairpods\s+pro\s*(\d{1,2})\b/ },
+  { label: "Redmi Watch", pattern: /\b(?:redmi\s+)?watch\s*(\d{1,2})\b/ },
+  { label: "Smart Band", pattern: /\bsmart\s+band\s*(\d{1,2})\b/ },
+  { label: "Intelbras EWS", pattern: /\bews\s*(\d{2,4})\b/ },
+  { label: "Echo Dot", pattern: /\bdot\s*(\d{1,2})\b/ },
+  { label: "JBL Quantum", pattern: /\bquantum\s*(\d{2,3})\b/ },
+  { label: "Logitech Superlight", pattern: /\bsuperlight\s*(\d{1,2})\b/ },
+];
+
+const COLOR_MARKERS: Array<{ label: string; pattern: RegExp }> = [
+  { label: "preto", pattern: /\b(?:preto|preta|black|midnight|obsidian)\b/ },
+  { label: "cinza", pattern: /\b(?:cinza|cinzento|gray|grey|ash|graphite)\b/ },
+  { label: "branco", pattern: /\b(?:branco|branca|white)\b/ },
+  { label: "azul", pattern: /\b(?:azul|blue|navy)\b/ },
+  { label: "vermelho", pattern: /\b(?:vermelho|vermelha|red)\b/ },
+  { label: "verde", pattern: /\b(?:verde|green)\b/ },
+  { label: "rosa", pattern: /\b(?:rosa|pink)\b/ },
+  { label: "roxo", pattern: /\b(?:roxo|roxa|purple|violet)\b/ },
+  { label: "prata", pattern: /\b(?:prata|silver)\b/ },
+  { label: "dourado", pattern: /\b(?:dourado|dourada|gold)\b/ },
+  { label: "bege", pattern: /\b(?:bege|beige)\b/ },
+  { label: "translúcido", pattern: /\b(?:translucido|translucida|translucent|transparent)\b/ },
+];
+
+const PACKAGE_QUANTITY_PATTERN = /\b(?:kit|pack|pacote|conjunto|combo)\s*(?:com|de)?\s*(\d{1,2})\s+(?:unidades?|itens?|pecas?|cameras?|lampadas?|controles?|fones?|headsets?|cabos?|teclas?|almofadas?|filtros?|baterias?|sensores?|panos?|refis?)\b/;
+const ITEM_QUANTITY_PATTERN = /\b(\d{1,2})\s+(?:unidades?|itens?|pecas?|cameras?|lampadas?|controles?|fones?|headsets?|cabos?|teclas?|almofadas?|filtros?|baterias?|sensores?|panos?|refis?)\b/
 
 function isPlaceholderQuery(query: string): boolean {
   const q = normalize(query);
@@ -234,12 +268,96 @@ function variantMismatchReason(query: string, title: string): string | null {
   return null;
 }
 
+function numberedFamilyMismatchReason(query: string, title: string): string | null {
+  const normalizedQuery = normalize(query);
+  const normalizedTitle = normalize(title);
+
+  for (const family of NUMBERED_PRODUCT_FAMILIES) {
+    const requestedNumber = normalizedQuery.match(family.pattern)?.[1] || null;
+    const offeredNumber = normalizedTitle.match(family.pattern)?.[1] || null;
+    if (requestedNumber === offeredNumber) continue;
+
+    if (requestedNumber && offeredNumber) {
+      return 'o anúncio indica o modelo ' + family.label + ' ' + offeredNumber +
+        ', mas a pesquisa solicita ' + requestedNumber;
+    }
+    if (requestedNumber) {
+      return 'o número do modelo ' + family.label + ' ' + requestedNumber +
+        ' não aparece no título do anúncio';
+    }
+    return 'o anúncio informa ' + family.label + ' ' + offeredNumber +
+      ', mas a pesquisa não especifica essa variante numerada';
+  }
+
+  return null;
+}
+
+function colorMismatchReason(query: string, title: string): string | null {
+  const normalizedQuery = normalize(query);
+  const normalizedTitle = normalize(title);
+  const requestedColors = COLOR_MARKERS.filter((color) => color.pattern.test(normalizedQuery));
+  if (requestedColors.length === 0) return null;
+
+  const offeredColors = COLOR_MARKERS.filter((color) => color.pattern.test(normalizedTitle));
+  for (const requested of requestedColors) {
+    if (offeredColors.some((offered) => offered.label === requested.label)) continue;
+
+    const conflicting = offeredColors[0];
+    return conflicting
+      ? 'o anúncio indica a cor/acabamento "' + conflicting.label +
+        '", mas a pesquisa solicita "' + requested.label + '"'
+      : 'a cor/acabamento "' + requested.label +
+        '" solicitada não aparece no título do anúncio';
+  }
+
+  return null;
+}
+
+function packageQuantity(value: string): number | null {
+  const normalized = normalize(value);
+  const match = normalized.match(PACKAGE_QUANTITY_PATTERN) || normalized.match(ITEM_QUANTITY_PATTERN);
+  return match ? Number(match[1]) : null;
+}
+
+function packageQuantityMismatchReason(query: string, title: string): string | null {
+  const requestedQuantity = packageQuantity(query);
+  const offeredQuantity = packageQuantity(title);
+
+  if (requestedQuantity !== null && offeredQuantity !== null && requestedQuantity !== offeredQuantity) {
+    return 'a pesquisa solicita ' + requestedQuantity + ' unidade(s), mas o anúncio indica ' +
+      offeredQuantity + ' unidade(s)';
+  }
+  if (offeredQuantity !== null && offeredQuantity > 1 && requestedQuantity === null) {
+    return 'o anúncio parece oferecer um kit de ' + offeredQuantity +
+      ' unidades, mas a pesquisa não confirma essa quantidade';
+  }
+  if (requestedQuantity !== null && requestedQuantity > 1 && offeredQuantity === null) {
+    return 'a pesquisa solicita um kit de ' + requestedQuantity +
+      ' unidades, mas o título do anúncio não confirma essa quantidade';
+  }
+
+  return null;
+}
+
+export function getMercadoLivreCandidateMismatchReason(query: string, title: string): string | null {
+  return candidateMismatchReason(query, title);
+}
+
 function candidateMismatchReason(query: string, title: string): string | null {
   const accessoryReason = accessoryMismatchReason(query, title);
   if (accessoryReason) return accessoryReason;
 
+  const familyReason = numberedFamilyMismatchReason(query, title);
+  if (familyReason) return familyReason;
+
+  const colorReason = colorMismatchReason(query, title);
+  if (colorReason) return colorReason;
+
   const variantReason = variantMismatchReason(query, title);
   if (variantReason) return variantReason;
+
+  const quantityReason = packageQuantityMismatchReason(query, title);
+  if (quantityReason) return quantityReason;
 
   if (!brandMatches(query, title)) {
     return "a marca do anúncio não coincide claramente com a marca pesquisada";
@@ -278,7 +396,10 @@ function candidateMismatchReason(query: string, title: string): string | null {
 function catalogRelevanceScore(query: string, title: string): number {
   let score = matchScore(query, title);
   if (accessoryMismatchReason(query, title)) score -= 0.65;
+  if (numberedFamilyMismatchReason(query, title)) score -= 0.40;
+  if (colorMismatchReason(query, title)) score -= 0.40;
   if (variantMismatchReason(query, title)) score -= 0.28;
+  if (packageQuantityMismatchReason(query, title)) score -= 0.40;
   if (!brandMatches(query, title)) score -= 0.25;
   if (!capacityMatches(query, title)) score -= 0.25;
   return score;
