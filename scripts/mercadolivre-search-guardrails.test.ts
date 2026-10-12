@@ -22,7 +22,7 @@ mustReview(
 );
 mustReview(
   "Xiaomi Robot Vacuum X10",
-  "Mop pad compatível com Xiaomi Robot Vacuum X10",
+  "Mop pad para Xiaomi Robot Vacuum X10",
   /mop|refil/i,
 );
 mustReview(
