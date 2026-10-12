@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from 'next/link';
 import { usePathname } from "next/navigation";
 
 type NavItem = { label: string; href: string; icon: string; description: string };
@@ -129,7 +130,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                     ? normalizedPathname === "/admin"
                     : normalizedPathname.startsWith(item.href);
                   return (
-                    <a
+                    <Link
                       key={item.href}
                       href={item.href}
                       className={`group flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors ${isActive ? "bg-[var(--amber-bg)] text-[var(--amber)]" : "text-[var(--muted)] hover:bg-[var(--surface2)] hover:text-[var(--text)]"}`}
@@ -141,7 +142,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         <span className="block text-sm font-bold">{item.label}</span>
                         <span className={`mt-0.5 block text-[10px] leading-4 ${isActive ? "text-[var(--amber)]/80" : "text-[var(--muted)]"}`}>{item.description}</span>
                       </span>
-                    </a>
+                    </Link>
                   );
                 })}
               </div>
@@ -150,9 +151,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </nav>
 
         <div className="p-3 border-t border-border">
-          <a href="/" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[var(--muted)] hover:bg-[var(--surface2)] hover:text-[var(--text)]">
+          <Link href="/" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[var(--muted)] hover:bg-[var(--surface2)] hover:text-[var(--text)]">
             ← Voltar ao site
-          </a>
+          </Link>
+          <button onClick={() => { fetch("/api/admin/auth", {method: "POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({action:"logout"})}).finally(() => window.location.replace("/admin/login/")); }} className="mt-2 w-full text-left rounded-xl px-3 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-950/30 hover:text-red-300 transition-colors" aria-label="Sair do painel">
+            Sair do painel
+          </button>
         </div>
       </aside>
 

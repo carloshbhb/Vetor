@@ -54,7 +54,11 @@ a { color: inherit; }
   position: absolute; left: -999px; top: 12px; background: #fff; color: #000;
   padding: 10px 14px; border-radius: 8px; z-index: 9999;
 }
-.skip-link:focus { left: 12px; }
+.skip-link:focus { left: 12px; outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* Foco visível obrigatório (WCAG 2.4.7) */
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+input:focus-visible, button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
 /* Header */
 .site-header {

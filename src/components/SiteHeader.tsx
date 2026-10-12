@@ -4,6 +4,7 @@ import SiteSearch from '@/components/SiteSearch';
 export default function SiteHeader() {
   return (
     <header className="site-header">
+      <a href="#conteudo" className="skip-link">Pular para conteúdo</a>
       <div className="container nav" style={{ flexWrap: 'wrap', paddingBlock: 10 }}>
         <Link className="brand" href="/" aria-label="Vetor.blog, página inicial">
           Vetor<span>.</span>blog

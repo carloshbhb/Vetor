@@ -19,6 +19,7 @@ function applyStyles(el: Element, attr: string) {
 
 export default function HoverFX() {
   useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let active: Element | null = null;
 
     const resolve = (e: Event): Element | null => {
