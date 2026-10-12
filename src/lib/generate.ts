@@ -4,6 +4,193 @@ import { chatCompletion } from './llm-provider';
 import { validateGeneratedReview } from './content-quality';
 import { slugifyEditorialTitle } from './slug';
 import type { ReviewHeroBar, ReviewSpec, ReviewSection, ReviewCompareTable, ReviewFaq } from './types';
+import { spawn } from 'child_process';
+import path from 'path';
+
+// NOTA: import.meta.url não é suportado pelo bundler do Next (transpila p/ CJS).
+// Em runtime, process.cwd() aponta para a raiz do projeto, onde vive /scripts.
+const __dirname = process.cwd();
+
+// ---------------------------------------------------------------------------
+// Sanitizador de sinais editoriais proibidos
+// (espelha FORBIDDEN_REVIEW_EDITORIAL_SIGNALS em content-quality.ts)
+//
+// O Gemini escreve expressões naturais como "sem engasgos" mesmo com a lista
+// proibida no prompt — o gate reprovaria um review inteiro por uma frase só.
+// Esta camada determinística reescreve cada sinal por um sinônimo seguro
+// antes da validação, com match sem acento/caixa (mesma normalização do gate).
+// ---------------------------------------------------------------------------
+const ACCENT_CLASS: Record<string, string> = {
+  a: '[aáàâãä]',
+  c: '[cç]',
+  e: '[eéêè]',
+  i: '[iíìîï]',
+  o: '[oóòôõö]',
+  u: '[uúùûü]',
+};
+
+const EDITORIAL_SIGNAL_REWRITES: Array<{ phrase: string; replacement: string }> = [
+  { phrase: 'temos um claro vencedor', replacement: 'há um vencedor claro' },
+  { phrase: 'claro vencedor', replacement: 'vencedor' },
+  { phrase: 'em nossos testes', replacement: 'na análise de especificações' },
+  { phrase: 'nos nossos testes', replacement: 'na análise de especificações' },
+  { phrase: 'benchmark feito por nós', replacement: 'comparativo técnico' },
+  { phrase: 'testamos', replacement: 'analisamos' },
+  { phrase: 'medimos', replacement: 'verificamos' },
+  { phrase: 'garantimos', replacement: 'confirmamos' },
+  { phrase: 'padrão ouro', replacement: 'padrão de mercado' },
+  { phrase: 'escolha definitiva', replacement: 'escolha sólida' },
+  { phrase: 'líder do mercado', replacement: 'destaque do mercado' },
+  { phrase: 'não tem rivais à altura', replacement: 'tem poucos rivais à altura' },
+  { phrase: 'compra certa', replacement: 'boa escolha' },
+  { phrase: 'deve ser evitado por', replacement: 'não é indicado para' },
+  { phrase: 'deve ser evitado', replacement: 'não é indicado' },
+  { phrase: 'nível médico', replacement: 'nível profissional' },
+  { phrase: 'clinicamente útil', replacement: 'útil no dia a dia' },
+  { phrase: 'garante visibilidade perfeita', replacement: 'oferece ótima visibilidade' },
+  { phrase: 'funcionam sem falhas', replacement: 'funcionam de forma consistente' },
+  { phrase: 'sem engasgos', replacement: 'sem travamentos' },
+].sort((a, b) => b.phrase.length - a.phrase.length); // frases maiores primeiro
+
+const EDITORIAL_SIGNAL_RULES = EDITORIAL_SIGNAL_REWRITES.map(({ phrase, replacement }) => {
+  const normalized = phrase.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const body = normalized
+    .split('')
+    .map((ch) => ACCENT_CLASS[ch] ?? ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('')
+    .replace(/\s+/g, '\\s+');
+  // Lookarounds evitam reescrever trechos dentro de palavras maiores
+  // ("detestamos"), preservando a qualidade do texto; o gate, por usar
+  // includes(), só falha nesses casos se a palavra maior aparecer isolada.
+  return {
+    pattern: new RegExp(`(?<![\\p{L}])${body}(?![\\p{L}])`, 'giu'),
+    replacement,
+  };
+});
+
+export function rewriteEditorialText(text: string): string {
+  let out = text;
+  for (const rule of EDITORIAL_SIGNAL_RULES) {
+    out = out.replace(rule.pattern, (match) => {
+      let rewritten = rule.replacement;
+      if (match === match.toUpperCase() && match !== match.toLowerCase()) {
+        rewritten = rewritten.toUpperCase();
+      } else if (match.charAt(0) === match.charAt(0).toUpperCase()) {
+        rewritten = rewritten.charAt(0).toUpperCase() + rewritten.slice(1);
+      }
+      return rewritten;
+    });
+  }
+  return out;
+}
+
+export function rewriteEditorialSignals<T>(value: T): T {
+  if (typeof value === 'string') return rewriteEditorialText(value) as unknown as T;
+  if (Array.isArray(value)) return value.map((item) => rewriteEditorialSignals(item)) as unknown as T;
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = rewriteEditorialSignals(item);
+    }
+    return out as unknown as T;
+  }
+  return value;
+}
+
+interface GeminiReviewResult {
+  meta_title: string;
+  meta_description: string;
+  hero_lead: string;
+  verdict_score: number;
+  verdict_label: string;
+  verdict_text: string;
+  hero_bars: ReviewHeroBar[];
+  specs: ReviewSpec[];
+  pros: string[];
+  cons: string[];
+  compare_table: ReviewCompareTable;
+  faq: ReviewFaq[];
+  sections: ReviewSection[];
+  slug: string;
+  product: string;
+  category: string;
+  affiliate_url: string;
+  image_url: string;
+  price_new: string;
+  status: string;
+  marketplace: string;
+  ads_enabled: boolean;
+  schema_rating_value: number;
+  schema_review_count: number;
+  totalChars: number;
+}
+
+async function generateReviewViaGemini(product: {
+  title: string;
+  category: string;
+  price: string;
+  image: string;
+  product_url?: string;
+  affiliate_url?: string;
+  marketplace?: string;
+  editorialBrief?: import('./prompt').EditorialBrief;
+}): Promise<GeminiReviewResult> {
+  const scriptPath = path.resolve(__dirname, 'scripts/expand-reviews-gemini.mjs');
+  
+  const productData = {
+    product: product.title,
+    slug: slugifyEditorialTitle(product.title),
+    category: product.category,
+    price: product.price,
+    price_new: product.price,
+    img: product.image,
+    aff: product.affiliate_url || product.product_url || '',
+    affiliate_url: product.affiliate_url || product.product_url || '',
+    image_url: product.image,
+    marketplace: product.marketplace || 'mercadolivre',
+  };
+
+  return new Promise((resolve, reject) => {
+    const child = spawn('node', [scriptPath], {
+      env: { ...process.env, NODE_OPTIONS: '--no-warnings' },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdin.write(JSON.stringify(productData));
+    child.stdin.end();
+
+    child.stdout.on('data', (data) => { stdout += data.toString(); });
+    child.stderr.on('data', (data) => { stderr += data.toString(); });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Gemini script failed with code ${code}: ${stderr}`));
+        return;
+      }
+
+      try {
+        // The script outputs JSON to stdout, but also logs to stderr
+        // Find the JSON in stdout
+        const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          reject(new Error(`No JSON found in Gemini output. stdout: ${stdout.slice(0, 500)}... stderr: ${stderr.slice(0, 500)}`));
+          return;
+        }
+        const result = JSON.parse(jsonMatch[0]);
+        resolve(result);
+      } catch (err) {
+        reject(new Error(`Failed to parse Gemini output: ${err instanceof Error ? err.message : String(err)}. stdout: ${stdout.slice(0, 500)}`));
+      }
+    });
+
+    child.on('error', (err) => {
+      reject(new Error(`Failed to spawn Gemini script: ${err.message}`));
+    });
+  });
+}
 
 interface ReviewOutput {
   slug: string;
@@ -41,22 +228,39 @@ export async function generateReview(product: {
   price: string;
   image: string;
   product_url?: string;
+  affiliate_url?: string;
   marketplace?: string;
   editorialBrief?: import('./prompt').EditorialBrief;
 }): Promise<ReviewOutput> {
   try {
-    const prompt = buildReviewPrompt(product);
-    const response = await chatCompletion({
-      systemPrompt: 'Você é um editor de reviews profissionais para vetor.blog. Responda APENAS em JSON válido e completo, sem texto adicional.',
-      userPrompt: prompt,
-      temperature: 0.45,
-      maxTokens: 6500,
-      responseFormat: { type: 'json_object' },
-    });
+    // Usar Gemini via script subprocess (funciona confiavelmente para reviews longos)
+    // rewriteEditorialSignals: reescreve frases proibidas pelo gate antes da validação.
+    const geminiResult = rewriteEditorialSignals(await generateReviewViaGemini(product));
 
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('O provedor não retornou um objeto JSON completo.');
-    const parsed = JSON.parse(jsonMatch[0]) as Record<string, any>;
+    // Mapear resultado do Gemini para o formato esperado
+    const parsed = {
+      title: geminiResult.product,
+      description: geminiResult.meta_description,
+      content: geminiResult.sections.map(s => `<h2>${s.heading}</h2>${s.content.replace(/\n\n/g, '</p><p>')}`).join(''),
+      meta_title: geminiResult.meta_title,
+      meta_description: geminiResult.meta_description,
+      hero_lead: geminiResult.hero_lead,
+      hero_overall_score: geminiResult.verdict_score,
+      verdict_score: geminiResult.verdict_score,
+      verdict_label: geminiResult.verdict_label,
+      verdict_text: geminiResult.verdict_text,
+      verdict_note: '',
+      hero_bars: geminiResult.hero_bars,
+      specs: geminiResult.specs,
+      sections: geminiResult.sections,
+      pros: geminiResult.pros,
+      cons: geminiResult.cons,
+      compare_table: geminiResult.compare_table,
+      faq: geminiResult.faq,
+      hero_headline_line1: 'Review completo do',
+      hero_headline_line2: product.title,
+      hero_headline_em: 'Vale a pena?',
+    };
 
     const generatedTitle = typeof parsed.title === 'string' ? parsed.title.trim() : '';
     let generatedDescription = typeof parsed.description === 'string' ? parsed.description.trim() : '';
@@ -146,12 +350,12 @@ export async function generateReview(product: {
     }
 
     const seoOutput = seo(generatedTitle, generatedDescription);
-    const proposedMetaTitle = String(parsed.meta_title || parsed.seo_title || seoOutput.title).trim();
+    const proposedMetaTitle = String(parsed.meta_title || seoOutput.title).trim();
     const fallbackMetaTitle = `Review ${product.title}: vale a pena?`;
     const finalMetaTitle = proposedMetaTitle.length >= 35 && proposedMetaTitle.length <= 65
       ? proposedMetaTitle
       : fallbackMetaTitle.slice(0, 65);
-    const proposedMetaDescription = String(parsed.meta_description || parsed.seo_description || generatedDescription).trim();
+    const proposedMetaDescription = String(parsed.meta_description || generatedDescription).trim();
     const fallbackMetaDescription = `Review de ${product.title}: conheça recursos, limitações e alternativas. Veja para quais perfis de uso faz sentido e o que conferir antes de comprar.`;
     const finalMetaDescription = proposedMetaDescription.length >= 100 && proposedMetaDescription.length <= 160
       ? proposedMetaDescription

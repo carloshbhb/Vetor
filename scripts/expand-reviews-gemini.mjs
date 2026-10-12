@@ -3,8 +3,11 @@ import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
+import { pathToFileURL } from 'url';
 
-config({ path: '.env.local' });
+// quiet: true evita o banner do dotenv@17 no stdout — ele contém tips com
+// "{}" que quebram a extração do JSON no processo pai (generate.ts).
+config({ path: '.env.local', quiet: true });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
@@ -109,7 +112,7 @@ IMPORTANTE: NUNCA use os seguintes IDs de seção, pois eles já existem na pág
       {"feature": "Recurso Chave", "values": ["Sim", "Não", "Sim"], "winner": 0}
     ],
     "caption": "Comparativo técnico atualizado no mercado brasileiro",
-    "winnerCol": 0
+    "winnerCol": 1
   },
   "faq": [
     {"question": "Pergunta comum 1?", "answer": "Resposta direta e informativa de 2 a 3 frases."},
@@ -125,7 +128,16 @@ IMPORTANTE: NUNCA use os seguintes IDs de seção, pois eles já existem na pág
       "content": "Conteúdo com múltiplos parágrafos longos, separados por \\n\\n, com **negrito** e > callout..."
     }
   ]
-}`;
+}
+
+REGRAS DO compare_table:
+- columns[0] é sempre "Critério" (rótulo de linha), NUNCA um produto.
+- winnerCol é o ÍNDICE dentro de columns do produto vencedor: use 1 para o produto principal, 2 ou 3 para concorrentes, ou -1 quando não houver um vencedor claro. NUNCA use 0.
+- winner em cada linha é o índice dentro de values (0 = primeiro produto da lista de values, 1 = segundo, etc.).
+
+7. FRASES PROIBIDAS (reprovadas automaticamente por gate de qualidade — NUNCA use nenhuma delas, nem variações com ou sem acento, em NENHUM campo do JSON: sections, headings, pros, cons, faq, verdict, compare_table):
+   "claro vencedor", "temos um claro vencedor", "em nossos testes", "nos nossos testes", "testamos", "medimos", "benchmark feito por nós", "garantimos", "padrão ouro", "escolha definitiva", "líder do mercado", "não tem rivais à altura", "compra certa", "deve ser evitado", "nível médico", "clinicamente útil", "garante visibilidade perfeita", "funcionam sem falhas", "sem engasgos".
+   Nunca afirme que você testou, mediu ou revisou fisicamente o produto: o Vetor.blog publica análise técnica baseada em especificações públicas, não testes laboratoriais. Diga "na análise de especificações" ou "considerando os números oficiais" em vez disso.`;
 
 function cleanAndParseJson(raw) {
   let str = raw.trim();
@@ -238,4 +250,29 @@ Lembre-se: O review precisa ter entre 1.800 e 2.200 PALAVRAS no total das seçõ
   }
 
   throw lastError;
+}
+
+// CLI entry point for subprocess calls
+// On Windows, process.argv[1] has backslashes and import.meta.url uses
+// three slashes (file:///C:/...), so compare via pathToFileURL.
+const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectRun) {
+  let inputData = '';
+  for await (const chunk of process.stdin) {
+    inputData += chunk;
+  }
+  
+  if (!inputData.trim()) {
+    console.error('No input data received via stdin');
+    process.exit(1);
+  }
+  
+  try {
+    const productData = JSON.parse(inputData);
+    const result = await generateFullReview(productData);
+    console.log(JSON.stringify(result));
+  } catch (err) {
+    console.error(`[Gemini CLI] Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
 }
