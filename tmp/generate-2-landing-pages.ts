@@ -94,7 +94,12 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
     hero_bars: [{ pct: 80, label: 'Nota Técnica', value: 8 }],
     specs: [{ label: 'Categoria', value: link.category || 'Geral', highlight: true }],
     sections: [{ id: 'analise', heading: 'Análise do Produto', tocEmoji: '📊', tocLabel: 'Análise', content: `<h2>Análise de Mercado</h2>` }],
-    compare_table: { columns: ['Produto', 'Nota', 'Ideal para'], rows: [[productName, 'Em análise', 'Ver análise']], caption: 'Comparativo de alternativas', winnerCol: 1 },
+    compare_table: {
+      columns: ['Produto', 'Nota', 'Ideal para'],
+      rows: [{ feature: 'Comparativo', values: [productName, 'Em análise', 'Ver análise'], winner: 1 }],
+      caption: 'Comparativo de alternativas',
+      winnerCol: 1,
+    },
   };
 
   // Salvar como review (draft)
@@ -117,7 +122,7 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
   // Notificar IndexNow (opcional)
   if (supabase) {
     try {
-      await pingNewContent(buildContentUrl('/reviews/' + slug), 'generate-2-landing-pages');
+      await pingNewContent([buildContentUrl('/reviews/' + slug)], 'generate-2-landing-pages');
     } catch (e) {
       console.warn('IndexNow ping failed:', e);
     }

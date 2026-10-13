@@ -179,3 +179,13 @@ Canonical: `https://www.vetor.blog` Â· GSC configurado âœ“
 - ConteÃºdo editorial sincronizado com GitHub por migration idempotente, preservando review, FAQ, comparaÃ§Ã£o, SEO on-page e dados de afiliado jÃ¡ publicados no Supabase.
 - `src/app/sitemap.ts` passou a revalidar a cada 5 minutos para que novas reviews/comparativos do Supabase sejam refletidos sem depender de um novo conteÃºdo manual no sitemap.
 - PrÃ³ximo passo operacional: submissÃ£o do sitemap e URLs ao Google Search Console/IndexNow e inspeÃ§Ã£o das duas URLs.
+
+### Ciclo 13 — 2026-10-13 (Pipeline landing page — Samsung Galaxy A17 / 2 LPs/dia)
+- **Item:** Pipeline generate-2-landing-pages executado (teste completo).
+- **Resultado:** 2 landing pages geradas (8bitdo-ultimate-2c, xiaomi-mi-home-security-camera-2k-cam-seg); compare_table corrigido para ReviewCompareTable; referência layout (SF Symbols banner / liquid-glass CSS / GSAP / compare_table schema) inserida no super prompt.
+- **IndexNow:** aceito (ccepted: 1 por URL).
+- **Gate:** 
+pm run build ? (244/244); 
+pm run lint ? (0 warnings).
+- **Outcome:** improved — pipeline operando com referência de layout registrada e compilação limpa; próximo: acompanhar 7d para gentdb train (confiança =0.85 após 3 ocorrências).
+- **Arquivos:** 	mp/generate-2-landing-pages.ts (ref layout + tipos corrigidos), LEARNINGS.md, commit d872c1 (push main).
