@@ -114,10 +114,9 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
     };
   }
 
-  // Marcar product_link como com review (mesmo que seja landing page)
-  if (link.id) {
-    await markProductLinkReviewed(link.id, slug);
-  }
+  // NÃO marcar has_review=true aqui: a LP só sai de /admin/product-links-pending/
+  // após inserção dos links de afiliado (produto + concorrentes) no admin.
+  // await markProductLinkReviewed(link.id, slug);
 
   // Notificar IndexNow (opcional)
   if (supabase) {
