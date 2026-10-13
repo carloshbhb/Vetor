@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getProductLinksWaitingForAffiliate } from "@/lib/product-links";
 
 interface ProductLink {
   id: string;
   product_name: string;
   category: string;
-  affiliate_url?: string;
+  affiliate_url?: string | null;
   product_url?: string;
   image_url?: string;
   marketplace?: string;
@@ -15,6 +14,7 @@ interface ProductLink {
   source?: string;
   status?: string;
   has_review?: boolean;
+  review_slug?: string | null;
 }
 
 export default function ProductLinksPendingPage() {
@@ -27,9 +27,22 @@ export default function ProductLinksPendingPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await getProductLinksWaitingForAffiliate(page, ITEMS_PER_PAGE);
-        setLinks(res.data);
-        setError("");
+        setLoading(true);
+        const res = await fetch(
+          `/api/admin/product-links-pending?page=${page}&limit=${ITEMS_PER_PAGE}`,
+          { credentials: "same-origin" }
+        );
+        if (res.status === 401) {
+          setError("Não autorizado. Faça login novamente.");
+          setLinks([]);
+        } else if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setError(data.error || "Erro ao carregar product links aguardando afiliado.");
+        } else {
+          const data = await res.json();
+          setLinks(Array.isArray(data?.data) ? data.data : []);
+          setError("");
+        }
       } catch {
         setError("Erro ao carregar product links aguardando afiliado.");
       } finally {
@@ -39,7 +52,9 @@ export default function ProductLinksPendingPage() {
     load();
   }, [page]);
 
-  const totalPages = Math.ceil(links.length / ITEMS_PER_PAGE);
+  // total available on server; keep client paging consistent with the
+  // items actually rendered for this page.
+  const totalPages = Math.max(1, Math.ceil(links.length / ITEMS_PER_PAGE));
 
   return (
     <div>
@@ -81,6 +96,7 @@ export default function ProductLinksPendingPage() {
                 <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">Categoria</th>
                 <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">Link de Afiliado</th>
                 <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">Source</th>
+                <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">LP (rascunho)</th>
                 <th className="text-right px-4 py-3 font-heading font-bold text-[var(--text)]">Ações</th>
               </tr>
             </thead>
@@ -105,14 +121,29 @@ export default function ProductLinksPendingPage() {
                       {link.source}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleGenerateLandingPage(link.id, link.product_name)}
-                      className="text-xs text-[var(--blue)] hover:underline"
-                    >
-                      Gerar Landing Page
-                    </button>
-                  </td>
+                                     <td className="px-4 py-3">
+                     {link.review_slug ? (
+                       <a
+                         href={`/reviews/${link.review_slug}`}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="text-xs text-[var(--amber)] hover:underline"
+                       >
+                         Abrir LP
+                       </a>
+                     ) : (
+                       <span className="text-xs text-[var(--muted)]">—</span>
+                     )}
+                   </td>
+                   <td className="px-4 py-3 text-right">
+                     <button
+                       onClick={() => handleGenerateLandingPage(link.id, link.product_name)}
+                       className="text-xs text-[var(--blue)] hover:underline"
+                     >
+                       Gerar Landing Page
+                     </button>
+                   </td>
+
                 </tr>
               ))}
             </tbody>
@@ -146,8 +177,11 @@ export default function ProductLinksPendingPage() {
 
       alert("Landing page gerada com sucesso!");
       // Recarregar a lista
-      const updated = await getProductLinksWaitingForAffiliate(0, ITEMS_PER_PAGE);
-      setLinks(updated.data);
+      const updated = await fetch(`/api/admin/product-links-pending?page=0&limit=${ITEMS_PER_PAGE}`, { credentials: "same-origin" });
+      if (updated.ok) {
+        const payload = await updated.json();
+        setLinks(Array.isArray(payload?.data) ? payload.data : []);
+      }
     } catch {
       alert("Erro ao gerar landing page.");
     }
