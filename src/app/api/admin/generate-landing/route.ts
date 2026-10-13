@@ -72,7 +72,15 @@ export async function POST(req: NextRequest) {
       hero_bars: [{ pct: 80, label: "Nota Técnica", value: 8 }],
       specs: [{ label: "Categoria", value: link.category || "Geral", highlight: true }],
       sections: [{ id: "analise", heading: "Análise do Produto", tocEmoji: "📊", tocLabel: "Análise", content: `<h2>Análise de Mercado</h2>` }],
-      compare_table: { columns: ["Produto", "Nota", "Ideal para"], rows: [[productName, "Em análise", "Ver análise"]], caption: "Comparativo de alternativas", winnerCol: 1 },
+      compare_table: {
+        caption: "Comparativo de alternativas",
+        columns: ["Critério", productName, "Alternativa"],
+        winnerCol: 1,
+        rows: [
+          { feature: "Nota Técnica", values: ["Em análise", "8/10"], winner: 1 },
+          { feature: "Ideal para", values: ["Uso diário", "Ver análise"], winner: -1 },
+        ],
+      },
     };
 
     const result = await createReview(landingPage, { insertOnly: true });

@@ -56,7 +56,12 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
     price_new: link.price ? `R$${link.price.toFixed(2)}` : 'Consulte o preço',
     meta_title: `${productName} — Vale a Pena? Análise Completa 2026`,
     meta_description: `Descubra se ${productName} vale a compra. Análise de mercado, diferenciais, cards de concorrentes e guia de compra completo no Vetor Blog.`,
+    // REF LAYOUT (do usuário — SF Symbols banner, liquid-glass CSS/GSAP, compare_table ReviewCompareTable):
+    // - Banner hero: SF Symbols (smartphone, star.fill) + gradiente liquid-glass (backdrop-filter blur, rgba).
+    // - Seção compare_table: usar ReviewCompareTable com columns=['Produto','Nota','Ideal para'] e winnerCol.
+    // - Cards concorrentes: grid responsivo com glassmorphism, animação GSAP fade-up.
     content: `
+<!-- LAYOUT REFERENCE: SF Symbols banner + liquid-glass CSS + GSAP animations + compare_table schema -->
 <h2>O que é ${productName} e para quem ele é indicado?</h2><p>Este produto resolve necessidades específicas do público-alvo.</p>
 
 <h2>Principais Dores Resolvidas</h2><p>Identificamos as 3 maiores frustrações que levam à busca por este tipo de produto.</p>

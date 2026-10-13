@@ -97,3 +97,6 @@ Em um repositório Vetor que já contém um projeto Remotion em video/, não rod
 Ao adaptar template Remotion para pipeline externo, manter caminhos de assets como URLs relativas à pasta public do projeto Remotion e copiar arquivos para essa pasta antes do render; caminhos absolutos do filesystem não são acessíveis ao Chromium da composição. Derivar duração da composição do mesmo timeline de frames usado pelas cenas para evitar trechos silenciosos excedentes.
   Evidência: process-video.ts copiava assets para public/assets na raiz do Next, mas o renderer usa video/public; mudança alinha cópia e props sob video/public/assets e duração passa a ser hook + cenas + CTA.
   Confiança: 0.70 · sucesso
+- - -   R E F   L A Y O U T   R E G I S T R A D A   ( 2 0 2 6 - 1 0 - 1 3 )   - - -  
+ L a y o u t   l a n d i n g   p a g e   S a m s u n g   G a l a x y   A 1 7 :   S F   S y m b o l s   b a n n e r ,   l i q u i d - g l a s s   C S S / G S A P ,   c o m p a r e _ t a b l e   R e v i e w C o m p a r e T a b l e   ( c o l u m n s = [ ' P r o d u t o ' , ' N o t a ' , ' I d e a l   p a r a ' ] ,   w i n n e r C o l ) .   I n s e r i d o   n o   s u p e r   p r o m p t   t m p / g e n e r a t e - 2 - l a n d i n g - p a g e s . t s   +   c o m e n t � r i o   n o   c o n t e n t .   P i p e l i n e   ( 2   L P s / d i a ,   0 3 : 0 0 )   i n t a c t o .  
+ 

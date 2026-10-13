@@ -424,8 +424,7 @@ export async function getProductLinksWaitingForAffiliate(
       .select('*', { count: 'exact' })
       .eq('has_review', false)
       .eq('status', 'active')
-      .or('affiliate_url', 'is', null)
-      .or('affiliate_url', 'is', '')
+      .or('affiliate_url.is.null,affiliate_url.eq.')
       .order('priority', { ascending: false })
       .order('created_at', { ascending: true })
       .range(page * limit, page * limit + limit - 1);
@@ -435,7 +434,7 @@ export async function getProductLinksWaitingForAffiliate(
       return { data: [], total: 0 };
     }
 
-    return { data, total: count };
+    return { data, total: count ?? 0 };
   } catch (error) {
     console.error('Error in getProductLinksWaitingForAffiliate:', error);
     return { data: [], total: 0 };
