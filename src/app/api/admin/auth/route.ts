@@ -19,6 +19,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
+  const action = typeof (body as any)?.action === 'string' ? (body as any).action : '';
+  if (action === 'logout') {
+    const response = NextResponse.json({ success: true, action: 'logout' }, { status: 200 });
+    response.cookies.delete('vetor_admin_session');
+    return response;
+  }
+
   const password = typeof body.password === "string" ? body.password : "";
   const envPassword = process.env.ADMIN_PASSWORD;
 
