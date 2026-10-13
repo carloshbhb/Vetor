@@ -411,6 +411,37 @@ export async function getProductLinksByCategory(): Promise<
   }
 }
 
+export async function getProductLinksWaitingForAffiliate(
+  page: number = 0,
+  limit: number = 50
+): Promise<{ data: ProductLink[]; total: number }> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return { data: [], total: 0 };
+
+  try {
+    const { data, error, count } = await supabase
+      .from('product_links')
+      .select('*', { count: 'exact' })
+      .eq('has_review', false)
+      .eq('status', 'active')
+      .or('affiliate_url', 'is', null)
+      .or('affiliate_url', 'is', '')
+      .order('priority', { ascending: false })
+      .order('created_at', { ascending: true })
+      .range(page * limit, page * limit + limit - 1);
+
+    if (error) {
+      console.error('Error fetching product links waiting for affiliate:', error);
+      return { data: [], total: 0 };
+    }
+
+    return { data, total: count };
+  } catch (error) {
+    console.error('Error in getProductLinksWaitingForAffiliate:', error);
+    return { data: [], total: 0 };
+  }
+}
+
 
 function normalizeProductLink(row: any): ProductLink {
   return {
