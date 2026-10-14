@@ -27,7 +27,8 @@
     "test:comparison-tables": "tsx scripts/comparison-tables.test.ts",
     "test:review-compare": "tsx scripts/review-compare.test.ts",
     "test:mercadolivre-search": "tsx scripts/mercadolivre-search-guardrails.test.ts",
-    "test:viral-quality": "tsx scripts/viral-quality.test.ts"
+    "test:viral-quality": "tsx scripts/viral-quality.test.ts",
+    "test:sanitize": "tsx scripts/sanitize.test.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
