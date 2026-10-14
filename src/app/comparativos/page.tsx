@@ -3,7 +3,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import SafeImage from "@/components/SafeImage";
 import { safeImageSrc } from "@/lib/images";
 import { ItemListSchema } from "@/components/SchemaMarkup";
-import { fetchAllReviews, fetchAllViralArticles, normalizeCategoryName } from "@/lib/data";
+import { fetchAllReviews, fetchAllViralArticleSummaries, normalizeCategoryName } from "@/lib/data";
 import { buildBuyingGuideCategories } from "@/lib/buying";
 import type { Metadata } from "next";
 
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function ComparativosPage() {
-  const [articles, reviews] = await Promise.all([fetchAllViralArticles(), fetchAllReviews()]);
+  const [articles, reviews] = await Promise.all([fetchAllViralArticleSummaries(), fetchAllReviews()]);
   const guides = new Map(buildBuyingGuideCategories(reviews, 3).map((category) => [category.name, category.slug]));
 
   return (
