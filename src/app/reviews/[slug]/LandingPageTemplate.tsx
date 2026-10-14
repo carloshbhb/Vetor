@@ -18,9 +18,12 @@ function normalizeSpecs(value: Review["specs"]): ReviewSpec[] {
   );
 }
 
+function safeText(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
 function normalizePrice(value: string): string {
-  if (!value) return "Consulte o preço";
-  return value;
+  return value?.trim() || "Consulte o preço";
 }
 
 export default async function LandingPageTemplate({ review }: { review: Review }) {
@@ -28,17 +31,17 @@ export default async function LandingPageTemplate({ review }: { review: Review }
   const specs = normalizeSpecs(review.specs);
   const sections = normalizeSections(review.sections);
   const highlights = specs.filter((spec) => spec.highlight).slice(0, 3);
-  const cards = highlights.length >= 3
+  const cards = (highlights.length >= 3
     ? highlights
-    : [
-        ...highlights,
-        ...specs.filter((spec) => !highlights.some((item) => item.label === spec.label)),
-      ].slice(0, 3);
+    : [...highlights, ...specs.filter((item) => !highlights.some((chosen) => chosen.label === item.label))]
+  ).slice(0, 3);
   const compareTable = review.compare_table;
-  const compareColumns = Array.isArray(compareTable?.columns) ? compareTable.columns.filter((item) => typeof item === "string") : [];
+  const compareColumns = Array.isArray(compareTable?.columns)
+    ? compareTable.columns.filter((item) => typeof item === "string" && item.trim())
+    : [];
   const compareRows = Array.isArray(compareTable?.rows) ? compareTable.rows : [];
-  const pros = Array.isArray(review.pros) ? review.pros.filter(Boolean).slice(0, 6) : [];
-  const cons = Array.isArray(review.cons) ? review.cons.filter(Boolean).slice(0, 6) : [];
+  const pros = Array.isArray(review.pros) ? review.pros.filter((item) => typeof item === "string" && item.trim()).slice(0, 6) : [];
+  const cons = Array.isArray(review.cons) ? review.cons.filter((item) => typeof item === "string" && item.trim()).slice(0, 6) : [];
   const faq = Array.isArray(review.faq) ? review.faq.filter((item) => item?.question && item?.answer) : [];
   const linkedPrice = linkedProduct?.price != null
     ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(linkedProduct.price)
@@ -47,150 +50,248 @@ export default async function LandingPageTemplate({ review }: { review: Review }
   const purchaseUrl = [linkedProduct?.affiliate_url, review.affiliate_url]
     .find((value) => typeof value === "string" && value.trim())?.trim() || "";
   const imageUrl = linkedProduct?.image_url?.trim() || review.image_url?.trim() || "";
+  const scoreValue = Number(review.verdict_score ?? review.hero_overall_score);
+  const score = Number.isFinite(scoreValue) && scoreValue >= 0 && scoreValue <= 10
+    ? scoreValue.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    : "—";
+  const verdict = safeText(review.verdict_text, "Compare os recursos, as limitações e o preço atual com suas necessidades antes de decidir.");
+  const bestFor = pros[0] || "Quem considera os recursos e o preço apresentados";
+  const caution = cons[0] || "Confirme os detalhes e as condições atuais no anúncio";
+  const displayCards = cards.length > 0 ? cards : [
+    { label: "Categoria", value: safeText(review.category, "Não informada") },
+    { label: "Preço consultado", value: price },
+    { label: "Avaliação", value: score === "—" ? "Sem nota informada" : score + "/10" },
+  ];
+  const displaySpecs = specs.length > 0 ? specs : [
+    { label: "Produto", value: review.product },
+    { label: "Categoria", value: safeText(review.category, "Não informada") },
+    { label: "Preço consultado", value: price },
+    { label: "Disponibilidade", value: "Consulte a loja" },
+  ];
+  const displayCompareColumns = compareColumns.length >= 3
+    ? compareColumns.slice(0, 4)
+    : ["Critério", review.product, "Alternativa a avaliar"];
+  const displayCompareRows = compareRows.length > 0 ? compareRows : [
+    { feature: "Preço", values: [price, "Consulte o anúncio"], winner: -1 },
+    { feature: "Especificações", values: ["Ver ficha técnica acima", "Confirme os dados do modelo"], winner: -1 },
+    { feature: "Indicação", values: [bestFor, "Compare com seu perfil de uso"], winner: -1 },
+  ];
+  const displaySections = sections.length > 0 ? sections : [{
+    id: "analise-geral",
+    heading: "Análise do produto",
+    tocEmoji: "•",
+    tocLabel: "Análise do produto",
+    content: "<p>Esta página ainda não possui uma análise detalhada validada. Consulte a ficha técnica e confirme as informações diretamente com o fabricante ou vendedor antes de comprar.</p>",
+  } as ReviewSection];
+  const displayPros = pros.length > 0 ? pros : ["Ficha técnica organizada para facilitar a comparação", "Preço e disponibilidade podem ser conferidos na loja"];
+  const displayCons = cons.length > 0 ? cons : ["Alguns dados podem exigir confirmação no anúncio", "Compare as condições atuais antes de comprar"];
+  const displayFaq = faq.length > 0 ? faq : [
+    { question: "O que devo conferir antes de comprar?", answer: "Confirme o modelo exato, a ficha técnica, a garantia, o preço final, o frete e as condições informadas pelo vendedor." },
+    { question: "O preço exibido é definitivo?", answer: "Não. Preços, estoque e condições comerciais podem mudar. Confira o valor final na página da loja antes de concluir a compra." },
+    { question: "Como comparar este produto com alternativas?", answer: "Compare características equivalentes, limitações, compatibilidade, garantia e preço total usando dados confirmados para cada modelo." },
+  ];
 
   return (
     <div className={styles.page}>
+      <a className={styles.skipLink} href="#conteudo">Pular para o conteúdo</a>
       <header className={styles.siteHeader}>
-        <div className={styles.headerInner}>
-          <a href="/" className={styles.brand}>Vetor.blog</a>
-          <span className={styles.headerLabel}>Landing page de produto</span>
+        <div className={styles.container}>
+          <div className={styles.nav}>
+            <a href="/" className={styles.brand} aria-label="Vetor.blog, página inicial">Vetor<span>.</span>blog</a>
+            <nav className={styles.navLinks} aria-label="Navegação principal">
+              <a href="/reviews/">Reviews</a>
+              <a href="/comparativos/">Comparativos</a>
+              <a href="/guias/">Guias</a>
+              <a href="/ofertas/">Ofertas</a>
+            </nav>
+            <a className={styles.headerCta} href="#veredito">Ver análise</a>
+          </div>
         </div>
       </header>
 
-      <main className={styles.container}>
-        <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-          <a href="/">Início</a><span aria-hidden="true">/</span>
-          <a href="/reviews/">Reviews</a><span aria-hidden="true">/</span>
-          <span aria-current="page">{review.product}</span>
-        </nav>
-
-        <section className={styles.hero} aria-labelledby="lp-title">
-          <div className={styles.heroCopy}>
-            <span className={styles.badge}>{review.category || "Análise de produto"}</span>
-            <h1 id="lp-title">{review.product}: ficha técnica, recursos e avaliação</h1>
-            <p className={styles.heroLead}>{review.hero_lead || "Consulte as especificações disponíveis, compare alternativas e confira os pontos importantes antes da compra."}</p>
-            <div className={styles.priceBlock}>
-              <div>
-                <span className={styles.priceCaption}>Preço consultado</span>
-                <strong className={styles.price}>{price}</strong>
+      <main id="conteudo">
+        <section className={styles.hero}>
+          <div className={styles.container}>
+            <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
+              <a href="/">Início</a><span aria-hidden="true">›</span>
+              <a href="/reviews/">Reviews</a><span aria-hidden="true">›</span>
+              <span aria-current="page">{review.product}</span>
+            </nav>
+            <div className={styles.heroGrid}>
+              <div className={styles.heroCopy}>
+                <span className={styles.eyebrow}>Análise Vetor</span>
+                <h1>{review.product} vale a pena? Review completo, preço e alternativas</h1>
+                <p className={styles.heroLead}>{safeText(review.hero_lead, "Confira os principais recursos, pontos de atenção, preço e alternativas para decidir se este produto faz sentido para você.")}</p>
+                <div className={styles.meta}>
+                  <span>Atualizado em {review.updated_at ? new Date(review.updated_at).toLocaleDateString("pt-BR") : "data não informada"}</span>
+                  <span aria-hidden="true">•</span>
+                  <span>Equipe Vetor.blog</span>
+                </div>
+                <div className={styles.disclosure}>
+                  <strong>Transparência:</strong> esta página pode conter links de afiliado. Se você comprar por um desses links, o Vetor.blog pode receber uma comissão, sem custo adicional para você. Isso não altera a análise editorial.
+                </div>
               </div>
-              {purchaseUrl ? (
-                <a className={styles.cta} href={purchaseUrl} target="_blank" rel="sponsored nofollow noopener">
-                  Conferir oferta <span aria-hidden="true">↗</span>
-                </a>
-              ) : (
-                <span className={styles.ctaDisabled}>Oferta ainda não configurada</span>
-              )}
+              <aside className={styles.verdict} id="veredito" aria-label="Resumo da avaliação">
+                <span className={styles.verdictLabel}>Veredito rápido</span>
+                <div className={styles.score}><strong>{score}</strong><span>/ 10</span></div>
+                <div className={styles.stars} aria-label={score === "—" ? "Nota não informada" : "Nota editorial: " + score + " de 10"}>★★★★★</div>
+                <h2>{safeText(review.verdict_label, "Resumo da avaliação")}</h2>
+                <p>{verdict}</p>
+                <div className={styles.priceLine}><span>Preço consultado</span><strong>{price}</strong></div>
+                {purchaseUrl ? (
+                  <a className={styles.cta} href={purchaseUrl} target="_blank" rel="sponsored nofollow noopener">Ver preço na loja ↗</a>
+                ) : (
+                  <span className={styles.ctaDisabled}>Oferta ainda não configurada</span>
+                )}
+                <div className={styles.micro}>Preço e disponibilidade podem mudar.</div>
+              </aside>
             </div>
-            <p className={styles.priceNote}>O preço e a disponibilidade podem variar de acordo com a loja, o vendedor e o momento da consulta.</p>
-          </div>
-          <div className={styles.heroMedia}>
-            {imageUrl ? (
-              <Image src={imageUrl} alt={review.product} width={620} height={480} priority unoptimized className={styles.productImage} />
-            ) : (
-              <div className={styles.imagePlaceholder} role="img" aria-label={`Imagem de ${review.product} indisponível`}>Imagem indisponível</div>
-            )}
           </div>
         </section>
 
-        {cards.length > 0 && (
-          <section className={styles.section} aria-labelledby="lp-highlights">
-            <h2 id="lp-highlights" className={styles.sectionTitle}>Destaques principais</h2>
-            <div className={styles.highlightGrid}>
-              {cards.map((spec) => (
-                <article key={spec.label} className={styles.highlightCard}>
-                  <h3>{spec.label}</h3>
-                  <p>{spec.value}</p>
-                </article>
-              ))}
+        <div className={styles.container}>
+          <div className={styles.adSlot} aria-label="Publicidade">
+            <div><small>Publicidade</small><strong>Espaço para anúncio responsivo</strong></div>
+          </div>
+        </div>
+
+        <section className={styles.contentWrap}>
+          <div className={styles.container}>
+            <div className={styles.layout}>
+              <article className={styles.article}>
+                <nav className={styles.toc} aria-label="Índice da landing page">
+                  <strong>Nesta página</strong>
+                  <ol>
+                    <li><a href="#resumo">Resumo da análise</a></li>
+                    <li><a href="#criterios">Ficha técnica e critérios</a></li>
+                    <li><a href="#analise">Análise detalhada</a></li>
+                    <li><a href="#preco">Preço e custo-benefício</a></li>
+                    <li><a href="#comparativo">Comparativo com alternativas</a></li>
+                    <li><a href="#publico">Para quem vale a pena</a></li>
+                    <li><a href="#faq">Perguntas frequentes</a></li>
+                  </ol>
+                </nav>
+
+                <section id="resumo}>
+                  <h2>{review.product} é bom? Resumo da análise</h2>
+                  <p><strong>{review.product}</strong> — {verdict}</p>
+                  <div className={styles.quickSummary}>
+                    <div className={styles.pros}>
+                      <h3>✓ Pontos positivos</h3>
+                      <ul>{displayPros.slice(0, 4).map((item, index) => <li key={index}>{item}</li>)}</ul>
+                    </div>
+                    <div className={styles.cons}>
+                      <h3>✕ Pontos de atenção</h3>
+                      <ul>{displayCons.slice(0, 4).map((item, index) => <li key={index}>{item}</li>)}</ul>
+                    </div>
+                  </div>
+                  <div className={styles.factGrid}>
+                    <div className={styles.fact}><span>Melhor para</span><strong>{bestFor}</strong></div>
+                    <div className={styles.fact}><span>Destaque</span><strong>{displayCards[0]?.value || "Consulte a ficha técnica"}</strong></div>
+                    <div className={styles.fact}><span>Ponto de atenção</span><strong>{caution}</strong></div>
+                  </div>
+                </section>
+
+                <section id="criterios">
+                  <h2>Ficha técnica e critérios de avaliação</h2>
+                  <p>Confira os dados disponíveis para o modelo e confirme os detalhes decisivos na documentação do fabricante ou no anúncio da loja.</p>
+                  <div className={styles.factGrid}>
+                    {displayCards.map((spec) => <div className={styles.fact} key={spec.label}><span>{spec.label}</span><strong>{spec.value}</strong></div>)}
+                  </div>
+                  <div className={styles.tableWrap} role="region" aria-label="Ficha técnica" tabIndex={0}>
+                    <table>
+                      <thead><tr><th scope="col">Especificação</th><th scope="col">{review.product}</th></tr></thead>
+                      <tbody>{displaySpecs.map((spec) => <tr key={spec.label}><th scope="row">{spec.label}</th><td>{spec.value}</td></tr>)}</tbody>
+                    </table>
+                  </div>
+                  <div className={styles.callout}><strong>Como interpretar os dados</strong><p>Características, compatibilidade, garantia e condições de compra devem ser confirmadas para a versão exata do produto. Não considere informações ausentes como recursos confirmados.</p></div>
+                </section>
+
+                <section id="analise">
+                  <h2>Análise detalhada</h2>
+                  <div className={styles.analysis}><ReviewContent sections={displaySections} /></div>
+                </section>
+
+                <div className={styles.adSlot} aria-label="Publicidade dentro do conteúdo">
+                  <div><small>Publicidade</small><strong>Espaço para anúncio responsivo dentro do conteúdo</strong></div>
+                </div>
+
+                <section id="preco">
+                  <h2>{review.product} vale o preço?</h2>
+                  <p>O valor exibido é uma referência da consulta e pode mudar conforme loja, vendedor, frete, estoque e promoções.</p>
+                  <p>{verdict}</p>
+                  {purchaseUrl ? <a className={styles.cta} href={purchaseUrl} target="_blank" rel="sponsored nofollow noopener">Conferir preço atualizado ↗</a> : <p>Consulte as lojas disponíveis para confirmar preço e condições antes de comprar.</p>}
+                </section>
+
+                <section id="comparativo">
+                  <h2>{review.product} vs. alternativas: qual a diferença?</h2>
+                  <p>{safeText(compareTable?.caption, "Compare características equivalentes e use somente dados confirmados para cada modelo.")}</p>
+                  <div className={styles.compareWrap} role="region" aria-label="Comparativo com alternativas" tabIndex={0}>
+                    <table>
+                      <thead><tr>{displayCompareColumns.map((column, index) => <th key={index} scope="col">{column}</th>)}</tr></thead>
+                      <tbody>{displayCompareRows.map((row, rowIndex) => (
+                        <tr key={rowIndex}>
+                          <th scope="row">{row.feature}</th>
+                          {(Array.isArray(row.values) ? row.values : []).slice(0, displayCompareColumns.length - 1).map((value, index) => <td key={index} className={row.winner === index ? styles.winner : undefined}>{value}{row.winner === index ? " ✓" : ""}</td>)}
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <section id="publico">
+                  <h2>Para quem {review.product} vale a pena?</h2>
+                  <div className={styles.whoGrid}>
+                    <div className={styles.whoCard}><h3>Vale considerar se você...</h3><ul>{displayPros.slice(0, 4).map((item, index) => <li key={index}>{item}</li>)}</ul></div>
+                    <div className={styles.whoCard}><h3>Talvez não seja ideal se você...</h3><ul>{displayCons.slice(0, 4).map((item, index) => <li key={index}>{item}</li>)}</ul></div>
+                  </div>
+                </section>
+
+                <section id="faq">
+                  <h2>Perguntas frequentes sobre {review.product}</h2>
+                  <div className={styles.faq}>{displayFaq.map((item, index) => <details key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>
+                </section>
+
+                <section className={styles.finalVerdict}>
+                  <h2>Conclusão: {review.product} vale a pena?</h2>
+                  <p><strong>{safeText(review.verdict_label, "Resumo")}: </strong>{verdict}</p>
+                  <p>Compare os dados confirmados, o preço final e as condições da loja antes de tomar a decisão.</p>
+                  {purchaseUrl && <a className={styles.cta} href={purchaseUrl} target="_blank" rel="sponsored nofollow noopener">Ver oferta disponível ↗</a>}
+                </section>
+              </article>
+
+              <aside className={styles.sidebar} aria-label="Conteúdo complementar">
+                <div className={styles.sideCard}>
+                  <h3>{review.product} em resumo</h3>
+                  <div className={styles.priceLine}><span>Nota Vetor</span><strong>{score}/10</strong></div>
+                  <div className={styles.priceLine}><span>Preço consultado</span><strong>{price}</strong></div>
+                  <p>{verdict}</p>
+                  {purchaseUrl && <a className={styles.cta} href={purchaseUrl} target="_blank" rel="sponsored nofollow noopener">Ver preço e disponibilidade ↗</a>}
+                </div>
+                <div className={styles.sideCard}>
+                  <h3>Sobre esta análise</h3>
+                  <p>O Vetor.blog organiza informações de produto para apoiar uma decisão de compra clara e consciente.</p>
+                  <div className={styles.sideLinks}>
+                    <a href="/como-avaliamos/">Como avaliamos</a>
+                    <a href="/politica-editorial/">Política editorial</a>
+                    <a href="/afiliados/">Política de afiliados</a>
+                  </div>
+                </div>
+              </aside>
             </div>
-          </section>
-        )}
-
-        {specs.length > 0 && (
-          <section className={styles.section} aria-labelledby="lp-specs">
-            <h2 id="lp-specs" className={styles.sectionTitle}>Ficha técnica completa</h2>
-            <div className={styles.tableWrap} role="region" aria-label="Ficha técnica" tabIndex={0}>
-              <table className={styles.table}>
-                <thead><tr><th scope="col">Especificação</th><th scope="col">{review.product}</th></tr></thead>
-                <tbody>
-                  {specs.map((spec) => (
-                    <tr key={spec.label}><th scope="row">{spec.label}</th><td>{spec.value}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {sections.length > 0 && (
-          <section className={styles.section} aria-labelledby="lp-analysis">
-            <h2 id="lp-analysis" className={styles.sectionTitle}>Análise detalhada</h2>
-            <div className={styles.analysis}><ReviewContent sections={sections} /></div>
-          </section>
-        )}
-
-        {(pros.length > 0 || cons.length > 0) && (
-          <section className={styles.section} aria-labelledby="lp-pros-cons">
-            <h2 id="lp-pros-cons" className={styles.sectionTitle}>Pontos fortes e limitações</h2>
-            <div className={styles.prosConsGrid}>
-              {pros.length > 0 && <article className={styles.proCard}>
-                <h3>Pontos fortes</h3>
-                <ul>{pros.map((item, index) => <li key={index}>{item}</li>)}</ul>
-              </article>}
-              {cons.length > 0 && <article className={styles.consCard}>
-                <h3>Pontos de atenção</h3>
-                <ul>{cons.map((item, index) => <li key={index}>{item}</li>)}</ul>
-              </article>}
-            </div>
-          </section>
-        )}
-
-        {compareColumns.length >= 3 && compareRows.length > 0 && (
-          <section className={styles.section} aria-labelledby="lp-compare">
-            <h2 id="lp-compare" className={styles.sectionTitle}>Comparativo com alternativas</h2>
-            <p className={styles.sectionIntro}>{compareTable?.caption || "Compare as características disponíveis antes de escolher."}</p>
-            <div className={styles.tableWrap} role="region" aria-label="Comparativo de produtos" tabIndex={0}>
-              <table className={styles.table}>
-                <thead><tr>{compareColumns.map((column, index) => <th scope="col" key={index}>{column}</th>)}</tr></thead>
-                <tbody>
-                  {compareRows.map((row, rowIndex) => (
-                    <tr key={rowIndex}>
-                      <th scope="row">{row.feature}</th>
-                      {(Array.isArray(row.values) ? row.values : []).slice(0, compareColumns.length - 1).map((value, index) => (
-                        <td key={index} className={row.winner === index ? styles.winner : undefined}>{value}{row.winner === index ? " ✓" : ""}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {faq.length > 0 && (
-          <section className={styles.section} aria-labelledby="lp-faq">
-            <h2 id="lp-faq" className={styles.sectionTitle}>Perguntas frequentes</h2>
-            <div className={styles.faqList}>
-              {faq.map((item, index) => <details key={index} className={styles.faqItem}>
-                <summary>{item.question}</summary><p>{item.answer}</p>
-              </details>)}
-            </div>
-          </section>
-        )}
-
-        <section className={styles.finalCta} aria-labelledby="lp-final-cta">
-          <h2 id="lp-final-cta">Vale a pena comprar o {review.product}?</h2>
-          <p>{review.verdict_text || "Compare a ficha técnica, as limitações e o preço atualizado com o que você precisa."}</p>
-          {purchaseUrl && <a className={styles.cta} href={purchaseUrl} target="_blank" rel="sponsored nofollow noopener">Ver oferta disponível ↗</a>}
+          </div>
         </section>
-
-        <aside className={styles.disclosure} aria-label="Aviso de afiliados">
-          O Vetor.blog pode receber comissão por compras feitas por links de afiliados, sem custo adicional para você. Isso não altera a análise editorial.
-        </aside>
       </main>
 
-      <footer className={styles.footer}>© {new Date().getFullYear()} Vetor.blog · Informação clara para uma compra consciente.</footer>
+      {purchaseUrl && <div className={styles.mobileCta}><a className={styles.cta} href={purchaseUrl} target="_blank" rel="sponsored nofollow noopener">Conferir preço atualizado ↗</a></div>}
+      <footer className={styles.footer}>
+        <div className={styles.container}>
+          <div className={styles.footerGrid}>
+            <div><a href="/" className={styles.brand}>Vetor<span>.</span>blog</a><p>Informação clara para uma compra consciente. Esta página pode conter links de afiliado; a comissão não altera a análise editorial.</p></div>
+            <nav className={styles.footerLinks} aria-label="Links do rodapé"><a href="/privacidade/">Privacidade</a><a href="/afiliados/">Afiliados</a><a href="/politica-editorial/">Política editorial</a></nav>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
