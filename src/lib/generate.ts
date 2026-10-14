@@ -193,6 +193,17 @@ export async function generateReview(product: {
     }
     modelResult = rewriteEditorialSignals(modelResult);
 
+    const hasEditorialPayload =
+      [modelResult.title, modelResult.description, modelResult.meta_title, modelResult.meta_description, modelResult.hero_lead, modelResult.verdict_text]
+        .some((value) => typeof value === 'string' && value.trim().length > 0) ||
+      [modelResult.sections, modelResult.specs, modelResult.hero_bars, modelResult.pros, modelResult.cons, modelResult.faq]
+        .some((value) => Array.isArray(value) && value.length > 0) ||
+      (modelResult.compare_table && typeof modelResult.compare_table === 'object' && Object.keys(modelResult.compare_table).length > 0);
+
+    if (!hasEditorialPayload) {
+      throw new Error('A NVIDIA retornou um objeto JSON vazio; geração recusada antes da validação ou persistência.');
+    }
+
     const modelSections = Array.isArray(modelResult.sections) ? modelResult.sections : [];
     const sectionsHtml = modelSections
       .map((section) => `<h2>${section.heading}</h2>${section.content}`)

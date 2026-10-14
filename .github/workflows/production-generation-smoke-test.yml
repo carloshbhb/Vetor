@@ -47,32 +47,35 @@ jobs:
           npm ci
           cd video
           npm ci
-      - name: Wait for current production queue API deployment
+      - name: Wait for exact current Production commit
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
+          EXPECTED_DEPLOYMENT_COMMIT: ${{ github.sha }}
         run: |
           set -euo pipefail
           : "${CRON_SECRET:?CRON_SECRET secret is required}"
+          : "${EXPECTED_DEPLOYMENT_COMMIT:?Expected commit SHA is required}"
           ready=0
-          for attempt in $(seq 1 24); do
+          for attempt in $(seq 1 30); do
             curl_exit=0
-            code="$(curl -sS --max-time 12 -o queue-api-ready.json -w '%{http_code}' \
-              -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+            code="$(curl -sS --max-time 12 -o deployment-info.json -w '%{http_code}' \
+              -X POST "$VETOR_SITE_URL/api/cron/production-generation-test/" \
               -H "Authorization: Bearer $CRON_SECRET" \
               -H "Content-Type: application/json" \
-              -d '{"action":"recent"}' || curl_exit=$?)"
-            if [ "$curl_exit" -eq 0 ] && [ "$code" = "200" ] && jq -e '.success == true' queue-api-ready.json >/dev/null; then
-              echo "Current production deployment is ready."
+              -d '{"action":"deploymentInfo"}' || curl_exit=$?)"
+            if [ "$curl_exit" -eq 0 ] && [ "$code" = "200" ] && jq -e --arg sha "$EXPECTED_DEPLOYMENT_COMMIT" '.success == true and .deploymentCommit == $sha' deployment-info.json >/dev/null; then
+              echo "Production is running the exact tested commit: $EXPECTED_DEPLOYMENT_COMMIT"
               ready=1
               break
             fi
-            echo "Current production deployment not ready (attempt $attempt, curl=$curl_exit, HTTP=${code:-000})."
-            if [ "$attempt" -lt 24 ]; then sleep 10; fi
+            echo "Production commit mismatch/not ready (attempt $attempt, curl=$curl_exit, HTTP=${code:-000})."
+            jq . deployment-info.json 2>/dev/null || true
+            if [ "$attempt" -lt 30 ]; then sleep 10; fi
           done
           if [ "$ready" -ne 1 ]; then
-            cat queue-api-ready.json 2>/dev/null || true
-            echo "::error::Current production queue API did not become ready; refusing to test stale code."
+            cat deployment-info.json 2>/dev/null || true
+            echo "::error::Production did not promote the expected commit; refusing to call AI on stale code."
             exit 1
           fi
       - name: Validate YouTube OAuth before generation

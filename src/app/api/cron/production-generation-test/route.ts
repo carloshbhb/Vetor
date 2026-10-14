@@ -12,6 +12,24 @@ export async function POST(request: NextRequest) {
   const authError = verifyCronAuth(request);
   if (authError) return authError;
   try {
+    // Read-only, authenticated version probe for CI. It returns before any queue
+    // or AI work so the smoke test can wait for this exact commit in Production.
+    const requestBody = await request.json().catch(() => null);
+    if (
+      requestBody &&
+      typeof requestBody === "object" &&
+      !Array.isArray(requestBody) &&
+      (requestBody as { action?: unknown }).action === "deploymentInfo"
+    ) {
+      return NextResponse.json(
+        {
+          success: true,
+          deploymentCommit: process.env.VERCEL_GIT_COMMIT_SHA?.trim() || null,
+        },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
     const link = await getNextReviewProductLink();
     if (!link) {
       return NextResponse.json(
