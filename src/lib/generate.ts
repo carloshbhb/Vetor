@@ -193,12 +193,30 @@ export async function generateReview(product: {
     }
     modelResult = rewriteEditorialSignals(modelResult);
 
+    const modelSectionsBeforeValidation = Array.isArray(modelResult.sections) ? modelResult.sections : [];
+    const sectionWordCounts = modelSectionsBeforeValidation.map((section) => {
+      const text = typeof section?.content === 'string' ? section.content.replace(/<[^>]*>/g, ' ').trim() : '';
+      return text ? text.split(/\\s+/).length : 0;
+    });
     const hasEditorialPayload =
       [modelResult.title, modelResult.description, modelResult.meta_title, modelResult.meta_description, modelResult.hero_lead, modelResult.verdict_text]
         .some((value) => typeof value === 'string' && value.trim().length > 0) ||
       [modelResult.sections, modelResult.specs, modelResult.hero_bars, modelResult.pros, modelResult.cons, modelResult.faq]
         .some((value) => Array.isArray(value) && value.length > 0) ||
       (modelResult.compare_table && typeof modelResult.compare_table === 'object' && Object.keys(modelResult.compare_table).length > 0);
+
+    console.info('[review-generator] model payload shape:', {
+      keys: Object.keys(modelResult),
+      sectionCount: modelSectionsBeforeValidation.length,
+      sectionWordCounts,
+      contentChars: typeof modelResult.content === 'string' ? modelResult.content.length : 0,
+      specs: Array.isArray(modelResult.specs) ? modelResult.specs.length : 0,
+      heroBars: Array.isArray(modelResult.hero_bars) ? modelResult.hero_bars.length : 0,
+      pros: Array.isArray(modelResult.pros) ? modelResult.pros.length : 0,
+      cons: Array.isArray(modelResult.cons) ? modelResult.cons.length : 0,
+      faq: Array.isArray(modelResult.faq) ? modelResult.faq.length : 0,
+      compareColumns: Array.isArray(modelResult.compare_table?.columns) ? modelResult.compare_table.columns.length : 0,
+    });
 
     if (!hasEditorialPayload) {
       throw new Error('A NVIDIA retornou um objeto JSON vazio; geração recusada antes da validação ou persistência.');

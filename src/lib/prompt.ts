@@ -105,8 +105,8 @@ ${seoBrief}
 
 CONTRATO DE EXTENSÃO OBRIGATÓRIO:
 - O corpo integral do review será montado pelo sistema usando somente "sections": não duplique o artigo no campo "content"; retorne "content" como string vazia.
-- Gere 6 seções substantivas em "sections" (uma por cada área do artigo), cada uma com 300–350 palavras e ao menos 2 parágrafos HTML completos.
-- A soma do texto de todas as seções deve ter pelo menos 1.800 palavras visíveis e 5.000 caracteres; não substitua o artigo por resumo, tópicos breves ou uma introdução curta.
+- Gere 6 seções substantivas em "sections" (uma por cada área do artigo), cada uma com 270–285 palavras e ao menos 2 parágrafos HTML completos.
+- A soma do texto de todas as seções deve ter pelo menos 1.650 palavras visíveis e 5.000 caracteres; não substitua o artigo por resumo, tópicos breves ou uma introdução curta.
 - Desenvolva critérios, implicações práticas para diferentes perfis e pontos que o comprador deve verificar; nunca invente dados específicos.
 
 Retorne somente JSON válido, sem markdown fora do JSON, com esta estrutura:
@@ -165,7 +165,7 @@ Retorne somente JSON válido, sem markdown fora do JSON, com esta estrutura:
 
 REGRAS OBRIGATÓRIAS:
 - "content" deve ser exatamente uma string vazia; o sistema monta o HTML integral com os títulos e textos de "sections".
-- "sections" deve conter 6 seções substantivas, cada uma com 300–350 palavras, ao menos 2 parágrafos HTML e argumentos específicos. O corpo montado precisa ter no mínimo 1.800 palavras visíveis, 5.000 caracteres de texto, 8 parágrafos e 6 subtítulos <h2>/<h3>. Não use repetição ou conteúdo genérico para atingir tamanho; desenvolva critérios úteis e específicos. Não encerre antes de retornar o JSON completo.
+- "sections" deve conter 6 seções substantivas, cada uma com 270–285 palavras, ao menos 2 parágrafos HTML e argumentos específicos. O corpo montado precisa ter no mínimo 1.650 palavras visíveis, 5.000 caracteres de texto, 8 parágrafos e 6 subtítulos <h2>/<h3>. Não use repetição ou conteúdo genérico para atingir tamanho; desenvolva critérios úteis e específicos. Não encerre antes de retornar o JSON completo.
 - Inclua 4–8 "specs", 3–5 "hero_bars", 3–5 "pros", 3–5 "cons" e 3–5 perguntas em "faq".
 - Em "hero_bars", pct deve ser exatamente value multiplicado por 10. Justifique notas usando critérios observáveis; não as apresente como medições laboratoriais.
 - "meta_title" deve ter 35–65 caracteres. "meta_description" e "description" devem ter 100–160 caracteres.
