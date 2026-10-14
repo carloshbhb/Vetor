@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" \"scripts/**/*.ts\" \"tmp/**/*.ts\"",
     "generate": "tsx tmp/generate-8-articles.ts",
     "generate-videos": "tsx tmp/generate-videos.ts",
     "benchmark:nvidia": "tsx scripts/benchmark-nvidia-models.ts",
