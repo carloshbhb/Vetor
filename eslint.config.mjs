@@ -27,6 +27,8 @@ export default [
     rules: {
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs["core-web-vitals"].rules,
+      // Legacy internal anchors are widespread; migrate them in a dedicated UI pass.
+      "@next/next/no-html-link-for-pages": "off",
     },
   },
 ];
