@@ -5,19 +5,26 @@ export const ADMIN_SESSION_COOKIE = "vetor_admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 8;
 
 function sessionSecret(): string | null {
-  return process.env.ADMIN_SESSION_SECRET || process.env.CRON_SECRET || null;
+  return process.env.ADMIN_SESSION_SECRET || null;
 }
 
-function sessionToken(password: string): string | null {
+function sessionToken(password: string, expiresAt: number): string | null {
   const secret = sessionSecret();
   if (!secret) return null;
-  return createHmac("sha256", secret).update(password, "utf8").digest("hex");
+  return createHmac("sha256", secret)
+    .update(`vetor-admin-session:${expiresAt}:${password}`, "utf8")
+    .digest("hex");
 }
 
 function cookieValue(request: Request): string | null {
   const raw = request.headers.get("cookie") || "";
   const match = raw.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${ADMIN_SESSION_COOKIE}=`));
-  return match ? decodeURIComponent(match.slice(ADMIN_SESSION_COOKIE.length + 1)) : null;
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match.slice(ADMIN_SESSION_COOKIE.length + 1));
+  } catch {
+    return null;
+  }
 }
 
 function safeEqual(a: string, b: string): boolean {
@@ -28,9 +35,11 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export function createAdminSessionCookie(password: string) {
+  const expiresAt = Math.floor(Date.now() / 1000) + SESSION_MAX_AGE;
+  const signature = sessionToken(password, expiresAt);
   return {
     name: ADMIN_SESSION_COOKIE,
-    value: sessionToken(password) || "",
+    value: signature ? `${expiresAt}.${signature}` : "",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
@@ -43,11 +52,20 @@ export function isAdminAuthenticated(request: Request): boolean {
   const envPassword = process.env.ADMIN_PASSWORD;
   if (!envPassword) return false;
 
-  const expectedSession = sessionToken(envPassword);
-  if (!expectedSession) return false;
-
   const session = cookieValue(request);
-  return Boolean(session && safeEqual(session, expectedSession));
+  if (!session) return false;
+
+  const separator = session.indexOf(".");
+  if (separator <= 0) return false;
+  const expiresAtRaw = session.slice(0, separator);
+  if (!/^\d{10}$/.test(expiresAtRaw)) return false;
+
+  const expiresAt = Number(expiresAtRaw);
+  if (!Number.isSafeInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) return false;
+
+  const expectedSession = sessionToken(envPassword, expiresAt);
+  const signature = session.slice(separator + 1);
+  return Boolean(expectedSession && signature && safeEqual(signature, expectedSession));
 }
 
 export function verifyAdminAuth(request: Request): NextResponse | null {
