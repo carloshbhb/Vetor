@@ -108,6 +108,11 @@
 .whoGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .whoCard { border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
 .whoCard h3 { margin-top: 0; }
+.related { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin-top: 20px; }
+.related a { min-width: 0; text-decoration: none; border: 1px solid var(--line); border-radius: 16px; padding: 18px; background: #fff; transition: .18s ease; }
+.related a:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,.07); }
+.related small { display: block; color: var(--muted); margin-bottom: 6px; }
+.related strong { line-height: 1.25; display: block; }
 .faq { border-top: 1px solid var(--line); margin-top: 20px; }
 .faq details { border-bottom: 1px solid var(--line); padding: 16px 0; }
 .faq summary { font-weight: 800; cursor: pointer; list-style: none; }
@@ -144,7 +149,7 @@
   .hero { padding: 32px 0 42px; }
   .hero h1 { font-size: clamp(2.15rem,11vw,2.8rem); }
   .heroGrid { gap: 26px; }
-  .quickSummary, .whoGrid, .factGrid, .sidebar { grid-template-columns: 1fr; }
+  .quickSummary, .whoGrid, .factGrid, .related, .sidebar { grid-template-columns: 1fr; }
   .article { padding: 24px 18px; border-radius: 18px; }
   .mobileCta { display: block; position: fixed; left: 10px; right: 10px; bottom: 10px; z-index: 999; background: #0c1118; border: 1px solid rgba(255,255,255,.12); padding: 10px; border-radius: 16px; box-shadow: 0 18px 50px rgba(0,0,0,.28); }
   .mobileCta .cta { padding: 13px; }
