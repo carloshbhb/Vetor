@@ -98,6 +98,7 @@
 .tableWrap tbody th { min-width: 150px; }
 .tableWrap tr:last-child th, .tableWrap tr:last-child td, .compareWrap tr:last-child th, .compareWrap tr:last-child td { border-bottom: 0; }
 .winner { color: #087343; font-weight: 800; background: #e9f8f1; }
+.tag { display: inline-block; background: #e9f8f1; color: #087343; font-weight: 800; font-size: .75rem; padding: 5px 8px; border-radius: 999px; margin-top: 5px; }
 .analysis { display: grid; gap: 18px; }
 .analysis :global(.review-editorial-section) { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: clamp(18px,3vw,28px); margin: 0; }
 .analysis :global(.review-editorial-section-head) { margin-bottom: 12px; }
