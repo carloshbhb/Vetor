@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { getAllProductLinks, type ProductLink } from '../src/lib/product-links';
+import { getAllProductLinks, updateProductLink, type ProductLink } from '../src/lib/product-links';
 import { getSupabaseServiceKeyClient } from '../src/lib/supabase';
 import { productLinkToPipelineInput, runReviewPipeline } from '../src/lib/content-pipeline';
 import { resolveProductImage } from '../src/lib/image-resolver';
@@ -63,6 +63,20 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
   }
 
   if (existing) {
+    if (existing.content_type === 'lp') {
+      // Repair the product-to-LP relation if a previous run saved the page but failed before updating the queue.
+      const linkResult = await updateProductLink(link.id, { landing_page_slug: existing.slug });
+      if (linkResult.error) {
+        return {
+          slug: expectedSlug,
+          status: 'failed',
+          url: buildContentUrl('/reviews/' + expectedSlug),
+          type: 'landing',
+          visibility: visibilityFromStatus(existing.status),
+          error: 'A LP já existe, mas não foi possível sincronizar o vínculo do produto: ' + linkResult.error,
+        };
+      }
+    }
     return {
       slug: expectedSlug,
       status: 'skipped',
@@ -70,7 +84,7 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
       type: 'landing',
       visibility: visibilityFromStatus(existing.status),
       error: existing.content_type === 'lp'
-        ? 'A landing page já existe; o conteúdo atual foi preservado.'
+        ? 'A landing page já existe; o conteúdo foi preservado e o vínculo do produto foi sincronizado.'
         : 'Já existe um review com este slug; nenhum conteúdo foi sobrescrito.',
     };
   }
@@ -108,6 +122,18 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
     };
   }
 
+  const linkResult = await updateProductLink(link.id, { landing_page_slug: outcome.slug });
+  if (linkResult.error) {
+    return {
+      slug: outcome.slug,
+      status: 'failed',
+      url: buildContentUrl('/reviews/' + outcome.slug),
+      type: 'landing',
+      visibility: 'draft',
+      error: 'A LP foi salva como rascunho, mas o vínculo do produto falhou: ' + linkResult.error,
+    };
+  }
+
   return {
     slug: outcome.slug,
     status: 'success',
@@ -127,7 +153,8 @@ async function main() {
     isHttpUrl(link.product_url) &&
     isHttpUrl(link.affiliate_url) &&
     isHttpUrl(link.image_url) &&
-    !link.has_review
+    !link.has_review &&
+    !link.landing_page_slug
   );
 
   console.log(`[landing-generation] ${allLinks.length} produtos consultados; ${eligibleLinks.length} elegíveis`);
