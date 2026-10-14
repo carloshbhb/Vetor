@@ -34,13 +34,13 @@
 .navLinks a { text-decoration: none; }
 .navLinks a:hover { color: #fff; }
 .headerCta { background: var(--brand); color: #111; text-decoration: none; font-weight: 800; padding: 11px 17px; border-radius: 12px; white-space: nowrap; }
-.hero { color: #fff; background: radial-gradient(circle at 80% 10%, rgba(255,230,0,.17), transparent 30%), radial-gradient(circle at 10% 90%, rgba(17,184,106,.10), transparent 28%), linear-gradient(135deg,var(--bg),var(--bg-2)); padding: 42px 0 68px; overflow: hidden; }
+.hero { color: #fff; background: radial-gradient(circle at 80% 10%, rgba(255,230,0,.17), transparent 30%), radial-gradient(circle at 10% 90%, rgba(17,184,106,.10), transparent 28%), linear-gradient(135deg,var(--bg),var(--bg-2)); padding: 56px 0 76px; overflow: hidden; }
 .breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: .88rem; color: #93a0ad; margin-bottom: 26px; }
 .breadcrumbs a { color: #dbe4ec; text-decoration: none; }
 .heroGrid { display: grid; grid-template-columns: minmax(0,1.32fr) minmax(300px,.68fr); gap: 42px; align-items: start; }
 .heroCopy { min-width: 0; }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #111; background: var(--brand); padding: 7px 11px; border-radius: 999px; font-size: .78rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-.hero h1 { font-size: clamp(2.35rem,5vw,4.35rem); line-height: .99; letter-spacing: -.055em; margin: 20px 0; max-width: 900px; color: #fff; }
+.hero h1 { font-size: clamp(2.35rem,5vw,4.8rem); line-height: .98; letter-spacing: -.055em; margin: 20px 0 20px; max-width: 900px; color: #fff; }
 .heroLead { font-size: clamp(1.04rem,2vw,1.28rem); color: #c7d0da; max-width: 820px; margin: 0; }
 .meta { display: flex; flex-wrap: wrap; gap: 9px 16px; color: #9eabb8; font-size: .9rem; margin-top: 24px; }
 .disclosure { margin-top: 26px; padding: 13px 15px; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; color: #b9c4cf; font-size: .86rem; background: rgba(255,255,255,.04); }
@@ -49,7 +49,7 @@
 .score { display: flex; align-items: end; gap: 10px; margin: 10px 0 2px; }
 .score strong { font-size: 3.1rem; line-height: 1; letter-spacing: -.06em; }
 .score span { color: var(--muted); padding-bottom: 5px; }
-.stars { color: #e4b900; letter-spacing: 2px; font-size: 1.05rem; margin: 8px 0 16px; }
+.stars { color: #e4b900; letter-spacing: 2px; font-size: 1.05rem; margin-bottom: 16px; }
 .verdict h2 { font-size: 1.2rem; margin: 0 0 10px; }
 .verdict p { color: var(--muted); font-size: .94rem; margin: 0 0 20px; }
 .priceLine { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 0; border-top: 1px solid var(--line); }
@@ -92,7 +92,7 @@
 .callout strong { color: var(--brand); }
 .callout p { color: #d5dde6; margin-bottom: 0; }
 .tableWrap, .compareWrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
-.tableWrap table, .compareWrap table { width: 100%; border-collapse: collapse; min-width: 600px; }
+.tableWrap table, .compareWrap table { width: 100%; border-collapse: collapse; min-width: 680px; }
 .tableWrap th, .tableWrap td, .compareWrap th, .compareWrap td { padding: 15px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 .tableWrap th, .compareWrap th { background: #f4f6f8; font-size: .84rem; color: #52606f; }
 .tableWrap tbody th { min-width: 150px; }
@@ -138,7 +138,7 @@
 @media (max-width: 980px) {
   .heroGrid, .layout { grid-template-columns: 1fr; }
   .verdict, .sidebar { position: static; }
-  .navLinks { gap: 12px; }
+  .navLinks { display: none; }
   .sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
   .sidebar .sideCard { margin: 0; }
 }
@@ -147,8 +147,8 @@
   .nav { min-height: 64px; }
   .navLinks { display: none; }
   .headerCta { display: none; }
-  .hero { padding: 32px 0 42px; }
-  .hero h1 { font-size: clamp(2.15rem,11vw,2.8rem); }
+  .hero { padding: 38px 0 48px; }
+  .hero h1 { font-size: 2.6rem; }
   .heroGrid { gap: 26px; }
   .quickSummary, .whoGrid, .factGrid, .related, .sidebar { grid-template-columns: 1fr; }
   .article { padding: 24px 18px; border-radius: 18px; }
