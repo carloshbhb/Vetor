@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { fetchAllReviews, fetchAllViralArticles, fetchCategories } from '@/lib/data';
+import { fetchAllReviews, fetchAllLandingPages, fetchAllViralArticles, fetchCategories } from '@/lib/data';
 import { authors } from '@/data/authors';
 import { buildIndexableTagIndex } from '@/lib/tags';
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from '@/lib/buying';
@@ -23,8 +23,9 @@ function normalizeCategory(value: string): string {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [reviews, viralArticles, categories] = await Promise.all([
+  const [reviews, landingPages, viralArticles, categories] = await Promise.all([
     fetchAllReviews(),
+    fetchAllLandingPages(),
     fetchAllViralArticles(),
     fetchCategories(),
   ]);
@@ -58,18 +59,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: latestSiteUpdate,
       changeFrequency: 'daily',
       priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/reviews/8bitdo-ultimate-2c/`,
-      lastModified: new Date('2026-10-13T00:00:00.000Z'),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/reviews/xiaomi-mi-home-security-camera-2k-cam-seg/`,
-      lastModified: new Date('2026-10-13T00:00:00.000Z'),
-      changeFrequency: 'weekly',
-      priority: 0.8,
     },
     {
       url: `${baseUrl}/melhores/`,
@@ -160,6 +149,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  const landingPageEntries: MetadataRoute.Sitemap = landingPages.map((page) => ({
+    url: page.meta_canonical || `${baseUrl}/reviews/${page.slug}/`,
+    lastModified: new Date(page.updated_at || page.created_at),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }));
+
   const viralPages: MetadataRoute.Sitemap = viralArticles.map((a) => ({
     url: `${baseUrl}/comparativos/${a.slug}/`,
     lastModified: new Date(a.updated_at || a.created_at),
@@ -232,6 +228,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticPages,
     ...reviewPages,
+    ...landingPageEntries,
     ...viralPages,
     ...categoryPages,
     ...buyingGuidePages,
