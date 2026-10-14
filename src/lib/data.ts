@@ -9,7 +9,7 @@ import {
 } from './supabase';
 import { reviews as staticReviews } from '@/data/reviews';
 import { normalizeReviewCompareRows } from './review-compare';
-import type { Review, ViralArticle, Category } from './types';
+import type { Review, ViralArticle, ViralArticleSummary, Category } from './types';
 
 const CATEGORY_ALIASES: Record<string, string> = {
   eletroportateis: 'Eletroportáteis',
@@ -240,7 +240,7 @@ export async function fetchReviewBySlug(slug: string): Promise<Review | null> {
   return normalizeStaticReviews().find((r) => r.slug === slug) || null;
 }
 
-export async function fetchAllViralArticles(): Promise<ViralArticle[]> {
+export async function fetchAllViralArticles(): Promise<ViralArticleSummary[]> {
   try {
     const articles = await getAllViralArticles();
     if (articles && articles.length > 0) return articles;
