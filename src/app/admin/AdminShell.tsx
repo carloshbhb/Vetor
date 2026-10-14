@@ -18,6 +18,7 @@ const navGroups: NavGroup[] = [
     label: "Conteúdo",
     items: [
       { label: "Reviews", href: "/admin/reviews", description: "Publicação e manutenção", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+      { label: "Landing Pages", href: "/admin/landing-pages", description: "Páginas, rascunhos e publicação", icon: "M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h5" },
       { label: "Artigos Virais", href: "/admin/viral", description: "Conteúdo comparativo", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
       { label: "Vídeos", href: "/admin/videos", description: "Fila de produção", icon: "M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 001.555-.832l3.197-2.132a1 1 0 000-1.664z" },
       { label: "Gerar Conteúdo", href: "/admin/generate", description: "Pipeline automático", icon: "M12 6v6m0 0v6m0-6h6m-6 0H6" },
@@ -43,6 +44,7 @@ const navGroups: NavGroup[] = [
 const sectionInfo: Record<string, { area: string; objective: string; workflow: string; source: string }> = {
   "/admin": { area: "Visão geral", objective: "Entender rapidamente o estado do Vetor e entrar na próxima tarefa de gestão.", workflow: "Monitorar inventário → identificar pendências → abrir a área responsável.", source: "Reviews, artigos e categorias" },
   "/admin/reviews": { area: "Conteúdo", objective: "Publicar, revisar e remover reviews sem misturar guias ou comparativos.", workflow: "Revisar status → publicar rascunhos → abrir página pública → corrigir quando necessário.", source: "API /api/admin/reviews" },
+  "/admin/landing-pages": { area: "Conteúdo · Landing Pages", objective: "Centralizar a consulta e o controle de publicação das páginas de produto e seus rascunhos.", workflow: "Buscar produto → conferir slug e SEO → abrir página publicada ou alterar status → revisar pendências.", source: "Inventário de reviews no Supabase + API /api/admin/reviews" },
   "/admin/viral": { area: "Conteúdo", objective: "Gerenciar artigos comparativos/virais e acompanhar o inventário publicado.", workflow: "Revisar artigos → validar produtos vinculados → remover somente quando necessário.", source: "Viral articles" },
   "/admin/videos": { area: "Produção", objective: "Controlar a fila real de vídeos e atuar apenas nos itens que precisam de processamento.", workflow: "Adicionar produto → processar fila → revisar falhas → abrir vídeo concluído.", source: "video_queue" },
   "/admin/generate": { area: "Produção", objective: "Acionar o pipeline automático de geração com retorno claro de sucesso ou falha de qualidade.", workflow: "Executar geração → validar resposta → revisar conteúdo criado antes de escalar.", source: "API /api/admin/generate" },
