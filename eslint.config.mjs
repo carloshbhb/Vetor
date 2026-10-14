@@ -1,10 +1,8 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import tsParser from "@typescript-eslint/parser";
+import nextPlugin from "@next/eslint-plugin-next";
+import { globalIgnores } from "eslint/config";
 
-export default defineConfig([
-  ...nextVitals,
-  ...nextTs,
+export default [
   globalIgnores([
     ".next/**",
     "out/**",
@@ -13,4 +11,22 @@ export default defineConfig([
     "video/**",
     "coverage/**",
   ]),
-]);
+  {
+    files: ["src/**/*.{ts,tsx}", "scripts/**/*.ts", "tmp/**/*.ts"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    plugins: {
+      "@next/next": nextPlugin,
+    },
+    rules: {
+      ...nextPlugin.configs.recommended.rules,
+      ...nextPlugin.configs["core-web-vitals"].rules,
+    },
+  },
+];
