@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import CookiePreferencesControl from "@/components/CookiePreferencesControl";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade — vetor.blog",
@@ -38,12 +39,15 @@ export default function PrivacidadePage() {
                 do visitante, e servem para decidir quais reviews e guias produzir.
               </p>
 
-              <h2>Cookies</h2>
+              <h2>Cookies e suas preferências</h2>
               <p>
-                O Google Analytics armazena cookies próprios (como `_ga`) para distinguir visitas. Você pode
-                bloquear cookies nas configurações do navegador — o site continua funcionando. Cookies de
-                sessão adicionais existem apenas na área administrativa, para quem edita o conteúdo.
+                O Google Analytics 4 só é carregado depois que você aceita todos os cookies. Ao escolher apenas
+                os essenciais, não iniciamos a medição de audiência. Você pode voltar a esta página para alterar
+                sua escolha; ao revogar o consentimento, o site solicita a interrupção da coleta do GA4 e remove
+                os cookies de análise acessíveis no navegador. Cookies técnicos necessários à área administrativa
+                são usados somente para autenticar quem edita o conteúdo.
               </p>
+              <p><CookiePreferencesControl /></p>
 
               <h2>Links de afiliados</h2>
               <p>
