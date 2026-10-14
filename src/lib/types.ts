@@ -120,6 +120,22 @@ export interface ViralArticle {
   created_at: string;
 }
 
+export interface ViralArticleSummary {
+  id?: string;
+  slug: string;
+  title: string;
+  description: string;
+  category: string;
+  hero: {
+    imageUrl: string;
+  };
+  seo_title: string;
+  seo_description: string;
+  published_at: string;
+  updated_at: string;
+  created_at: string;
+}
+
 export interface Category {
   name: string;
   count: number;
