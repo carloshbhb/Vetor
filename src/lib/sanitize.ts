@@ -15,9 +15,9 @@ const ALLOWED_ATTRS: Record<string, Set<string>> = {
   figure: new Set(['class']),
   td: new Set(['colspan', 'rowspan']),
   th: new Set(['colspan', 'rowspan']),
-  div: new Set(['class', 'style']),
-  span: new Set(['class', 'style']),
-  p: new Set(['class', 'style']),
+  div: new Set(['class']),
+  span: new Set(['class']),
+  p: new Set(['class']),
   h1: new Set(['class']),
   h2: new Set(['class']),
   h3: new Set(['class']),
@@ -60,12 +60,6 @@ function sanitizeNode(node: ChildNode, doc: Document): void {
     }
     if (name === 'href' || name === 'src') {
       if (!isSafeUrl(attr.value)) {
-        el.removeAttribute(attr.name);
-      }
-    }
-    if (name === 'style') {
-      const dangerous = /expression\(|url\(|@import|behavior\s*:/i;
-      if (dangerous.test(attr.value)) {
         el.removeAttribute(attr.name);
       }
     }
