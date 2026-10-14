@@ -8,7 +8,7 @@ interface LLMProvider {
 
 const DEFAULT_NVIDIA_MODEL = 'nvidia/nemotron-3.5-lightning-30b-a3b';
 const DEFAULT_NVIDIA_FALLBACK_MODEL = 'nvidia/nemotron-3-super-120b-a12b';
-const DEFAULT_NVIDIA_BACKUP_MODEL = 'nvidia/llama-3.3-nemotron-super-49b-v1.5';
+const DEFAULT_NVIDIA_BACKUP_MODEL = 'nvidia/nemotron-3-nano-30b-a3b';
 
 function createNvidiaProviders(): LLMProvider[] {
   const apiKey = process.env.NVIDIA_API_KEY?.trim();
