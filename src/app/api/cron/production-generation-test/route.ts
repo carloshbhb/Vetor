@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
         {
           success: true,
           deploymentCommit: process.env.VERCEL_GIT_COMMIT_SHA?.trim() || null,
+          deploymentUrl: process.env.VERCEL_URL?.trim() || null,
         },
         { headers: { "Cache-Control": "no-store" } }
       );

@@ -48,6 +48,7 @@ jobs:
           cd video
           npm ci
       - name: Wait for exact current Production commit
+        id: deployment
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
@@ -64,8 +65,11 @@ jobs:
               -H "Authorization: Bearer $CRON_SECRET" \
               -H "Content-Type: application/json" \
               -d '{"action":"deploymentInfo"}' || curl_exit=$?)"
-            if [ "$curl_exit" -eq 0 ] && [ "$code" = "200" ] && jq -e --arg sha "$EXPECTED_DEPLOYMENT_COMMIT" '.success == true and .deploymentCommit == $sha' deployment-info.json >/dev/null; then
+            if [ "$curl_exit" -eq 0 ] && [ "$code" = "200" ] && jq -e --arg sha "$EXPECTED_DEPLOYMENT_COMMIT" '.success == true and .deploymentCommit == $sha and (.deploymentUrl | type == "string" and length > 0)' deployment-info.json >/dev/null; then
+              deployment_url="$(jq -r '.deploymentUrl' deployment-info.json)"
               echo "Production is running the exact tested commit: $EXPECTED_DEPLOYMENT_COMMIT"
+              echo "Pinned generation request to deployment: $deployment_url"
+              echo "deployment_url=https://$deployment_url" >> "$GITHUB_OUTPUT"
               ready=1
               break
             fi
@@ -105,12 +109,14 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
+          DEPLOYMENT_URL: ${{ steps.deployment.outputs.deployment_url }}
         run: |
           set -euo pipefail
           : "${CRON_SECRET:?CRON_SECRET secret is required}"
+          : "${DEPLOYMENT_URL:?Pinned Production deployment URL is required}"
           curl_status=0
           code="$(curl -sS --max-time 70 -o smoke-result.json -w '%{http_code}' \
-            -X POST "$VETOR_SITE_URL/api/cron/production-generation-test/" \
+            -X POST "$DEPLOYMENT_URL/api/cron/production-generation-test/" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json" -d '{}' || echo 000)"
           echo "Production generation HTTP=$code"
