@@ -146,7 +146,7 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
 async function main() {
   console.log('[landing-generation] Iniciando geração de 2 landing pages via NVIDIA + quality gate...');
 
-  const allLinks = await getAllProductLinks({ limit: 100 });
+  const allLinks = await getAllProductLinks({ has_review: false, limit: 500 });
   const eligibleLinks = allLinks.filter((link) =>
     link.status !== 'archived' &&
     link.product_name?.trim() &&
