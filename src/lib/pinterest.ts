@@ -323,7 +323,7 @@ export async function queuePublishedReviewPins(limit = 10) {
   const candidateLimit = Math.max(1, Math.min(limit, 25));
   const candidates = allowed.slice(0, candidateLimit);
   const nowMs = Date.now();
-  let lastTime = nowMs - 60 * 1000;
+  let lastTime = nowMs - 24 * 60 * 60 * 1000;
   for (const row of rows) {
     if (row.status === "pending" || row.status === "publishing") {
       const timestamp = new Date(row.scheduled_at).getTime();
