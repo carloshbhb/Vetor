@@ -161,8 +161,8 @@ export default async function LandingPageTemplate({ review }: { review: Review }
                   <strong>Nesta página</strong>
                   <ol>
                     <li><a href="#resumo">Resumo da análise</a></li>
-                    <li><a href="#criterios">Ficha técnica e critérios</a></li>
-                    <li><a href="#analise">Análise detalhada</a></li>
+                    <li><a href="#criterios">O que analisamos</a></li>
+                    <li><a href="#desempenho">Experiência e desempenho</a></li>
                     <li><a href="#preco">Preço e custo-benefício</a></li>
                     <li><a href="#comparativo">Comparativo com alternativas</a></li>
                     <li><a href="#publico">Para quem vale a pena</a></li>
@@ -191,22 +191,27 @@ export default async function LandingPageTemplate({ review }: { review: Review }
                 </section>
 
                 <section id="criterios">
-                  <h2>Ficha técnica e critérios de avaliação</h2>
-                  <p>Confira os dados disponíveis para o modelo e confirme os detalhes decisivos na documentação do fabricante ou no anúncio da loja.</p>
+                  <h2>O que analisamos neste review</h2>
+                  <p>Para chegar à avaliação, consideramos os pontos que mais influenciam a decisão de compra nesta categoria:</p>
+                  <ul>
+                    <li><strong>Qualidade e recursos:</strong> o que o produto realmente oferece, com base nos dados disponíveis.</li>
+                    <li><strong>Facilidade de uso:</strong> configuração, compatibilidade e experiência esperada no uso diário.</li>
+                    <li><strong>Desempenho:</strong> recursos e limitações relevantes para a finalidade do produto.</li>
+                    <li><strong>Preço:</strong> valor consultado em relação aos recursos e às alternativas.</li>
+                    <li><strong>Concorrência:</strong> comparação com alternativas relevantes da mesma categoria.</li>
+                    <li><strong>Pós-compra:</strong> garantia, suporte e condições informadas pelo fabricante ou vendedor.</li>
+                  </ul>
+                  <div className={styles.callout}>
+                    <strong>Como interpretar esta análise</strong>
+                    <p>Não tratamos características ausentes como recursos confirmados. Confirme modelo, garantia, compatibilidade e condições da oferta antes de comprar.</p>
+                  </div>
                   <div className={styles.factGrid}>
                     {displayCards.map((spec) => <div className={styles.fact} key={spec.label}><span>{spec.label}</span><strong>{spec.value}</strong></div>)}
                   </div>
-                  <div className={styles.tableWrap} role="region" aria-label="Ficha técnica" tabIndex={0}>
-                    <table>
-                      <thead><tr><th scope="col">Especificação</th><th scope="col">{review.product}</th></tr></thead>
-                      <tbody>{displaySpecs.map((spec) => <tr key={spec.label}><th scope="row">{spec.label}</th><td>{spec.value}</td></tr>)}</tbody>
-                    </table>
-                  </div>
-                  <div className={styles.callout}><strong>Como interpretar os dados</strong><p>Características, compatibilidade, garantia e condições de compra devem ser confirmadas para a versão exata do produto. Não considere informações ausentes como recursos confirmados.</p></div>
                 </section>
 
-                <section id="analise">
-                  <h2>Análise detalhada</h2>
+                <section id="desempenho">
+                  <h2>Experiência de uso: onde {review.product} se destaca</h2>
                   <div className={styles.analysis}><ReviewContent sections={displaySections} /></div>
                 </section>
 
@@ -245,35 +250,49 @@ export default async function LandingPageTemplate({ review }: { review: Review }
                   </div>
                 </section>
 
-                <section id="faq">
-                  <h2>Perguntas frequentes sobre {review.product}</h2>
-                  <div className={styles.faq}>{displayFaq.map((item, index) => <details key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>
-                </section>
-
                 <section className={styles.finalVerdict}>
                   <h2>Conclusão: {review.product} vale a pena?</h2>
                   <p><strong>{safeText(review.verdict_label, "Resumo")}: </strong>{verdict}</p>
                   <p>Compare os dados confirmados, o preço final e as condições da loja antes de tomar a decisão.</p>
                   {purchaseUrl && <a className={styles.cta} href={purchaseUrl} target="_blank" rel="sponsored nofollow noopener">Ver oferta disponível ↗</a>}
                 </section>
+
+                <section id="faq">
+                  <h2>Perguntas frequentes sobre {review.product}</h2>
+                  <div className={styles.faq}>{displayFaq.map((item, index) => <details key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>
+                </section>
+
+                <section id="leia-tambem">
+                  <h2>Leia também</h2>
+                  <div className={styles.related}>
+                    <a href="/comparativos/">
+                      <small>Comparativos</small>
+                      <strong>Compare {review.product} com alternativas relevantes</strong>
+                    </a>
+                    <a href="/guias/">
+                      <small>Guia de compra</small>
+                      <strong>Veja guias para escolher produtos da categoria</strong>
+                    </a>
+                    <a href="/reviews/">
+                      <small>Reviews</small>
+                      <strong>Confira outras análises do Vetor.blog</strong>
+                    </a>
+                  </div>
+                </section>
               </article>
 
               <aside className={styles.sidebar} aria-label="Conteúdo complementar">
                 <div className={styles.sideCard}>
-                  <h3>{review.product} em resumo</h3>
-                  <div className={styles.priceLine}><span>Nota Vetor</span><strong>{score}/10</strong></div>
-                  <div className={styles.priceLine}><span>Preço consultado</span><strong>{price}</strong></div>
-                  <p>{verdict}</p>
-                  {purchaseUrl && <a className={styles.cta} href={purchaseUrl} target="_blank" rel="sponsored nofollow noopener">Ver preço e disponibilidade ↗</a>}
-                </div>
-                <div className={styles.sideCard}>
                   <h3>Sobre esta análise</h3>
-                  <p>O Vetor.blog organiza informações de produto para apoiar uma decisão de compra clara e consciente.</p>
+                  <p>O Vetor.blog publica reviews e comparativos com foco em clareza, utilidade e decisão de compra.</p>
                   <div className={styles.sideLinks}>
                     <a href="/como-avaliamos/">Como avaliamos</a>
                     <a href="/politica-editorial/">Política editorial</a>
                     <a href="/afiliados/">Política de afiliados</a>
                   </div>
+                </div>
+                <div className={styles.adSlot} aria-label="Publicidade lateral" style={{ minHeight: 280, margin: 0 }}>
+                  <div><small>Publicidade</small><strong>Espaço para anúncio lateral responsivo</strong></div>
                 </div>
               </aside>
             </div>
@@ -286,7 +305,7 @@ export default async function LandingPageTemplate({ review }: { review: Review }
         <div className={styles.container}>
           <div className={styles.footerGrid}>
             <div><a href="/" className={styles.brand}>Vetor<span>.</span>blog</a><p>Informação clara para uma compra consciente. Esta página pode conter links de afiliado; a comissão não altera a análise editorial.</p></div>
-            <nav className={styles.footerLinks} aria-label="Links do rodapé"><a href="/privacidade/">Privacidade</a><a href="/afiliados/">Afiliados</a><a href="/politica-editorial/">Política editorial</a></nav>
+            <nav className={styles.footerLinks} aria-label="Links do rodapé"><a href="/sobre/">Sobre</a><a href="/contato/">Contato</a><a href="/privacidade/">Privacidade</a><a href="/termos/">Termos</a></nav>
           </div>
         </div>
       </footer>
