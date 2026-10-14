@@ -10,7 +10,27 @@ export default function Ga4() {
   const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
-    const check = () => setAllowed(getCookieConsent() === 'all');
+    const check = () => {
+      const consent = getCookieConsent();
+      setAllowed(consent === 'all');
+
+      if (consent !== 'all') {
+        // If consent is revoked after GA4 loaded, stop collection and clear its first-party cookies.
+        const gtag = (window as Window & {
+          gtag?: (...args: unknown[]) => void;
+        }).gtag;
+        gtag?.('consent', 'update', { analytics_storage: 'denied' });
+
+        const cookieNames = document.cookie
+          .split(';')
+          .map((cookie) => cookie.trim().split('=')[0])
+          .filter((name) => name === '_ga' || name.startsWith('_ga_'));
+        for (const name of cookieNames) {
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.vetor.blog; SameSite=Lax`;
+        }
+      }
+    };
     check();
     window.addEventListener('cookie-consent-changed', check);
     return () => window.removeEventListener('cookie-consent-changed', check);
