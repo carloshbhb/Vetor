@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Review, ViralArticle, Category } from './types';
+import type { Review, ViralArticle, ViralArticleSummary, Category } from './types';
 import { validateGeneratedViralArticle } from './content-quality';
 import { normalizeReviewCompareRows } from './review-compare';
 
@@ -349,14 +349,14 @@ export async function getReviewBySlug(slug: string): Promise<Review | null> {
   }
 }
 
-export async function getAllViralArticles(): Promise<ViralArticle[]> {
+export async function getAllViralArticles(): Promise<ViralArticleSummary[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
 
   try {
     const { data, error } = await supabase
       .from('viral_articles')
-      .select('id,slug,title,description,category,content,hero,products,seo_title,seo_description,published_at,updated_at,created_at')
+      .select('id,slug,title,description,category,hero,seo_title,seo_description,published_at,updated_at,created_at')
       .order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) return [];
@@ -364,7 +364,7 @@ export async function getAllViralArticles(): Promise<ViralArticle[]> {
     const first = data[0];
     if (!first || typeof first.slug !== 'string') return [];
 
-    return data as ViralArticle[];
+    return data as ViralArticleSummary[];
   } catch (err) {
     console.error('[Supabase] getAllViralArticles error:', err);
     return [];
