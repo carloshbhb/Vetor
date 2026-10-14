@@ -71,11 +71,20 @@ export async function createReview(data: {
   }
 
   const now = new Date().toISOString();
-  const { data: existing } = await supabase
+  const { data: existing, error: existingLookupError } = await supabase
     .from('reviews')
     .select(REVIEW_COLUMNS)
     .eq('slug', data.slug)
     .maybeSingle();
+
+  // Never upsert a fallback-filled row when the lookup failed: that could erase
+  // editorial fields which were not part of the incoming request.
+  if (existingLookupError) {
+    return {
+      data: null,
+      error: 'Não foi possível verificar o conteúdo existente antes de salvar: ' + existingLookupError.message,
+    };
+  }
 
   // Partial admin writes must not erase editorial fields that were not submitted.
   const row = {
@@ -121,9 +130,36 @@ export async function createReview(data: {
     faq: data.faq ?? existing?.faq ?? [],
   };
 
-  const writeResult = options?.insertOnly
-    ? await supabase.from('reviews').insert(row).select().single()
-    : await supabase.from('reviews').upsert(row, { onConflict: 'slug' }).select().single();
+  let writeResult;
+  if (options?.insertOnly || !existing) {
+    // Inserts fail on duplicate slug instead of silently replacing an existing record.
+    writeResult = await supabase.from('reviews').insert(row).select().single();
+  } else {
+    // PATCH-like writes update only fields explicitly included by the caller.
+    const updatePayload: Record<string, unknown> = { updated_at: now };
+    const patchableFields = [
+      'content_type', 'product', 'category', 'price_new', 'image_url',
+      'meta_title', 'meta_description', 'pros', 'cons', 'hero_overall_score',
+      'verdict_score', 'marketplace', 'affiliate_url', 'hero_bars', 'specs',
+      'sections', 'compare_table', 'verdict_label', 'verdict_text', 'verdict_note',
+      'hero_lead', 'hero_headline_line1', 'hero_headline_line2', 'hero_headline_em',
+      'faq',
+    ] as const;
+
+    for (const field of patchableFields) {
+      if (data[field] !== undefined) updatePayload[field] = data[field];
+    }
+    if (data.hero_overall_score !== undefined) {
+      updatePayload.schema_rating_value = data.hero_overall_score;
+    }
+
+    writeResult = await supabase
+      .from('reviews')
+      .update(updatePayload)
+      .eq('slug', data.slug)
+      .select()
+      .single();
+  }
   const { data: result, error } = writeResult;
 
   if (error) {
