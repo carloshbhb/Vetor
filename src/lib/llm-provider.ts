@@ -124,7 +124,7 @@ export async function chatCompletion(params: {
           if (typeof delta === 'string') content += delta;
         }
       } else {
-        const response = await provider.client.chat.completions.create(createParams, requestOptions);
+        const response = await provider.client.chat.completions.create(createParams as any, requestOptions);
         content = response.choices[0]?.message?.content || '';
       }
 
