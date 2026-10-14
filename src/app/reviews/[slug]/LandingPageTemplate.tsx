@@ -63,11 +63,19 @@ export default async function LandingPageTemplate({ review }: { review: Review }
   const displayCompareColumns = compareColumns.length >= 3
     ? compareColumns.slice(0, 4)
     : ["Critério", review.product, "Alternativa a avaliar"];
-  const displayCompareRows = compareRows.length > 0 ? compareRows : [
-    { feature: "Preço", values: [price, "Consulte o anúncio"], winner: -1 },
-    { feature: "Especificações", values: ["Ver ficha técnica acima", "Confirme os dados do modelo"], winner: -1 },
-    { feature: "Indicação", values: [bestFor, "Compare com seu perfil de uso"], winner: -1 },
-  ];
+  const comparisonValue = (pattern: RegExp, productIndex: number, fallback: string): string => {
+    const row = compareRows.find((item) => pattern.test(String(item.feature || "")));
+    const value = row?.values?.[productIndex];
+    return typeof value === "string" && value.trim() ? value.trim() : fallback;
+  };
+  const displayComparisonProducts = displayCompareColumns.slice(1, 4).map((name, productIndex) => ({
+    name,
+    isCurrent: productIndex === 0,
+    indication: comparisonValue(/indica|público|perfil|para quem/i, productIndex, "Não informado"),
+    highlight: comparisonValue(/destaque|benefício|vantagem|recurso principal/i, productIndex, "Consulte as especificações confirmadas"),
+    limitation: comparisonValue(/limita|atenção|desvantagem|ponto negativo|contra/i, productIndex, "Não informado"),
+    price: comparisonValue(/preço|valor/i, productIndex, productIndex === 0 ? price : "Consulte a loja"),
+  }));
   const displaySections = sections.length > 0 ? sections : [{
     id: "analise-geral",
     heading: "Análise do produto",
@@ -199,9 +207,6 @@ export default async function LandingPageTemplate({ review }: { review: Review }
                     <strong>Como interpretar esta análise</strong>
                     <p>Não tratamos características ausentes como recursos confirmados. Confirme modelo, garantia, compatibilidade e condições da oferta antes de comprar.</p>
                   </div>
-                  <div className={styles.factGrid}>
-                    {displayCards.map((spec) => <div className={styles.fact} key={spec.label}><span>{spec.label}</span><strong>{spec.value}</strong></div>)}
-                  </div>
                 </section>
 
                 <section id="desempenho">
@@ -225,13 +230,26 @@ export default async function LandingPageTemplate({ review }: { review: Review }
                   <p>{safeText(compareTable?.caption, "Compare características equivalentes e use somente dados confirmados para cada modelo.")}</p>
                   <div className={styles.compareWrap} role="region" aria-label="Comparativo com alternativas" tabIndex={0}>
                     <table>
-                      <thead><tr>{displayCompareColumns.map((column, index) => <th key={index} scope="col">{column}</th>)}</tr></thead>
-                      <tbody>{displayCompareRows.map((row, rowIndex) => (
-                        <tr key={rowIndex}>
-                          <th scope="row">{row.feature}</th>
-                          {(Array.isArray(row.values) ? row.values : []).slice(0, displayCompareColumns.length - 1).map((value, index) => <td key={index} className={row.winner === index ? styles.winner : undefined}>{value}{row.winner === index ? " ✓" : ""}</td>)}
+                      <thead>
+                        <tr>
+                          <th scope="col">Modelo</th>
+                          <th scope="col">Indicação</th>
+                          <th scope="col">Destaque</th>
+                          <th scope="col">Limitação</th>
+                          <th scope="col">Preço</th>
                         </tr>
-                      ))}</tbody>
+                      </thead>
+                      <tbody>
+                        {displayComparisonProducts.map((item, index) => (
+                          <tr key={item.name + index}>
+                            <td><strong>{item.name}</strong>{item.isCurrent && <><br /><span className={styles.tag}>Analisado</span></>}</td>
+                            <td>{item.indication}</td>
+                            <td>{item.highlight}</td>
+                            <td>{item.limitation}</td>
+                            <td>{item.price}</td>
+                          </tr>
+                        ))}
+                      </tbody>
                     </table>
                   </div>
                 </section>
