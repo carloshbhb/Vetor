@@ -95,6 +95,77 @@ export function rewriteEditorialSignals<T>(value: T): T {
   return value;
 }
 
+function isCompleteReviewResponse(raw: string): boolean {
+  const trimmed = raw.trim();
+  const jsonStart = trimmed.indexOf('{');
+  const jsonEnd = trimmed.lastIndexOf('}');
+  if (jsonStart < 0 || jsonEnd <= jsonStart) return false;
+
+  let value: Record<string, unknown>;
+  try {
+    const parsed: unknown = JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+    value = parsed as Record<string, unknown>;
+  } catch {
+    return false;
+  }
+
+  const textOf = (input: unknown): string =>
+    typeof input === 'string'
+      ? input.replace(/<[^>]*>/g, ' ').replace(/&nbsp;|&#160;/gi, ' ').trim()
+      : '';
+  const wordCount = (input: unknown): number => {
+    const text = textOf(input);
+    return text ? text.split(/\s+/).filter(Boolean).length : 0;
+  };
+  const sections = Array.isArray(value.sections) ? value.sections : [];
+  const sectionWordCounts = sections.map((section) =>
+    section && typeof section === 'object'
+      ? wordCount((section as { content?: unknown }).content)
+      : 0
+  );
+  const totalWords = sectionWordCounts.reduce((sum, count) => sum + count, 0);
+  const specs = Array.isArray(value.specs) ? value.specs : [];
+  const pros = Array.isArray(value.pros) ? value.pros : [];
+  const cons = Array.isArray(value.cons) ? value.cons : [];
+  const faq = Array.isArray(value.faq) ? value.faq : [];
+  const compareTable = value.compare_table && typeof value.compare_table === 'object'
+    ? value.compare_table as { rows?: unknown; columns?: unknown }
+    : null;
+  const comparisonRows = compareTable && Array.isArray(compareTable.rows) ? compareTable.rows : [];
+  const comparisonColumns = compareTable && Array.isArray(compareTable.columns) ? compareTable.columns : [];
+
+  const accepted =
+    typeof value.title === 'string' && value.title.trim().length > 0 &&
+    typeof value.meta_title === 'string' && value.meta_title.trim().length > 0 &&
+    typeof value.meta_description === 'string' && value.meta_description.trim().length > 0 &&
+    sections.length >= 6 &&
+    sectionWordCounts.every((count) => count >= 180) &&
+    totalWords >= 1500 &&
+    specs.length >= 5 &&
+    pros.length >= 3 &&
+    cons.length >= 2 &&
+    faq.length >= 3 &&
+    comparisonRows.length >= 3 &&
+    comparisonColumns.length >= 3;
+
+  // Shape-only diagnostic: log counts, never the generated article itself.
+  console.info('[review-generator] model candidate completeness:', {
+    keys: Object.keys(value),
+    sectionCount: sections.length,
+    sectionWordCounts,
+    totalWords,
+    specs: specs.length,
+    pros: pros.length,
+    cons: cons.length,
+    faq: faq.length,
+    comparisonRows: comparisonRows.length,
+    comparisonColumns: comparisonColumns.length,
+    accepted,
+  });
+  return accepted;
+}
+
 interface GeneratedReviewResult {
   title?: string;
   description?: string;
@@ -177,6 +248,7 @@ export async function generateReview(product: {
       temperature: 0.35,
       maxTokens: 8000,
       responseFormat: { type: 'json_object' },
+      validateResponse: isCompleteReviewResponse,
     });
     const trimmed = raw.trim();
     const jsonStart = trimmed.indexOf('{');

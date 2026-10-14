@@ -8,6 +8,7 @@ interface LLMProvider {
 
 const DEFAULT_NVIDIA_MODEL = 'nvidia/nemotron-3.5-lightning-30b-a3b';
 const DEFAULT_NVIDIA_FALLBACK_MODEL = 'nvidia/nemotron-3-super-120b-a12b';
+const DEFAULT_NVIDIA_BACKUP_MODEL = 'nvidia/llama-3.3-nemotron-super-49b-v1.5';
 
 function createNvidiaProviders(): LLMProvider[] {
   const apiKey = process.env.NVIDIA_API_KEY?.trim();
@@ -15,7 +16,9 @@ function createNvidiaProviders(): LLMProvider[] {
 
   const primaryModel = process.env.NVIDIA_MODEL?.trim() || DEFAULT_NVIDIA_MODEL;
   const fallbackModel = process.env.NVIDIA_FALLBACK_MODEL?.trim() || DEFAULT_NVIDIA_FALLBACK_MODEL;
-  const models = Array.from(new Set([primaryModel, fallbackModel].filter(Boolean)));
+  const backupModel =
+    process.env.NVIDIA_FALLBACK_MODEL_2?.trim() || DEFAULT_NVIDIA_BACKUP_MODEL;
+  const models = Array.from(new Set([primaryModel, fallbackModel, backupModel].filter(Boolean)));
 
   const client = new OpenAI({
     apiKey,
@@ -59,6 +62,7 @@ export async function chatCompletion(params: {
   maxTokens?: number;
   responseFormat?: { type: 'json_object' };
   model?: string;
+  validateResponse?: (content: string) => boolean;
 }): Promise<string> {
   const providers = configuredProviders();
   if (!providers.length) {
@@ -96,7 +100,7 @@ export async function chatCompletion(params: {
       if (remainingMs < 8000) break;
       const requestOptions = {
         timeout: Math.min(
-          model.includes('nemotron-3.5-lightning') ? 100000 : 100000,
+          model.includes('nemotron-3.5-lightning') ? 70000 : 65000,
           remainingMs - 7000
         ),
         maxRetries: 0,
@@ -121,6 +125,9 @@ export async function chatCompletion(params: {
       if (!content.trim()) {
         throw new Error(`[LLM] NVIDIA/${model} retornou resposta vazia`);
       }
+      if (params.validateResponse && !params.validateResponse(content)) {
+        throw new Error(`[LLM] NVIDIA/${model} retornou JSON incompleto; validado como resposta inutilizável, tentando o próximo modelo.`);
+      }
       console.log(`[LLM] Sucesso: NVIDIA | modelo: ${model}`);
       return content;
     } catch (error: unknown) {
@@ -128,7 +135,8 @@ export async function chatCompletion(params: {
       const status = typeof error === 'object' && error !== null && 'status' in error
         ? Number((error as { status?: unknown }).status) : 0;
       const detail = error instanceof Error ? error.message.slice(0, 400) : String(error).slice(0, 400);
-      console.warn(`[LLM] NVIDIA/${model} falhou (status ${status || 'timeout/network'}): ${detail}; tentando outro modelo NVIDIA.`);
+      const failureKind = detail.includes('JSON incompleto') ? 'quality' : (status || 'timeout/network');
+      console.warn(`[LLM] NVIDIA/${model} falhou (status ${failureKind}): ${detail}; tentando outro modelo NVIDIA.`);
       if (status === 429 && deadline - Date.now() > 15000) await wait(750);
     }
   }
