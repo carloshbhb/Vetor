@@ -60,12 +60,6 @@ export default async function LandingPageTemplate({ review }: { review: Review }
     { label: "Preço consultado", value: price },
     { label: "Avaliação", value: score === "—" ? "Sem nota informada" : score + "/10" },
   ];
-  const displaySpecs = specs.length > 0 ? specs : [
-    { label: "Produto", value: review.product },
-    { label: "Categoria", value: safeText(review.category, "Não informada") },
-    { label: "Preço consultado", value: price },
-    { label: "Disponibilidade", value: "Consulte a loja" },
-  ];
   const displayCompareColumns = compareColumns.length >= 3
     ? compareColumns.slice(0, 4)
     : ["Critério", review.product, "Alternativa a avaliar"];
