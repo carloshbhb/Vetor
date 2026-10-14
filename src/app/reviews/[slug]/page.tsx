@@ -12,7 +12,7 @@ import StickyBuyBar from "@/components/StickyBuyBar";
 import AdPlacement from "@/components/AdPlacement";
 import { ReviewSchema, FAQSchema, BreadcrumbSchema } from "@/components/SchemaMarkup";
 import { fetchReviewBySlug, fetchAllReviews, fetchAllLandingPages, fetchAllViralArticles, normalizeCategoryName } from "@/lib/data";
-import { resolveOgImage } from "@/lib/seo";
+import { resolveOgImage, serializeJsonLd } from "@/lib/seo";
 import type { Review } from "@/lib/types";
 import AuthorBox from "@/components/AuthorBox";
 import { primaryAuthor } from "@/data/authors";
@@ -429,7 +429,7 @@ export default async function ReviewPage({ params }: PageProps) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: serializeJsonLd({
               "@context": "https://schema.org",
               "@type": "Article",
               headline: review.product,
