@@ -41,7 +41,8 @@ export function productLinkToPipelineInput(link: ProductLink): PipelineProductIn
 
 export async function runReviewPipeline(
   product: PipelineProductInput,
-  source: 'admin' | 'cron'
+  source: 'admin' | 'cron',
+  contentType: 'review' | 'lp' = 'review'
 ): Promise<PipelineOutcome> {
   const priceLabel =
     typeof product.price === 'number'
@@ -85,6 +86,7 @@ export async function runReviewPipeline(
       : undefined);
 
   const payload = {
+    content_type: contentType,
     slug: review.slug,
     product: product.title,
     category: review.category,
