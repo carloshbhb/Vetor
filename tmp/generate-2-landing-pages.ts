@@ -159,7 +159,27 @@ async function main() {
 
   console.log(`[landing-generation] ${allLinks.length} produtos consultados; ${eligibleLinks.length} elegíveis`);
 
-  const toProcess = eligibleLinks.slice(0, 2);
+  // Some marketplace/CDN image URLs pass URL syntax checks but are unreachable from
+  // GitHub Actions. Preflight images and keep scanning the queue instead of failing
+  // the whole run on the first two products with broken images.
+  const toProcess: ProductLink[] = [];
+  for (const link of eligibleLinks) {
+    const resolvedImage = await resolveProductImage(link.image_url);
+    if (!isHttpUrl(resolvedImage)) {
+      console.log(`[landing-generation] skipped: ${slugifyEditorialTitle(link.product_name)} — imagem indisponível; tentando próximo produto`);
+      continue;
+    }
+    toProcess.push({ ...link, image_url: resolvedImage });
+    if (toProcess.length >= 2) break;
+  }
+
+  if (toProcess.length < 2) {
+    console.error(`[landing-generation] Apenas ${toProcess.length} produtos com imagem acessível encontrados; são necessários 2.`);
+    process.exitCode = 1;
+    return [];
+  }
+
+  console.log(`[landing-generation] ${toProcess.length} produtos selecionados após validar imagens acessíveis`);
   const results: LandingResult[] = [];
 
   for (const link of toProcess) {
