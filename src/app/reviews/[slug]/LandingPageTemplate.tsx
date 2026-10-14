@@ -1,4 +1,3 @@
-import Image from "next/image";
 import ReviewContent from "@/components/ReviewContent";
 import { getProductLinkByLandingPageSlug } from "@/lib/product-links";
 import type { Review, ReviewSection, ReviewSpec } from "@/lib/types";
@@ -49,7 +48,6 @@ export default async function LandingPageTemplate({ review }: { review: Review }
   const price = normalizePrice(linkedPrice || review.price_new);
   const purchaseUrl = [linkedProduct?.affiliate_url, review.affiliate_url]
     .find((value) => typeof value === "string" && value.trim())?.trim() || "";
-  const imageUrl = linkedProduct?.image_url?.trim() || review.image_url?.trim() || "";
   const scoreValue = Number(review.verdict_score ?? review.hero_overall_score);
   const score = Number.isFinite(scoreValue) && scoreValue >= 0 && scoreValue <= 10
     ? scoreValue.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
