@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 
   const password = body && typeof body.password === "string" ? body.password : "";
   const envPassword = process.env.ADMIN_PASSWORD;
-  const sessionSecret = process.env.ADMIN_SESSION_SECRET || process.env.CRON_SECRET;
+  const sessionSecret = process.env.ADMIN_SESSION_SECRET;
 
   if (!envPassword) {
     return NextResponse.json(
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 
   if (!sessionSecret) {
     return NextResponse.json(
-      { error: "Server misconfiguration: ADMIN_SESSION_SECRET or CRON_SECRET not set" },
+      { error: "Server misconfiguration: ADMIN_SESSION_SECRET not set" },
       { status: 500 }
     );
   }
