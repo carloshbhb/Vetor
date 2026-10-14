@@ -7,8 +7,12 @@ export const dynamic = "force-dynamic";
 
 export default async function ProductLinksPendingPage() {
   const cookieStore = await cookies();
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join("; ");
   const request = new Request("http://localhost", {
-    headers: { cookie: (cookieStore as any).toString() },
+    headers: { cookie: cookieHeader },
   });
 
   if (!isAdminAuthenticated(request)) {
