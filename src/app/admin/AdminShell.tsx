@@ -33,6 +33,12 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Distribuição",
+    items: [
+      { label: "Pinterest", href: "/admin/pinterest", description: "Pins e distribuição orgânica", icon: "M12 3a9 9 0 100 18 9 9 0 000-18zm1.5 5.5c-.2-1.2-1-1.8-2.4-1.8-1.8 0-3.2 1.3-3.2 3.3 0 1.1.4 2.1 1.2 2.1.5 0 .8-.4 1-1.3l.4-1.5c.2-.8.5-1.1.9-1.1.5 0 .8.4.8 1.1 0 1.3-.6 2.8-1.4 4.1-.5.8-.8 1.5-.8 2.1 0 .5.3.9.8.9.7 0 1.3-.8 1.9-2.1.9-1.9 1.3-3.6 1.3-5.1 0-.3 0-.5-.1-.7z" },
+    ],
+  },
+  {
     label: "SEO & inteligência",
     items: [
       { label: "Oportunidades SEO", href: "/admin/oportunidades", description: "Fila orientada por GSC", icon: "M4 19V5m0 14h16M8 16l3-4 3 2 5-7" },
@@ -51,6 +57,7 @@ const sectionInfo: Record<string, { area: string; objective: string; workflow: s
   "/admin/afiliados": { area: "Comercial", objective: "Manter uma fonte única para todos os destinos de afiliado publicados no site.", workflow: "Cadastrar/editar oferta → testar saúde → acompanhar cliques → usar /go/ nas páginas.", source: "public.affiliate_links" },
   "/admin/ml": { area: "Comercial · Mercado Livre", objective: "Encontrar anúncios relevantes e mais vendidos sem substituir automaticamente o link de afiliado.", workflow: "Conectar conta → pesquisar anúncios → revisar matches → enviar aprovados para a fila.", source: "affiliate_link_ml_matches" },
   "/admin/ml/fila": { area: "Comercial · Mercado Livre", objective: "Registrar o link oficial de afiliado e aplicar o destino aprovado à Central.", workflow: "Abrir anúncio → gerar link oficial → colar → marcar como aplicado.", source: "affiliate_link_ml_matches + affiliate_links" },
+  "/admin/pinterest": { area: "Distribuição", objective: "Distribuir reviews e landing pages publicados no Pinterest com controle de conexão, quadro e publicação.", workflow: "Conectar OAuth → escolher quadro → enfileirar conteúdo → acompanhar publicação e falhas.", source: "Pinterest API v5 + public.pinterest_config + public.pinterest_scheduled_pins" },
   "/admin/oportunidades": { area: "SEO", objective: "Transformar dados do Search Console em uma fila editorial priorizada e mensurável.", workflow: "Ler sinal → abrir ação → executar melhoria → marcar status → medir impacto.", source: "Search Console + histórico SEO" },
   "/admin/mercado": { area: "Inteligência SEO", objective: "Descobrir novas oportunidades combinando demanda, tendência, intenção e aderência ao catálogo.", workflow: "Executar coleta → ordenar scores → validar relevância → transformar em conteúdo.", source: "GSC + Autocomplete + Trends" },
   "/admin/monetizacao": { area: "Comercial", objective: "Entender quais produtos, páginas e campanhas estão gerando intenção de compra.", workflow: "Analisar cliques → localizar páginas fortes → conferir links → priorizar otimizações.", source: "Cliques /go/ + dados de afiliados" },
