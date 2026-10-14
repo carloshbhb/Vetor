@@ -15,6 +15,9 @@ export default function CookieBanner() {
 
   useEffect(() => {
     if (!getCookieConsent()) setVisible(true);
+    const openPreferences = () => setVisible(true);
+    window.addEventListener('open-cookie-preferences', openPreferences);
+    return () => window.removeEventListener('open-cookie-preferences', openPreferences);
   }, []);
 
   function choose(v: 'all' | 'essential') {
