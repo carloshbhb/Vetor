@@ -6,8 +6,6 @@ import {
 } from "@/lib/admin-auth";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 
-const RATE_LIMIT_SECONDS = 15 * 60;
-
 function constantTimeEqual(a: string, b: string): boolean {
   const left = Buffer.from(a, "utf8");
   const right = Buffer.from(b, "utf8");
