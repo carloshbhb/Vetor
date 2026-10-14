@@ -349,7 +349,7 @@ export async function getReviewBySlug(slug: string): Promise<Review | null> {
   }
 }
 
-export async function getAllViralArticles(): Promise<ViralArticleSummary[]> {
+export async function getAllViralArticleSummaries(): Promise<ViralArticleSummary[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
 
@@ -365,6 +365,28 @@ export async function getAllViralArticles(): Promise<ViralArticleSummary[]> {
     if (!first || typeof first.slug !== 'string') return [];
 
     return data as ViralArticleSummary[];
+  } catch (err) {
+    console.error('[Supabase] getAllViralArticleSummaries error:', err);
+    return [];
+  }
+}
+
+export async function getAllViralArticles(): Promise<ViralArticle[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('viral_articles')
+      .select('id,slug,title,description,category,content,hero,products,seo_title,seo_description,published_at,updated_at,created_at')
+      .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) return [];
+
+    const first = data[0];
+    if (!first || typeof first.slug !== 'string') return [];
+
+    return data as ViralArticle[];
   } catch (err) {
     console.error('[Supabase] getAllViralArticles error:', err);
     return [];
