@@ -8,7 +8,7 @@ interface LLMProvider {
 
 const DEFAULT_NVIDIA_MODEL = 'nvidia/nemotron-3.5-lightning-30b-a3b';
 const DEFAULT_NVIDIA_FALLBACK_MODEL = 'nvidia/nemotron-3-super-120b-a12b';
-const DEFAULT_NVIDIA_BACKUP_MODEL = 'nvidia/nemotron-3-nano-30b-a3b';
+const DEFAULT_NVIDIA_BACKUP_MODEL = 'deepseek-ai/deepseek-v4-flash';
 
 function createNvidiaProviders(): LLMProvider[] {
   const apiKey = process.env.NVIDIA_API_KEY?.trim();
@@ -18,7 +18,9 @@ function createNvidiaProviders(): LLMProvider[] {
   const fallbackModel = process.env.NVIDIA_FALLBACK_MODEL?.trim() || DEFAULT_NVIDIA_FALLBACK_MODEL;
   const backupModel =
     process.env.NVIDIA_FALLBACK_MODEL_2?.trim() || DEFAULT_NVIDIA_BACKUP_MODEL;
-  const models = Array.from(new Set([primaryModel, fallbackModel, backupModel].filter(Boolean)));
+  // Keep the known-active NVIDIA API model ahead of the Nemotron fallback that has
+  // returned unusable JSON; every request still goes through NVIDIA's API endpoint.
+  const models = Array.from(new Set([primaryModel, backupModel, fallbackModel].filter(Boolean)));
 
   const client = new OpenAI({
     apiKey,
@@ -85,6 +87,7 @@ export async function chatCompletion(params: {
         temperature: number;
         max_tokens: number;
         response_format?: { type: 'json_object' };
+        reasoning_effort?: 'none' | 'high' | 'max';
       } = {
         model,
         messages: [
@@ -95,6 +98,9 @@ export async function chatCompletion(params: {
         max_tokens: params.maxTokens ?? 3000,
       };
       if (params.responseFormat) createParams.response_format = params.responseFormat;
+      // DeepSeek-V4-Flash can spend a large output budget reasoning; this task needs
+      // the final editorial JSON, so disable internal reasoning for predictable output.
+      if (model.includes('deepseek-v4-flash')) createParams.reasoning_effort = 'none';
 
       const remainingMs = deadline - Date.now();
       if (remainingMs < 8000) break;
