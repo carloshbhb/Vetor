@@ -200,7 +200,8 @@ export async function generateReview(product: {
     const parsed = {
       title: typeof modelResult.title === 'string' && modelResult.title.trim() ? modelResult.title.trim() : product.title,
       description: modelResult.description || modelResult.meta_description || '',
-      content: typeof modelResult.content === 'string' && modelResult.content.trim() ? modelResult.content : sectionsHtml,
+      // The prompt intentionally avoids generating the article twice. Sections are canonical.
+      content: sectionsHtml.trim() ? sectionsHtml : (modelResult.content || ''),
       meta_title: modelResult.meta_title || '',
       meta_description: modelResult.meta_description || modelResult.description || '',
       hero_lead: modelResult.hero_lead || '',
@@ -250,9 +251,13 @@ export async function generateReview(product: {
     if (visibleWordCount < 1500) preflightIssues.push(`texto visível tem ${visibleWordCount} palavras (mínimo 1.500)`);
     if (headingCount < 6) preflightIssues.push(`conteúdo tem ${headingCount} subtítulos H2/H3 (mínimo 6)`);
     if (paragraphCount < 8) preflightIssues.push(`conteúdo tem ${paragraphCount} parágrafos (mínimo 8)`);
-    if (sections.length < 4) preflightIssues.push('sections deve conter pelo menos 4 seções substantivas');
-    if (sections.some((section: any) => typeof section?.heading !== 'string' || visibleText(String(section.content ?? '')).length < 120)) {
-      preflightIssues.push('cada seção precisa de título e pelo menos 120 caracteres de texto');
+    if (sections.length < 6) preflightIssues.push('sections deve conter as 6 seções substantivas exigidas');
+    if (sections.some((section: any) => {
+      const sectionText = visibleText(String(section?.content ?? ''));
+      const sectionWords = sectionText ? sectionText.split(/\\s+/).length : 0;
+      return typeof section?.heading !== 'string' || sectionWords < 150;
+    })) {
+      preflightIssues.push('cada seção precisa de título e pelo menos 150 palavras substantivas');
     }
     if (specs.length < 4) preflightIssues.push('specs deve conter pelo menos 4 itens');
     if (heroBars.length < 3 || heroBars.length > 5) preflightIssues.push('hero_bars deve conter de 3 a 5 itens');
@@ -289,10 +294,11 @@ export async function generateReview(product: {
     if (generatedDescription.length < 100 || generatedDescription.length > 160) qualityIssues.push(`description tem ${generatedDescription.length} caracteres (esperado 100–160)`);
     if (generatedContent.length < 5000) qualityIssues.push(`content tem ${generatedContent.length} caracteres (mínimo 5000)`);
     if (sections.length < 4) qualityIssues.push(`sections tem ${sections.length} itens (mínimo 4)`);
-    const shortSection = sections.findIndex((item: any) =>
-      typeof item.content !== 'string' || item.content.replace(/<[^>]+>/g, ' ').trim().length < 120
-    );
-    if (shortSection >= 0) qualityIssues.push(`section ${shortSection + 1} tem menos de 120 caracteres`);
+    const shortSection = sections.findIndex((item: any) => {
+      const sectionText = typeof item.content === 'string' ? item.content.replace(/<[^>]+>/g, ' ').trim() : '';
+      return !sectionText || sectionText.split(/\\s+/).length < 150;
+    });
+    if (shortSection >= 0) qualityIssues.push(`section ${shortSection + 1} tem menos de 150 palavras`);
     if (specs.length < 4) qualityIssues.push(`specs tem ${specs.length} itens (mínimo 4)`);
     if (heroBars.length < 3) qualityIssues.push(`hero_bars tem ${heroBars.length} itens (mínimo 3)`);
     if (pros.length < 3) qualityIssues.push(`pros tem ${pros.length} itens (mínimo 3)`);
