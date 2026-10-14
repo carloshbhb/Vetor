@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { fetchAllReviews, fetchAllLandingPages, fetchAllViralArticles, fetchCategories } from '@/lib/data';
+import { fetchAllReviews, fetchAllLandingPages, fetchAllViralArticleSummaries, fetchCategories } from '@/lib/data';
 import { authors } from '@/data/authors';
 import { buildIndexableTagIndex } from '@/lib/tags';
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from '@/lib/buying';
@@ -26,7 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [reviews, landingPages, viralArticles, categories] = await Promise.all([
     fetchAllReviews(),
     fetchAllLandingPages(),
-    fetchAllViralArticles(),
+    fetchAllViralArticleSummaries(),
     fetchCategories(),
   ]);
 
