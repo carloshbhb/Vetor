@@ -110,6 +110,8 @@ jobs:
           set -euo pipefail
           : "${CRON_SECRET:?CRON_SECRET secret is required}"
           : "${EXPECTED_DEPLOYMENT_COMMIT:?Expected commit SHA is required}"
+          # Build request JSON with jq so shell quoting cannot drop expectedCommit.
+          jq -n --arg commit "$EXPECTED_DEPLOYMENT_COMMIT" '{expectedCommit: $commit}' > generation-request.json
           code=""
           for attempt in $(seq 1 12); do
             curl_exit=0
@@ -117,7 +119,7 @@ jobs:
               -X POST "$VETOR_SITE_URL/api/cron/production-generation-test-v2/" \
               -H "Authorization: Bearer $CRON_SECRET" \
               -H "Content-Type: application/json" \
-              -d "{\\"expectedCommit\\":\\"$EXPECTED_DEPLOYMENT_COMMIT\\"}" || curl_exit=$?)"
+              --data-binary @generation-request.json || curl_exit=$?)"
             if [ "$curl_exit" -ne 0 ]; then
               echo "::error::Generation transport failed (curl=$curl_exit); not retrying to avoid duplicate side effects."
               cat smoke-result.json 2>/dev/null || true
