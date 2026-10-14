@@ -28,7 +28,7 @@ export default function AdminLandingPagesPage() {
         throw new Error(body.error || "Não foi possível carregar as landing pages.");
       }
       const body = await response.json();
-      setItems(Array.isArray(body) ? body : []);
+      setItems(Array.isArray(body) ? body.filter((item: Review) => item.content_type === "lp") : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao carregar as landing pages.");
     } finally {
@@ -182,7 +182,7 @@ export default function AdminLandingPagesPage() {
                     <td className="whitespace-nowrap px-4 py-4 text-[var(--text)]">{item.price_new || "Consulte o preço"}</td>
                     <td className="px-4 py-4">
                       <div className="flex min-w-[190px] flex-wrap justify-end gap-3">
-                        {item.status === "published" && <a className="text-xs font-bold text-[var(--text)] underline underline-offset-4" href={`/reviews/${encodeURIComponent(item.slug)}/`} target="_blank" rel="noreferrer">Abrir página</a>}
+                        {item.status === "published" && <a className="text-xs font-bold text-[var(--text)] underline underline-offset-4" href={`/reviews/${encodeURIComponent(item.slug)}/`} target="_blank" rel="noreferrer">Abrir LP</a>}
                         {item.status === "draft" ? (
                           <button disabled={busySlug === item.slug} onClick={() => void changeStatus(item, "published")} className="text-xs font-bold text-[var(--green)] hover:underline disabled:opacity-50">{busySlug === item.slug ? "Salvando…" : "Publicar"}</button>
                         ) : (
@@ -197,7 +197,7 @@ export default function AdminLandingPagesPage() {
             </table>
           </div>
         )}
-        <div className="border-t border-border px-4 py-3 text-xs text-[var(--muted)]">Exibindo {filtered.length} de {items.length} registros. A lista usa o inventário editorial já existente no Supabase; não cria uma tabela paralela.</div>
+        <div className="border-t border-border px-4 py-3 text-xs text-[var(--muted)]">Exibindo {filtered.length} de {items.length} registros. Exibindo somente registros marcados como LP no Supabase. Reviews editoriais ficam na área Reviews.</div>
       </section>
     </div>
   );

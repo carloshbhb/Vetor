@@ -26,7 +26,7 @@ export default function AdminReviewsPage() {
           const data = await res.json();
           setReviews(
             (Array.isArray(data) ? data : []).filter(
-              (review: Review) => !isGuideLikeSlug(review.slug)
+              (review: Review) => review.content_type !== "lp" && !isGuideLikeSlug(review.slug)
             )
           );
           setError("");
