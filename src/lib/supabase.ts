@@ -35,6 +35,7 @@ const REVIEW_COLUMNS =
 
 export async function createReview(data: {
   slug: string;
+  content_type?: "review" | "lp";
   product: string;
   category: string;
   price_new: string;
@@ -66,18 +67,19 @@ export async function createReview(data: {
     if (options?.insertOnly) {
       return { data: null, error: 'Supabase Service Role não configurado; persistência real é obrigatória para geração automática.' };
     }
-    return { data: { ...data, id: 'mock-' + Date.now(), status: 'draft', marketplace: data.marketplace || '', price_old: '', affiliate_url: data.affiliate_url || '', ads_enabled: false, meta_keywords: '', meta_reading_time: 5, meta_canonical: null, meta_og_image: null, hero_headline_line1: data.hero_headline_line1 || '', hero_headline_line2: data.hero_headline_line2 || '', hero_headline_em: data.hero_headline_em || '', hero_lead: data.hero_lead || '', hero_bars: data.hero_bars || [], specs: data.specs || [], sections: data.sections || [], compare_table: data.compare_table || { rows: [], caption: '', columns: [], winnerCol: 0 }, testimonials: [], verdict_label: data.verdict_label || '', verdict_text: data.verdict_text || '', verdict_note: data.verdict_note || '', schema_rating_value: data.hero_overall_score ?? 0, schema_review_count: 1, google_rank: null, last_rank_check: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), faq: data.faq || [] } as Review, error: null };
+    return { data: { ...data, content_type: data.content_type || 'review', id: 'mock-' + Date.now(), status: 'draft', marketplace: data.marketplace || '', price_old: '', affiliate_url: data.affiliate_url || '', ads_enabled: false, meta_keywords: '', meta_reading_time: 5, meta_canonical: null, meta_og_image: null, hero_headline_line1: data.hero_headline_line1 || '', hero_headline_line2: data.hero_headline_line2 || '', hero_headline_em: data.hero_headline_em || '', hero_lead: data.hero_lead || '', hero_bars: data.hero_bars || [], specs: data.specs || [], sections: data.sections || [], compare_table: data.compare_table || { rows: [], caption: '', columns: [], winnerCol: 0 }, testimonials: [], verdict_label: data.verdict_label || '', verdict_text: data.verdict_text || '', verdict_note: data.verdict_note || '', schema_rating_value: data.hero_overall_score ?? 0, schema_review_count: 1, google_rank: null, last_rank_check: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), faq: data.faq || [] } as Review, error: null };
   }
 
   const now = new Date().toISOString();
   const { data: existing } = await supabase
     .from('reviews')
-    .select('created_at,status')
+    .select('created_at,status,content_type')
     .eq('slug', data.slug)
     .maybeSingle();
 
   const row = {
     slug: data.slug,
+    content_type: data.content_type || existing?.content_type || 'review',
     status: existing?.status ?? 'draft',
     product: data.product,
     category: data.category,
@@ -244,6 +246,26 @@ export async function getAllReviews(options?: {
     return data.map(normalizeReviewFields) as Review[];
   } catch (err) {
     console.error('[Supabase] getAllReviews error:', err);
+    return [];
+  }
+}
+
+export async function getAllLandingPages(): Promise<Review[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select(REVIEW_COLUMNS)
+      .eq('content_type', 'lp')
+      .eq('status', 'published')
+      .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) return [];
+    return data.map(normalizeReviewFields) as Review[];
+  } catch (err) {
+    console.error('[Supabase] getAllLandingPages error:', err);
     return [];
   }
 }

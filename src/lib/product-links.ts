@@ -14,6 +14,7 @@ export interface ProductLink {
   has_review: boolean;
   has_video: boolean;
   review_slug: string | null;
+  landing_page_slug?: string | null;
   video_id: string | null;
   price: number | null;
   score: number | null;
@@ -157,6 +158,7 @@ export async function createProductLink(
     has_review: data.has_review,
     has_video: data.has_video,
     review_slug: data.review_slug,
+    landing_page_slug: data.landing_page_slug ?? null,
     video_id: data.video_id,
     price: data.price,
     score: data.score,
@@ -264,6 +266,29 @@ export async function markProductLinkReviewed(
         has_review: true,
         status: 'reviewed',
         review_slug: reviewSlug,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    return { error: error?.message ?? null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function markProductLinkLandingPageGenerated(
+  id: string,
+  landingPageSlug: string
+): Promise<{ error: string | null }> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return { error: 'Supabase service client not configured' };
+
+  try {
+    const { error } = await supabase
+      .from('product_links')
+      .update({
+        landing_page_slug: landingPageSlug,
+        status: 'reviewed',
         updated_at: new Date().toISOString(),
       })
       .eq('id', id);

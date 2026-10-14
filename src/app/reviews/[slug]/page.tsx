@@ -11,7 +11,7 @@ import VerdictCard from "@/components/VerdictCard";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import AdPlacement from "@/components/AdPlacement";
 import { ReviewSchema, FAQSchema, BreadcrumbSchema } from "@/components/SchemaMarkup";
-import { fetchReviewBySlug, fetchAllReviews, fetchAllViralArticles, normalizeCategoryName } from "@/lib/data";
+import { fetchReviewBySlug, fetchAllReviews, fetchAllLandingPages, fetchAllViralArticles, normalizeCategoryName } from "@/lib/data";
 import { resolveOgImage } from "@/lib/seo";
 import type { Review } from "@/lib/types";
 import AuthorBox from "@/components/AuthorBox";
@@ -21,7 +21,7 @@ import BuyingChoiceCard from "@/components/BuyingChoiceCard";
 import EditorialEvidence from "@/components/EditorialEvidence";
 import RelatedCommercialProducts from "@/components/RelatedCommercialProducts";
 import ReviewPurchaseIntentLinks from "@/components/ReviewPurchaseIntentLinks";
-import CommercialLandingPage from "./CommercialLandingPage";
+import LandingPageTemplate from "./LandingPageTemplate";
 import DecisionPath from "@/components/DecisionPath";
 import { getProductLinksByReviewSlug, getReviewedProductLinksByCategory } from "@/lib/product-links";
 import {
@@ -42,27 +42,12 @@ interface PageProps {
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  const reviews = await fetchAllReviews();
-  return [...reviews.map((r) => ({ slug: r.slug })), { slug: "8bitdo-ultimate-2c" }, { slug: "xiaomi-mi-home-security-camera-2k-cam-seg" }];
+  const [reviews, landingPages] = await Promise.all([fetchAllReviews(), fetchAllLandingPages()]);
+  return [...reviews, ...landingPages].map((item) => ({ slug: item.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  if (slug === "8bitdo-ultimate-2c") {
-    return {
-      title: "8BitDo Ultimate 2C: ofertas e onde comprar | Vetor.blog",
-      description: "Confira a oferta do Controle 8BitDo Ultimate 2C, compare as condições de compra e leia a análise editorial independente.",
-      alternates: { canonical: "https://www.vetor.blog/reviews/8bitdo-ultimate-2c/" },
-      openGraph: {
-        title: "Controle 8BitDo Ultimate 2C: ofertas e onde comprar",
-        description: "Consulte a oferta disponível e leia a análise editorial do 8BitDo Ultimate 2C.",
-        url: "https://www.vetor.blog/reviews/8bitdo-ultimate-2c/",
-        type: "website",
-        images: ["https://http2.mlstatic.com/D_NQ_NP_693701-MLU75102925193_032024-O.webp"],
-      },
-      robots: { index: true, follow: true },
-    };
-  }
   const review = await fetchReviewBySlug(slug);
   if (!review) return { title: "Review não encontrado" };
   const url = `https://www.vetor.blog/reviews/${review.slug}/`;
@@ -77,12 +62,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: { canonical: review.meta_canonical || url },
     openGraph: {
       title,
       description,
       url,
-      type: "article",
+      type: review.content_type === "lp" ? "website" : "article",
       ...(publishedTime ? { publishedTime } : {}),
       ...(modifiedTime ? { modifiedTime } : {}),
       images: [ogImage],
@@ -243,9 +228,9 @@ function generateVerdictText(review: Review): string {
 
 export default async function ReviewPage({ params }: PageProps) {
   const { slug } = await params;
-  if (slug === "8bitdo-ultimate-2c") return <CommercialLandingPage />;
   const review = await fetchReviewBySlug(slug);
   if (!review) notFound();
+  if (review.content_type === "lp") return <LandingPageTemplate review={review} />;
 
   const score = review.verdict_score || review.hero_overall_score;
   const verdictLabel =

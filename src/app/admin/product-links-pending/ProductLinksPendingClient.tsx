@@ -15,6 +15,7 @@ interface ProductLink {
   status?: string;
   has_review?: boolean;
   review_slug?: string | null;
+  landing_page_slug?: string | null;
 }
 
 export default function ProductLinksPendingClient({
@@ -71,7 +72,8 @@ export default function ProductLinksPendingClient({
         alert(data.error || "Erro ao gerar landing page.");
         return;
       }
-      alert("Landing page gerada com sucesso!");
+      const result = await res.json().catch(() => ({}));
+      alert(result.message || "Landing page gerada como rascunho.");
       const updated = await fetch(`/api/admin/product-links-pending/?page=0&limit=${ITEMS_PER_PAGE}`, { credentials: "same-origin" });
       if (updated.ok) {
         const payload = await updated.json();
@@ -154,14 +156,23 @@ export default function ProductLinksPendingClient({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    {link.review_slug ? (
+                    {link.landing_page_slug ? (
                       <a
-                        href={`/reviews/${link.review_slug}`}
+                        href={`/reviews/${link.landing_page_slug}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-[var(--blue)] hover:underline"
+                      >
+                        Abrir LP
+                      </a>
+                    ) : link.review_slug ? (
+                      <a
+                        href={`/reviews/${link.review_slug}/`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-[var(--amber)] hover:underline"
                       >
-                        Abrir LP
+                        Abrir review
                       </a>
                     ) : (
                       <span className="text-xs text-[var(--muted)]">-</span>

@@ -1,5 +1,6 @@
 import {
   getAllReviews,
+  getAllLandingPages,
   getReviewBySlug,
   getAllViralArticles,
   getViralArticleBySlug,
@@ -204,6 +205,16 @@ export async function fetchAllReviews(): Promise<Review[]> {
     return reviews.map(normalizeReviewCategory);
   } catch (error) {
     console.error('[Data] getAllReviews failed:', error);
+    return [];
+  }
+}
+
+export async function fetchAllLandingPages(): Promise<Review[]> {
+  try {
+    const pages = await getAllLandingPages();
+    return pages.map(normalizeReviewCategory);
+  } catch (error) {
+    console.error('[Data] getAllLandingPages failed:', error);
     return [];
   }
 }
