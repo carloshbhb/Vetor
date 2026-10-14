@@ -5,6 +5,14 @@ const SITE_URL = 'https://www.vetor.blog';
 export const ORG_ID = `${SITE_URL}/#org`;
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og.png`;
 
+/** Serialize structured data safely inside an HTML script element. */
+export function serializeJsonLd(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/\\u2028/g, '\\u2028')
+    .replace(/\\u2029/g, '\\u2029');
+}
+
 // og:image da página ou fallback (nunca 404 de og:image).
 export function resolveOgImage(pageImage?: string | null): string {
   if (pageImage && pageImage.trim()) {
