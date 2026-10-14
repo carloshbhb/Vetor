@@ -53,9 +53,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let body: { password?: unknown; action?: unknown };
+  let body: { password?: unknown; action?: unknown } | null;
   try {
-    body = await request.json();
+    const parsed: unknown = await request.json();
+    body = parsed && typeof parsed === "object"
+      ? parsed as { password?: unknown; action?: unknown }
+      : null;
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
@@ -67,7 +70,7 @@ export async function POST(request: Request) {
     return response;
   }
 
-  const password = typeof body.password === "string" ? body.password : "";
+  const password = body && typeof body.password === "string" ? body.password : "";
   const envPassword = process.env.ADMIN_PASSWORD;
   const sessionSecret = process.env.ADMIN_SESSION_SECRET || process.env.CRON_SECRET;
 
