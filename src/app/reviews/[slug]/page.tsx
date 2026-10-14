@@ -43,7 +43,7 @@ export const revalidate = 3600;
 
 export async function generateStaticParams() {
   const reviews = await fetchAllReviews();
-  return [...reviews.map((r) => ({ slug: r.slug })), { slug: "8bitdo-ultimate-2c" }];
+  return [...reviews.map((r) => ({ slug: r.slug })), { slug: "8bitdo-ultimate-2c" }, { slug: "xiaomi-mi-home-security-camera-2k-cam-seg" }];
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

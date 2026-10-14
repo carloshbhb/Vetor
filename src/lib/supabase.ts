@@ -228,7 +228,7 @@ export async function getAllReviews(options?: {
   if (!supabase) return [];
 
   try {
-    let query = supabase.from('reviews').select(REVIEW_COLUMNS);
+    let query = supabase.from('reviews').select(REVIEW_COLUMNS).eq('content_type', 'review');
     if (!options?.includeUnpublished) {
       query = query.eq('status', 'published');
     }
