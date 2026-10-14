@@ -3,6 +3,7 @@ import {
   getAllLandingPages,
   getReviewBySlug,
   getAllViralArticles,
+  getAllViralArticleSummaries,
   getViralArticleBySlug,
   getCategories,
   getSupabaseClient,
@@ -240,9 +241,19 @@ export async function fetchReviewBySlug(slug: string): Promise<Review | null> {
   return normalizeStaticReviews().find((r) => r.slug === slug) || null;
 }
 
-export async function fetchAllViralArticles(): Promise<ViralArticleSummary[]> {
+export async function fetchAllViralArticles(): Promise<ViralArticle[]> {
   try {
     const articles = await getAllViralArticles();
+    if (articles && articles.length > 0) return articles;
+  } catch {
+    // Supabase not available
+  }
+  return [];
+}
+
+export async function fetchAllViralArticleSummaries(): Promise<ViralArticleSummary[]> {
+  try {
+    const articles = await getAllViralArticleSummaries();
     if (articles && articles.length > 0) return articles;
   } catch {
     // Supabase not available
