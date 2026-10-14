@@ -8,7 +8,6 @@ interface LLMProvider {
 
 const DEFAULT_NVIDIA_MODEL = 'nvidia/nemotron-3.5-lightning-30b-a3b';
 const DEFAULT_NVIDIA_FALLBACK_MODEL = 'nvidia/nemotron-3-super-120b-a12b';
-const DEFAULT_NVIDIA_BACKUP_MODEL = 'deepseek-ai/deepseek-v4-flash';
 
 function createNvidiaProviders(): LLMProvider[] {
   const apiKey = process.env.NVIDIA_API_KEY?.trim();
@@ -16,11 +15,10 @@ function createNvidiaProviders(): LLMProvider[] {
 
   const primaryModel = process.env.NVIDIA_MODEL?.trim() || DEFAULT_NVIDIA_MODEL;
   const fallbackModel = process.env.NVIDIA_FALLBACK_MODEL?.trim() || DEFAULT_NVIDIA_FALLBACK_MODEL;
-  const backupModel =
-    process.env.NVIDIA_FALLBACK_MODEL_2?.trim() || DEFAULT_NVIDIA_BACKUP_MODEL;
-  // Keep the known-active NVIDIA API model ahead of the Nemotron fallback that has
-  // returned unusable JSON; every request still goes through NVIDIA's API endpoint.
-  const models = Array.from(new Set([primaryModel, backupModel, fallbackModel].filter(Boolean)));
+  // Only use a third model when one is explicitly configured; do not assume a model
+  // ID is live on NVIDIA NIM when it has already returned HTTP 410.
+  const backupModel = process.env.NVIDIA_FALLBACK_MODEL_2?.trim();
+  const models = Array.from(new Set([primaryModel, fallbackModel, backupModel].filter((model): model is string => !!model)));
 
   const client = new OpenAI({
     apiKey,
@@ -65,13 +63,15 @@ export async function chatCompletion(params: {
   responseFormat?: { type: 'json_object' };
   model?: string;
   validateResponse?: (content: string) => boolean;
+  timeoutMs?: number;
+  deadlineMs?: number;
 }): Promise<string> {
   const providers = configuredProviders();
   if (!providers.length) {
     throw new Error('[LLM] NVIDIA_API_KEY ausente. Configure uma chave NVIDIA válida; provedores externos não são utilizados.');
   }
 
-  const deadline = Date.now() + 220000;
+  const deadline = Date.now() + (params.deadlineMs ?? 220000);
   let lastError: unknown = null;
 
   for (let index = 0; index < providers.length; index += 1) {
@@ -98,15 +98,11 @@ export async function chatCompletion(params: {
         max_tokens: params.maxTokens ?? 3000,
       };
       if (params.responseFormat) createParams.response_format = params.responseFormat;
-      // DeepSeek-V4-Flash can spend a large output budget reasoning; this task needs
-      // the final editorial JSON, so disable internal reasoning for predictable output.
-      if (model.includes('deepseek-v4-flash')) createParams.reasoning_effort = 'none';
-
       const remainingMs = deadline - Date.now();
       if (remainingMs < 8000) break;
       const requestOptions = {
         timeout: Math.min(
-          model.includes('nemotron-3.5-lightning') ? 70000 : 65000,
+          params.timeoutMs ?? (model.includes('nemotron-3.5-lightning') ? 70000 : 65000),
           remainingMs - 7000
         ),
         maxRetries: 0,

@@ -1,4 +1,3 @@
-import { buildReviewPrompt } from './prompt';
 import { seo } from './seo';
 import { chatCompletion } from './llm-provider';
 import { validateGeneratedReview } from './content-quality';
@@ -95,75 +94,247 @@ export function rewriteEditorialSignals<T>(value: T): T {
   return value;
 }
 
-function isCompleteReviewResponse(raw: string): boolean {
-  const trimmed = raw.trim();
-  const jsonStart = trimmed.indexOf('{');
-  const jsonEnd = trimmed.lastIndexOf('}');
-  if (jsonStart < 0 || jsonEnd <= jsonStart) return false;
+interface ReviewSectionPlan {
+  id: string;
+  heading: string;
+  tocEmoji: string;
+  tocLabel: string;
+  focus: string;
+}
 
-  let value: Record<string, unknown>;
+const REVIEW_SECTION_PLAN: ReviewSectionPlan[] = [
+  { id: 'overview', heading: 'Visão geral e posicionamento', tocEmoji: '📝', tocLabel: 'Visão geral', focus: 'explique proposta, público-alvo, papel na categoria e quais decisões o leitor precisa tomar; responda cedo se faz sentido considerar o produto' },
+  { id: 'design', heading: 'Design, construção e ergonomia', tocEmoji: '🎨', tocLabel: 'Design', focus: 'analise materiais e ergonomia somente quando houver informação sustentada; transforme ausência de dados em critérios objetivos a conferir, sem inventar observação prática' },
+  { id: 'features', heading: 'Recursos e especificações', tocEmoji: '⚙️', tocLabel: 'Recursos', focus: 'explique para que servem os recursos confirmados, limites de uso, dependências e quais especificações ainda precisam ser conferidas' },
+  { id: 'compatibility', heading: 'Compatibilidade e uso cotidiano', tocEmoji: '🔌', tocLabel: 'Compatibilidade', focus: 'discuta cenários de uso, compatibilidade a verificar, configuração, manutenção e limitações por perfil, sem afirmar experiência prática' },
+  { id: 'alternatives', heading: 'Preço, alternativas e custo-benefício', tocEmoji: '💰', tocLabel: 'Preço e alternativas', focus: 'contextualize o preço fornecido, critérios para comparar alternativas reais e custos/condições a confirmar; nunca invente preço ou especificação concorrente' },
+  { id: 'verdict', heading: 'Para quem vale a pena e veredito', tocEmoji: '✅', tocLabel: 'Veredito', focus: 'apresente recomendação condicional, perfis para quem serve/não serve, lista prática do que conferir antes da compra e conclusão equilibrada' },
+];
+
+function visibleTextForGeneration(value: string): string {
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function countVisibleWords(value: string): number {
+  const text = visibleTextForGeneration(value);
+  return text ? text.split(/\s+/).filter(Boolean).length : 0;
+}
+
+function parseModelJsonObject(raw: string, context: string): Record<string, unknown> {
+  const trimmed = raw.trim().replace(/^[\x60]{3}(?:json)?\s*/i, '').replace(/\s*[\x60]{3}$/, '');
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('NVIDIA não retornou JSON para ' + context + '.');
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1));
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
-    value = parsed as Record<string, unknown>;
+    parsed = JSON.parse(trimmed.slice(start, end + 1));
+  } catch (error) {
+    throw new Error('JSON inválido em ' + context + ': ' + (error instanceof Error ? error.message : String(error)));
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('A resposta de ' + context + ' precisa ser um objeto JSON.');
+  }
+  return parsed as Record<string, unknown>;
+}
+
+function extractMarkedSection(raw: string, plan: ReviewSectionPlan): string | null {
+  const pattern = new RegExp(
+    '\\[\\[SECTION:' + plan.id + '\\]\\]([\\s\\S]*?)\\[\\[\\/SECTION:' + plan.id + '\\]\\]',
+    'i',
+  );
+  return raw.match(pattern)?.[1]?.trim() ?? null;
+}
+
+function isCompleteSectionBatch(raw: string, plans: ReviewSectionPlan[]): boolean {
+  return plans.every((plan) => {
+    const body = extractMarkedSection(raw, plan);
+    return !!body && countVisibleWords(body) >= 260;
+  });
+}
+
+function hasCompleteReviewMetadata(raw: string): boolean {
+  try {
+    const value = parseModelJsonObject(raw, 'metadados editoriais');
+    const nonempty = (field: unknown) => typeof field === 'string' && field.trim().length > 0;
+    const specs = Array.isArray(value.specs) ? value.specs : [];
+    const heroBars = Array.isArray(value.hero_bars) ? value.hero_bars : [];
+    const pros = Array.isArray(value.pros) ? value.pros : [];
+    const cons = Array.isArray(value.cons) ? value.cons : [];
+    const faq = Array.isArray(value.faq) ? value.faq : [];
+    const table = value.compare_table && typeof value.compare_table === 'object'
+      ? value.compare_table as { rows?: unknown; columns?: unknown }
+      : null;
+    const rows = table && Array.isArray(table.rows) ? table.rows : [];
+    const columns = table && Array.isArray(table.columns) ? table.columns : [];
+    return nonempty(value.title) &&
+      nonempty(value.description) &&
+      nonempty(value.meta_title) &&
+      nonempty(value.meta_description) &&
+      nonempty(value.hero_lead) &&
+      nonempty(value.verdict_text) &&
+      nonempty(value.verdict_label) &&
+      Number.isFinite(Number(value.hero_overall_score ?? value.verdict_score)) &&
+      heroBars.length >= 3 && specs.length >= 4 && pros.length >= 3 &&
+      cons.length >= 3 && faq.length >= 3 && rows.length >= 3 && columns.length >= 3;
   } catch {
     return false;
   }
+}
 
-  const textOf = (input: unknown): string =>
-    typeof input === 'string'
-      ? input.replace(/<[^>]*>/g, ' ').replace(/&nbsp;|&#160;/gi, ' ').trim()
-      : '';
-  const wordCount = (input: unknown): number => {
-    const text = textOf(input);
-    return text ? text.split(/\s+/).filter(Boolean).length : 0;
-  };
-  const sections = Array.isArray(value.sections) ? value.sections : [];
-  const sectionWordCounts = sections.map((section) =>
-    section && typeof section === 'object'
-      ? wordCount((section as { content?: unknown }).content)
-      : 0
-  );
-  const totalWords = sectionWordCounts.reduce((sum, count) => sum + count, 0);
-  const specs = Array.isArray(value.specs) ? value.specs : [];
-  const pros = Array.isArray(value.pros) ? value.pros : [];
-  const cons = Array.isArray(value.cons) ? value.cons : [];
-  const faq = Array.isArray(value.faq) ? value.faq : [];
-  const compareTable = value.compare_table && typeof value.compare_table === 'object'
-    ? value.compare_table as { rows?: unknown; columns?: unknown }
-    : null;
-  const comparisonRows = compareTable && Array.isArray(compareTable.rows) ? compareTable.rows : [];
-  const comparisonColumns = compareTable && Array.isArray(compareTable.columns) ? compareTable.columns : [];
+function buildReviewSourceContext(product: {
+  title: string;
+  category: string;
+  price: string;
+  product_url?: string;
+  marketplace?: string;
+  editorialBrief?: import('./prompt').EditorialBrief;
+}): string {
+  const brief = product.editorialBrief;
+  return [
+    'Produto: ' + product.title,
+    'Categoria: ' + (product.category || 'Não informada'),
+    'Preço fornecido: ' + (product.price || 'não informado'),
+    'Anúncio fornecido: ' + (product.product_url || 'não informado'),
+    'Marketplace: ' + (product.marketplace || 'não informado'),
+    brief?.primaryKeyword ? 'Palavra-chave principal: ' + brief.primaryKeyword : '',
+    brief?.searchQuestion ? 'Pergunta de busca principal: ' + brief.searchQuestion : '',
+    brief?.relatedKeywords?.length ? 'Termos relacionados: ' + brief.relatedKeywords.join('; ') : '',
+    brief?.verifiedFacts?.length
+      ? 'Fatos com fonte fornecidos (não extrapole):\n' + brief.verifiedFacts.map((fact) => '- ' + fact.claim + ' [' + fact.sourceName + (fact.sourceUrl ? '; ' + fact.sourceUrl : '') + ']').join('\n')
+      : 'Não foram fornecidas fontes/fatos adicionais verificados; não invente números, testes, experiência prática, avaliações, preços atuais nem links.',
+    brief?.internalLinks?.length
+      ? 'Links internos permitidos, somente se relevantes: ' + brief.internalLinks.map((item) => item.title + ': ' + item.url).join('; ')
+      : 'Não invente links, fontes ou URLs.',
+    brief?.callToAction ? 'Objetivo editorial: ' + brief.callToAction : '',
+  ].filter(Boolean).join('\n');
+}
 
-  const accepted =
-    typeof value.title === 'string' && value.title.trim().length > 0 &&
-    typeof value.meta_title === 'string' && value.meta_title.trim().length > 0 &&
-    typeof value.meta_description === 'string' && value.meta_description.trim().length > 0 &&
-    sections.length >= 6 &&
-    sectionWordCounts.every((count) => count >= 180) &&
-    totalWords >= 1500 &&
-    specs.length >= 5 &&
-    pros.length >= 3 &&
-    cons.length >= 2 &&
-    faq.length >= 3 &&
-    comparisonRows.length >= 3 &&
-    comparisonColumns.length >= 3;
+function escapeGeneratedHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-  // Shape-only diagnostic: log counts, never the generated article itself.
-  console.info('[review-generator] model candidate completeness:', {
-    keys: Object.keys(value),
-    sectionCount: sections.length,
-    sectionWordCounts,
-    totalWords,
-    specs: specs.length,
-    pros: pros.length,
-    cons: cons.length,
-    faq: faq.length,
-    comparisonRows: comparisonRows.length,
-    comparisonColumns: comparisonColumns.length,
-    accepted,
+function normalizeGeneratedSection(raw: string, plan: ReviewSectionPlan): string {
+  let text = raw.trim()
+    .replace(/^[\x60]{3}(?:html|text|markdown)?\s*/i, '')
+    .replace(/\s*[\x60]{3}$/, '')
+    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<\/p\s*>\s*<p(?:\s+[^>]*)?>/gi, '\n\n')
+    .replace(/<\/(?:p|div|li|ul|ol|section|article)\s*>/gi, '\n')
+    .replace(/<(?:p|div|li|ul|ol|section|article)(?:\s+[^>]*)?>/gi, '\n')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\r/g, '')
+    .trim();
+
+  const firstLine = text.split('\n')[0]?.trim() ?? '';
+  if (firstLine.replace(/^#{1,6}\s*/, '').toLocaleLowerCase('pt-BR') === plan.heading.toLocaleLowerCase('pt-BR')) {
+    text = text.slice(text.indexOf('\n') + 1).trim();
+  }
+  const paragraphs = text
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.replace(/\s*\n\s*/g, ' ').replace(/^[-*]\s+/gm, '').trim())
+    .filter(Boolean);
+
+  if (!paragraphs.length) throw new Error('Seção ' + plan.id + ' retornou sem parágrafos.');
+  return paragraphs.map((paragraph) => {
+    const escaped = escapeGeneratedHtml(paragraph)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+    return '<p>' + escaped + '</p>';
+  }).join('\n');
+}
+
+async function generateReviewSectionBatch(
+  sourceContext: string,
+  plans: ReviewSectionPlan[],
+): Promise<ReviewSection[]> {
+  const requestedSections = plans.map((plan, index) =>
+    (index + 1) + '. Marcadores exatos: [[SECTION:' + plan.id + ']] e [[/SECTION:' + plan.id + ']]. Tema: ' + plan.heading + '. Foco: ' + plan.focus + '.'
+  ).join('\n');
+
+  const raw = await chatCompletion({
+    systemPrompt: 'Você é editor técnico sênior do Vetor.blog. Escreva em português brasileiro claro, analítico e factual. Não invente teste prático, dado, preço, URL, citação ou especificação. Não repita frases para SEO. Siga exatamente o formato de marcadores solicitado.',
+    userPrompt: [
+      'Contexto do produto:',
+      sourceContext,
+      '',
+      'Escreva APENAS as duas seções abaixo, sem JSON, introdução, conclusão extra ou markdown fora dos parágrafos. Cada seção deve ter 290–330 palavras úteis e específicas, em 3 a 5 parágrafos completos. Não inclua o título dentro do texto. Não copie uma seção na outra. Se um dado não foi fornecido, explique o que o comprador deve conferir em vez de inventar.',
+      '',
+      requestedSections,
+      '',
+      'Formato obrigatório:',
+      '[[SECTION:' + plans[0].id + ']]',
+      'Parágrafo um...',
+      '',
+      'Parágrafo dois...',
+      '[[/SECTION:' + plans[0].id + ']]',
+      '[[SECTION:' + plans[1].id + ']]',
+      'Parágrafo um...',
+      '',
+      'Parágrafo dois...',
+      '[[/SECTION:' + plans[1].id + ']]',
+    ].join('\n'),
+    temperature: 0.35,
+    maxTokens: 2600,
+    timeoutMs: 16000,
+    deadlineMs: 36000,
+    validateResponse: (value) => isCompleteSectionBatch(value, plans),
   });
-  return accepted;
+
+  return plans.map((plan) => {
+    const body = extractMarkedSection(raw, plan);
+    if (!body || countVisibleWords(body) < 260) {
+      throw new Error('A seção ' + plan.id + ' não atingiu 260 palavras substantivas.');
+    }
+    const content = normalizeGeneratedSection(body, plan);
+    return {
+      id: plan.id,
+      heading: plan.heading,
+      tocEmoji: plan.tocEmoji,
+      tocLabel: plan.tocLabel,
+      content,
+    };
+  });
+}
+
+async function generateReviewMetadata(
+  sourceContext: string,
+  productTitle: string,
+): Promise<GeneratedReviewResult> {
+  const raw = await chatCompletion({
+    systemPrompt: 'Você prepara os metadados e componentes de um review editorial. Responda somente com objeto JSON válido. Não invente fontes, testes práticos, preços, links nem especificações. Use "não informado" quando faltar dado.',
+    userPrompt: [
+      'Contexto factual:',
+      sourceContext,
+      '',
+      'Retorne um objeto JSON curto para o review do produto ' + productTitle + ', sem o corpo e sem as seções do artigo.',
+      'Campos obrigatórios: title (comece com "Review" e nome do produto), description (100–160 caracteres), meta_title (35–65 caracteres), meta_description (100–160 caracteres), hero_overall_score (número de 6 a 9 sustentado por critérios editoriais, não por teste de laboratório), hero_bars (3 ou 4 itens {pct,label,value}; pct=value*10), specs (4–6 itens {label,value,highlight}), pros (3–5 pontos específicos), cons (3–5 limitações honestas), compare_table ({columns:["Critério","' + productTitle + '","Alternativa da categoria"], rows: pelo menos 3 objetos {feature,values:["valor do produto","comparativo factual ou não informado"],winner:-1}, caption, winnerCol:-1}), verdict_score, verdict_label, verdict_text, verdict_note, hero_lead (pelo menos 80 caracteres), hero_headline_line1, hero_headline_line2, hero_headline_em e faq (3–5 objetos {question,answer}).',
+      'Não inclua content nem sections. Evite texto em markdown/fences.',
+    ].join('\n'),
+    temperature: 0.25,
+    maxTokens: 1800,
+    timeoutMs: 16000,
+    deadlineMs: 36000,
+    validateResponse: hasCompleteReviewMetadata,
+  });
+  return parseModelJsonObject(raw, 'metadados editoriais') as unknown as GeneratedReviewResult;
 }
 
 interface GeneratedReviewResult {
@@ -231,45 +402,30 @@ export async function generateReview(product: {
   editorialBrief?: import('./prompt').EditorialBrief;
 }): Promise<ReviewOutput> {
   try {
-    // Use NVIDIA directly; automated generation must never depend on a Gemini key
-    // or launch a legacy subprocess requiring GOOGLE_AI_API_KEY.
-    const userPrompt = buildReviewPrompt({
-      title: product.title,
-      category: product.category,
-      price: product.price,
-      image: product.image,
-      product_url: product.product_url,
-      marketplace: product.marketplace,
-      editorialBrief: product.editorialBrief,
-    });
-    const raw = await chatCompletion({
-      systemPrompt: 'Você é editor sênior do Vetor.blog. Gere um review técnico, útil e factual, cumpra todo o schema JSON e os critérios de qualidade do prompt. Não invente medições nem experiência prática. Retorne somente JSON válido.',
-      userPrompt,
-      temperature: 0.35,
-      maxTokens: 8000,
-      responseFormat: { type: 'json_object' },
-      validateResponse: isCompleteReviewResponse,
-    });
-    const trimmed = raw.trim();
-    const jsonStart = trimmed.indexOf('{');
-    const jsonEnd = trimmed.lastIndexOf('}');
-    if (jsonStart < 0 || jsonEnd <= jsonStart) {
-      throw new Error('NVIDIA não retornou um objeto JSON para o review.');
+    // Generate long-form content in three small, sequential batches. A single
+    // 2,000-word JSON response repeatedly timed out or returned an empty object.
+    // Each batch has its own completeness gate; the final 1,500-word editorial gate remains.
+    const sourceContext = buildReviewSourceContext(product);
+    const modelSections: ReviewSection[] = [];
+    for (let index = 0; index < REVIEW_SECTION_PLAN.length; index += 2) {
+      const batch = REVIEW_SECTION_PLAN.slice(index, index + 2);
+      console.info('[review-generator] generating section batch:', batch.map((item) => item.id));
+      const generatedBatch = await generateReviewSectionBatch(sourceContext, batch);
+      modelSections.push(...generatedBatch);
     }
 
-    let modelResult: GeneratedReviewResult;
-    try {
-      modelResult = JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1)) as GeneratedReviewResult;
-    } catch (error) {
-      throw new Error('Não foi possível interpretar o JSON retornado pela NVIDIA: ' + (error instanceof Error ? error.message : String(error)));
-    }
-    modelResult = rewriteEditorialSignals(modelResult);
-
+    const modelMetadata = rewriteEditorialSignals(
+      await generateReviewMetadata(sourceContext, product.title),
+    );
+    const modelResult: GeneratedReviewResult = {
+      ...modelMetadata,
+      content: '',
+      sections: modelSections,
+    };
     const modelSectionsBeforeValidation = Array.isArray(modelResult.sections) ? modelResult.sections : [];
-    const sectionWordCounts = modelSectionsBeforeValidation.map((section) => {
-      const text = typeof section?.content === 'string' ? section.content.replace(/<[^>]*>/g, ' ').trim() : '';
-      return text ? text.split(/\\s+/).length : 0;
-    });
+    const sectionWordCounts = modelSectionsBeforeValidation.map((section) =>
+      typeof section?.content === 'string' ? countVisibleWords(section.content) : 0
+    );
     const hasEditorialPayload =
       [modelResult.title, modelResult.description, modelResult.meta_title, modelResult.meta_description, modelResult.hero_lead, modelResult.verdict_text]
         .some((value) => typeof value === 'string' && value.trim().length > 0) ||
