@@ -132,6 +132,25 @@ export async function getProductLinkBySlug(slug: string): Promise<ProductLink | 
   }
 }
 
+export async function getProductLinkByLandingPageSlug(landingPageSlug: string): Promise<ProductLink | null> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('product_links')
+      .select('*')
+      .eq('landing_page_slug', landingPageSlug)
+      .neq('status', 'archived')
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return normalizeProductLink(data);
+  } catch {
+    return null;
+  }
+}
+
 export async function createProductLink(
   data: Omit<ProductLink, 'id' | 'created_at' | 'updated_at'>
 ): Promise<{ data: ProductLink | null; error: string | null }> {

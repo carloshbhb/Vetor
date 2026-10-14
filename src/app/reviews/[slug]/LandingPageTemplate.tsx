@@ -1,5 +1,6 @@
 import Image from "next/image";
 import ReviewContent from "@/components/ReviewContent";
+import { getProductLinkByLandingPageSlug } from "@/lib/product-links";
 import type { Review, ReviewSection, ReviewSpec } from "@/lib/types";
 import styles from "./LandingPageTemplate.module.css";
 
@@ -22,7 +23,8 @@ function normalizePrice(value: string): string {
   return value;
 }
 
-export default function LandingPageTemplate({ review }: { review: Review }) {
+export default async function LandingPageTemplate({ review }: { review: Review }) {
+  const linkedProduct = await getProductLinkByLandingPageSlug(review.slug);
   const specs = normalizeSpecs(review.specs);
   const sections = normalizeSections(review.sections);
   const highlights = specs.filter((spec) => spec.highlight).slice(0, 3);
@@ -38,9 +40,13 @@ export default function LandingPageTemplate({ review }: { review: Review }) {
   const pros = Array.isArray(review.pros) ? review.pros.filter(Boolean).slice(0, 6) : [];
   const cons = Array.isArray(review.cons) ? review.cons.filter(Boolean).slice(0, 6) : [];
   const faq = Array.isArray(review.faq) ? review.faq.filter((item) => item?.question && item?.answer) : [];
-  const price = normalizePrice(review.price_new);
-  const purchaseUrl = typeof review.affiliate_url === "string" ? review.affiliate_url.trim() : "";
-  const imageUrl = typeof review.image_url === "string" ? review.image_url.trim() : "";
+  const linkedPrice = linkedProduct?.price != null
+    ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(linkedProduct.price)
+    : "";
+  const price = normalizePrice(linkedPrice || review.price_new);
+  const purchaseUrl = [linkedProduct?.affiliate_url, review.affiliate_url]
+    .find((value) => typeof value === "string" && value.trim())?.trim() || "";
+  const imageUrl = linkedProduct?.image_url?.trim() || review.image_url?.trim() || "";
 
   return (
     <div className={styles.page}>

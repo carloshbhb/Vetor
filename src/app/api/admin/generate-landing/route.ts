@@ -240,7 +240,7 @@ export async function POST(req: NextRequest) {
       hero_headline_line2: asText(generated.headline, "Ficha técnica, recursos e avaliação"),
       hero_headline_em: "",
       marketplace: link.marketplace || "mercadolivre",
-      affiliate_url: link.affiliate_url || link.product_url || "",
+      affiliate_url: link.affiliate_url || "",
       image_url: imageUrl,
       specs,
       sections,
