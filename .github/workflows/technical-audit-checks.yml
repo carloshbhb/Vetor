@@ -53,6 +53,9 @@ jobs:
       - name: Editorial HTML sanitization regression test
         run: npm run test:sanitize
 
+      - name: Review persistence regression test
+        run: npm run test:review-persistence
+
       - name: Editorial quality tests
         run: |
           npm run test:content-quality

@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Review, ViralArticle, ViralArticleSummary, Category } from './types';
 import { validateGeneratedViralArticle } from './content-quality';
 import { normalizeReviewCompareRows } from './review-compare';
+import { buildReviewUpdatePayload, resolveReviewWriteMode } from './review-persistence';
 
 let client: SupabaseClient | null = null;
 let serviceClient: SupabaseClient | null = null;
@@ -131,28 +132,13 @@ export async function createReview(data: {
   };
 
   let writeResult;
-  if (options?.insertOnly || !existing) {
+  const writeMode = resolveReviewWriteMode(Boolean(options?.insertOnly), Boolean(existing));
+  if (writeMode === 'insert') {
     // Inserts fail on duplicate slug instead of silently replacing an existing record.
     writeResult = await supabase.from('reviews').insert(row).select().single();
   } else {
     // PATCH-like writes update only fields explicitly included by the caller.
-    const updatePayload: Record<string, unknown> = { updated_at: now };
-    const patchableFields = [
-      'content_type', 'product', 'category', 'price_new', 'image_url',
-      'meta_title', 'meta_description', 'pros', 'cons', 'hero_overall_score',
-      'verdict_score', 'marketplace', 'affiliate_url', 'hero_bars', 'specs',
-      'sections', 'compare_table', 'verdict_label', 'verdict_text', 'verdict_note',
-      'hero_lead', 'hero_headline_line1', 'hero_headline_line2', 'hero_headline_em',
-      'faq',
-    ] as const;
-
-    for (const field of patchableFields) {
-      if (data[field] !== undefined) updatePayload[field] = data[field];
-    }
-    if (data.hero_overall_score !== undefined) {
-      updatePayload.schema_rating_value = data.hero_overall_score;
-    }
-
+    const updatePayload = buildReviewUpdatePayload(data as unknown as Record<string, unknown>, now);
     writeResult = await supabase
       .from('reviews')
       .update(updatePayload)
