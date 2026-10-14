@@ -254,7 +254,7 @@ export async function generateReview(product: {
     if (sections.length < 6) preflightIssues.push('sections deve conter as 6 seções substantivas exigidas');
     if (sections.some((section: any) => {
       const sectionText = visibleText(String(section?.content ?? ''));
-      const sectionWords = sectionText ? sectionText.split(/\\s+/).length : 0;
+      const sectionWords = sectionText ? sectionText.split(/\s+/).length : 0;
       return typeof section?.heading !== 'string' || sectionWords < 150;
     })) {
       preflightIssues.push('cada seção precisa de título e pelo menos 150 palavras substantivas');
@@ -296,7 +296,7 @@ export async function generateReview(product: {
     if (sections.length < 4) qualityIssues.push(`sections tem ${sections.length} itens (mínimo 4)`);
     const shortSection = sections.findIndex((item: any) => {
       const sectionText = typeof item.content === 'string' ? item.content.replace(/<[^>]+>/g, ' ').trim() : '';
-      return !sectionText || sectionText.split(/\\s+/).length < 150;
+      return !sectionText || sectionText.split(/\s+/).length < 150;
     });
     if (shortSection >= 0) qualityIssues.push(`section ${shortSection + 1} tem menos de 150 palavras`);
     if (specs.length < 4) qualityIssues.push(`specs tem ${specs.length} itens (mínimo 4)`);
