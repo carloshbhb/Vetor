@@ -172,7 +172,7 @@ export default async function LandingPageTemplate({ review }: { review: Review }
                   </ol>
                 </nav>
 
-                <section id="resumo}>
+                <section id="resumo">
                   <h2>{review.product} é bom? Resumo da análise</h2>
                   <p><strong>{review.product}</strong> — {verdict}</p>
                   <div className={styles.quickSummary}>
