@@ -71,9 +71,9 @@ export default async function LandingPageTemplate({ review }: { review: Review }
   const displayComparisonProducts = displayCompareColumns.slice(1, 4).map((name, productIndex) => ({
     name,
     isCurrent: productIndex === 0,
-    indication: comparisonValue(/indica|público|perfil|para quem/i, productIndex, "Não informado"),
-    highlight: comparisonValue(/destaque|benefício|vantagem|recurso principal/i, productIndex, "Consulte as especificações confirmadas"),
-    limitation: comparisonValue(/limita|atenção|desvantagem|ponto negativo|contra/i, productIndex, "Não informado"),
+    indication: comparisonValue(/indica|público|perfil|para quem/i, productIndex, productIndex === 0 ? bestFor : "Compare com seu perfil de uso"),
+    highlight: comparisonValue(/destaque|benefício|vantagem|recurso principal/i, productIndex, comparisonValue(/joystick|conectividade|botões|software|bateria|desempenho|compatibilidade/i, productIndex, "Destaque não informado nos dados cadastrados")),
+    limitation: comparisonValue(/limita|atenção|desvantagem|ponto negativo|contra/i, productIndex, "Limitação não informada nos dados cadastrados"),
     price: comparisonValue(/preço|valor/i, productIndex, productIndex === 0 ? price : "Consulte a loja"),
   }));
   const displaySections = sections.length > 0 ? sections : [{
