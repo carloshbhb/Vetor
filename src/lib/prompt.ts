@@ -103,13 +103,19 @@ MARKETPLACE: ${product.marketplace || 'mercadolivre'}
 BRIEFING SEO E EVIDÊNCIAS:
 ${seoBrief}
 
+CONTRATO DE EXTENSÃO OBRIGATÓRIO:
+- O corpo integral do review será montado pelo sistema usando somente "sections": não duplique o artigo no campo "content"; retorne "content" como string vazia.
+- Gere 6 seções substantivas em "sections" (uma por cada área do artigo), cada uma com 250–300 palavras e ao menos 2 parágrafos HTML completos.
+- A soma do texto de todas as seções deve ter pelo menos 1.500 palavras visíveis e 5.000 caracteres; não substitua o artigo por resumo, tópicos breves ou uma introdução curta.
+- Desenvolva critérios, implicações práticas para diferentes perfis e pontos que o comprador deve verificar; nunca invente dados específicos.
+
 Retorne somente JSON válido, sem markdown fora do JSON, com esta estrutura:
 {
   "title": "Review [nome do produto]: análise e vale a pena?",
   "description": "descrição informativa de 100–160 caracteres",
   "meta_title": "título SEO com 35–65 caracteres",
   "meta_description": "meta description com 100–160 caracteres",
-  "content": "<h2>HTML integral do review</h2>",
+  "content": "",
   "hero_overall_score": 7.5,
   "hero_bars": [
     {"pct": 80, "label": "Recursos", "value": 8},
@@ -123,10 +129,12 @@ Retorne somente JSON válido, sem markdown fora do JSON, com esta estrutura:
     {"label": "Recurso principal", "value": "informação verificável", "highlight": false}
   ],
   "sections": [
-    {"id": "overview", "heading": "Visão geral", "tocEmoji": "📝", "tocLabel": "Visão geral", "content": "<p>...</p>"},
-    {"id": "design", "heading": "Design e construção", "tocEmoji": "🎨", "tocLabel": "Design", "content": "<p>...</p>"},
-    {"id": "features", "heading": "Recursos e funcionamento", "tocEmoji": "⚙️", "tocLabel": "Recursos", "content": "<p>...</p>"},
-    {"id": "value", "heading": "Preço e alternativas", "tocEmoji": "💰", "tocLabel": "Preço", "content": "<p>...</p>"}
+    {"id": "overview", "heading": "Visão geral e posicionamento", "tocEmoji": "📝", "tocLabel": "Visão geral", "content": "<p>Primeiro parágrafo substantivo...</p><p>Segundo parágrafo substantivo...</p>"},
+    {"id": "design", "heading": "Design, construção e ergonomia", "tocEmoji": "🎨", "tocLabel": "Design", "content": "<p>Primeiro parágrafo substantivo...</p><p>Segundo parágrafo substantivo...</p>"},
+    {"id": "features", "heading": "Recursos e especificações", "tocEmoji": "⚙️", "tocLabel": "Recursos", "content": "<p>Primeiro parágrafo substantivo...</p><p>Segundo parágrafo substantivo...</p>"},
+    {"id": "compatibility", "heading": "Compatibilidade e uso cotidiano", "tocEmoji": "🔌", "tocLabel": "Compatibilidade", "content": "<p>Primeiro parágrafo substantivo...</p><p>Segundo parágrafo substantivo...</p>"},
+    {"id": "alternatives", "heading": "Preço, alternativas e custo-benefício", "tocEmoji": "💰", "tocLabel": "Preço e alternativas", "content": "<p>Primeiro parágrafo substantivo...</p><p>Segundo parágrafo substantivo...</p>"},
+    {"id": "verdict", "heading": "Para quem vale a pena e veredito", "tocEmoji": "✅", "tocLabel": "Veredito", "content": "<p>Primeiro parágrafo substantivo...</p><p>Segundo parágrafo substantivo...</p>"}
   ],
   "pros": ["vantagem específica 1", "vantagem específica 2", "vantagem específica 3"],
   "cons": ["limitação específica 1", "limitação específica 2", "ponto que deve ser verificado antes da compra"],
@@ -156,8 +164,8 @@ Retorne somente JSON válido, sem markdown fora do JSON, com esta estrutura:
 }
 
 REGRAS OBRIGATÓRIAS:
-- "content" deve conter no mínimo 1.500 palavras visíveis e 5.000 caracteres de texto (desconsiderando tags HTML), com pelo menos 8 parágrafos e 6 subtítulos <h2>/<h3>, análise de recursos, limitações, preço, público indicado, comparação e conclusão. Não use repetição ou conteúdo genérico para atingir tamanho; desenvolva critérios úteis e específicos. Não encerre antes de retornar o JSON completo.
-- "sections" deve incluir 4–6 seções substantivas, cada uma com pelo menos 120 caracteres de HTML.
+- "content" deve ser exatamente uma string vazia; o sistema monta o HTML integral com os títulos e textos de "sections".
+- "sections" deve conter 6 seções substantivas, cada uma com 250–300 palavras, ao menos 2 parágrafos HTML e argumentos específicos. O corpo montado precisa ter no mínimo 1.500 palavras visíveis, 5.000 caracteres de texto, 8 parágrafos e 6 subtítulos <h2>/<h3>. Não use repetição ou conteúdo genérico para atingir tamanho; desenvolva critérios úteis e específicos. Não encerre antes de retornar o JSON completo.
 - Inclua 4–8 "specs", 3–5 "hero_bars", 3–5 "pros", 3–5 "cons" e 3–5 perguntas em "faq".
 - Em "hero_bars", pct deve ser exatamente value multiplicado por 10. Justifique notas usando critérios observáveis; não as apresente como medições laboratoriais.
 - "meta_title" deve ter 35–65 caracteres. "meta_description" e "description" devem ter 100–160 caracteres.
