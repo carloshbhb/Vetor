@@ -15,6 +15,25 @@ export async function POST(request: NextRequest) {
     // Read-only, authenticated version probe for CI. It returns before any queue
     // or AI work so the smoke test can wait for this exact commit in Production.
     const requestBody = await request.json().catch(() => null);
+    const deploymentCommit = process.env.VERCEL_GIT_COMMIT_SHA?.trim() || null;
+    const expectedCommit =
+      requestBody && typeof requestBody === "object" && !Array.isArray(requestBody)
+        ? (requestBody as { expectedCommit?: unknown }).expectedCommit
+        : null;
+
+    // The versioned CI path must match the deployment that actually handled it.
+    // This executes before queue reads, AI calls, or database writes.
+    if (typeof expectedCommit === "string" && expectedCommit !== deploymentCommit) {
+      return NextResponse.json(
+        {
+          error: "Deployment commit mismatch; no content was generated.",
+          expectedCommit,
+          deploymentCommit,
+        },
+        { status: 409, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
     if (
       requestBody &&
       typeof requestBody === "object" &&
@@ -24,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: true,
-          deploymentCommit: process.env.VERCEL_GIT_COMMIT_SHA?.trim() || null,
+          deploymentCommit,
           deploymentUrl: process.env.VERCEL_URL?.trim() || null,
         },
         { headers: { "Cache-Control": "no-store" } }

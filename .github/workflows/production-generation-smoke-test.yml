@@ -48,7 +48,6 @@ jobs:
           cd video
           npm ci
       - name: Wait for exact current Production commit
-        id: deployment
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
@@ -61,25 +60,22 @@ jobs:
           for attempt in $(seq 1 30); do
             curl_exit=0
             code="$(curl -sS --max-time 12 -o deployment-info.json -w '%{http_code}' \
-              -X POST "$VETOR_SITE_URL/api/cron/production-generation-test/" \
+              -X POST "$VETOR_SITE_URL/api/cron/production-generation-test-v2/" \
               -H "Authorization: Bearer $CRON_SECRET" \
               -H "Content-Type: application/json" \
               -d '{"action":"deploymentInfo"}' || curl_exit=$?)"
-            if [ "$curl_exit" -eq 0 ] && [ "$code" = "200" ] && jq -e --arg sha "$EXPECTED_DEPLOYMENT_COMMIT" '.success == true and .deploymentCommit == $sha and (.deploymentUrl | type == "string" and length > 0)' deployment-info.json >/dev/null; then
-              deployment_url="$(jq -r '.deploymentUrl' deployment-info.json)"
-              echo "Production is running the exact tested commit: $EXPECTED_DEPLOYMENT_COMMIT"
-              echo "Pinned generation request to deployment: $deployment_url"
-              echo "deployment_url=https://$deployment_url" >> "$GITHUB_OUTPUT"
+            if [ "$curl_exit" -eq 0 ] && [ "$code" = "200" ] && jq -e --arg sha "$EXPECTED_DEPLOYMENT_COMMIT" '.success == true and .deploymentCommit == $sha' deployment-info.json >/dev/null; then
+              echo "Versioned Production endpoint is running exact commit $EXPECTED_DEPLOYMENT_COMMIT."
               ready=1
               break
             fi
-            echo "Production commit mismatch/not ready (attempt $attempt, curl=$curl_exit, HTTP=${code:-000})."
+            echo "Versioned endpoint not on expected commit (attempt $attempt, curl=$curl_exit, HTTP=${code:-000}); no generation was requested."
             jq . deployment-info.json 2>/dev/null || true
             if [ "$attempt" -lt 30 ]; then sleep 10; fi
           done
           if [ "$ready" -ne 1 ]; then
             cat deployment-info.json 2>/dev/null || true
-            echo "::error::Production did not promote the expected commit; refusing to call AI on stale code."
+            echo "::error::Versioned endpoint did not confirm the expected commit; refusing stale-code generation."
             exit 1
           fi
       - name: Validate YouTube OAuth before generation
@@ -109,20 +105,39 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
-          DEPLOYMENT_URL: ${{ steps.deployment.outputs.deployment_url }}
+          EXPECTED_DEPLOYMENT_COMMIT: ${{ github.sha }}
         run: |
           set -euo pipefail
           : "${CRON_SECRET:?CRON_SECRET secret is required}"
-          : "${DEPLOYMENT_URL:?Pinned Production deployment URL is required}"
-          curl_status=0
-          code="$(curl -sS --max-time 70 -o smoke-result.json -w '%{http_code}' \
-            -X POST "$DEPLOYMENT_URL/api/cron/production-generation-test/" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            -H "Content-Type: application/json" -d '{}' || echo 000)"
+          : "${EXPECTED_DEPLOYMENT_COMMIT:?Expected commit SHA is required}"
+          code=""
+          for attempt in $(seq 1 12); do
+            curl_exit=0
+            code="$(curl -sS --max-time 70 -o smoke-result.json -w '%{http_code}' \
+              -X POST "$VETOR_SITE_URL/api/cron/production-generation-test-v2/" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              -d "{\\"expectedCommit\\":\\"$EXPECTED_DEPLOYMENT_COMMIT\\"}" || curl_exit=$?)"
+            if [ "$curl_exit" -ne 0 ]; then
+              echo "::error::Generation transport failed (curl=$curl_exit); not retrying to avoid duplicate side effects."
+              cat smoke-result.json 2>/dev/null || true
+              exit 1
+            fi
+            if [ "$code" = "404" ] || [ "$code" = "409" ]; then
+              echo "Stale or not-yet-promoted deployment (attempt $attempt, HTTP $code); no generation was allowed."
+              cat smoke-result.json 2>/dev/null || true
+              if [ "$attempt" -lt 12 ]; then sleep 10; continue; fi
+            fi
+            break
+          done
           echo "Production generation HTTP=$code"
           cat smoke-result.json
+          if [ "$code" = "404" ] || [ "$code" = "409" ]; then
+            echo "::error::Versioned Production route never reached the expected commit."
+            exit 1
+          fi
           if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
-            echo "::error::Generation failed; see the structured error above. Not retrying a definitive client/quality error."
+            echo "::error::Generation failed; see the structured error above. AI/quality errors are not retried."
             exit 1
           fi
           jq .
