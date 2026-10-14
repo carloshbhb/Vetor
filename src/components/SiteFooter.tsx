@@ -1,3 +1,5 @@
+import CookiePreferencesControl from './CookiePreferencesControl';
+
 export default function SiteFooter() {
   return (
     <footer>
@@ -28,6 +30,7 @@ export default function SiteFooter() {
           <a href="/politica-editorial/">Política editorial</a>
           <a href="/afiliados/">Afiliados</a>
           <a href="/privacidade/">Privacidade</a>
+          <CookiePreferencesControl />
           <a href="/termos/">Termos</a>
           <a href="/contato/">Contato</a>
         </div>
