@@ -67,7 +67,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Type-check landing-page automation script
-        run: npx tsc --noEmit --target es2020 --module esnext --moduleResolution bundler --esModuleInterop --skipLibCheck --strict tmp/generate-2-landing-pages.ts
+        run: npx tsc --noEmit -p tsconfig.automation.json
 
       - name: Lint
         run: npm run lint
