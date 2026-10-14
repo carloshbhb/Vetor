@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "tmp/generate-2-landing-pages.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "video"
+  ]
+}
