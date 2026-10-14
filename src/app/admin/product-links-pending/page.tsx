@@ -29,7 +29,7 @@ export default function ProductLinksPendingPage() {
       try {
         setLoading(true);
         const res = await fetch(
-          `/api/admin/product-links-pending?page=${page}&limit=${ITEMS_PER_PAGE}`,
+          `/api/admin/product-links-pending/?page=${page}&limit=${ITEMS_PER_PAGE}`,
           { credentials: "same-origin" }
         );
         if (res.status === 401) {
@@ -177,7 +177,7 @@ export default function ProductLinksPendingPage() {
 
       alert("Landing page gerada com sucesso!");
       // Recarregar a lista
-      const updated = await fetch(`/api/admin/product-links-pending?page=0&limit=${ITEMS_PER_PAGE}`, { credentials: "same-origin" });
+      const updated = await fetch(`/api/admin/product-links-pending/?page=0&limit=${ITEMS_PER_PAGE}`, { credentials: "same-origin" });
       if (updated.ok) {
         const payload = await updated.json();
         setLinks(Array.isArray(payload?.data) ? payload.data : []);
