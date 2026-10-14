@@ -414,14 +414,12 @@ export async function generateReview(product: {
       modelSections.push(...generatedBatch);
     }
 
-    const modelMetadata = rewriteEditorialSignals(
-      await generateReviewMetadata(sourceContext, product.title),
-    );
-    const modelResult: GeneratedReviewResult = {
+    const modelMetadata = await generateReviewMetadata(sourceContext, product.title);
+    const modelResult: GeneratedReviewResult = rewriteEditorialSignals({
       ...modelMetadata,
       content: '',
       sections: modelSections,
-    };
+    });
     const modelSectionsBeforeValidation = Array.isArray(modelResult.sections) ? modelResult.sections : [];
     const sectionWordCounts = modelSectionsBeforeValidation.map((section) =>
       typeof section?.content === 'string' ? countVisibleWords(section.content) : 0
@@ -450,7 +448,6 @@ export async function generateReview(product: {
       throw new Error('A NVIDIA retornou um objeto JSON vazio; geração recusada antes da validação ou persistência.');
     }
 
-    const modelSections = Array.isArray(modelResult.sections) ? modelResult.sections : [];
     const sectionsHtml = modelSections
       .map((section) => `<h2>${section.heading}</h2>${section.content}`)
       .join('\n');
