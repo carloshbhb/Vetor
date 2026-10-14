@@ -14,6 +14,12 @@ on:
 permissions:
   contents: read
 
+# This smoke test calls Production AI and may publish one review/video.
+# Serialize runs to avoid concurrent NVIDIA requests and duplicate real content.
+concurrency:
+  group: production-generation-smoke-test
+  cancel-in-progress: true
+
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
