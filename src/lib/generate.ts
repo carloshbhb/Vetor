@@ -4,8 +4,6 @@ import { chatCompletion } from './llm-provider';
 import { validateGeneratedReview } from './content-quality';
 import { slugifyEditorialTitle } from './slug';
 import type { ReviewHeroBar, ReviewSpec, ReviewSection, ReviewCompareTable, ReviewFaq } from './types';
-import { spawn } from 'child_process';
-import path from 'path';
 
 // NOTA: import.meta.url não é suportado pelo bundler do Next (transpila p/ CJS).
 // Em runtime, process.cwd() aponta para a raiz do projeto, onde vive /scripts.
@@ -15,8 +13,8 @@ const __dirname = process.cwd();
 // Sanitizador de sinais editoriais proibidos
 // (espelha FORBIDDEN_REVIEW_EDITORIAL_SIGNALS em content-quality.ts)
 //
-// O Gemini escreve expressões naturais como "sem engasgos" mesmo com a lista
-// proibida no prompt — o gate reprovaria um review inteiro por uma frase só.
+// O modelo pode escrever expressões editoriais proibidas mesmo com a lista
+// no prompt — o gate reprovaria um review inteiro por uma frase só.
 // Esta camada determinística reescreve cada sinal por um sinônimo seguro
 // antes da validação, com match sem acento/caixa (mesma normalização do gate).
 // ---------------------------------------------------------------------------
@@ -97,99 +95,28 @@ export function rewriteEditorialSignals<T>(value: T): T {
   return value;
 }
 
-interface GeminiReviewResult {
-  meta_title: string;
-  meta_description: string;
-  hero_lead: string;
-  verdict_score: number;
-  verdict_label: string;
-  verdict_text: string;
-  hero_bars: ReviewHeroBar[];
-  specs: ReviewSpec[];
-  pros: string[];
-  cons: string[];
-  compare_table: ReviewCompareTable;
-  faq: ReviewFaq[];
-  sections: ReviewSection[];
-  slug: string;
-  product: string;
-  category: string;
-  affiliate_url: string;
-  image_url: string;
-  price_new: string;
-  status: string;
-  marketplace: string;
-  ads_enabled: boolean;
-  schema_rating_value: number;
-  schema_review_count: number;
-  totalChars: number;
-}
-
-async function generateReviewViaGemini(product: {
-  title: string;
-  category: string;
-  price: string;
-  image: string;
-  product_url?: string;
-  affiliate_url?: string;
-  marketplace?: string;
-  editorialBrief?: import('./prompt').EditorialBrief;
-}): Promise<GeminiReviewResult> {
-  const scriptPath = path.resolve(__dirname, 'scripts/expand-reviews-gemini.mjs');
-  
-  const productData = {
-    product: product.title,
-    slug: slugifyEditorialTitle(product.title),
-    category: product.category,
-    price: product.price,
-    price_new: product.price,
-    img: product.image,
-    aff: product.affiliate_url || product.product_url || '',
-    affiliate_url: product.affiliate_url || product.product_url || '',
-    image_url: product.image,
-    marketplace: product.marketplace || 'mercadolivre',
-  };
-
-  return new Promise((resolve, reject) => {
-    const child = spawn('node', [scriptPath], {
-      env: { ...process.env, NODE_OPTIONS: '--no-warnings' },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    let stdout = '';
-    let stderr = '';
-
-    child.stdin.write(JSON.stringify(productData));
-    child.stdin.end();
-
-    child.stdout.on('data', (data) => { stdout += data.toString(); });
-    child.stderr.on('data', (data) => { stderr += data.toString(); });
-
-    child.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`Gemini script failed with code ${code}: ${stderr}`));
-        return;
-      }
-
-      try {
-        // The script outputs JSON to stdout, but also logs to stderr
-        // Find the JSON in stdout
-        const jsonMatch = stdout.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          reject(new Error(`No JSON found in Gemini output. stdout: ${stdout.slice(0, 500)}... stderr: ${stderr.slice(0, 500)}`));
-          return;
-        }
-        const result = JSON.parse(jsonMatch[0]);
-        resolve(result);
-      } catch (err) {
-        reject(new Error(`Failed to parse Gemini output: ${err instanceof Error ? err.message : String(err)}. stdout: ${stdout.slice(0, 500)}`));
-      }
-    });
-
-    child.on('error', (err) => {
-      reject(new Error(`Failed to spawn Gemini script: ${err.message}`));
-    });
-  });
+interface GeneratedReviewResult {
+  title?: string;
+  description?: string;
+  meta_title?: string;
+  meta_description?: string;
+  content?: string;
+  hero_overall_score?: number;
+  hero_bars?: ReviewHeroBar[];
+  specs?: ReviewSpec[];
+  sections?: ReviewSection[];
+  pros?: string[];
+  cons?: string[];
+  compare_table?: ReviewCompareTable;
+  verdict_score?: number;
+  verdict_label?: string;
+  verdict_text?: string;
+  verdict_note?: string;
+  hero_lead?: string;
+  hero_headline_line1?: string;
+  hero_headline_line2?: string;
+  hero_headline_em?: string;
+  faq?: ReviewFaq[];
 }
 
 interface ReviewOutput {
@@ -233,33 +160,65 @@ export async function generateReview(product: {
   editorialBrief?: import('./prompt').EditorialBrief;
 }): Promise<ReviewOutput> {
   try {
-    // Usar Gemini via script subprocess (funciona confiavelmente para reviews longos)
-    // rewriteEditorialSignals: reescreve frases proibidas pelo gate antes da validação.
-    const geminiResult = rewriteEditorialSignals(await generateReviewViaGemini(product));
+    // Use NVIDIA directly; automated generation must never depend on a Gemini key
+    // or launch a legacy subprocess requiring GOOGLE_AI_API_KEY.
+    const userPrompt = buildReviewPrompt({
+      title: product.title,
+      category: product.category,
+      price: product.price,
+      image: product.image,
+      product_url: product.product_url,
+      marketplace: product.marketplace,
+      editorialBrief: product.editorialBrief,
+    });
+    const raw = await chatCompletion({
+      systemPrompt: 'Você é editor sênior do Vetor.blog. Gere um review técnico, útil e factual, cumpra todo o schema JSON e os critérios de qualidade do prompt. Não invente medições nem experiência prática. Retorne somente JSON válido.',
+      userPrompt,
+      temperature: 0.35,
+      maxTokens: 8000,
+      responseFormat: { type: 'json_object' },
+    });
+    const trimmed = raw.trim();
+    const jsonStart = trimmed.indexOf('{');
+    const jsonEnd = trimmed.lastIndexOf('}');
+    if (jsonStart < 0 || jsonEnd <= jsonStart) {
+      throw new Error('NVIDIA não retornou um objeto JSON para o review.');
+    }
 
-    // Mapear resultado do Gemini para o formato esperado
+    let modelResult: GeneratedReviewResult;
+    try {
+      modelResult = JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1)) as GeneratedReviewResult;
+    } catch (error) {
+      throw new Error('Não foi possível interpretar o JSON retornado pela NVIDIA: ' + (error instanceof Error ? error.message : String(error)));
+    }
+    modelResult = rewriteEditorialSignals(modelResult);
+
+    const modelSections = Array.isArray(modelResult.sections) ? modelResult.sections : [];
+    const sectionsHtml = modelSections
+      .map((section) => `<h2>${section.heading}</h2>${section.content}`)
+      .join('\n');
     const parsed = {
-      title: geminiResult.product,
-      description: geminiResult.meta_description,
-      content: geminiResult.sections.map(s => `<h2>${s.heading}</h2>${s.content.replace(/\n\n/g, '</p><p>')}`).join(''),
-      meta_title: geminiResult.meta_title,
-      meta_description: geminiResult.meta_description,
-      hero_lead: geminiResult.hero_lead,
-      hero_overall_score: geminiResult.verdict_score,
-      verdict_score: geminiResult.verdict_score,
-      verdict_label: geminiResult.verdict_label,
-      verdict_text: geminiResult.verdict_text,
-      verdict_note: '',
-      hero_bars: geminiResult.hero_bars,
-      specs: geminiResult.specs,
-      sections: geminiResult.sections,
-      pros: geminiResult.pros,
-      cons: geminiResult.cons,
-      compare_table: geminiResult.compare_table,
-      faq: geminiResult.faq,
-      hero_headline_line1: 'Review completo do',
-      hero_headline_line2: product.title,
-      hero_headline_em: 'Vale a pena?',
+      title: typeof modelResult.title === 'string' && modelResult.title.trim() ? modelResult.title.trim() : product.title,
+      description: modelResult.description || modelResult.meta_description || '',
+      content: typeof modelResult.content === 'string' && modelResult.content.trim() ? modelResult.content : sectionsHtml,
+      meta_title: modelResult.meta_title || '',
+      meta_description: modelResult.meta_description || modelResult.description || '',
+      hero_lead: modelResult.hero_lead || '',
+      hero_overall_score: modelResult.hero_overall_score ?? modelResult.verdict_score ?? 0,
+      verdict_score: modelResult.verdict_score ?? modelResult.hero_overall_score ?? 0,
+      verdict_label: modelResult.verdict_label || '',
+      verdict_text: modelResult.verdict_text || '',
+      verdict_note: modelResult.verdict_note || '',
+      hero_bars: modelResult.hero_bars || [],
+      specs: modelResult.specs || [],
+      sections: modelSections,
+      pros: modelResult.pros || [],
+      cons: modelResult.cons || [],
+      compare_table: modelResult.compare_table || { rows: [], caption: '', columns: [], winnerCol: -1 },
+      faq: modelResult.faq || [],
+      hero_headline_line1: modelResult.hero_headline_line1 || 'Review completo do',
+      hero_headline_line2: modelResult.hero_headline_line2 || product.title,
+      hero_headline_em: modelResult.hero_headline_em || 'Vale a pena?',
     };
 
     const generatedTitle = typeof parsed.title === 'string' ? parsed.title.trim() : '';
