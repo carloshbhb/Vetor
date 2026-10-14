@@ -20,7 +20,7 @@ function createNvidiaProviders(): LLMProvider[] {
   const client = new OpenAI({
     apiKey,
     baseURL: 'https://integrate.api.nvidia.com/v1',
-    timeout: 36000,
+    timeout: 215000, // Allow the full NVIDIA fallback budget to complete.
     maxRetries: 0,
   });
 
@@ -65,12 +65,12 @@ export async function chatCompletion(params: {
     throw new Error('[LLM] NVIDIA_API_KEY ausente. Configure uma chave NVIDIA válida; provedores externos não são utilizados.');
   }
 
-  const deadline = Date.now() + 56000;
+  const deadline = Date.now() + 220000;
   let lastError: unknown = null;
 
   for (let index = 0; index < providers.length; index += 1) {
     const provider = providers[index];
-    if (deadline - Date.now() < 5000) break;
+    if (deadline - Date.now() < 8000) break;
 
     // Honor an explicitly requested model for the first attempt; keep fallback NVIDIA-only.
     const model = index === 0 && params.model ? params.model : provider.model;
@@ -93,11 +93,11 @@ export async function chatCompletion(params: {
       if (params.responseFormat) createParams.response_format = params.responseFormat;
 
       const remainingMs = deadline - Date.now();
-      if (remainingMs < 5000) break;
+      if (remainingMs < 8000) break;
       const requestOptions = {
         timeout: Math.min(
-          model.includes('nemotron-3.5-lightning') ? 20000 : 14000,
-          remainingMs - 2000
+          model.includes('nemotron-3.5-lightning') ? 100000 : 100000,
+          remainingMs - 7000
         ),
         maxRetries: 0,
       };
@@ -129,7 +129,7 @@ export async function chatCompletion(params: {
         ? Number((error as { status?: unknown }).status) : 0;
       const detail = error instanceof Error ? error.message.slice(0, 400) : String(error).slice(0, 400);
       console.warn(`[LLM] NVIDIA/${model} falhou (status ${status || 'timeout/network'}): ${detail}; tentando outro modelo NVIDIA.`);
-      if (status === 429 && deadline - Date.now() > 19000) await wait(750);
+      if (status === 429 && deadline - Date.now() > 15000) await wait(750);
     }
   }
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { POST as productionGenerationPost } from "../production-generation-test/route";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 240;
 
 // A separate CI route keeps deployment-race retries safe: older deployments lack
 // this URL and return 404 without running the legacy generator.

@@ -5,7 +5,7 @@ import { productLinkToPipelineInput, runReviewPipeline } from "@/lib/content-pip
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 240;
 // The LLM client is time-bounded and falls back to the next configured provider.
 
 export async function POST(request: NextRequest) {
