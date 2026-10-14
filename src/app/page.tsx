@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { ItemListSchema } from '@/components/SchemaMarkup';
-import { fetchAllReviews, fetchAllViralArticles, fetchGuias } from '@/lib/data';
+import { fetchAllReviews, fetchAllViralArticleSummaries, fetchGuias } from '@/lib/data';
 import NewsletterForm from '@/components/NewsletterForm';
 import GuideCard from '@/components/GuideCard';
 import AdPlacement from '@/components/AdPlacement';
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default async function Home() {
   const [reviews, viralArticles, guias] = await Promise.all([
     fetchAllReviews(),
-    fetchAllViralArticles(),
+    fetchAllViralArticleSummaries(),
     fetchGuias(),
   ]);
 
