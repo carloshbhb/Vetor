@@ -125,6 +125,8 @@ export default async function LandingPageTemplate({ review }: { review: Review }
                 <div className={styles.meta}>
                   <span>Atualizado em {review.updated_at ? new Date(review.updated_at).toLocaleDateString("pt-BR") : "data não informada"}</span>
                   <span aria-hidden="true">•</span>
+                  <span>Leitura: {Number.isFinite(Number(review.meta_reading_time)) && Number(review.meta_reading_time) > 0 ? Math.round(Number(review.meta_reading_time)) : 8} min</span>
+                  <span aria-hidden="true">•</span>
                   <span>Equipe Vetor.blog</span>
                 </div>
                 <div className={styles.disclosure}>
