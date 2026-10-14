@@ -60,6 +60,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      url: `${baseUrl}/reviews/8bitdo-ultimate-2c/`,
+      lastModified: new Date('2026-10-13T00:00:00.000Z'),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/melhores/`,
       lastModified: latestSiteUpdate,
       changeFrequency: 'weekly',
