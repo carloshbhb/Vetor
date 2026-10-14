@@ -2,7 +2,6 @@ import { config } from 'dotenv';
 import { getAllProductLinks, updateProductLink, type ProductLink } from '../src/lib/product-links';
 import { getSupabaseServiceKeyClient } from '../src/lib/supabase';
 import { productLinkToPipelineInput, runReviewPipeline } from '../src/lib/content-pipeline';
-import { resolveProductImage } from '../src/lib/image-resolver';
 import { slugifyEditorialTitle } from '../src/lib/slug';
 import { buildContentUrl } from '../src/lib/indexnow';
 
@@ -91,15 +90,16 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
 
   const input = productLinkToPipelineInput(link);
   input.title = productName;
-  input.image = await resolveProductImage(input.image);
-
+  // The queue already validates that the stored image is an absolute HTTP(S) URL.
+  // Do not require HEAD/GET reachability from GitHub Actions: Mercado Livre's CDN
+  // can reject automated probes while still serving the image to site visitors.
   if (!isHttpUrl(input.image)) {
     return {
       slug: expectedSlug,
       status: 'failed',
       url: '',
       type: 'landing',
-      error: 'A imagem do produto não foi resolvida para uma URL HTTP(S) válida.',
+      error: 'A URL da imagem do produto não é HTTP(S) válida.',
     };
   }
 
@@ -159,27 +159,20 @@ async function main() {
 
   console.log(`[landing-generation] ${allLinks.length} produtos consultados; ${eligibleLinks.length} elegíveis`);
 
-  // Some marketplace/CDN image URLs pass URL syntax checks but are unreachable from
-  // GitHub Actions. Preflight images and keep scanning the queue instead of failing
-  // the whole run on the first two products with broken images.
-  const toProcess: ProductLink[] = [];
-  for (const link of eligibleLinks) {
-    const resolvedImage = await resolveProductImage(link.image_url);
-    if (!isHttpUrl(resolvedImage)) {
-      console.log(`[landing-generation] skipped: ${slugifyEditorialTitle(link.product_name)} — imagem indisponível; tentando próximo produto`);
-      continue;
-    }
-    toProcess.push({ ...link, image_url: resolvedImage });
-    if (toProcess.length >= 2) break;
-  }
+  // Validate the image URL format, not network reachability from the CI runner.
+  // Mercado Livre CDN endpoints may reject HEAD/automated probes even when browsers
+  // can display the images. The full HTTP(S) URL was already validated above.
+  const toProcess: ProductLink[] = eligibleLinks
+    .filter((link) => isHttpUrl(link.image_url))
+    .slice(0, 2);
 
   if (toProcess.length < 2) {
-    console.error(`[landing-generation] Apenas ${toProcess.length} produtos com imagem acessível encontrados; são necessários 2.`);
+    console.error(`[landing-generation] Apenas ${toProcess.length} produtos com URL de imagem HTTP(S) válida encontrados; são necessários 2.`);
     process.exitCode = 1;
     return [];
   }
 
-  console.log(`[landing-generation] ${toProcess.length} produtos selecionados após validar imagens acessíveis`);
+  console.log(`[landing-generation] ${toProcess.length} produtos selecionados com URLs de imagem HTTP(S) válidas`);
   const results: LandingResult[] = [];
 
   for (const link of toProcess) {
