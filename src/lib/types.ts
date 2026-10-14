@@ -55,7 +55,7 @@ export interface Review {
   id?: string;
   slug: string;
   status: string;
-  content_type: "review" | "lp";
+  content_type?: "review" | "lp";
   product: string;
   category: string;
   marketplace: string;
