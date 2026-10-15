@@ -52,6 +52,7 @@
 .stars { color: #e4b900; letter-spacing: 2px; font-size: 1.05rem; margin-bottom: 16px; }
 .verdict h2 { font-size: 1.2rem; margin: 0 0 10px; }
 .verdict p { color: var(--muted); font-size: .94rem; margin: 0 0 20px; }
+.productImage { display: block; width: 100%; aspect-ratio: 3 / 2; height: auto; object-fit: contain; background: #f4f6f8; border-radius: 14px; margin: 0 0 16px; }
 .priceLine { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 0; border-top: 1px solid var(--line); }
 .priceLine span { font-size: .88rem; color: var(--muted); }
 .priceLine strong { font-size: 1.18rem; text-align: right; }
