@@ -5,6 +5,7 @@ const root = process.cwd();
 const template = readFileSync(join(root, "src/app/reviews/[slug]/LandingPageTemplate.tsx"), "utf8");
 const styles = readFileSync(join(root, "src/app/reviews/[slug]/LandingPageTemplate.module.css"), "utf8");
 const route = readFileSync(join(root, "src/app/reviews/[slug]/page.tsx"), "utf8");
+const globalCss = readFileSync(join(root, "src/app/globals.css"), "utf8");
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error("[lp-template-contract] " + message);
@@ -55,7 +56,11 @@ assert(template.includes("imageUrl && <img"), "A imagem principal do produto nã
 assert(route.includes('review.content_type === "lp"'), "A rota não encaminha LPs ao template dedicado.");
 assert(route.includes("<LandingPageTemplate review={review} />"), "O template dedicado não é usado na renderização.");
 assert(!template.includes('id="resumo}>'), "Foi encontrada a marcação JSX inválida que causou falha de build.");
-assert(gglobalHasLandingChromeRule(), "As páginas LP não escondem o header/footer global duplicado.");
+assert(
+  globalCss.includes('body:has([data-template="landing-page"]) > .site-header') &&
+    globalCss.includes('body:has([data-template="landing-page"]) > footer'),
+  "As páginas LP não escondem o header/footer global duplicado."
+);
 assert(!template.includes("displaySpecs"), "Variável obsoleta de ficha técnica voltou ao template.");
 
 console.log("[lp-template-contract] OK: estrutura, ordem, classes, tokens visuais e roteamento LP conferidos.");
