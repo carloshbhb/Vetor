@@ -1162,3 +1162,10 @@ a[href="/privacidade"] {
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
 }
+
+
+/* Landing pages have their own reference header/footer. Prevent duplicate global chrome. */
+body:has([data-template="landing-page"]) > .site-header,
+body:has([data-template="landing-page"]) > footer {
+  display: none;
+}
