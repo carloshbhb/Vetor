@@ -6,6 +6,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Validate queue only; set false to deliberately generate one review draft'
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -27,7 +33,7 @@ jobs:
       NVIDIA_MODEL: ${{ vars.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b' }}
       NVIDIA_FALLBACK_MODEL: ${{ vars.NVIDIA_FALLBACK_MODEL || 'nvidia/nemotron-3-super-120b-a12b' }}
       REVIEW_GENERATION_MAX_ATTEMPTS: '4'
-      DRY_RUN: ${{ github.event_name != 'schedule' }}
+      DRY_RUN: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4

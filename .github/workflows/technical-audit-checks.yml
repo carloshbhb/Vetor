@@ -63,6 +63,9 @@ jobs:
       - name: Review persistence regression test
         run: npm run test:review-persistence
 
+      - name: Mercado Livre product-match guardrails
+        run: npm run test:mercadolivre-search
+
       - name: Editorial quality tests
         run: |
           npm run test:content-quality
