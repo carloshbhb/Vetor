@@ -270,7 +270,6 @@ async function main() {
   const skipped = results.filter((result) => result.status === 'skipped').length;
   console.log(`[landing-generation] Finalizado: ${successful} sucesso, ${failed} falha, ${skipped} ignorados.`);
 
-  const requiredCount = process.env.LANDING_TEST_PRODUCT_ID?.trim() ? 1 : 2;
   const testDidNotCreate = Boolean(process.env.LANDING_TEST_PRODUCT_ID?.trim()) && results.some((result) => result.status !== 'success');
   if (failed > 0 || results.length < requiredCount || testDidNotCreate) {
     console.error(testDidNotCreate
