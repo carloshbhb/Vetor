@@ -151,6 +151,8 @@ function brandMatches(query: string, title: string): boolean {
 }
 
 const ACCESSORY_MARKERS: Array<{ pattern: RegExp; label: string }> = [
+  { pattern: /\bacessorios?\b/, label: "acessório/kit de acessórios" },
+  { pattern: /\bpulseiras?\b|\bbraceletes?\b/, label: "pulseira/bracelete" },
   { pattern: /\bcarregadores?\b/, label: "carregador" },
   { pattern: /\bcabos?\b/, label: "cabo" },
   { pattern: /\bcapas?\b|\bcapinhas?\b|\bcases?\b/, label: "capa/case" },

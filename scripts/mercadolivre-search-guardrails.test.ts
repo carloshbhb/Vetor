@@ -60,6 +60,17 @@ mustReview(
   "Kit com 6 unidades de câmeras Intelbras IM3C",
   /kit|unidades|quantidade/i,
 );
+
+mustReview(
+  "Amazfit Bip 5 smartwatch",
+  "Pulseira Silicone Lisa para Amazfit Bip 5 e Bip 6",
+  /pulseira|bracelete/i,
+);
+mustReview(
+  "Xiaomi Robot Vacuum S10",
+  "Kit de acessórios para Xiaomi Robot Vacuum S10+ e S20",
+  /acessório|acessorio/i,
+);
 mustReview(
   "Motorola Moto G06 128GB",
   "Motorola Moto G06 64GB",
