@@ -30,6 +30,8 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_KEY }}
       NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+      ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
+      ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
       NVIDIA_MODEL: ${{ vars.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b' }}
       NVIDIA_FALLBACK_MODEL: ${{ vars.NVIDIA_FALLBACK_MODEL || 'nvidia/nemotron-3-super-120b-a12b' }}
       REVIEW_GENERATION_MAX_ATTEMPTS: '4'
@@ -55,6 +57,15 @@ jobs:
           : "${NEXT_PUBLIC_SUPABASE_ANON_KEY:?NEXT_PUBLIC_SUPABASE_ANON_KEY secret is required}"
           : "${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY secret is required}"
           echo "NVIDIA and Supabase secrets are present; values are not displayed."
+      - name: Check optional Mercado Livre discovery credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${ML_CLIENT_ID:-}" ] && [ -n "${ML_CLIENT_SECRET:-}" ]; then
+            echo "Mercado Livre discovery credentials are configured."
+          else
+            echo "::warning::ML_CLIENT_ID and/or ML_CLIENT_SECRET are missing from GitHub Actions secrets. Existing review queue can run, but discovery from approved Mercado Livre matches will be skipped."
+          fi
       - name: Run review quality regression tests
         run: |
           npm run test:content-quality

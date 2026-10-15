@@ -120,6 +120,7 @@ type AffiliateMatchSource = {
 
 type DiscoveryResult = {
   candidates: ProductLink[];
+  credentialsAvailable: boolean;
   imported: number;
   enriched: number;
   skippedExisting: number;
@@ -166,14 +167,21 @@ async function discoverAffiliateBackedProducts(
   dryRun: boolean,
   candidateLimit: number
 ): Promise<DiscoveryResult> {
+  const credentialsAvailable = Boolean(process.env.ML_CLIENT_ID?.trim() && process.env.ML_CLIENT_SECRET?.trim());
   const result: DiscoveryResult = {
     candidates: [],
+    credentialsAvailable,
     imported: 0,
     enriched: 0,
     skippedExisting: 0,
     skippedUnsafe: 0,
     detailErrors: 0,
   };
+
+  if (!credentialsAvailable) {
+    console.warn('[review-generation] Mercado Livre candidate discovery skipped: ML_CLIENT_ID/ML_CLIENT_SECRET are not available to this workflow. Existing queued products can still be processed.');
+    return result;
+  }
 
   const { data, error } = await supabase
     .from('affiliate_link_ml_matches')
@@ -484,6 +492,7 @@ async function main(): Promise<void> {
     reconciledExistingReviews: reconciled,
     skippedExistingPages: skippedExisting,
     maxAttempts,
+    affiliateDiscoveryCredentialsAvailable: discovery.credentialsAvailable,
     affiliateCandidatesImported: discovery.imported,
     existingProductsEnriched: discovery.enriched,
     affiliateCandidatesSkippedExisting: discovery.skippedExisting,
