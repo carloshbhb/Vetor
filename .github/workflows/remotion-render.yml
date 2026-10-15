@@ -68,8 +68,12 @@ jobs:
           google-chrome --version
           which google-chrome
 
-      - name: Create output directory
-        run: mkdir -p out
+      - name: Create clean output directory
+        run: |
+          mkdir -p out
+          # This runner is ephemeral; remove checked-out/previous MP4s so a later step
+          # cannot mistake an old render for the file produced by this run.
+          find out -maxdepth 1 -type f -name '*.mp4' -delete
 
       - name: Render video
         id: render
@@ -94,16 +98,33 @@ jobs:
             npx tsx src/utils/renderVideo.ts "$TYPE"
           fi
 
-      - name: Find rendered video
+      - name: Find and validate fresh rendered video
         id: find-video
         run: |
-          VIDEO_FILE=$(find out -name "*.mp4" -type f | head -1)
-          if [ -z "$VIDEO_FILE" ]; then
-            echo "::error::No video file found in out/"
+          set -euo pipefail
+          mapfile -t FILES < <(find out -maxdepth 1 -type f -name '*.mp4' -printf '%T@ %p\n' | sort -nr)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "::error::Remotion did not create a fresh MP4 in out/"
             exit 1
           fi
-          echo "video_path=$VIDEO_FILE" >> $GITHUB_OUTPUT
-          echo "Found video: $VIDEO_FILE"
+
+          VIDEO_FILE="${FILES[0]#* }"
+          PROBE_JSON="$(ffprobe -v error -show_entries format=duration:stream=codec_type,codec_name,width,height -of json "$VIDEO_FILE")"
+          echo "$PROBE_JSON" | jq -e '
+            (.format.duration | tonumber > 0) and
+            any(.streams[]?; .codec_type == "video" and (.width | tonumber) > 0 and (.height | tonumber) > 0)
+          ' >/dev/null || {
+            echo "::error::The MP4 from this run failed ffprobe integrity validation."
+            exit 1
+          }
+
+          DURATION="$(echo "$PROBE_JSON" | jq -r '.format.duration')"
+          CODEC="$(echo "$PROBE_JSON" | jq -r '.streams[] | select(.codec_type == "video") | .codec_name' | head -1)"
+          # Artifact actions execute from the workspace root, not the step's video/ working directory.
+          echo "video_path=video/$VIDEO_FILE" >> "$GITHUB_OUTPUT"
+          echo "video_duration=$DURATION" >> "$GITHUB_OUTPUT"
+          echo "video_codec=$CODEC" >> "$GITHUB_OUTPUT"
+          echo "Fresh MP4 validated: $VIDEO_FILE (${DURATION}s, codec=${CODEC})"
 
       - name: Upload video artifact
         uses: actions/upload-artifact@v4
@@ -129,4 +150,6 @@ jobs:
           echo "- **Run**: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Video**: ${{ steps.find-video.outputs.video_path }}" >> $GITHUB_STEP_SUMMARY
-          ls -lh video/out/ >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No output files"
+          echo "- **Duration**: ${{ steps.find-video.outputs.video_duration || 'not validated' }} seconds" >> $GITHUB_STEP_SUMMARY
+          echo "- **Video codec**: ${{ steps.find-video.outputs.video_codec || 'not validated' }}" >> $GITHUB_STEP_SUMMARY
+          ls -lh out/ >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No output files"
