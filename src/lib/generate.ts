@@ -268,31 +268,30 @@ async function generateReviewSectionBatch(
   const requestedSections = plans.map((plan, index) =>
     (index + 1) + '. Marcadores exatos: [[SECTION:' + plan.id + ']] e [[/SECTION:' + plan.id + ']]. Tema: ' + plan.heading + '. Foco: ' + plan.focus + '.'
   ).join('\n');
+  const formatExample = plans.map((plan) => [
+    '[[SECTION:' + plan.id + ']]',
+    'Primeiro parágrafo específico...',
+    '',
+    'Segundo parágrafo específico...',
+    '[[/SECTION:' + plan.id + ']]',
+  ].join('\n')).join('\n\n');
 
   const raw = await chatCompletion({
-    systemPrompt: 'Você é editor técnico sênior do Vetor.blog. Escreva em português brasileiro claro, analítico e factual. Não invente teste prático, dado, preço, URL, citação ou especificação. Não repita frases para SEO. Siga exatamente o formato de marcadores solicitado.',
+    systemPrompt: 'Você é editor técnico sênior do Vetor.blog. Escreva em português brasileiro claro, analítico e factual. Não invente teste prático, dado, preço, URL, citação ou especificação. Não repita frases para SEO. Siga exatamente os marcadores de seção solicitados e não escreva raciocínio interno.',
     userPrompt: [
       'Contexto do produto:',
       sourceContext,
       '',
-      'Escreva APENAS as duas seções abaixo, sem JSON, introdução, conclusão extra ou markdown fora dos parágrafos. Cada seção deve ter 290–330 palavras úteis e específicas, em 3 a 5 parágrafos completos. Não inclua o título dentro do texto. Não copie uma seção na outra. Se um dado não foi fornecido, explique o que o comprador deve conferir em vez de inventar.',
+      'Escreva APENAS as seções solicitadas abaixo. Cada seção deve ter 270–310 palavras úteis e específicas, em 3 a 5 parágrafos completos. Não inclua o título dentro do texto. Não copie uma seção na outra. Se um dado não foi fornecido, explique o que o comprador deve conferir em vez de inventar.',
+      'Não responda em JSON. Não use Markdown, títulos extras, introdução, conclusão adicional ou cercas de código.',
       '',
       requestedSections,
       '',
-      'Formato obrigatório:',
-      '[[SECTION:' + plans[0].id + ']]',
-      'Parágrafo um...',
-      '',
-      'Parágrafo dois...',
-      '[[/SECTION:' + plans[0].id + ']]',
-      '[[SECTION:' + plans[1].id + ']]',
-      'Parágrafo um...',
-      '',
-      'Parágrafo dois...',
-      '[[/SECTION:' + plans[1].id + ']]',
+      'Formato obrigatório. Repita este bloco para cada seção, sem alterar os identificadores:',
+      formatExample,
     ].join('\n'),
     temperature: 0.35,
-    maxTokens: 2600,
+    maxTokens: plans.length === 1 ? 1600 : 2600,
     timeoutMs: 70000,
     deadlineMs: 220000,
     validateResponse: (value) => isCompleteSectionBatch(value, plans),
@@ -402,14 +401,13 @@ export async function generateReview(product: {
   editorialBrief?: import('./prompt').EditorialBrief;
 }): Promise<ReviewOutput> {
   try {
-    // Generate long-form content in three small, sequential batches. A single
-    // 2,000-word JSON response repeatedly timed out or returned an empty object.
-    // Each batch has its own completeness gate; the final 1,500-word editorial gate remains.
+    // Generate one section per request: smaller outputs make exact markers and word-count validation more reliable.
+    // The provider retries malformed output with a correction instruction, then tries the NVIDIA fallback model.
     const sourceContext = buildReviewSourceContext(product);
     const modelSections: ReviewSection[] = [];
-    for (let index = 0; index < REVIEW_SECTION_PLAN.length; index += 2) {
-      const batch = REVIEW_SECTION_PLAN.slice(index, index + 2);
-      console.info('[review-generator] generating section batch:', batch.map((item) => item.id));
+    for (let index = 0; index < REVIEW_SECTION_PLAN.length; index += 1) {
+      const batch = REVIEW_SECTION_PLAN.slice(index, index + 1);
+      console.info('[review-generator] generating single section:', batch[0]?.id);
       const generatedBatch = await generateReviewSectionBatch(sourceContext, batch);
       modelSections.push(...generatedBatch);
     }
