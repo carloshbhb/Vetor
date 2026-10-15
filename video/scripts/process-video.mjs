@@ -65,8 +65,16 @@ async function updateVideoStatus(id, updates) {
 }
 
 async function generateVoiceover(text, outputPath) {
-  // Prefer ElevenLabs when configured; retain Edge TTS and espeak-ng fallbacks.
+  // ElevenLabs is mandatory for the production validation run; never silently substitute another voice.
   const voices = ['pt-BR-AntonioNeural', 'pt-BR-FranciscaNeural'];
+  const elevenLabsRequired = process.env.ELEVENLABS_REQUIRED === 'true';
+  const configuredVoiceId = (process.env.ELEVENLABS_VOICE_ID || '').trim();
+  if (elevenLabsRequired && !process.env.ELEVENLABS_API_KEY) {
+    throw new Error('[TTS] ELEVENLABS_REQUIRED=true, mas ELEVENLABS_API_KEY está ausente.');
+  }
+  if (elevenLabsRequired && !configuredVoiceId) {
+    throw new Error('[TTS] ELEVENLABS_REQUIRED=true, mas ELEVENLABS_VOICE_ID está vazio. Configure o secret no GitHub antes de processar a fila.');
+  }
   const tempFile = outputPath.replace('.mp3', '-temp.mp3');
   const textFile = outputPath.replace('.mp3', '-text.txt');
   const wavPath = outputPath.replace('.mp3', '-espeak.wav');
@@ -83,7 +91,7 @@ async function generateVoiceover(text, outputPath) {
   const failures = [];
 
   if (process.env.ELEVENLABS_API_KEY) {
-    const voiceId = (process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL').trim();
+    const voiceId = configuredVoiceId || 'EXAVITQu4vr4xnSDxMaL';
     try {
       if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
       const response = await fetch(
@@ -127,10 +135,12 @@ async function generateVoiceover(text, outputPath) {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failures.push('ElevenLabs: ' + message);
+      if (elevenLabsRequired) throw new Error('[TTS] ElevenLabs obrigatório falhou; fallback bloqueado. ' + message);
       console.warn('   [TTS] ElevenLabs falhou; tentando Edge TTS. ' + message);
       if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
     }
   } else {
+    if (elevenLabsRequired) throw new Error('[TTS] ELEVENLABS_REQUIRED=true, mas ELEVENLABS_API_KEY está ausente; fallback bloqueado.');
     console.warn('   [TTS] ELEVENLABS_API_KEY ausente; usando Edge TTS.');
   }
 
@@ -207,6 +217,7 @@ async function combineAudioFiles(audioFiles, outputPath) {
 }
 
 async function renderWithRemotion(videoData, outputPath) {
+  const renderStartedAt = Date.now();
   const outputDir = path.dirname(outputPath);
   const dataPath = path.join(outputDir, 'remotion-input.json');
   fs.mkdirSync(outputDir, { recursive: true });
@@ -231,6 +242,7 @@ async function renderWithRemotion(videoData, outputPath) {
         path: path.join(renderedDir, name),
         mtime: fs.statSync(path.join(renderedDir, name)).mtimeMs,
       }))
+      .filter((candidate) => candidate.mtime >= renderStartedAt - 2000)
       .sort((left, right) => right.mtime - left.mtime);
 
     if (!fs.existsSync(outputPath)) {
@@ -299,8 +311,9 @@ async function processVideo(video) {
   console.log(`   ID: ${video.id}`);
   console.log(`   Hook: ${video.script_hook}`);
 
-  await updateVideoStatus(video.id, { status: 'processing', started_at: new Date().toISOString() });
+  await updateVideoStatus(video.id, { status: 'processing', started_at: new Date().toISOString(), error_message: null });
   const publicAudioPath = path.resolve('video/public/tmp', `video-${video.id}.mp3`);
+  let processingStage = 'roteiro';
 
   try {
     let script = null;
@@ -337,7 +350,9 @@ async function processVideo(video) {
       }
     }
 
+    processingStage = 'narração';
     console.log('   [1/4] Gerando voiceover...');
+    console.log(`   [TTS] ElevenLabs obrigatório: ${process.env.ELEVENLABS_REQUIRED === 'true' ? 'sim' : 'não'}; voice ID configurado: ${Boolean((process.env.ELEVENLABS_VOICE_ID || '').trim()) ? 'sim' : 'não'}.`);
     const audioDir = path.resolve(`/tmp/video-${video.id}`);
     if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
 
@@ -361,6 +376,7 @@ async function processVideo(video) {
     audioFiles.push(ctaAudioPath);
     totalDuration += ctaDuration;
 
+    processingStage = 'combinação de áudio';
     console.log('   [2/4] Combinando áudio...');
     const combinedAudioPath = path.join(audioDir, 'combined.mp3');
     await combineAudioFiles(audioFiles, combinedAudioPath);
@@ -370,6 +386,7 @@ async function processVideo(video) {
     fs.mkdirSync(path.dirname(publicAudioPath), { recursive: true });
     fs.copyFileSync(combinedAudioPath, publicAudioPath);
 
+    processingStage = 'renderização Remotion';
     console.log('   [3/4] Renderizando vídeo com Remotion...');
     const outputDir = path.resolve('video/out');
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
@@ -414,6 +431,7 @@ async function processVideo(video) {
     const videoPath = path.join(outputDir, videoFileName);
     await renderWithRemotion(videoData, videoPath);
 
+    processingStage = 'upload YouTube';
     console.log('   [4/4] Upload para YouTube...');
     const siteUrl = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
     const reviewUrl = (typeof video.review_url === 'string' && video.review_url.startsWith('https://'))
@@ -477,11 +495,18 @@ async function processVideo(video) {
     if (fs.existsSync(audioDir)) fs.rmSync(audioDir, { recursive: true });
     if (fs.existsSync(publicAudioPath)) fs.unlinkSync(publicAudioPath);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`   ❌ Erro: ${message}`);
+    const message = error instanceof Error ? error.message : String(error || 'Unknown error');
+    const details = error && typeof error === 'object' ? error : {};
+    const stderr = details.stderr ? String(details.stderr).slice(-1800) : '';
+    const stdout = details.stdout ? String(details.stdout).slice(-1000) : '';
+    const command = details.command ? String(details.command).slice(0, 500) : '';
+    const diagnostic = [`Etapa: ${processingStage}`, message, command ? `Comando: ${command}` : '', stderr ? `stderr: ${stderr}` : '', stdout ? `stdout: ${stdout}` : ''].filter(Boolean).join(' | ').slice(0, 4000);
+    console.error(`   ❌ Erro na etapa [${processingStage}]: ${message}`);
+    if (stderr) console.error(`   [diagnóstico stderr] ${stderr}`);
+    if (stdout) console.error(`   [diagnóstico stdout] ${stdout}`);
     await updateVideoStatus(video.id, {
       status: 'failed',
-      error_message: message,
+      error_message: diagnostic,
     });
     if (fs.existsSync(publicAudioPath)) fs.unlinkSync(publicAudioPath);
     return false;
@@ -492,6 +517,12 @@ async function processVideo(video) {
 async function main() {
   console.log('🎬 Iniciando processamento de vídeos...');
   console.log(`   Timestamp: ${new Date().toISOString()}`);
+  // Fail closed before claiming any queue item when the configured ElevenLabs voice is unavailable.
+  if (process.env.ELEVENLABS_REQUIRED === 'true') {
+    if (!process.env.ELEVENLABS_API_KEY) throw new Error('Preflight TTS: ELEVENLABS_API_KEY ausente; nenhum item da fila foi reivindicado.');
+    if (!(process.env.ELEVENLABS_VOICE_ID || '').trim()) throw new Error('Preflight TTS: ELEVENLABS_VOICE_ID vazio; configure o secret no GitHub. Nenhum item da fila foi reivindicado.');
+    console.log('ElevenLabs preflight passed; voice ID is configured and fallback is disabled.');
+  }
   // Never claim a queue item if the destination channel cannot accept uploads.
   await verifyYouTubeOAuth();
   const videoId = process.env.VIDEO_ID;
