@@ -27,6 +27,7 @@ function normalizePrice(value: string): string {
 
 export default async function LandingPageTemplate({ review }: { review: Review }) {
   const linkedProduct = await getProductLinkByLandingPageSlug(review.slug);
+  const imageUrl = linkedProduct?.image_url?.trim() || review.image_url?.trim() || "";
   const specs = normalizeSpecs(review.specs);
   const sections = normalizeSections(review.sections);
   const highlights = specs.filter((spec) => spec.highlight).slice(0, 3);
@@ -92,7 +93,7 @@ export default async function LandingPageTemplate({ review }: { review: Review }
   ];
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-template="landing-page">
       <a className={styles.skipLink} href="#conteudo">Pular para o conteúdo</a>
       <header className={styles.siteHeader}>
         <div className={styles.container}>
@@ -137,6 +138,7 @@ export default async function LandingPageTemplate({ review }: { review: Review }
                 <span className={styles.verdictLabel}>Veredito rápido</span>
                 <div className={styles.score}><strong>{score}</strong><span>/ 10</span></div>
                 <div className={styles.stars} aria-label={score === "—" ? "Nota não informada" : "Nota editorial: " + score + " de 10"}>★★★★★</div>
+                {imageUrl && <img className={styles.productImage} src={imageUrl} alt={review.product} loading="eager" fetchPriority="high" />}
                 <h2>{safeText(review.verdict_label, "Resumo da avaliação")}</h2>
                 <p>{verdict}</p>
                 <div className={styles.priceLine}><span>Preço consultado</span><strong>{price}</strong></div>
