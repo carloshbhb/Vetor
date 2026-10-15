@@ -1,0 +1,73 @@
+name: Generate Daily Review
+
+on:
+  schedule:
+    - cron: '15 4 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only verify the queue; do not call NVIDIA or create content'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vetor-daily-review-generation
+  cancel-in-progress: false
+
+jobs:
+  generate-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://jcfbkwnkruncefrnnwqv.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_KEY }}
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+      NVIDIA_MODEL: ${{ vars.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b' }}
+      NVIDIA_FALLBACK_MODEL: ${{ vars.NVIDIA_FALLBACK_MODEL || 'nvidia/nemotron-3-super-120b-a12b' }}
+      REVIEW_GENERATION_MAX_ATTEMPTS: '4'
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate required credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${NVIDIA_API_KEY:?NVIDIA_API_KEY secret is required}"
+          : "${NEXT_PUBLIC_SUPABASE_ANON_KEY:?NEXT_PUBLIC_SUPABASE_ANON_KEY secret is required}"
+          : "${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY secret is required}"
+          echo "NVIDIA and Supabase secrets are present; values are not displayed."
+      - name: Run review quality regression tests
+        run: |
+          npm run test:content-quality
+          npm run test:editorial-brief
+          npm run test:review-persistence
+      - name: Type-check source
+        run: npx tsc --noEmit
+      - name: Inspect queue or generate one review
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${DRY_RUN}" = "true" ]; then
+            echo "Manual dry-run: generation is disabled."
+            npx tsx scripts/generate-daily-review.ts --dry-run
+          else
+            echo "Running scheduled daily review generation. New content is saved as a draft for editorial approval."
+            npx tsx scripts/generate-daily-review.ts
+          fi
