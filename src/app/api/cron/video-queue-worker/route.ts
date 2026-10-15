@@ -5,6 +5,39 @@ import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 export const runtime = "nodejs";
 export const maxDuration = 15;
 
+const MAX_DAILY_PUBLICATIONS = 15;
+type SupabaseServiceClient = NonNullable<ReturnType<typeof getSupabaseServiceKeyClient>>;
+
+function getSaoPauloDayStartIso(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  if (!year || !month || !day) throw new Error("Não foi possível determinar a data local de São Paulo.");
+  // São Paulo currently observes UTC-03:00 year-round.
+  return new Date(`${year}-${month}-${day}T00:00:00-03:00`).toISOString();
+}
+
+async function getDailyPublicationQuota(supabase: SupabaseServiceClient) {
+  const { count, error } = await supabase
+    .from("video_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "completed")
+    .gte("completed_at", getSaoPauloDayStartIso());
+  if (error) throw error;
+  const completedToday = count || 0;
+  return {
+    dailyLimit: MAX_DAILY_PUBLICATIONS,
+    completedToday,
+    remaining: Math.max(0, MAX_DAILY_PUBLICATIONS - completedToday),
+  };
+}
+
 const UPDATABLE_FIELDS = new Set([
   "status",
   "error_message",
@@ -91,8 +124,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const action = typeof body.action === "string" ? body.action : "";
 
+    if (action === "quota") {
+      const quota = await getDailyPublicationQuota(supabase);
+      return NextResponse.json({ success: true, ...quota, canPublish: quota.remaining > 0 });
+    }
+
     if (action === "queueFromReviews") {
-      const limit = Math.min(Math.max(Number(body.limit || 1), 1), 10);
+      const limit = Math.min(Math.max(Number(body.limit || 1), 1), 15);
       const { data: reviews, error: reviewError } = await supabase
         .from("reviews")
         .select("slug,product,category,price_new,image_url,affiliate_url,updated_at")
@@ -106,7 +144,7 @@ export async function POST(request: NextRequest) {
       const { data: existing, error: existingError } = await supabase
         .from("video_queue")
         .select("review_url,status")
-        .in("status", ["pending", "processing", "completed"]);
+        .in("status", ["pending", "processing", "completed", "failed"]);
       if (existingError) throw existingError;
 
       const existingUrls = new Set((existing || []).map((item) => item.review_url).filter(Boolean));
@@ -159,7 +197,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "queueFromComparatives") {
-      const limit = Math.min(Math.max(Number(body.limit || 1), 1), 10);
+      const limit = Math.min(Math.max(Number(body.limit || 1), 1), 15);
       const { data: articles, error: articlesError } = await supabase
         .from("viral_articles")
         .select("slug,title,category,products,published_at,updated_at")
@@ -170,7 +208,7 @@ export async function POST(request: NextRequest) {
       const { data: existing, error: existingError } = await supabase
         .from("video_queue")
         .select("review_url,status")
-        .in("status", ["pending", "processing", "completed"]);
+        .in("status", ["pending", "processing", "completed", "failed"]);
       if (existingError) throw existingError;
       const existingUrls = new Set((existing || []).map((item) => item.review_url).filter(Boolean));
 
@@ -255,7 +293,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "next") {
-      const limit = Math.min(Math.max(Number(body.limit || 1), 1), 10);
+      const quota = await getDailyPublicationQuota(supabase);
+      if (quota.remaining <= 0) {
+        return NextResponse.json({ success: true, videos: [], ...quota, dailyLimitReached: true });
+      }
+      const requestedLimit = Math.min(Math.max(Number(body.limit || 1), 1), 15);
+      const limit = Math.min(requestedLimit, quota.remaining);
       const { data, error } = await supabase
         .from("video_queue")
         .select("*")
@@ -264,7 +307,7 @@ export async function POST(request: NextRequest) {
         .order("scheduled_at", { ascending: true })
         .limit(limit);
       if (error) throw error;
-      return NextResponse.json({ success: true, videos: data || [] });
+      return NextResponse.json({ success: true, videos: data || [], ...quota, dailyLimitReached: false });
     }
 
     if (action === "get") {
@@ -300,6 +343,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, video: data });
     }
 
+    if (action === "pendingComments") {
+      const limit = Math.min(Math.max(Number(body.limit || 5), 1), 10);
+      const { data, error } = await supabase
+        .from("video_queue")
+        .select("id,product_title,review_url,affiliate_url,shortened_affiliate_url,youtube_video_id,youtube_url,error_message")
+        .eq("status", "completed")
+        .like("error_message", "[CTA_COMMENT_PENDING]%")
+        .order("completed_at", { ascending: true })
+        .limit(limit);
+      if (error) throw error;
+      return NextResponse.json({ success: true, videos: data || [] });
+    }
+
     if (action === "recent") {
       const { data, error } = await supabase
         .from("video_queue")
@@ -310,7 +366,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, videos: data || [] });
     }
 
-    return NextResponse.json({ success: false, error: "Ação inválida. Use queueFromReviews, queueFromComparatives, next, get, update ou recent." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Ação inválida. Use quota, queueFromReviews, queueFromComparatives, next, get, update, pendingComments ou recent." }, { status: 400 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[video-queue-worker] failed:", message);

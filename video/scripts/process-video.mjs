@@ -32,6 +32,60 @@ async function verifyYouTubeOAuth() {
   console.log('YouTube OAuth preflight passed.');
 }
 
+async function createYouTubeClient() {
+  const clientId = process.env.YOUTUBE_CLIENT_ID;
+  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
+  const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error('Credenciais YouTube incompletas para comentários/upload.');
+  }
+  const { google } = await import('googleapis');
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+  oauth2Client.setCredentials({ refresh_token: refreshToken });
+  return google.youtube({ version: 'v3', auth: oauth2Client });
+}
+
+function buildCtaComment({ productTitle, purchaseUrl, reviewUrl }) {
+  return [
+    `👇 Quer conferir o preço e analisar ${productTitle} antes de comprar?`,
+    '',
+    `🛒 Link de compra: ${purchaseUrl}`,
+    `📝 Review completo no Vetor.blog: ${reviewUrl}`,
+    '',
+    'Confira preço, frete, disponibilidade e condições atuais no anúncio.',
+    'Se o vídeo ajudou, deixe o like e inscreva-se no canal para mais reviews!',
+  ].join('\n');
+}
+
+function extractYouTubeVideoId(video) {
+  if (typeof video.youtube_video_id === 'string' && video.youtube_video_id.trim()) {
+    return video.youtube_video_id.trim();
+  }
+  const value = typeof video.youtube_url === 'string' ? video.youtube_url : '';
+  try {
+    const url = new URL(value);
+    if (url.hostname === 'youtu.be') return url.pathname.split('/').filter(Boolean)[0] || '';
+    return url.searchParams.get('v') || '';
+  } catch {
+    return '';
+  }
+}
+
+async function insertCtaComment(youtube, videoId, text) {
+  const response = await youtube.commentThreads.insert({
+    part: ['snippet'],
+    requestBody: {
+      snippet: {
+        videoId,
+        topLevelComment: { snippet: { textOriginal: text } },
+      },
+    },
+  });
+  const commentId = response.data.id || response.data.snippet?.topLevelComment?.id || '';
+  if (!commentId) throw new Error('YouTube não retornou ID para o comentário CTA.');
+  return commentId;
+}
+
 async function queueApi(action, payload = {}) {
   if (!CRON_SECRET) throw new Error('CRON_SECRET ausente: o worker precisa acessar a fila autenticada do Vetor.');
   const response = await fetch(`${SITE_URL}/api/cron/video-queue-worker/`, {
@@ -62,6 +116,56 @@ async function getVideoById(id) {
 
 async function updateVideoStatus(id, updates) {
   await queueApi('update', { id, updates });
+}
+
+async function retryPendingCtaComments() {
+  let pending = [];
+  try {
+    const response = await queueApi('pendingComments', { limit: 5 });
+    pending = Array.isArray(response.videos) ? response.videos : [];
+  } catch (error) {
+    console.warn('[CTA_COMMENT_RETRY] Não foi possível consultar comentários pendentes: ' +
+      (error instanceof Error ? error.message : String(error)));
+    return;
+  }
+  if (pending.length === 0) return;
+
+  let youtube;
+  try {
+    youtube = await createYouTubeClient();
+  } catch (error) {
+    console.warn('[CTA_COMMENT_RETRY] Não foi possível autenticar para corrigir comentários pendentes: ' +
+      (error instanceof Error ? error.message : String(error)));
+    return;
+  }
+
+  for (const video of pending) {
+    const videoId = extractYouTubeVideoId(video);
+    const purchaseUrl = String(video.shortened_affiliate_url || video.affiliate_url || '').trim();
+    const reviewUrl = String(video.review_url || '').trim();
+    if (!videoId || !/^https?:\/\//i.test(purchaseUrl) || !/^https:\/\//i.test(reviewUrl)) {
+      console.warn('[CTA_COMMENT_PENDING] queue_id=' + video.id + ' faltam ID do YouTube ou links válidos.');
+      continue;
+    }
+    try {
+      const commentId = await insertCtaComment(youtube, videoId, buildCtaComment({
+        productTitle: String(video.product_title || 'este produto'),
+        purchaseUrl,
+        reviewUrl,
+      }));
+      await updateVideoStatus(video.id, { error_message: null });
+      console.log('[CTA_COMMENT_RETRIED] queue_id=' + video.id + ' comment_id=' + commentId);
+    } catch (error) {
+      const message = (error instanceof Error ? error.message : String(error)).slice(0, 3000);
+      try {
+        await updateVideoStatus(video.id, { error_message: '[CTA_COMMENT_PENDING] ' + message });
+      } catch (updateError) {
+        console.warn('[CTA_COMMENT_RETRY] Não foi possível salvar diagnóstico: ' +
+          (updateError instanceof Error ? updateError.message : String(updateError)));
+      }
+      console.warn('[CTA_COMMENT_PENDING] queue_id=' + video.id + ' reason=' + message.slice(0, 700));
+    }
+  }
 }
 
 async function generateVoiceover(text, outputPath) {
@@ -306,7 +410,7 @@ async function renderWithRemotion(videoData, outputPath) {
     if (fs.existsSync(dataPath)) fs.unlinkSync(dataPath);
   }
 }
-async function uploadToYouTube(videoPath, title, description, tags) {
+async function uploadToYouTube(videoPath, title, description, tags, commentText) {
   const clientId = process.env.YOUTUBE_CLIENT_ID;
   const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
   const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
@@ -316,13 +420,7 @@ async function uploadToYouTube(videoPath, title, description, tags) {
   }
 
   try {
-    const { google } = await import('googleapis');
-    // googleapis exposes OAuth2 through google.auth.OAuth2; OAuth2Client is
-    // a separate google-auth-library export and is not a constructor here.
-    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-    oauth2Client.setCredentials({ refresh_token: refreshToken });
-
-    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+    const youtube = await createYouTubeClient();
 
     const response = await youtube.videos.insert({
       part: ['snippet', 'status'],
@@ -371,8 +469,17 @@ async function uploadToYouTube(videoPath, title, description, tags) {
     }
 
     const videoUrl = 'https://youtube.com/watch?v=' + videoId;
+    let commentId = null;
+    let commentError = null;
+    try {
+      commentId = await insertCtaComment(youtube, videoId, commentText);
+      console.log('[CTA_COMMENT_CONFIRMED] video_id=' + videoId + ' comment_id=' + commentId);
+    } catch (error) {
+      commentError = (error instanceof Error ? error.message : String(error)).slice(0, 3000);
+      console.warn('[CTA_COMMENT_PENDING] video_id=' + videoId + ' reason=' + commentError.slice(0, 700));
+    }
     console.log('   📤 YouTube confirmado como público: ' + videoUrl);
-    return { videoId, videoUrl };
+    return { videoId, videoUrl, commentId, commentError };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('   ❌ YouTube upload failed:', message);
@@ -519,18 +626,24 @@ async function processVideo(video) {
 
     const ytTitle = `${video.product_title} - Review Completo | Vetor Blog`.slice(0, 100);
     const ytDescription = [
+      `🛒 LINK DE COMPRA: ${purchaseUrl}`,
+      `📝 REVIEW COMPLETO: ${reviewUrl}`,
+      '',
+      'Confira preço, frete, disponibilidade e condições atualizadas antes de comprar.',
+      '',
       script.hook,
       '',
       script.scenes.map(s => s.text).join('\n\n'),
       '',
       script.callToAction,
       '',
-      `📝 Review completo: ${reviewUrl}`,
-      `🛒 Compre aqui: ${purchaseUrl}`,
-      '',
-      'Confira preço e condições atualizadas antes de comprar.',
       '#Review #Tecnologia #CustoBeneficio #VetorBlog',
     ].join('\n').slice(0, 5000);
+    const ytCommentText = buildCtaComment({
+      productTitle: video.product_title,
+      purchaseUrl,
+      reviewUrl,
+    });
     const terms = `${video.product_title} ${video.product_category} review análise vale a pena comprar desconto preço 2026`
       .toLowerCase()
       .normalize('NFD')
@@ -544,7 +657,7 @@ async function processVideo(video) {
       ...terms,
     ])].filter(Boolean).slice(0, 30);
 
-    const ytResult = await uploadToYouTube(videoPath, ytTitle, ytDescription, ytTags);
+    const ytResult = await uploadToYouTube(videoPath, ytTitle, ytDescription, ytTags, ytCommentText);
     if (!ytResult?.videoId || !ytResult?.videoUrl) {
       throw new Error('O YouTube não confirmou a criação do vídeo; item não marcado como concluído.');
     }
@@ -557,7 +670,9 @@ async function processVideo(video) {
       completed_at: new Date().toISOString(),
       youtube_video_id: ytResult.videoId,
       youtube_url: ytResult.videoUrl,
-      error_message: null,
+      error_message: ytResult.commentError
+        ? ('[CTA_COMMENT_PENDING] ' + ytResult.commentError).slice(0, 4000)
+        : null,
     };
 
     await updateVideoStatus(video.id, updates);
@@ -566,6 +681,11 @@ async function processVideo(video) {
     console.log(`   📝 Review: ${reviewUrl}`);
     console.log(`   🛒 Compra: ${purchaseUrl}`);
     console.log(`   📺 YouTube: ${ytResult.videoUrl}`);
+    if (ytResult.commentId) {
+      console.log('   💬 Comentário com links e chamada para ação publicado.');
+    } else {
+      console.warn('   💬 Vídeo publicado; comentário CTA salvo para nova tentativa automática.');
+    }
 
     if (fs.existsSync(audioDir)) fs.rmSync(audioDir, { recursive: true });
     if (fs.existsSync(publicAudioPath)) fs.unlinkSync(publicAudioPath);
@@ -599,20 +719,57 @@ async function main() {
     if (!(process.env.ELEVENLABS_VOICE_ID || '').trim()) throw new Error('Preflight TTS: ELEVENLABS_VOICE_ID vazio; configure o secret no GitHub. Nenhum item da fila foi reivindicado.');
     console.log('ElevenLabs preflight passed; voice ID is configured and fallback is disabled.');
   }
-  // Never claim a queue item if the destination channel cannot accept uploads.
+  // Check auth, retry CTA comments independently, and enforce the local daily cap.
   await verifyYouTubeOAuth();
+  await retryPendingCtaComments();
+
+  const quota = await queueApi('quota');
+  if (Number(quota.remaining) <= 0) {
+    console.log(`Limite diário atingido: ${quota.completedToday}/${quota.dailyLimit} vídeos publicados no horário de São Paulo. Nenhum item novo foi reivindicado.`);
+    return;
+  }
+
   const videoId = process.env.VIDEO_ID;
   let failures = 0;
   let processedCount = 0;
   if (videoId) {
     const video = await getVideoById(videoId);
     if (!video) throw new Error(`Vídeo ${videoId} não encontrado na fila autenticada do Supabase conectado ao Vetor.`);
+    if (video.status === 'completed' && video.youtube_url) {
+      console.log(`Vídeo ${videoId} já foi publicado; evitando upload duplicado. Comentários pendentes são tratados separadamente.`);
+      return;
+    }
     processedCount += 1;
     if (!(await processVideo(video))) failures += 1;
   } else {
-    const limit = Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 10);
-    const videos = await getPendingVideos(limit);
-    console.log(`   ${videos.length} vídeos pendentes encontrados (limite: ${limit})`);
+    const limit = Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 15, Number(quota.remaining));
+    let videos = await getPendingVideos(limit);
+
+    if (videos.length === 0 && limit > 0) {
+      console.log('Fila sem vídeos pendentes; tentando alimentar automaticamente a partir de reviews e comparativos publicados.');
+      let queuedFromReviews = 0;
+      try {
+        const refill = await queueApi('queueFromReviews', { limit });
+        queuedFromReviews = Math.min(limit, Math.max(0, Number(refill.queued) || 0));
+        console.log(`Reposição da fila: ${queuedFromReviews} review(s) adicionado(s).`);
+      } catch (error) {
+        console.warn('[QUEUE_REFILL] Não foi possível adicionar reviews: ' +
+          (error instanceof Error ? error.message : String(error)));
+      }
+      const comparisonLimit = Math.max(0, limit - queuedFromReviews);
+      if (comparisonLimit > 0) {
+        try {
+          const refill = await queueApi('queueFromComparatives', { limit: comparisonLimit });
+          console.log(`Reposição da fila: ${Number(refill.queued) || 0} comparativo(s) adicionado(s).`);
+        } catch (error) {
+          console.warn('[QUEUE_REFILL] Não foi possível adicionar comparativos: ' +
+            (error instanceof Error ? error.message : String(error)));
+        }
+      }
+      videos = await getPendingVideos(limit);
+    }
+
+    console.log(`   ${videos.length} vídeos pendentes encontrados (limite: ${limit}; restantes no dia: ${quota.remaining})`);
     for (const video of videos) {
       processedCount += 1;
       if (!(await processVideo(video))) failures += 1;
