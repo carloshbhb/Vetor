@@ -1,0 +1,83 @@
+name: LP Draft Generation Smoke Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/lp-generation-test-trigger.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lp-draft-generation-smoke-test
+  cancel-in-progress: false
+
+jobs:
+  generate-one-draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read explicit product ID (fail closed)
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/lp-generation-test-trigger.txt ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "No explicit LP test target; safely skipping."
+            exit 0
+          fi
+          product_id="$(tr -d '[:space:]' < scripts/lp-generation-test-trigger.txt)"
+          if [ -z "$product_id" ] || [ "$product_id" = "disabled" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "LP test trigger is disabled; safely skipping."
+            exit 0
+          fi
+          if [[ ! "$product_id" =~ ^[0-9a-fA-F-]{36}$ ]]; then
+            echo "::error::LP test target must be a UUID; refusing to run."
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "product_id=$product_id" >> "$GITHUB_OUTPUT"
+          echo "One explicit product selected; the generator is configured for draft-only mode."
+
+      - name: Setup Node.js 22
+        if: steps.target.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.target.outputs.enabled == 'true'
+        run: npm ci
+
+      - name: Validate LP template contract
+        if: steps.target.outputs.enabled == 'true'
+        run: npm run test:lp-template
+
+      - name: Generate and verify exactly one LP draft
+        if: steps.target.outputs.enabled == 'true'
+        env:
+          LANDING_TEST_PRODUCT_ID: ${{ steps.target.outputs.product_id }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NVIDIA_MODEL: ${{ vars.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b' }}
+          NVIDIA_FALLBACK_MODEL: ${{ vars.NVIDIA_FALLBACK_MODEL || 'nvidia/nemotron-3-super-120b-a12b' }}
+          NEXT_PUBLIC_SUPABASE_URL: https://jcfbkwnkruncefrnnwqv.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.REPO_OWNER_TOKEN }}
+          GITHUB_REPO: carloshbhb/Vetor
+          INDEXNOW_API_KEY: ${{ secrets.INDEXNOW_API_KEY }}
+        run: |
+          set -euo pipefail
+          : "${NVIDIA_API_KEY:?NVIDIA_API_KEY secret is required}"
+          : "${NEXT_PUBLIC_SUPABASE_ANON_KEY:?NEXT_PUBLIC_SUPABASE_ANON_KEY secret is required}"
+          : "${SUPABASE_SERVICE_KEY:?Supabase service role secret is required}"
+          npx tsx tmp/generate-2-landing-pages.ts
