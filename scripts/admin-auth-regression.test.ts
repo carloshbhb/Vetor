@@ -8,8 +8,8 @@ import {
 const previous = {
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
   ADMIN_SESSION_SECRET: process.env.ADMIN_SESSION_SECRET,
-  NODE_ENV: process.env.NODE_ENV,
 };
+const previousNodeEnv = process.env.NODE_ENV;
 
 function setOrDelete(name: keyof typeof previous, value: string | undefined) {
   if (value === undefined) delete process.env[name];
@@ -19,7 +19,7 @@ function setOrDelete(name: keyof typeof previous, value: string | undefined) {
 try {
   process.env.ADMIN_PASSWORD = "unit-test-only-password";
   process.env.ADMIN_SESSION_SECRET = "unit-test-only-session-secret-that-is-not-a-production-secret";
-  process.env.NODE_ENV = "production";
+  Reflect.set(process.env, "NODE_ENV", "production");
 
   const cookie = createAdminSessionCookie(process.env.ADMIN_PASSWORD);
   assert.equal(cookie.name, ADMIN_SESSION_COOKIE, "cookie name must be stable");
@@ -62,5 +62,6 @@ try {
 } finally {
   setOrDelete("ADMIN_PASSWORD", previous.ADMIN_PASSWORD);
   setOrDelete("ADMIN_SESSION_SECRET", previous.ADMIN_SESSION_SECRET);
-  setOrDelete("NODE_ENV", previous.NODE_ENV);
+  if (previousNodeEnv === undefined) Reflect.deleteProperty(process.env, "NODE_ENV");
+  else Reflect.set(process.env, "NODE_ENV", previousNodeEnv);
 }
