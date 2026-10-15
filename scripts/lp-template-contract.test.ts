@@ -49,12 +49,12 @@ for (const token of [
   "grid-template-columns: repeat(3, minmax(0, 1fr))",
   "@media (max-width: 980px)",
   "@media (max-width: 720px)",
-  "section-title",
 ]) {
   assert(styles.includes(token), "Token visual ou breakpoint da referência ausente: " + token);
 }
 assert(!styles.includes("#ffe600"), "A identidade antiga amarela voltou ao template.");
 assert(template.includes('data-template="landing-page"'), "O template não marca a LP para evitar chrome global duplicado.");
+assert(template.includes("section-title"), "A classe .section-title do HTML de referência está ausente.");
 assert(template.includes("<CookiePreferencesControl />"), "O rodapé LP precisa manter acesso às preferências de cookies.");
 assert(template.includes('className={`${styles.sectionTitle} section-title`}'), "A classe section-title da referência não está aplicada.");
 assert(route.includes('review.content_type === "lp"'), "A rota não encaminha LPs ao template dedicado.");
