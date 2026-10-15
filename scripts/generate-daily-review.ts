@@ -25,17 +25,17 @@ function isHttpUrl(value: unknown): value is string {
 
 function canonicalProductName(value: string): string {
   let normalized = value.trim();
-  normalized = normalized.replace(/^\\s*(?:(?:review|an[aá]lise(?:\\s+completa)?|avaliação|avaliacao)\\s+)+/i, '');
-  normalized = normalized.replace(/^\\s*(?:notebook|laptop|controle|controlador)\\s+/i, '');
-  normalized = normalized.replace(/\\s*[:–—-]\\s*(?:an[aá]lise|review|vale\\s+a\\s+pena)\\b[\\s\\S]*$/i, '');
-  normalized = normalized.replace(/\\s+(?:an[aá]lise\\s+completa|review|vale\\s+a\\s+pena)\\??\\s*$/i, '');
+  normalized = normalized.replace(/^\s*(?:(?:review|an[aá]lise(?:\s+completa)?|avaliação|avaliacao)\s+)+/i, '');
+  normalized = normalized.replace(/^\s*(?:notebook|laptop|controle|controlador)\s+/i, '');
+  normalized = normalized.replace(/\s*[:–—-]\s*(?:an[aá]lise|review|vale\s+a\s+pena)\b[\s\S]*$/i, '');
+  normalized = normalized.replace(/\s+(?:an[aá]lise\s+completa|review|vale\s+a\s+pena)\??\s*$/i, '');
   return normalized
     .normalize('NFD')
-    .replace(/[\\u0300-\\u036f]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
-    .replace(/\\s+/g, ' ');
+    .replace(/\s+/g, ' ');
 }
 
 const GENERIC_PRODUCT_WORDS = new Set([
@@ -44,14 +44,14 @@ const GENERIC_PRODUCT_WORDS = new Set([
 ]);
 
 const NUMBERED_PRODUCT_VARIANTS: RegExp[] = [
-  /\\b(?:galaxy\\s+)?buds\\s*(\\d{1,2})\\b/i,
-  /\\bairpods\\s+pro\\s*(\\d{1,2})\\b/i,
-  /\\b(?:redmi\\s+)?watch\\s*(\\d{1,2})\\b/i,
-  /\\bsmart\\s+band\\s*(\\d{1,2})\\b/i,
-  /\\b(?:echo\\s+)?dot\\s*(\\d{1,2})\\b/i,
-  /\\b(?:jbl\\s+)?quantum\\s*(\\d{2,3})\\b/i,
-  /\\bsuperlight\\s*(\\d{1,2})\\b/i,
-  /\\bgamesir\\s+nova\\s+lite\\s*(\\d{1,2})\\b/i,
+  /\b(?:galaxy\s+)?buds\s*(\d{1,2})\b/i,
+  /\bairpods\s+pro\s*(\d{1,2})\b/i,
+  /\b(?:redmi\s+)?watch\s*(\d{1,2})\b/i,
+  /\bsmart\s+band\s*(\d{1,2})\b/i,
+  /\b(?:echo\s+)?dot\s*(\d{1,2})\b/i,
+  /\b(?:jbl\s+)?quantum\s*(\d{2,3})\b/i,
+  /\bsuperlight\s*(\d{1,2})\b/i,
+  /\bgamesir\s+nova\s+lite\s*(\d{1,2})\b/i,
 ];
 
 function hasNumberedVariantMismatch(query: string, title: string): boolean {
@@ -71,11 +71,11 @@ function isSameProductPage(productName: string, page: ExistingReview): boolean {
 
   const productTokens = canonicalProductName(productName)
     .split(' ')
-    .filter((token) => (token.length > 1 || /^\\d+$/.test(token)) && !GENERIC_PRODUCT_WORDS.has(token));
+    .filter((token) => (token.length > 1 || /^\d+$/.test(token)) && !GENERIC_PRODUCT_WORDS.has(token));
   const pageTokens = new Set(
     canonicalProductName(page.product)
       .split(' ')
-      .filter((token) => (token.length > 1 || /^\\d+$/.test(token)) && !GENERIC_PRODUCT_WORDS.has(token))
+      .filter((token) => (token.length > 1 || /^\d+$/.test(token)) && !GENERIC_PRODUCT_WORDS.has(token))
   );
 
   // Compare the request's identifying tokens against the fuller editorial title.

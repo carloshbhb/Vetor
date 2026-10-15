@@ -187,7 +187,7 @@ const NUMBERED_PRODUCT_FAMILIES: Array<{ label: string; pattern: RegExp }> = [
   { label: "Echo Dot", pattern: /\bdot\s*(\d{1,2})\b/ },
   { label: "JBL Quantum", pattern: /\bquantum\s*(\d{2,3})\b/ },
   { label: "Logitech Superlight", pattern: /\bsuperlight\s*(\d{1,2})\b/ },
-  { label: "GameSir Nova Lite", pattern: /\\bgamesir\\s+nova\\s+lite\\s*(\\d{1,2})\\b/ },
+  { label: "GameSir Nova Lite", pattern: /\bgamesir\s+nova\s+lite\s*(\d{1,2})\b/ },
 ];
 
 const COLOR_MARKERS: Array<{ label: string; pattern: RegExp }> = [
