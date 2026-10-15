@@ -1,4 +1,5 @@
 import ReviewContent from "@/components/ReviewContent";
+import CookiePreferencesControl from "@/components/CookiePreferencesControl";
 import { getProductLinkByLandingPageSlug } from "@/lib/product-links";
 import type { Review, ReviewSection, ReviewSpec } from "@/lib/types";
 import styles from "./LandingPageTemplate.module.css";
@@ -321,7 +322,7 @@ export default async function LandingPageTemplate({ review }: { review: Review }
         <div className={styles.container}>
           <div className={styles.footerGrid}>
             <div><a href="/" className={styles.brand}>Vetor<span>.</span>blog</a><p>Informação clara para uma compra consciente. Esta página pode conter links de afiliado; a comissão não altera a análise editorial.</p></div>
-            <nav className={styles.footerLinks} aria-label="Links do rodapé"><a href="/sobre/">Sobre</a><a href="/contato/">Contato</a><a href="/privacidade/">Privacidade</a><a href="/termos/">Termos</a></nav>
+            <nav className={styles.footerLinks} aria-label="Links do rodapé"><a href="/sobre/">Sobre</a><a href="/contato/">Contato</a><a href="/privacidade/">Privacidade</a><CookiePreferencesControl /><a href="/termos/">Termos</a></nav>
           </div>
         </div>
       </footer>
