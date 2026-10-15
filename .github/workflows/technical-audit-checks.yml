@@ -57,6 +57,9 @@ jobs:
       - name: Editorial HTML sanitization regression test
         run: npm run test:sanitize
 
+      - name: Landing page template contract regression test
+        run: npx tsx scripts/lp-template-contract.test.ts
+
       - name: Review persistence regression test
         run: npm run test:review-persistence
 
