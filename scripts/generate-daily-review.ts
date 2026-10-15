@@ -5,6 +5,7 @@ import {
 import { productLinkToPipelineInput, runReviewPipeline } from '../src/lib/content-pipeline';
 import { getSupabaseServiceKeyClient } from '../src/lib/supabase';
 import { slugifyEditorialTitle } from '../src/lib/slug';
+import { getProductWithPictures } from '../src/lib/mercadolivre-api';
 
 type ExistingReview = {
   slug: string;
@@ -97,6 +98,291 @@ function isEligibleProduct(link: ProductLink): boolean {
   );
 }
 
+
+type AffiliateMatchSource = {
+  affiliate_link_id: string;
+  matched_item_id: string | null;
+  matched_title: string | null;
+  matched_url: string | null;
+  match_score: number | string | null;
+  match_status: string | null;
+  affiliate_links: {
+    id: string;
+    name: string;
+    category: string | null;
+    slug: string | null;
+    destination_url: string | null;
+    source_type: string | null;
+    status: string | null;
+    priority: number | null;
+  } | null;
+};
+
+type DiscoveryResult = {
+  candidates: ProductLink[];
+  imported: number;
+  enriched: number;
+  skippedExisting: number;
+  skippedUnsafe: number;
+  detailErrors: number;
+};
+
+function isHttpsUrl(value: unknown): value is string {
+  if (!isHttpUrl(value)) return false;
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function normalizeProductImage(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    if (!['http:', 'https:'].includes(url.protocol)) return null;
+    url.protocol = 'https:';
+    return url.toString().replace('-I.jpg', '-O.jpg');
+  } catch {
+    return null;
+  }
+}
+
+function inferProductCategory(name: string, title: string, fallback: string | null): string {
+  const value = canonicalProductName(name + ' ' + title);
+  if (/\b(robot vacuum|robo aspirador|mi robot vacuum)\b/i.test(value)) return 'Robôs Aspiradores';
+  if (/\b(redmi note|smartphone|celular|iphone)\b/i.test(value)) return 'Smartphones';
+  if (/\b(intelbras im\d+|camera de seguranca|camera wifi)\b/i.test(value)) return 'Câmeras de Segurança';
+  if (/\b(m track|m audio|interface de audio|interface audio)\b/i.test(value)) return 'Áudio Profissional';
+  if (/\b(notebook|laptop|inspiron|vivobook|ideapad)\b/i.test(value)) return 'Notebooks';
+  if (/\b(fritadeira|air fryer|pfr\d+)\b/i.test(value)) return 'Eletroportáteis';
+  return String(fallback || '').trim() || 'Geral';
+}
+
+async function discoverAffiliateBackedProducts(
+  supabase: NonNullable<ReturnType<typeof getSupabaseServiceKeyClient>>,
+  existingPages: ExistingReview[],
+  existingProductLinks: ProductLink[],
+  dryRun: boolean,
+  candidateLimit: number
+): Promise<DiscoveryResult> {
+  const result: DiscoveryResult = {
+    candidates: [],
+    imported: 0,
+    enriched: 0,
+    skippedExisting: 0,
+    skippedUnsafe: 0,
+    detailErrors: 0,
+  };
+
+  const { data, error } = await supabase
+    .from('affiliate_link_ml_matches')
+    .select('affiliate_link_id,matched_item_id,matched_title,matched_url,match_score,match_status,affiliate_links!inner(id,name,category,slug,destination_url,source_type,status,priority)')
+    .eq('match_status', 'matched')
+    .order('match_score', { ascending: false })
+    .limit(500);
+
+  if (error) {
+    console.error('[review-generation] affiliate product discovery query failed:', error.message);
+    return result;
+  }
+
+  const approved = ((data || []) as unknown as AffiliateMatchSource[])
+    .filter((row) => {
+      const source = row.affiliate_links;
+      const score = Number(row.match_score || 0);
+      return Boolean(
+        source &&
+        source.source_type === 'comparison_product' &&
+        source.status === 'active' &&
+        source.name?.trim() &&
+        score >= 0.9 &&
+        /^MLB-?\d+$/i.test(String(row.matched_item_id || '').trim()) &&
+        isHttpsUrl(row.matched_url) &&
+        isHttpsUrl(source.destination_url)
+      );
+    })
+    .sort((a, b) => Number(b.match_score || 0) - Number(a.match_score || 0));
+
+  // One source row per exact product name; duplicate comparative slots should
+  // not create multiple reviews for the same product.
+  const unique = new Map<string, AffiliateMatchSource>();
+  for (const row of approved) {
+    const name = String(row.affiliate_links?.name || '').trim();
+    const key = canonicalProductName(name);
+    if (key && !unique.has(key)) unique.set(key, row);
+  }
+
+  for (const row of unique.values()) {
+    if (result.candidates.length >= candidateLimit) break;
+    const source = row.affiliate_links;
+    if (!source) continue;
+
+    const name = String(source.name || '').trim();
+    const expectedSlug = slugifyEditorialTitle(name);
+    const existingReview = existingPages.find((page) =>
+      page.content_type === 'review' &&
+      (page.slug === expectedSlug || isSameProductPage(name, page))
+    );
+    if (existingReview) {
+      result.skippedExisting += 1;
+      continue;
+    }
+
+    // Never compete with an existing URL slug even if it belongs to an LP.
+    if (existingPages.some((page) => page.slug === expectedSlug)) {
+      result.skippedExisting += 1;
+      continue;
+    }
+
+    const key = canonicalProductName(name);
+    const existingLink = existingProductLinks.find((link) =>
+      link.status !== 'archived' && canonicalProductName(link.product_name) === key
+    );
+
+    if (existingLink && isEligibleProduct(existingLink)) {
+      // The normal queue already contains this product; let its regular path
+      // process it exactly once.
+      continue;
+    }
+    if (existingLink && (
+      existingLink.has_review ||
+      existingLink.status === 'reviewed' ||
+      existingLink.status === 'video_generated' ||
+      !['mercadolivre', 'multi'].includes(String(existingLink.marketplace || '').toLowerCase())
+    )) {
+      result.skippedExisting += 1;
+      continue;
+    }
+
+    let productDetail: Awaited<ReturnType<typeof getProductWithPictures>>;
+    try {
+      productDetail = await getProductWithPictures(String(row.matched_item_id));
+    } catch (error) {
+      result.detailErrors += 1;
+      console.warn(
+        '[review-generation] no product image/details for ' + name + ': ' +
+        (error instanceof Error ? error.message : String(error))
+      );
+      continue;
+    }
+
+    const imageUrl = normalizeProductImage(productDetail.thumbnail) ||
+      normalizeProductImage(productDetail.pictures?.find((picture) => picture.secure_url)?.secure_url) ||
+      normalizeProductImage(productDetail.pictures?.[0]?.url);
+    if (!imageUrl) {
+      result.skippedUnsafe += 1;
+      console.warn('[review-generation] skipped product without a verified image: ' + name);
+      continue;
+    }
+
+    const productUrl = String(row.matched_url || '').trim();
+    const affiliateUrl = String(source.destination_url || '').trim();
+    if (!isHttpsUrl(productUrl) || !isHttpsUrl(affiliateUrl)) {
+      result.skippedUnsafe += 1;
+      continue;
+    }
+
+    const category = inferProductCategory(name, String(row.matched_title || ''), source.category);
+    const priceValue = Number(productDetail.price);
+    const notes = [
+      'Importado automaticamente da Central de Afiliados.',
+      'Correspondência Mercado Livre aprovada; score ' + Number(row.match_score || 0).toFixed(2) + '.',
+      'Origem: ' + String(source.slug || source.id),
+      'Anúncio: ' + String(row.matched_title || name),
+    ].join(' ');
+
+    if (existingLink) {
+      // Fill only invalid/missing fields; preserve any existing affiliate
+      // destination and valid product data already configured by the editor.
+      const patch: Record<string, unknown> = {};
+      if (!isHttpsUrl(existingLink.product_url)) patch.product_url = productUrl;
+      if (!isHttpsUrl(existingLink.affiliate_url)) patch.affiliate_url = affiliateUrl;
+      if (!isHttpsUrl(existingLink.image_url)) patch.image_url = imageUrl;
+      if ((!existingLink.category || existingLink.category === 'Geral') && category) patch.category = category;
+      if (!existingLink.price && Number.isFinite(priceValue) && priceValue > 0) patch.price = String(priceValue);
+      if (!existingLink.notes) patch.notes = notes;
+
+      if (!Object.keys(patch).length) {
+        result.skippedExisting += 1;
+        continue;
+      }
+
+      let enrichedRow: ProductLink;
+      if (dryRun) {
+        enrichedRow = { ...existingLink, ...patch } as ProductLink;
+      } else {
+        const { data: updated, error: updateError } = await supabase
+          .from('product_links')
+          .update({ ...patch, updated_at: new Date().toISOString() })
+          .eq('id', existingLink.id)
+          .select('*')
+          .single();
+        if (updateError || !updated) {
+          console.error('[review-generation] failed to enrich existing product ' + name + ': ' + (updateError?.message || 'row not returned'));
+          continue;
+        }
+        enrichedRow = updated as ProductLink;
+      }
+
+      existingProductLinks.push(enrichedRow);
+      result.candidates.push(enrichedRow);
+      result.enriched += 1;
+      console.log('[review-generation] ' + (dryRun ? 'would enrich' : 'enriched') + ' existing product link: ' + name);
+      continue;
+    }
+
+    const newRow = {
+      slug: expectedSlug,
+      product_name: name,
+      category,
+      product_url: productUrl,
+      affiliate_url: affiliateUrl,
+      image_url: imageUrl,
+      marketplace: 'mercadolivre',
+      status: 'active',
+      source: 'api',
+      has_review: false,
+      has_video: false,
+      review_slug: null,
+      video_id: null,
+      price: Number.isFinite(priceValue) && priceValue > 0 ? String(priceValue) : null,
+      score: Number(row.match_score || 0),
+      priority: 75,
+      notes,
+      tags: ['affiliate-discovery', 'mercadolivre-matched'],
+    };
+
+    let insertedRow: ProductLink;
+    if (dryRun) {
+      insertedRow = {
+        ...newRow,
+        id: 'dry-run-' + row.affiliate_link_id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as ProductLink;
+    } else {
+      const { data: inserted, error: insertError } = await supabase
+        .from('product_links')
+        .insert(newRow)
+        .select('*')
+        .single();
+      if (insertError || !inserted) {
+        console.warn('[review-generation] failed to import candidate ' + name + ': ' + (insertError?.message || 'row not returned'));
+        continue;
+      }
+      insertedRow = inserted as ProductLink;
+    }
+
+    existingProductLinks.push(insertedRow);
+    result.candidates.push(insertedRow);
+    result.imported += 1;
+    console.log('[review-generation] ' + (dryRun ? 'would import' : 'imported') + ' affiliate-backed candidate: ' + name);
+  }
+
+  return result;
+}
+
 async function main(): Promise<void> {
   const dryRun = process.argv.includes('--dry-run');
   const maxAttemptsRaw = Number(process.env.REVIEW_GENERATION_MAX_ATTEMPTS || 4);
@@ -112,7 +398,7 @@ async function main(): Promise<void> {
     throw new Error('NVIDIA_API_KEY ausente; geração de review interrompida.');
   }
 
-  const [{ data: rawLinks, error: linksError }, { data: existingRows, error: reviewsError }] = await Promise.all([
+  const [{ data: rawLinks, error: linksError }, { data: existingRows, error: reviewsError }, { data: allProductRows, error: allProductLinksError }] = await Promise.all([
     supabase
       .from('product_links')
       .select('*')
@@ -132,13 +418,19 @@ async function main(): Promise<void> {
       .from('reviews')
       .select('slug,product,status,content_type')
       .limit(2000),
+    supabase
+      .from('product_links')
+      .select('*')
+      .limit(1000),
   ]);
 
   if (linksError) throw new Error('Não foi possível ler a fila de produtos: ' + linksError.message);
   if (reviewsError) throw new Error('Não foi possível conferir reviews/LPs existentes: ' + reviewsError.message);
+  if (allProductLinksError) throw new Error('Não foi possível verificar duplicações na fila de produtos: ' + allProductLinksError.message);
 
   const existingPages = (existingRows || []) as ExistingReview[];
   const pagesBySlug = new Map(existingPages.map((page) => [page.slug, page]));
+  const allProductLinks = (allProductRows || []) as ProductLink[];
 
   const links = ((rawLinks || []) as ProductLink[]).filter(isEligibleProduct);
   const eligible: ProductLink[] = [];
@@ -175,6 +467,15 @@ async function main(): Promise<void> {
     eligible.push(link);
   }
 
+  const discovery = await discoverAffiliateBackedProducts(
+    supabase,
+    existingPages,
+    allProductLinks,
+    dryRun,
+    maxAttempts
+  );
+  eligible.push(...discovery.candidates.filter(isEligibleProduct));
+
   console.log(JSON.stringify({
     event: 'daily-review-queue-inspected',
     dryRun,
@@ -183,6 +484,11 @@ async function main(): Promise<void> {
     reconciledExistingReviews: reconciled,
     skippedExistingPages: skippedExisting,
     maxAttempts,
+    affiliateCandidatesImported: discovery.imported,
+    existingProductsEnriched: discovery.enriched,
+    affiliateCandidatesSkippedExisting: discovery.skippedExisting,
+    affiliateCandidatesSkippedUnsafe: discovery.skippedUnsafe,
+    affiliateProductDetailErrors: discovery.detailErrors,
   }));
 
   if (eligible.length === 0) {
