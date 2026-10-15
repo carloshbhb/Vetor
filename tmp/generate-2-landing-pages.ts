@@ -134,6 +134,63 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
     };
   }
 
+  // In explicit smoke-test mode, verify the persisted row and product relation before reporting success.
+  if (process.env.LANDING_TEST_PRODUCT_ID?.trim()) {
+    const { data: saved, error: verifyError } = await supabase
+      .from('reviews')
+      .select('slug,status,content_type,specs,sections,compare_table,faq')
+      .eq('slug', outcome.slug)
+      .maybeSingle();
+
+    if (verifyError || !saved) {
+      return {
+        slug: outcome.slug,
+        status: 'failed',
+        url: buildContentUrl('/reviews/' + outcome.slug),
+        type: 'landing',
+        visibility: 'draft',
+        error: 'A LP foi gerada, mas a leitura de verificação da persistência falhou: ' + (verifyError?.message || 'registro não encontrado'),
+      };
+    }
+
+    const comparison = saved.compare_table as { columns?: unknown[]; rows?: unknown[] } | null;
+    const sectionsCount = Array.isArray(saved.sections) ? saved.sections.length : 0;
+    const specsCount = Array.isArray(saved.specs) ? saved.specs.length : 0;
+    const comparisonColumns = Array.isArray(comparison?.columns) ? comparison.columns.length : 0;
+    const comparisonRows = Array.isArray(comparison?.rows) ? comparison.rows.length : 0;
+    const faqCount = Array.isArray(saved.faq) ? saved.faq.length : 0;
+
+    if (saved.content_type !== 'lp' || saved.status !== 'draft' || sectionsCount < 3 || specsCount < 3 || comparisonColumns < 3 || comparisonRows < 1 || faqCount < 1) {
+      return {
+        slug: outcome.slug,
+        status: 'failed',
+        url: buildContentUrl('/reviews/' + outcome.slug),
+        type: 'landing',
+        visibility: 'draft',
+        error: `Contrato de persistência LP incompleto: content_type=${saved.content_type}, status=${saved.status}, sections=${sectionsCount}, specs=${specsCount}, compareColumns=${comparisonColumns}, compareRows=${comparisonRows}, faq=${faqCount}.`,
+      };
+    }
+
+    const { data: relation, error: relationError } = await supabase
+      .from('product_links')
+      .select('landing_page_slug')
+      .eq('id', link.id)
+      .maybeSingle();
+
+    if (relationError || relation?.landing_page_slug !== outcome.slug) {
+      return {
+        slug: outcome.slug,
+        status: 'failed',
+        url: buildContentUrl('/reviews/' + outcome.slug),
+        type: 'landing',
+        visibility: 'draft',
+        error: 'A LP existe, mas o vínculo produto → landing_page_slug não passou na verificação.',
+      };
+    }
+
+    console.log(`[landing-generation] Smoke test verificado: status=draft, content_type=lp, sections=${sectionsCount}, specs=${specsCount}, compareRows=${comparisonRows}, faq=${faqCount}, vínculo=OK`);
+  }
+
   return {
     slug: outcome.slug,
     status: 'success',
@@ -144,7 +201,10 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
 }
 
 async function main() {
-  console.log('[landing-generation] Iniciando geração de 2 landing pages via NVIDIA + quality gate...');
+  const testProductId = process.env.LANDING_TEST_PRODUCT_ID?.trim();
+  console.log(testProductId
+    ? '[landing-generation] Smoke test controlado: uma LP de rascunho para o produto explicitamente selecionado.'
+    : '[landing-generation] Iniciando geração de 2 landing pages via NVIDIA + quality gate...');
 
   const allLinks = await getAllProductLinks({ has_review: false, limit: 500 });
   const eligibleLinks = allLinks.filter((link) =>
@@ -162,12 +222,24 @@ async function main() {
   // Validate the image URL format, not network reachability from the CI runner.
   // Mercado Livre CDN endpoints may reject HEAD/automated probes even when browsers
   // can display the images. The full HTTP(S) URL was already validated above.
-  const toProcess: ProductLink[] = eligibleLinks
+  const modeLinks = testProductId
+    ? eligibleLinks.filter((link) => link.id === testProductId)
+    : eligibleLinks;
+  const requiredCount = testProductId ? 1 : 2;
+  const toProcess: ProductLink[] = modeLinks
     .filter((link) => isHttpUrl(link.image_url))
-    .slice(0, 2);
+    .slice(0, requiredCount);
 
-  if (toProcess.length < 2) {
-    console.error(`[landing-generation] Apenas ${toProcess.length} produtos com URL de imagem HTTP(S) válida encontrados; são necessários 2.`);
+  if (toProcess.length < requiredCount) {
+    console.error(testProductId
+      ? `[landing-generation] O produto selecionado não está elegível para um teste de LP (ID não encontrado, já possui review/LP ou dados obrigatórios inválidos). Nenhum outro produto será usado.`
+      : `[landing-generation] Apenas ${toProcess.length} produtos com URL de imagem HTTP(S) válida encontrados; são necessários 2.`);
+    process.exitCode = 1;
+    return [];
+  }
+
+  if (testProductId && toProcess[0]?.id !== testProductId) {
+    console.error('[landing-generation] O ID do teste não corresponde ao único produto selecionado; abortando.');
     process.exitCode = 1;
     return [];
   }
@@ -198,8 +270,12 @@ async function main() {
   const skipped = results.filter((result) => result.status === 'skipped').length;
   console.log(`[landing-generation] Finalizado: ${successful} sucesso, ${failed} falha, ${skipped} ignorados.`);
 
-  if (failed > 0 || results.length < 2) {
-    console.error('[landing-generation] Não foram concluídas duas operações válidas de LP.');
+  const requiredCount = process.env.LANDING_TEST_PRODUCT_ID?.trim() ? 1 : 2;
+  const testDidNotCreate = Boolean(process.env.LANDING_TEST_PRODUCT_ID?.trim()) && results.some((result) => result.status !== 'success');
+  if (failed > 0 || results.length < requiredCount || testDidNotCreate) {
+    console.error(testDidNotCreate
+      ? '[landing-generation] O smoke test exige uma LP nova criada e verificada; ignorados/falhas não contam como sucesso.'
+      : `[landing-generation] Não foram concluídas as ${requiredCount} operações válidas de LP esperadas.`);
     process.exitCode = 1;
   }
 
