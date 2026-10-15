@@ -116,11 +116,13 @@ async function main(): Promise<void> {
       (exactSlugPage?.content_type === 'review' ? exactSlugPage : undefined);
 
     if (existingReview) {
-      const marked = await markProductLinkReviewed(link.id, existingReview.slug);
-      if (marked.error) {
-        throw new Error('Review já existente, mas falhou ao reconciliar produto ' + link.product_name + ': ' + marked.error);
+      if (!dryRun) {
+        const marked = await markProductLinkReviewed(link.id, existingReview.slug);
+        if (marked.error) {
+          throw new Error('Review já existente, mas falhou ao reconciliar produto ' + link.product_name + ': ' + marked.error);
+        }
       }
-      console.log('[review-generation] reconciled existing review: ' + link.product_name + ' -> ' + existingReview.slug);
+      console.log('[review-generation] ' + (dryRun ? 'would reconcile' : 'reconciled') + ' existing review: ' + link.product_name + ' -> ' + existingReview.slug);
       reconciled += 1;
       continue;
     }

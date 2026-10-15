@@ -3,13 +3,9 @@ name: Generate Daily Review
 on:
   schedule:
     - cron: '15 4 * * *'
+  push:
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: 'Only verify the queue; do not call NVIDIA or create content'
-        required: true
-        default: true
-        type: boolean
 
 permissions:
   contents: read
@@ -31,7 +27,7 @@ jobs:
       NVIDIA_MODEL: ${{ vars.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b' }}
       NVIDIA_FALLBACK_MODEL: ${{ vars.NVIDIA_FALLBACK_MODEL || 'nvidia/nemotron-3-super-120b-a12b' }}
       REVIEW_GENERATION_MAX_ATTEMPTS: '4'
-      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+      DRY_RUN: ${{ github.event_name != 'schedule' }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -65,7 +61,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${DRY_RUN}" = "true" ]; then
-            echo "Manual dry-run: generation is disabled."
+            echo "Validation-only run: generation is disabled for pushes and manual dispatches."
             npx tsx scripts/generate-daily-review.ts --dry-run
           else
             echo "Running scheduled daily review generation. New content is saved as a draft for editorial approval."
