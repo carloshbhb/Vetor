@@ -5,7 +5,6 @@ import {
 import { productLinkToPipelineInput, runReviewPipeline } from '../src/lib/content-pipeline';
 import { getSupabaseServiceKeyClient } from '../src/lib/supabase';
 import { slugifyEditorialTitle } from '../src/lib/slug';
-import { getProductWithPictures } from '../src/lib/mercadolivre-api';
 
 type ExistingReview = {
   slug: string;
@@ -160,6 +159,52 @@ function inferProductCategory(name: string, title: string, fallback: string | nu
   return String(fallback || '').trim() || 'Geral';
 }
 
+
+type ProductionMLProductDetails = {
+  itemId: string;
+  title: string;
+  productUrl: string;
+  price: number | null;
+  imageUrl: string | null;
+};
+
+async function fetchProductionMLProductDetails(itemId: string): Promise<ProductionMLProductDetails> {
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  if (!cronSecret) {
+    throw new Error('CRON_SECRET ausente; não é possível consultar detalhes de produto na API Production.');
+  }
+
+  const response = await fetch('https://www.vetor.blog/api/cron/ml-product-details', {
+    method: 'POST',
+    headers: {
+      authorization: 'Bearer ' + cronSecret,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({ itemIds: [itemId] }),
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(
+      'Endpoint Production de detalhes Mercado Livre HTTP ' +
+      response.status +
+      (body ? ': ' + body.slice(0, 180) : '')
+    );
+  }
+
+  const payload = await response.json() as { results?: ProductionMLProductDetails[] };
+  const normalizedItemId = itemId.replace(/-/g, '').toUpperCase();
+  const product = (payload.results || []).find((entry) =>
+    String(entry.itemId || '').replace(/-/g, '').toUpperCase() === normalizedItemId
+  );
+  if (!product) {
+    throw new Error('O endpoint Production não retornou detalhes para ' + normalizedItemId + '.');
+  }
+  return product;
+}
+
 async function discoverAffiliateBackedProducts(
   supabase: NonNullable<ReturnType<typeof getSupabaseServiceKeyClient>>,
   existingPages: ExistingReview[],
@@ -167,7 +212,7 @@ async function discoverAffiliateBackedProducts(
   dryRun: boolean,
   candidateLimit: number
 ): Promise<DiscoveryResult> {
-  const credentialsAvailable = Boolean(process.env.ML_CLIENT_ID?.trim() && process.env.ML_CLIENT_SECRET?.trim());
+  const credentialsAvailable = Boolean(process.env.CRON_SECRET?.trim());
   const result: DiscoveryResult = {
     candidates: [],
     credentialsAvailable,
@@ -179,7 +224,7 @@ async function discoverAffiliateBackedProducts(
   };
 
   if (!credentialsAvailable) {
-    console.warn('[review-generation] Mercado Livre candidate discovery skipped: ML_CLIENT_ID/ML_CLIENT_SECRET are not available to this workflow. Existing queued products can still be processed.');
+    console.warn('[review-generation] Mercado Livre candidate discovery skipped: CRON_SECRET is not available to this workflow. Existing queued products can still be processed.');
     return result;
   }
 
@@ -263,9 +308,9 @@ async function discoverAffiliateBackedProducts(
       continue;
     }
 
-    let productDetail: Awaited<ReturnType<typeof getProductWithPictures>>;
+    let productDetail: ProductionMLProductDetails;
     try {
-      productDetail = await getProductWithPictures(String(row.matched_item_id));
+      productDetail = await fetchProductionMLProductDetails(String(row.matched_item_id));
     } catch (error) {
       result.detailErrors += 1;
       console.warn(
@@ -275,9 +320,7 @@ async function discoverAffiliateBackedProducts(
       continue;
     }
 
-    const imageUrl = normalizeProductImage(productDetail.thumbnail) ||
-      normalizeProductImage(productDetail.pictures?.find((picture) => picture.secure_url)?.secure_url) ||
-      normalizeProductImage(productDetail.pictures?.[0]?.url);
+    const imageUrl = normalizeProductImage(productDetail.imageUrl);
     if (!imageUrl) {
       result.skippedUnsafe += 1;
       console.warn('[review-generation] skipped product without a verified image: ' + name);
