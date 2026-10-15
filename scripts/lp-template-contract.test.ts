@@ -53,6 +53,7 @@ for (const token of [
 
 assert(template.includes('data-template="landing-page"'), "O template não marca a página para evitar chrome global duplicado.");
 assert(template.includes("imageUrl && <img"), "A imagem principal do produto não é renderizada no veredito.");
+assert(template.includes("<CookiePreferencesControl />"), "O rodapé LP precisa manter acesso às preferências de cookies.");
 assert(route.includes('review.content_type === "lp"'), "A rota não encaminha LPs ao template dedicado.");
 assert(route.includes("<LandingPageTemplate review={review} />"), "O template dedicado não é usado na renderização.");
 assert(!template.includes('id="resumo}>'), "Foi encontrada a marcação JSX inválida que causou falha de build.");
