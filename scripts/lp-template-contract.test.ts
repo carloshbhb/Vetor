@@ -12,56 +12,59 @@ function assert(condition: unknown, message: string): asserts condition {
 }
 
 const orderedMarkers = [
-  'id="resumo"',
-  'id="criterios"',
-  'id="desempenho"',
-  'id="preco"',
+  'id="destaques"',
+  "Destaques Principais",
+  'id="ficha-tecnica"',
+  "Ficha Técnica Completa",
+  'id="analise-detalhada"',
+  "Análise Detalhada",
   'id="comparativo"',
-  'id="publico"',
-  "Conclusão:",
-  'id="faq"',
-  'id="leia-tambem"',
+  "Comparativo com Concorrentes",
+  '<footer className={styles.footer}>',
 ];
 let previousIndex = -1;
 for (const marker of orderedMarkers) {
   const index = template.indexOf(marker);
-  assert(index >= 0, "Falta a seção obrigatória do modelo: " + marker);
-  assert(index > previousIndex, "A ordem do modelo foi alterada perto de: " + marker);
+  assert(index >= 0, "Falta seção ou marcador obrigatório do modelo: " + marker);
+  assert(index > previousIndex, "A ordem da referência foi alterada perto de: " + marker);
   previousIndex = index;
 }
 
-const requiredTemplateClasses = [
-  "siteHeader", "nav", "hero", "heroGrid", "verdict", "adSlot",
-  "contentWrap", "layout", "article", "toc", "quickSummary", "factGrid",
-  "callout", "compareWrap", "tag", "whoGrid", "faq", "related",
-  "sidebar", "sideCard", "footerGrid", "footerLinks", "mobileCta",
+const requiredClasses = [
+  "siteHeader", "nav", "hero", "heroGrid", "heroProduct", "productImage",
+  "sectionTitle", "highlightGrid", "highlightCard", "tableWrap", "analysisGrid",
+  "analysisCard", "comparisonTable", "footer", "footerGrid", "footerLinks", "mobileCta",
 ];
-for (const className of requiredTemplateClasses) {
-  assert(template.includes("styles." + className), "Classe estrutural ausente no template: " + className);
-  assert(styles.includes("." + className), "Regra CSS ausente para a classe estrutural: " + className);
+for (const className of requiredClasses) {
+  assert(template.includes("styles." + className), "Classe estrutural ausente: " + className);
+  assert(styles.includes("." + className), "Regra visual ausente: " + className);
 }
 
 for (const token of [
-  "--bg: #071018", "--bg-2: #0d1722", "--surface: #ffffff",
-  "--surface-2: #f5f7f9", "--brand: #ffe600", "--brand-2: #f6ce00",
-  "--max: 1180px", "padding: 56px 0 76px",
-  "grid-template-columns: minmax(0,1.32fr) minmax(300px,.68fr)",
-  "@media (max-width: 980px)", "@media (max-width: 720px)",
+  "--navy: #0f172a",
+  "--accent: #2563eb",
+  "--background: #f8fafc",
+  "--surface: #ffffff",
+  "padding: 36px 0 58px",
+  "grid-template-columns: repeat(3, minmax(0, 1fr))",
+  "@media (max-width: 980px)",
+  "@media (max-width: 720px)",
+  "section-title",
 ]) {
-  assert(styles.includes(token), "Token ou breakpoint de referência ausente: " + token);
+  assert(styles.includes(token), "Token visual ou breakpoint da referência ausente: " + token);
 }
-
-assert(template.includes('data-template="landing-page"'), "O template não marca a página para evitar chrome global duplicado.");
-assert(template.includes("imageUrl && <img"), "A imagem principal do produto não é renderizada no veredito.");
+assert(!styles.includes("#ffe600"), "A identidade antiga amarela voltou ao template.");
+assert(template.includes('data-template="landing-page"'), "O template não marca a LP para evitar chrome global duplicado.");
 assert(template.includes("<CookiePreferencesControl />"), "O rodapé LP precisa manter acesso às preferências de cookies.");
+assert(template.includes('className={`${styles.sectionTitle} section-title`}'), "A classe section-title da referência não está aplicada.");
 assert(route.includes('review.content_type === "lp"'), "A rota não encaminha LPs ao template dedicado.");
 assert(route.includes("<LandingPageTemplate review={review} />"), "O template dedicado não é usado na renderização.");
-assert(!template.includes('id="resumo}>'), "Foi encontrada a marcação JSX inválida que causou falha de build.");
 assert(
   globalCss.includes('body:has([data-template="landing-page"]) > .site-header') &&
     globalCss.includes('body:has([data-template="landing-page"]) > footer'),
   "As páginas LP não escondem o header/footer global duplicado."
 );
+assert(!template.includes('id="resumo}>'), "Foi encontrada a marcação JSX inválida que causou falha de build.");
 assert(!template.includes("displaySpecs"), "Variável obsoleta de ficha técnica voltou ao template.");
 
-console.log("[lp-template-contract] OK: estrutura, ordem, classes, tokens visuais e roteamento LP conferidos.");
+console.log("[lp-template-contract] OK: identidade azul/clara, ordem de seções, tabelas, cards responsivos, footer e roteamento LP conferidos.");
