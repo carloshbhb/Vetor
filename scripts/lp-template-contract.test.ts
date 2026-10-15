@@ -50,9 +50,12 @@ for (const token of [
   assert(styles.includes(token), "Token ou breakpoint de referência ausente: " + token);
 }
 
+assert(template.includes('data-template="landing-page"'), "O template não marca a página para evitar chrome global duplicado.");
+assert(template.includes("imageUrl && <img"), "A imagem principal do produto não é renderizada no veredito.");
 assert(route.includes('review.content_type === "lp"'), "A rota não encaminha LPs ao template dedicado.");
 assert(route.includes("<LandingPageTemplate review={review} />"), "O template dedicado não é usado na renderização.");
 assert(!template.includes('id="resumo}>'), "Foi encontrada a marcação JSX inválida que causou falha de build.");
+assert(gglobalHasLandingChromeRule(), "As páginas LP não escondem o header/footer global duplicado.");
 assert(!template.includes("displaySpecs"), "Variável obsoleta de ficha técnica voltou ao template.");
 
 console.log("[lp-template-contract] OK: estrutura, ordem, classes, tokens visuais e roteamento LP conferidos.");
