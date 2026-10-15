@@ -25,16 +25,62 @@ function isHttpUrl(value: unknown): value is string {
 
 function canonicalProductName(value: string): string {
   let normalized = value.trim();
-  normalized = normalized.replace(/^\s*(?:review|an[aá]lise(?:\s+completa)?)\s+/i, '');
-  normalized = normalized.replace(/\s*[:–—-]\s*(?:an[aá]lise|review|vale\s+a\s+pena)\b[\s\S]*$/i, '');
-  normalized = normalized.replace(/\s+(?:an[aá]lise\s+completa|review|vale\s+a\s+pena)\??\s*$/i, '');
+  normalized = normalized.replace(/^\\s*(?:(?:review|an[aá]lise(?:\\s+completa)?|avaliação|avaliacao)\\s+)+/i, '');
+  normalized = normalized.replace(/^\\s*(?:notebook|laptop|controle|controlador)\\s+/i, '');
+  normalized = normalized.replace(/\\s*[:–—-]\\s*(?:an[aá]lise|review|vale\\s+a\\s+pena)\\b[\\s\\S]*$/i, '');
+  normalized = normalized.replace(/\\s+(?:an[aá]lise\\s+completa|review|vale\\s+a\\s+pena)\\??\\s*$/i, '');
   return normalized
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\\u0300-\\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
-    .replace(/\s+/g, ' ');
+    .replace(/\\s+/g, ' ');
+}
+
+const GENERIC_PRODUCT_WORDS = new Set([
+  'review', 'analise', 'completa', 'completo', 'avaliacao',
+  'notebook', 'laptop', 'controle', 'controlador', 'cor', 'original',
+]);
+
+const NUMBERED_PRODUCT_VARIANTS: RegExp[] = [
+  /\\b(?:galaxy\\s+)?buds\\s*(\\d{1,2})\\b/i,
+  /\\bairpods\\s+pro\\s*(\\d{1,2})\\b/i,
+  /\\b(?:redmi\\s+)?watch\\s*(\\d{1,2})\\b/i,
+  /\\bsmart\\s+band\\s*(\\d{1,2})\\b/i,
+  /\\b(?:echo\\s+)?dot\\s*(\\d{1,2})\\b/i,
+  /\\b(?:jbl\\s+)?quantum\\s*(\\d{2,3})\\b/i,
+  /\\bsuperlight\\s*(\\d{1,2})\\b/i,
+  /\\bgamesir\\s+nova\\s+lite\\s*(\\d{1,2})\\b/i,
+];
+
+function hasNumberedVariantMismatch(query: string, title: string): boolean {
+  const normalizedQuery = canonicalProductName(query);
+  const normalizedTitle = canonicalProductName(title);
+  for (const pattern of NUMBERED_PRODUCT_VARIANTS) {
+    const requested = normalizedQuery.match(pattern)?.[1] || null;
+    const existing = normalizedTitle.match(pattern)?.[1] || null;
+    if ((requested || existing) && requested !== existing) return true;
+  }
+  return false;
+}
+
+function isSameProductPage(productName: string, page: ExistingReview): boolean {
+  if (!page.product?.trim() || page.content_type !== 'review') return false;
+  if (hasNumberedVariantMismatch(productName, page.product)) return false;
+
+  const productTokens = canonicalProductName(productName)
+    .split(' ')
+    .filter((token) => (token.length > 1 || /^\\d+$/.test(token)) && !GENERIC_PRODUCT_WORDS.has(token));
+  const pageTokens = new Set(
+    canonicalProductName(page.product)
+      .split(' ')
+      .filter((token) => (token.length > 1 || /^\\d+$/.test(token)) && !GENERIC_PRODUCT_WORDS.has(token))
+  );
+
+  // Compare the request's identifying tokens against the fuller editorial title.
+  // Additional confirmed specs are acceptable; missing product tokens are not.
+  return productTokens.length >= 2 && productTokens.every((token) => pageTokens.has(token));
 }
 
 function isEligibleProduct(link: ProductLink): boolean {
@@ -93,14 +139,6 @@ async function main(): Promise<void> {
 
   const existingPages = (existingRows || []) as ExistingReview[];
   const pagesBySlug = new Map(existingPages.map((page) => [page.slug, page]));
-  const pagesByProduct = new Map<string, ExistingReview[]>();
-  for (const page of existingPages) {
-    const key = canonicalProductName(String(page.product || ''));
-    if (!key) continue;
-    const rows = pagesByProduct.get(key) || [];
-    rows.push(page);
-    pagesByProduct.set(key, rows);
-  }
 
   const links = ((rawLinks || []) as ProductLink[]).filter(isEligibleProduct);
   const eligible: ProductLink[] = [];
@@ -108,11 +146,10 @@ async function main(): Promise<void> {
   let skippedExisting = 0;
 
   for (const link of links) {
-    const key = canonicalProductName(link.product_name);
     const expectedSlug = slugifyEditorialTitle(link.product_name);
     const exactSlugPage = pagesBySlug.get(expectedSlug);
-    const sameProductPages = key ? (pagesByProduct.get(key) || []) : [];
-    const existingReview = sameProductPages.find((page) => page.content_type === 'review') ||
+    const sameProductPages = existingPages.filter((page) => isSameProductPage(link.product_name, page));
+    const existingReview = sameProductPages[0] ||
       (exactSlugPage?.content_type === 'review' ? exactSlugPage : undefined);
 
     if (existingReview) {
@@ -149,7 +186,12 @@ async function main(): Promise<void> {
   }));
 
   if (eligible.length === 0) {
-    throw new Error('Nenhum produto elegível após deduplicação. Verifique a fila product_links e os vínculos de review/LP.');
+    const message = 'Nenhum produto novo elegível após deduplicação; a fila contém itens sem imagem/URL válida ou produtos que já possuem review.';
+    if (dryRun) {
+      console.warn('[review-generation] ' + message + ' Nenhum dado foi alterado.');
+      return;
+    }
+    throw new Error(message);
   }
 
   if (dryRun) {

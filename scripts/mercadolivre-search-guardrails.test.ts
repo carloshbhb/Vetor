@@ -46,6 +46,11 @@ mustReview(
   /active|variante/i,
 );
 mustReview(
+  "GameSir Nova Lite",
+  "GameSir Nova Lite 2 controle sem fio",
+  /modelo|numerad|GameSir Nova Lite/i,
+);
+mustReview(
   "Controle GameSir Nova Lite preto translúcido",
   "GameSir Nova Lite Hall Effect Bluetooth Switch PC Ash Grey",
   /cor|acabamento|preto|cinza/i,
