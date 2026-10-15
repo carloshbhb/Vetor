@@ -58,6 +58,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install FFmpeg and ffprobe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffprobe -version
+
       - name: Install Chrome for headless rendering
         uses: browser-actions/setup-chrome@v1.2.0
         with:
