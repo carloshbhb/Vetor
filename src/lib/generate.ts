@@ -293,8 +293,8 @@ async function generateReviewSectionBatch(
     ].join('\n'),
     temperature: 0.35,
     maxTokens: 2600,
-    timeoutMs: 16000,
-    deadlineMs: 36000,
+    timeoutMs: 70000,
+    deadlineMs: 220000,
     validateResponse: (value) => isCompleteSectionBatch(value, plans),
   });
 
@@ -330,8 +330,8 @@ async function generateReviewMetadata(
     ].join('\n'),
     temperature: 0.25,
     maxTokens: 1800,
-    timeoutMs: 16000,
-    deadlineMs: 36000,
+    timeoutMs: 70000,
+    deadlineMs: 220000,
     validateResponse: hasCompleteReviewMetadata,
   });
   return parseModelJsonObject(raw, 'metadados editoriais') as unknown as GeneratedReviewResult;
