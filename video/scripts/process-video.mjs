@@ -217,41 +217,91 @@ async function combineAudioFiles(audioFiles, outputPath) {
 }
 
 async function renderWithRemotion(videoData, outputPath) {
-  const renderStartedAt = Date.now();
   const outputDir = path.dirname(outputPath);
   const dataPath = path.join(outputDir, 'remotion-input.json');
   fs.mkdirSync(outputDir, { recursive: true });
   fs.writeFileSync(dataPath, JSON.stringify(videoData, null, 2));
 
   try {
-    execSync(
-      `npx tsx video/src/utils/renderVideo.ts review "${dataPath}"`,
+    // Remove a saída de mesmo ID e exclui resultados antigos da lista de candidatos.
+    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+    const renderedDir = path.resolve('video/out');
+    const existingMp4 = new Set(
+      fs.readdirSync(renderedDir).filter((name) => name.endsWith('.mp4'))
+    );
+    const renderStartedAt = Date.now();
+
+    // Capturar stdout/stderr no erro permite registrar a causa real do Remotion.
+    const renderOutput = execFileSync(
+      'npx',
+      ['tsx', 'video/src/utils/renderVideo.ts', 'review', dataPath],
       {
-        stdio: 'inherit',
+        encoding: 'utf8',
+        stdio: 'pipe',
         timeout: 600000,
+        maxBuffer: 32 * 1024 * 1024,
         cwd: path.resolve(process.cwd()),
       }
     );
+    if (renderOutput.trim()) {
+      console.log('   [Remotion] ' + renderOutput.trim().slice(-1600));
+    }
 
-    // Remotion writes timestamped files into video/out. Normalize the newest
-    // result to this queue item's ID so uploads cannot accidentally use old output.
-    const renderedDir = path.resolve('video/out');
+    if (!fs.existsSync(renderedDir)) {
+      throw new Error('Remotion finalizou sem criar o diretório de saída video/out.');
+    }
     const candidates = fs.readdirSync(renderedDir)
       .filter((name) => name.endsWith('.mp4') && path.join(renderedDir, name) !== outputPath)
+      .filter((name) => !existingMp4.has(name))
       .map((name) => ({
         path: path.join(renderedDir, name),
         mtime: fs.statSync(path.join(renderedDir, name)).mtimeMs,
       }))
-      .filter((candidate) => candidate.mtime >= renderStartedAt - 2000)
+      .filter((candidate) => candidate.mtime >= renderStartedAt - 1000)
       .sort((left, right) => right.mtime - left.mtime);
 
     if (!fs.existsSync(outputPath)) {
-      if (candidates.length === 0) throw new Error('Remotion finished without producing an MP4 file.');
+      if (candidates.length === 0) {
+        throw new Error('Remotion terminou sem produzir um MP4 novo nesta execução.');
+      }
       fs.renameSync(candidates[0].path, outputPath);
     }
+
     if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size < 10000) {
-      throw new Error('Rendered MP4 is missing or unexpectedly small.');
+      throw new Error('MP4 renderizado ausente ou pequeno demais.');
     }
+
+    // Tamanho não prova integridade: confirme stream de vídeo, resolução e duração.
+    const probeOutput = execFileSync(
+      'ffprobe',
+      [
+        '-v', 'error',
+        '-show_entries', 'format=duration:stream=codec_type,codec_name,width,height',
+        '-of', 'json',
+        outputPath,
+      ],
+      { encoding: 'utf8', stdio: 'pipe', timeout: 30000, maxBuffer: 1024 * 1024 }
+    );
+    const media = JSON.parse(probeOutput);
+    const duration = Number(media.format?.duration);
+    const videoStream = Array.isArray(media.streams)
+      ? media.streams.find((stream) => stream.codec_type === 'video')
+      : null;
+    if (
+      !Number.isFinite(duration) ||
+      duration <= 0 ||
+      !videoStream ||
+      !videoStream.codec_name ||
+      Number(videoStream.width) <= 0 ||
+      Number(videoStream.height) <= 0
+    ) {
+      throw new Error('MP4 inválido: ffprobe não encontrou stream de vídeo com resolução e duração válidas.');
+    }
+    console.log(
+      '   [Remotion] MP4 validado pelo ffprobe: ' +
+      duration.toFixed(2) + 's, ' + videoStream.width + 'x' + videoStream.height +
+      ', codec=' + videoStream.codec_name + '.'
+    );
   } finally {
     if (fs.existsSync(dataPath)) fs.unlinkSync(dataPath);
   }
@@ -296,8 +346,32 @@ async function uploadToYouTube(videoPath, title, description, tags) {
     });
 
     const videoId = response.data.id;
-    const videoUrl = `https://youtube.com/watch?v=${videoId}`;
-    console.log(`   📤 YouTube: ${videoUrl}`);
+    if (!videoId) {
+      throw new Error('A API do YouTube não retornou ID para o vídeo enviado.');
+    }
+
+    // Confirma na API que o recurso existe e está público; não confiar apenas no upload request.
+    let confirmedPublicVideo = null;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const listing = await youtube.videos.list({
+        part: ['id', 'status'],
+        id: [videoId],
+      });
+      confirmedPublicVideo = (listing.data.items || []).find(
+        (item) => item.id === videoId && item.status?.privacyStatus === 'public'
+      ) || null;
+      if (confirmedPublicVideo) break;
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    if (!confirmedPublicVideo) {
+      throw new Error(
+        'Upload aceito, mas a API do YouTube não confirmou o vídeo ' + videoId +
+        ' com privacyStatus=public após três consultas.'
+      );
+    }
+
+    const videoUrl = 'https://youtube.com/watch?v=' + videoId;
+    console.log('   📤 YouTube confirmado como público: ' + videoUrl);
     return { videoId, videoUrl };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -499,7 +573,8 @@ async function processVideo(video) {
     const details = error && typeof error === 'object' ? error : {};
     const stderr = details.stderr ? String(details.stderr).slice(-1800) : '';
     const stdout = details.stdout ? String(details.stdout).slice(-1000) : '';
-    const command = details.command ? String(details.command).slice(0, 500) : '';
+    const commandValue = details.command || details.cmd;
+    const command = commandValue ? String(commandValue).slice(0, 500) : '';
     const diagnostic = [`Etapa: ${processingStage}`, message, command ? `Comando: ${command}` : '', stderr ? `stderr: ${stderr}` : '', stdout ? `stdout: ${stdout}` : ''].filter(Boolean).join(' | ').slice(0, 4000);
     console.error(`   ❌ Erro na etapa [${processingStage}]: ${message}`);
     if (stderr) console.error(`   [diagnóstico stderr] ${stderr}`);
