@@ -527,23 +527,28 @@ async function main() {
   await verifyYouTubeOAuth();
   const videoId = process.env.VIDEO_ID;
   let failures = 0;
+  let processedCount = 0;
   if (videoId) {
     const video = await getVideoById(videoId);
     if (!video) throw new Error(`Vídeo ${videoId} não encontrado na fila autenticada do Supabase conectado ao Vetor.`);
+    processedCount += 1;
     if (!(await processVideo(video))) failures += 1;
   } else {
     const limit = Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 10);
     const videos = await getPendingVideos(limit);
     console.log(`   ${videos.length} vídeos pendentes encontrados (limite: ${limit})`);
     for (const video of videos) {
+      processedCount += 1;
       if (!(await processVideo(video))) failures += 1;
     }
   }
   if (failures > 0) {
     console.error(`[video-worker] ${failures} vídeo(s) falharam. Confira error_message no Supabase.`);
     process.exitCode = 1;
+  } else if (processedCount === 0) {
+    console.log('\nℹ️ Nenhum vídeo foi processado nesta execução; nenhum upload novo foi realizado.');
   } else {
-    console.log('\n✅ Processamento concluído e uploads confirmados!');
+    console.log(`\n✅ Processamento concluído sem falhas: ${processedCount} vídeo(s) processado(s); confira as URLs de upload registradas acima.`);
   }
 }
 
