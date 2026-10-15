@@ -49,6 +49,23 @@ jobs:
           fi
           expires_in="$(jq -r '.expires_in // 0' oauth-response.json)"
           token_type="$(jq -r '.token_type // "unknown"' oauth-response.json)"
+          access_token="$(jq -r '.access_token' oauth-response.json)"
+          tokeninfo_code="$(curl -sS --max-time 20 -G -o token-info.json -w '%{http_code}' \
+            'https://oauth2.googleapis.com/tokeninfo' \
+            --data-urlencode "access_token=$access_token" || echo '000')"
+          if [ "$tokeninfo_code" = "200" ]; then
+            granted_scopes="$(jq -r '.scope // ""' token-info.json)"
+            case " $granted_scopes " in
+              *" https://www.googleapis.com/auth/youtube.force-ssl "*)
+                echo "YouTube CTA comment scope: granted."
+                ;;
+              *)
+                echo "::warning::The current YOUTUBE_REFRESH_TOKEN lacks youtube.force-ssl. Video upload can continue, but CTA comments will remain pending until the refresh token is re-authorized with https://www.googleapis.com/auth/youtube.force-ssl."
+                ;;
+            esac
+          else
+            echo "::warning::Could not inspect YouTube OAuth scopes (HTTP ${tokeninfo_code}); the publication worker will attempt comments and retry any failures."
+          fi
           echo "YouTube OAuth diagnostic passed. Token type: $token_type; expires_in: $expires_in seconds."
           echo "No content was generated and no queue item was read, claimed, modified, or removed."
-          rm -f oauth-response.json
+          rm -f oauth-response.json token-info.json
