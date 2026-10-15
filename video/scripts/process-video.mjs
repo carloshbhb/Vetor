@@ -561,6 +561,7 @@ async function processVideo(video) {
     };
 
     await updateVideoStatus(video.id, updates);
+    console.log('[UPLOAD_CONFIRMED_THIS_RUN] queue_id=' + video.id + ' youtube_url=' + ytResult.videoUrl);
     console.log(`   ✅ Vídeo concluído: ${video.product_title}`);
     console.log(`   📝 Review: ${reviewUrl}`);
     console.log(`   🛒 Compra: ${purchaseUrl}`);
