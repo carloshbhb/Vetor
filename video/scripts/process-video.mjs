@@ -65,8 +65,16 @@ async function updateVideoStatus(id, updates) {
 }
 
 async function generateVoiceover(text, outputPath) {
-  // Prefer ElevenLabs when configured; retain Edge TTS and espeak-ng fallbacks.
+  // ElevenLabs is mandatory for the production validation run; never silently substitute another voice.
   const voices = ['pt-BR-AntonioNeural', 'pt-BR-FranciscaNeural'];
+  const elevenLabsRequired = process.env.ELEVENLABS_REQUIRED === 'true';
+  const configuredVoiceId = (process.env.ELEVENLABS_VOICE_ID || '').trim();
+  if (elevenLabsRequired && !process.env.ELEVENLABS_API_KEY) {
+    throw new Error('[TTS] ELEVENLABS_REQUIRED=true, mas ELEVENLABS_API_KEY está ausente.');
+  }
+  if (elevenLabsRequired && !configuredVoiceId) {
+    throw new Error('[TTS] ELEVENLABS_REQUIRED=true, mas ELEVENLABS_VOICE_ID está vazio. Configure o secret no GitHub antes de processar a fila.');
+  }
   const tempFile = outputPath.replace('.mp3', '-temp.mp3');
   const textFile = outputPath.replace('.mp3', '-text.txt');
   const wavPath = outputPath.replace('.mp3', '-espeak.wav');
@@ -83,7 +91,7 @@ async function generateVoiceover(text, outputPath) {
   const failures = [];
 
   if (process.env.ELEVENLABS_API_KEY) {
-    const voiceId = (process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL').trim();
+    const voiceId = configuredVoiceId || 'EXAVITQu4vr4xnSDxMaL';
     try {
       if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
       const response = await fetch(
@@ -127,10 +135,12 @@ async function generateVoiceover(text, outputPath) {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failures.push('ElevenLabs: ' + message);
+      if (elevenLabsRequired) throw new Error('[TTS] ElevenLabs obrigatório falhou; fallback bloqueado. ' + message);
       console.warn('   [TTS] ElevenLabs falhou; tentando Edge TTS. ' + message);
       if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
     }
   } else {
+    if (elevenLabsRequired) throw new Error('[TTS] ELEVENLABS_REQUIRED=true, mas ELEVENLABS_API_KEY está ausente; fallback bloqueado.');
     console.warn('   [TTS] ELEVENLABS_API_KEY ausente; usando Edge TTS.');
   }
 
@@ -213,33 +223,85 @@ async function renderWithRemotion(videoData, outputPath) {
   fs.writeFileSync(dataPath, JSON.stringify(videoData, null, 2));
 
   try {
-    execSync(
-      `npx tsx video/src/utils/renderVideo.ts review "${dataPath}"`,
+    // Remove a saída de mesmo ID e exclui resultados antigos da lista de candidatos.
+    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+    const renderedDir = path.resolve('video/out');
+    const existingMp4 = new Set(
+      fs.readdirSync(renderedDir).filter((name) => name.endsWith('.mp4'))
+    );
+    const renderStartedAt = Date.now();
+
+    // Capturar stdout/stderr no erro permite registrar a causa real do Remotion.
+    const renderOutput = execFileSync(
+      'npx',
+      ['tsx', 'video/src/utils/renderVideo.ts', 'review', dataPath],
       {
-        stdio: 'inherit',
+        encoding: 'utf8',
+        stdio: 'pipe',
         timeout: 600000,
+        maxBuffer: 32 * 1024 * 1024,
         cwd: path.resolve(process.cwd()),
       }
     );
+    if (renderOutput.trim()) {
+      console.log('   [Remotion] ' + renderOutput.trim().slice(-1600));
+    }
 
-    // Remotion writes timestamped files into video/out. Normalize the newest
-    // result to this queue item's ID so uploads cannot accidentally use old output.
-    const renderedDir = path.resolve('video/out');
+    if (!fs.existsSync(renderedDir)) {
+      throw new Error('Remotion finalizou sem criar o diretório de saída video/out.');
+    }
     const candidates = fs.readdirSync(renderedDir)
       .filter((name) => name.endsWith('.mp4') && path.join(renderedDir, name) !== outputPath)
+      .filter((name) => !existingMp4.has(name))
       .map((name) => ({
         path: path.join(renderedDir, name),
         mtime: fs.statSync(path.join(renderedDir, name)).mtimeMs,
       }))
+      .filter((candidate) => candidate.mtime >= renderStartedAt - 1000)
       .sort((left, right) => right.mtime - left.mtime);
 
     if (!fs.existsSync(outputPath)) {
-      if (candidates.length === 0) throw new Error('Remotion finished without producing an MP4 file.');
+      if (candidates.length === 0) {
+        throw new Error('Remotion terminou sem produzir um MP4 novo nesta execução.');
+      }
       fs.renameSync(candidates[0].path, outputPath);
     }
+
     if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size < 10000) {
-      throw new Error('Rendered MP4 is missing or unexpectedly small.');
+      throw new Error('MP4 renderizado ausente ou pequeno demais.');
     }
+
+    // Tamanho não prova integridade: confirme stream de vídeo, resolução e duração.
+    const probeOutput = execFileSync(
+      'ffprobe',
+      [
+        '-v', 'error',
+        '-show_entries', 'format=duration:stream=codec_type,codec_name,width,height',
+        '-of', 'json',
+        outputPath,
+      ],
+      { encoding: 'utf8', stdio: 'pipe', timeout: 30000, maxBuffer: 1024 * 1024 }
+    );
+    const media = JSON.parse(probeOutput);
+    const duration = Number(media.format?.duration);
+    const videoStream = Array.isArray(media.streams)
+      ? media.streams.find((stream) => stream.codec_type === 'video')
+      : null;
+    if (
+      !Number.isFinite(duration) ||
+      duration <= 0 ||
+      !videoStream ||
+      !videoStream.codec_name ||
+      Number(videoStream.width) <= 0 ||
+      Number(videoStream.height) <= 0
+    ) {
+      throw new Error('MP4 inválido: ffprobe não encontrou stream de vídeo com resolução e duração válidas.');
+    }
+    console.log(
+      '   [Remotion] MP4 validado pelo ffprobe: ' +
+      duration.toFixed(2) + 's, ' + videoStream.width + 'x' + videoStream.height +
+      ', codec=' + videoStream.codec_name + '.'
+    );
   } finally {
     if (fs.existsSync(dataPath)) fs.unlinkSync(dataPath);
   }
@@ -284,8 +346,32 @@ async function uploadToYouTube(videoPath, title, description, tags) {
     });
 
     const videoId = response.data.id;
-    const videoUrl = `https://youtube.com/watch?v=${videoId}`;
-    console.log(`   📤 YouTube: ${videoUrl}`);
+    if (!videoId) {
+      throw new Error('A API do YouTube não retornou ID para o vídeo enviado.');
+    }
+
+    // Confirma na API que o recurso existe e está público; não confiar apenas no upload request.
+    let confirmedPublicVideo = null;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const listing = await youtube.videos.list({
+        part: ['id', 'status'],
+        id: [videoId],
+      });
+      confirmedPublicVideo = (listing.data.items || []).find(
+        (item) => item.id === videoId && item.status?.privacyStatus === 'public'
+      ) || null;
+      if (confirmedPublicVideo) break;
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    if (!confirmedPublicVideo) {
+      throw new Error(
+        'Upload aceito, mas a API do YouTube não confirmou o vídeo ' + videoId +
+        ' com privacyStatus=public após três consultas.'
+      );
+    }
+
+    const videoUrl = 'https://youtube.com/watch?v=' + videoId;
+    console.log('   📤 YouTube confirmado como público: ' + videoUrl);
     return { videoId, videoUrl };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -299,8 +385,9 @@ async function processVideo(video) {
   console.log(`   ID: ${video.id}`);
   console.log(`   Hook: ${video.script_hook}`);
 
-  await updateVideoStatus(video.id, { status: 'processing', started_at: new Date().toISOString() });
+  await updateVideoStatus(video.id, { status: 'processing', started_at: new Date().toISOString(), error_message: null });
   const publicAudioPath = path.resolve('video/public/tmp', `video-${video.id}.mp3`);
+  let processingStage = 'roteiro';
 
   try {
     let script = null;
@@ -337,7 +424,9 @@ async function processVideo(video) {
       }
     }
 
+    processingStage = 'narração';
     console.log('   [1/4] Gerando voiceover...');
+    console.log(`   [TTS] ElevenLabs obrigatório: ${process.env.ELEVENLABS_REQUIRED === 'true' ? 'sim' : 'não'}; voice ID configurado: ${Boolean((process.env.ELEVENLABS_VOICE_ID || '').trim()) ? 'sim' : 'não'}.`);
     const audioDir = path.resolve(`/tmp/video-${video.id}`);
     if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
 
@@ -361,6 +450,7 @@ async function processVideo(video) {
     audioFiles.push(ctaAudioPath);
     totalDuration += ctaDuration;
 
+    processingStage = 'combinação de áudio';
     console.log('   [2/4] Combinando áudio...');
     const combinedAudioPath = path.join(audioDir, 'combined.mp3');
     await combineAudioFiles(audioFiles, combinedAudioPath);
@@ -370,6 +460,7 @@ async function processVideo(video) {
     fs.mkdirSync(path.dirname(publicAudioPath), { recursive: true });
     fs.copyFileSync(combinedAudioPath, publicAudioPath);
 
+    processingStage = 'renderização Remotion';
     console.log('   [3/4] Renderizando vídeo com Remotion...');
     const outputDir = path.resolve('video/out');
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
@@ -414,6 +505,7 @@ async function processVideo(video) {
     const videoPath = path.join(outputDir, videoFileName);
     await renderWithRemotion(videoData, videoPath);
 
+    processingStage = 'upload YouTube';
     console.log('   [4/4] Upload para YouTube...');
     const siteUrl = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
     const reviewUrl = (typeof video.review_url === 'string' && video.review_url.startsWith('https://'))
@@ -469,6 +561,7 @@ async function processVideo(video) {
     };
 
     await updateVideoStatus(video.id, updates);
+    console.log('[UPLOAD_CONFIRMED_THIS_RUN] queue_id=' + video.id + ' youtube_url=' + ytResult.videoUrl);
     console.log(`   ✅ Vídeo concluído: ${video.product_title}`);
     console.log(`   📝 Review: ${reviewUrl}`);
     console.log(`   🛒 Compra: ${purchaseUrl}`);
@@ -477,11 +570,19 @@ async function processVideo(video) {
     if (fs.existsSync(audioDir)) fs.rmSync(audioDir, { recursive: true });
     if (fs.existsSync(publicAudioPath)) fs.unlinkSync(publicAudioPath);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`   ❌ Erro: ${message}`);
+    const message = error instanceof Error ? error.message : String(error || 'Unknown error');
+    const details = error && typeof error === 'object' ? error : {};
+    const stderr = details.stderr ? String(details.stderr).slice(-1800) : '';
+    const stdout = details.stdout ? String(details.stdout).slice(-1000) : '';
+    const commandValue = details.command || details.cmd;
+    const command = commandValue ? String(commandValue).slice(0, 500) : '';
+    const diagnostic = [`Etapa: ${processingStage}`, message, command ? `Comando: ${command}` : '', stderr ? `stderr: ${stderr}` : '', stdout ? `stdout: ${stdout}` : ''].filter(Boolean).join(' | ').slice(0, 4000);
+    console.error(`   ❌ Erro na etapa [${processingStage}]: ${message}`);
+    if (stderr) console.error(`   [diagnóstico stderr] ${stderr}`);
+    if (stdout) console.error(`   [diagnóstico stdout] ${stdout}`);
     await updateVideoStatus(video.id, {
       status: 'failed',
-      error_message: message,
+      error_message: diagnostic,
     });
     if (fs.existsSync(publicAudioPath)) fs.unlinkSync(publicAudioPath);
     return false;
@@ -492,27 +593,38 @@ async function processVideo(video) {
 async function main() {
   console.log('🎬 Iniciando processamento de vídeos...');
   console.log(`   Timestamp: ${new Date().toISOString()}`);
+  // Fail closed before claiming any queue item when the configured ElevenLabs voice is unavailable.
+  if (process.env.ELEVENLABS_REQUIRED === 'true') {
+    if (!process.env.ELEVENLABS_API_KEY) throw new Error('Preflight TTS: ELEVENLABS_API_KEY ausente; nenhum item da fila foi reivindicado.');
+    if (!(process.env.ELEVENLABS_VOICE_ID || '').trim()) throw new Error('Preflight TTS: ELEVENLABS_VOICE_ID vazio; configure o secret no GitHub. Nenhum item da fila foi reivindicado.');
+    console.log('ElevenLabs preflight passed; voice ID is configured and fallback is disabled.');
+  }
   // Never claim a queue item if the destination channel cannot accept uploads.
   await verifyYouTubeOAuth();
   const videoId = process.env.VIDEO_ID;
   let failures = 0;
+  let processedCount = 0;
   if (videoId) {
     const video = await getVideoById(videoId);
     if (!video) throw new Error(`Vídeo ${videoId} não encontrado na fila autenticada do Supabase conectado ao Vetor.`);
+    processedCount += 1;
     if (!(await processVideo(video))) failures += 1;
   } else {
     const limit = Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 10);
     const videos = await getPendingVideos(limit);
     console.log(`   ${videos.length} vídeos pendentes encontrados (limite: ${limit})`);
     for (const video of videos) {
+      processedCount += 1;
       if (!(await processVideo(video))) failures += 1;
     }
   }
   if (failures > 0) {
     console.error(`[video-worker] ${failures} vídeo(s) falharam. Confira error_message no Supabase.`);
     process.exitCode = 1;
+  } else if (processedCount === 0) {
+    console.log('\nℹ️ Nenhum vídeo foi processado nesta execução; nenhum upload novo foi realizado.');
   } else {
-    console.log('\n✅ Processamento concluído e uploads confirmados!');
+    console.log(`\n✅ Processamento concluído sem falhas: ${processedCount} vídeo(s) processado(s); confira as URLs de upload registradas acima.`);
   }
 }
 

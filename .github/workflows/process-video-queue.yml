@@ -95,6 +95,7 @@ jobs:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+          ELEVENLABS_REQUIRED: 'true'
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
@@ -110,6 +111,8 @@ jobs:
             echo "Queue state unavailable because CRON_SECRET is missing."
             exit 0
           fi
+          echo "HISTÓRICO DA FILA: URLs abaixo podem ser antigas e não provam upload nesta execução."
+          echo "Uploads desta execução: procure [UPLOAD_CONFIRMED_THIS_RUN] no passo anterior."
           curl -fsS --max-time 20 -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json" \

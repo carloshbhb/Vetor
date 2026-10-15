@@ -60,6 +60,9 @@ jobs:
           npx tsc --noEmit
           npx tsc --noEmit -p tsconfig.tmp.json
 
+      - name: Syntax-check video queue worker
+        run: node --check video/scripts/process-video.mjs
+
       - name: Install video renderer dependencies
         run: npm ci --prefix video
 
