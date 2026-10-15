@@ -53,6 +53,10 @@ for (const token of [
   assert(styles.includes(token), "Token visual ou breakpoint da referência ausente: " + token);
 }
 assert(!styles.includes("#ffe600"), "A identidade antiga amarela voltou ao template.");
+assert(
+  styles.includes('body:has([data-template="landing-page"]):has([role="dialog"][aria-label="Aviso de cookies"]))'),
+  "O CTA móvel não é ocultado enquanto o diálogo de cookies está aberto."
+);
 assert(template.includes('data-template="landing-page"'), "O template não marca a LP para evitar chrome global duplicado.");
 assert(template.includes("section-title"), "A classe .section-title do HTML de referência está ausente.");
 assert(template.includes("<CookiePreferencesControl />"), "O rodapé LP precisa manter acesso às preferências de cookies.");
