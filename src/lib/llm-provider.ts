@@ -76,70 +76,101 @@ export async function chatCompletion(params: {
 
   for (let index = 0; index < providers.length; index += 1) {
     const provider = providers[index];
-    if (deadline - Date.now() < 8000) break;
-
-    // Honor an explicitly requested model for the first attempt; keep fallback NVIDIA-only.
     const model = index === 0 && params.model ? params.model : provider.model;
-    try {
-      const createParams: {
-        model: string;
-        messages: Array<{ role: 'system' | 'user'; content: string }>;
-        temperature: number;
-        max_tokens: number;
-        response_format?: { type: 'json_object' };
-        reasoning_effort?: 'none' | 'high' | 'max';
-      } = {
-        model,
-        messages: [
-          { role: 'system', content: params.systemPrompt },
-          { role: 'user', content: params.userPrompt },
-        ],
-        temperature: params.temperature ?? 0.6,
-        max_tokens: params.maxTokens ?? 3000,
-      };
-      if (params.responseFormat) createParams.response_format = params.responseFormat;
-      const remainingMs = deadline - Date.now();
-      if (remainingMs < 8000) break;
-      const requestOptions = {
-        timeout: Math.min(
-          params.timeoutMs ?? (model.includes('nemotron-3.5-lightning') ? 70000 : 65000),
-          remainingMs - 7000
-        ),
-        maxRetries: 0,
-      };
+    const maxAttempts = params.validateResponse ? 2 : 1;
 
-      let content = '';
-      if (model.includes('nemotron-3.5-lightning')) {
-        const stream = await provider.client.chat.completions.create({
-          ...(createParams as any),
-          stream: true,
-          chat_template_kwargs: { enable_thinking: false },
-        } as any, requestOptions) as any;
-        for await (const chunk of stream) {
-          const delta = chunk?.choices?.[0]?.delta?.content;
-          if (typeof delta === 'string') content += delta;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const remainingBeforeRequest = deadline - Date.now();
+      if (remainingBeforeRequest < 8000) break;
+
+      try {
+        const createParams: {
+          model: string;
+          messages: Array<{ role: 'system' | 'user'; content: string }>;
+          temperature: number;
+          max_tokens: number;
+          response_format?: { type: 'json_object' };
+          reasoning_effort?: 'none' | 'high' | 'max';
+        } = {
+          model,
+          messages: [
+            { role: 'system', content: params.systemPrompt },
+            {
+              role: 'user',
+              content: attempt === 0
+                ? params.userPrompt
+                : [
+                    params.userPrompt,
+                    '',
+                    'CORREÇÃO OBRIGATÓRIA: a resposta anterior não passou pelo validador. Gere novamente do início, cumpra todos os campos/marcadores e limites de palavras, sem introdução, sem raciocínio interno e sem cercas de código. Retorne somente a saída final no formato solicitado.',
+                  ].join('\n'),
+            },
+          ],
+          temperature: params.temperature ?? 0.6,
+          max_tokens: params.maxTokens ?? 3000,
+        };
+        if (params.responseFormat) createParams.response_format = params.responseFormat;
+        if (!model.includes('nemotron-3.5-lightning')) createParams.reasoning_effort = 'none';
+
+        const remainingMs = deadline - Date.now();
+        if (remainingMs < 8000) break;
+        const requestOptions = {
+          timeout: Math.max(1000, Math.min(
+            params.timeoutMs ?? (model.includes('nemotron-3.5-lightning') ? 70000 : 65000),
+            remainingMs - 7000
+          )),
+          maxRetries: 0,
+        };
+        const chatTemplateOptions = { enable_thinking: false, force_nonempty_content: true };
+        let content = '';
+
+        if (model.includes('nemotron-3.5-lightning')) {
+          const stream = await provider.client.chat.completions.create({
+            ...(createParams as any),
+            stream: true,
+            chat_template_kwargs: chatTemplateOptions,
+          } as any, requestOptions) as any;
+          for await (const chunk of stream) {
+            const delta = chunk?.choices?.[0]?.delta?.content;
+            if (typeof delta === 'string') content += delta;
+          }
+        } else {
+          const response = await provider.client.chat.completions.create({
+            ...(createParams as any),
+            chat_template_kwargs: chatTemplateOptions,
+          } as any, requestOptions);
+          content = response.choices[0]?.message?.content || '';
         }
-      } else {
-        const response = await provider.client.chat.completions.create(createParams as any, requestOptions);
-        content = response.choices[0]?.message?.content || '';
-      }
 
-      if (!content.trim()) {
-        throw new Error(`[LLM] NVIDIA/${model} retornou resposta vazia`);
+        if (!content.trim()) {
+          throw new Error(`[LLM] NVIDIA/${model} retornou conteúdo vazio (thinking desativado e conteúdo final forçado).`);
+        }
+        if (params.validateResponse && !params.validateResponse(content)) {
+          lastError = new Error(`[LLM] NVIDIA/${model} não passou no validador de resposta na tentativa ${attempt + 1}/${maxAttempts}.`);
+          const remainingAfterValidation = deadline - Date.now();
+          if (attempt + 1 < maxAttempts && remainingAfterValidation > 15000) {
+            console.warn(`[LLM] NVIDIA/${model} reprovado no validador; repetindo o mesmo modelo com instrução de correção.`);
+            continue;
+          }
+          throw lastError;
+        }
+
+        console.log(`[LLM] Sucesso: NVIDIA | modelo: ${model} | tentativa: ${attempt + 1}`);
+        return content;
+      } catch (error: unknown) {
+        lastError = error;
+        const status = typeof error === 'object' && error !== null && 'status' in error
+          ? Number((error as { status?: unknown }).status) : 0;
+        const detail = error instanceof Error ? error.message.slice(0, 400) : String(error).slice(0, 400);
+        const failureKind = detail.includes('validador') ? 'quality' : (status || 'timeout/network');
+        console.warn(`[LLM] NVIDIA/${model} falhou (status ${failureKind}): ${detail}.`);
+        if (status === 429 && deadline - Date.now() > 15000) await wait(750);
+        if (attempt + 1 < maxAttempts && deadline - Date.now() > 15000) {
+          console.warn(`[LLM] Repetindo NVIDIA/${model} uma vez antes do fallback.`);
+          continue;
+        }
+        break;
       }
-      if (params.validateResponse && !params.validateResponse(content)) {
-        throw new Error(`[LLM] NVIDIA/${model} retornou JSON incompleto; validado como resposta inutilizável, tentando o próximo modelo.`);
-      }
-      console.log(`[LLM] Sucesso: NVIDIA | modelo: ${model}`);
-      return content;
-    } catch (error: unknown) {
-      lastError = error;
-      const status = typeof error === 'object' && error !== null && 'status' in error
-        ? Number((error as { status?: unknown }).status) : 0;
-      const detail = error instanceof Error ? error.message.slice(0, 400) : String(error).slice(0, 400);
-      const failureKind = detail.includes('JSON incompleto') ? 'quality' : (status || 'timeout/network');
-      console.warn(`[LLM] NVIDIA/${model} falhou (status ${failureKind}): ${detail}; tentando outro modelo NVIDIA.`);
-      if (status === 429 && deadline - Date.now() > 15000) await wait(750);
     }
   }
 
