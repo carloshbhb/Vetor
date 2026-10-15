@@ -48,6 +48,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Admin session security regression test
+        run: npx tsx scripts/admin-auth-regression.test.ts
+
       - name: JSON-LD security regression test
         run: npm run test:json-ld
 
