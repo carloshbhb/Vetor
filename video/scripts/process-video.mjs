@@ -258,6 +258,9 @@ async function generateVoiceover(text, outputPath) {
         const message = error instanceof Error ? error.message : String(error);
         console.warn('   [TTS_FAILOVER] Azure Speech indisponível nesta execução; Edge TTS será usado como alternativa. ' + message);
         if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+        if (process.env.TTS_TEST_REQUIRE_AZURE === 'true') {
+          throw new Error('[TTS_SMOKE_TEST] Azure Speech falhou no teste obrigatório: ' + message);
+        }
       }
     } else if (!azureTtsStatusLogged) {
       azureTtsStatusLogged = true;
@@ -737,6 +740,27 @@ async function main() {
       ? 'Credenciais Azure encontradas.'
       : 'Credenciais Azure ausentes; será usada a alternativa gratuita até configurar AZURE_SPEECH_KEY e AZURE_SPEECH_REGION.'));
 
+  // Test mode generates a short local sample and exits before touching the queue, Supabase or YouTube.
+  if (process.env.TTS_SMOKE_TEST === 'true') {
+    if (process.env.TTS_TEST_REQUIRE_AZURE === 'true' &&
+        (!(process.env.AZURE_SPEECH_KEY || '').trim() || !(process.env.AZURE_SPEECH_REGION || '').trim())) {
+      throw new Error('[TTS_SMOKE_TEST] AZURE_SPEECH_KEY e AZURE_SPEECH_REGION são necessários para validar o provedor principal.');
+    }
+    const smokePath = path.join('/tmp', 'vetor-tts-smoke-' + process.pid + '.mp3');
+    try {
+      const duration = await generateVoiceover(
+        'Olá! Este é um teste de voz em português brasileiro para os vídeos do Vetor Blog.',
+        smokePath
+      );
+      if (!fs.existsSync(smokePath) || fs.statSync(smokePath).size < 1000) {
+        throw new Error('[TTS_SMOKE_TEST] O provedor não produziu um MP3 válido.');
+      }
+      console.log('[TTS_SMOKE_TEST] Áudio válido gerado; duração=' + duration.toFixed(2) + 's. Nenhum vídeo foi publicado.');
+    } finally {
+      if (fs.existsSync(smokePath)) fs.unlinkSync(smokePath);
+    }
+    return;
+  }
   // Check auth, retry CTA comments independently, and enforce the local daily cap.
   await verifyYouTubeOAuth();
   await retryPendingCtaComments();
