@@ -99,13 +99,21 @@ function extractMercadoLivreData(dom: JSDOM, url: string): Partial<ProductData> 
 
   const title = document.querySelector('.ui-pdp-title')?.textContent?.trim() ||
     document.querySelector('h1')?.textContent?.trim() ||
+    document.querySelector('meta[property="og:title"]')?.getAttribute('content')?.trim() ||
+    document.title?.trim() ||
     'Produto Mercado Livre';
 
-  const price = document.querySelector('.andes-money-amount__fraction')?.textContent?.trim() ||
+  const price = document.querySelector('meta[property="product:price:amount"]')?.getAttribute('content')?.trim() ||
+    document.querySelector('meta[itemprop="price"]')?.getAttribute('content')?.trim() ||
+    document.querySelector('.andes-money-amount__fraction')?.textContent?.trim() ||
     document.querySelector('.price-tag-fraction')?.textContent?.trim() ||
     'Preço não disponível';
 
-  const imageUrl = document.querySelector('.ui-pdp-image img')?.getAttribute('src') ||
+  // Prefer Open Graph metadata: modern ML pages may render gallery images only
+  // client-side, while the listing HTML still exposes the official product image.
+  const imageUrl = document.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
+    document.querySelector('meta[name="twitter:image"]')?.getAttribute('content') ||
+    document.querySelector('.ui-pdp-image img')?.getAttribute('src') ||
     document.querySelector('.gallery-image img')?.getAttribute('src') ||
     document.querySelector('img[src*="mlstatic"]')?.getAttribute('src') ||
     '';
