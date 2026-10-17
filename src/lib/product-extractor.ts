@@ -109,14 +109,30 @@ function extractMercadoLivreData(dom: JSDOM, url: string): Partial<ProductData> 
     document.querySelector('.price-tag-fraction')?.textContent?.trim() ||
     'Preço não disponível';
 
-  // Prefer Open Graph metadata: modern ML pages may render gallery images only
-  // client-side, while the listing HTML still exposes the official product image.
-  const imageUrl = document.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
-    document.querySelector('meta[name="twitter:image"]')?.getAttribute('content') ||
-    document.querySelector('.ui-pdp-image img')?.getAttribute('src') ||
-    document.querySelector('.gallery-image img')?.getAttribute('src') ||
-    document.querySelector('img[src*="mlstatic"]')?.getAttribute('src') ||
-    '';
+  // Prefer Open Graph metadata, but reject the generic Mercado Livre logo.
+  // Public listing HTML can include the site logo before the client-rendered gallery.
+  const imageCandidates = [
+    document.querySelector('meta[property="og:image"]')?.getAttribute('content'),
+    document.querySelector('meta[name="twitter:image"]')?.getAttribute('content'),
+    document.querySelector('.ui-pdp-image img')?.getAttribute('src'),
+    document.querySelector('.gallery-image img')?.getAttribute('src'),
+    ...Array.from(document.querySelectorAll('img[src*="mlstatic"], img[src*="mlcdn"]'))
+      .map((image) => image.getAttribute('src')),
+  ].filter((candidate): candidate is string => Boolean(candidate && candidate.trim()));
+  const imageUrl = imageCandidates.find((candidate) => {
+    try {
+      const image = new URL(candidate, url);
+      const host = image.hostname.toLowerCase();
+      const path = image.pathname.toLowerCase();
+      const marketplaceCdn =
+        host === 'mlstatic.com' || host.endsWith('.mlstatic.com') ||
+        host === 'mlcdn.com' || host.endsWith('.mlcdn.com');
+      return marketplaceCdn &&
+        !/frontend-assets\/ui-navigation|logo|favicon|sprite|tracking/.test(path);
+    } catch {
+      return false;
+    }
+  }) || '';
 
   const specs: Record<string, string> = {};
   document.querySelectorAll('.ui-pdp-specs__table tr, .specs-table tr').forEach((row: Element) => {
