@@ -1,0 +1,95 @@
+name: Verify ElevenLabs voice access
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-elevenlabs-voice.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check actual configured voice and plan access (no TTS generation)
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
+
+          api_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+          voice_id = os.getenv("ELEVENLABS_VOICE_ID", "").strip()
+          if not api_key or not voice_id:
+              print("::error::Missing ELEVENLABS_API_KEY or ELEVENLABS_VOICE_ID secret. Secret values are not printed.")
+              sys.exit(1)
+
+          def get_json(url):
+              request = urllib.request.Request(
+                  url,
+                  headers={"xi-api-key": api_key, "Accept": "application/json"},
+                  method="GET",
+              )
+              try:
+                  with urllib.request.urlopen(request, timeout=15) as response:
+                      return response.status, json.loads(response.read().decode("utf-8"))
+              except urllib.error.HTTPError as error:
+                  try:
+                      detail = json.loads(error.read().decode("utf-8", "replace"))
+                  except Exception:
+                      detail = {}
+                  print("API lookup failed: HTTP", error.code,
+                        "type=", detail.get("detail", {}).get("type", detail.get("type", "unknown")),
+                        "code=", detail.get("detail", {}).get("code", detail.get("code", "unknown")))
+                  return error.code, detail
+
+          sub_status, subscription = get_json("https://api.elevenlabs.io/v1/user/subscription")
+          if sub_status != 200:
+              print("::error::Could not verify ElevenLabs subscription; voice accessibility remains unverified.")
+              sys.exit(1)
+
+          tier = str(subscription.get("tier") or "unknown").lower()
+          used = subscription.get("character_count")
+          limit = subscription.get("character_limit")
+          remaining = max(0, int(limit) - int(used)) if isinstance(limit, (int, float)) and isinstance(used, (int, float)) else None
+          print("Subscription tier:", tier)
+          if used is not None and limit is not None:
+              print(f"Character quota: {used}/{limit}; remaining included characters: {remaining}")
+
+          voice_status, voice = get_json("https://api.elevenlabs.io/v1/voices/" + voice_id)
+          if voice_status != 200:
+              print("::error::The configured voice ID is not readable/available to this API key. No TTS was generated.")
+              sys.exit(1)
+
+          name = str(voice.get("name") or "unknown")
+          category = str(voice.get("category") or "unknown").lower()
+          available_tiers = voice.get("available_for_tiers") or []
+          sharing = voice.get("sharing") if isinstance(voice.get("sharing"), dict) else {}
+          free_users_allowed = sharing.get("free_users_allowed")
+          rate = sharing.get("rate")
+          free_compatible = category == "premade"
+          if free_users_allowed is False:
+              free_compatible = False
+          if available_tiers and tier not in [str(x).lower() for x in available_tiers] and tier == "free":
+              free_compatible = free_compatible and category == "premade"
+
+          print("Configured voice name:", name)
+          print("Voice category:", category)
+          print("Free users explicitly allowed by sharing metadata:", free_users_allowed if free_users_allowed is not None else "not exposed")
+          print("Voice tier restrictions:", ", ".join(map(str, available_tiers)) if available_tiers else "none reported")
+          print("Sharing rate/multiplier metadata:", rate if rate is not None else "not exposed")
+          print("Free-tier API compatibility:", "compatible premade voice" if free_compatible else "NOT CONFIRMED; likely requires a paid tier or a different premade voice")
+
+          if tier == "free" and not free_compatible:
+              print("::warning::The current voice is not confirmed usable on the free tier. Select a default/premade voice in ElevenLabs, then update ELEVENLABS_VOICE_ID.")
+          print("No audio was generated, no characters were consumed, and no queue/database/YouTube data was changed.")
+          PY
