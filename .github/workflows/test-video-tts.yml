@@ -1,0 +1,59 @@
+name: Test Video TTS Providers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'video/scripts/process-video.mjs'
+      - '.github/workflows/process-video-queue.yml'
+      - '.github/workflows/test-video-tts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    name: Validate Azure Speech and neural failover (no publishing)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+      AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
+      AZURE_SPEECH_VOICE: pt-BR-AntonioNeural
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate JavaScript syntax
+        run: node --check video/scripts/process-video.mjs
+
+      - name: Install audio utilities and Edge TTS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng
+          python -m pip install --disable-pip-version-check edge-tts
+
+      - name: Test Azure primary and Edge neural fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${AZURE_SPEECH_KEY:-}" && -n "${AZURE_SPEECH_REGION:-}" ]]; then
+            echo "Azure credentials detected; running a short Azure-only smoke test."
+            TTS_SMOKE_TEST=true TTS_TEST_REQUIRE_AZURE=true node video/scripts/process-video.mjs
+          else
+            echo "::warning::AZURE_SPEECH_KEY/AZURE_SPEECH_REGION are missing. Azure was not tested; add both GitHub Actions secrets to enable the primary provider."
+          fi
+
+          echo "Testing Edge TTS fallback separately; no queue item, render, or YouTube upload is touched."
+          TTS_SMOKE_TEST=true TTS_FORCE_FALLBACK=true TTS_TEST_REQUIRE_EDGE=true node video/scripts/process-video.mjs
