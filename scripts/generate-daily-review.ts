@@ -5,6 +5,7 @@ import {
 import { productLinkToPipelineInput, runReviewPipeline } from '../src/lib/content-pipeline';
 import { getSupabaseServiceKeyClient } from '../src/lib/supabase';
 import { slugifyEditorialTitle } from '../src/lib/slug';
+import { getProductWithPictures } from '../src/lib/mercadolivre-api';
 
 type ExistingReview = {
   slug: string;
@@ -169,9 +170,33 @@ type ProductionMLProductDetails = {
 };
 
 async function fetchProductionMLProductDetails(itemId: string): Promise<ProductionMLProductDetails> {
+  // Prefer the authenticated Mercado Livre client directly. This avoids a fragile
+  // self-request to a Vercel route that may not yet be present on the current deploy.
+  let directError = 'erro não identificado';
+  try {
+    const product = await getProductWithPictures(itemId);
+    const imageUrl = normalizeProductImage(product.thumbnail) ||
+      normalizeProductImage(product.pictures?.find((picture) => picture.secure_url)?.secure_url) ||
+      normalizeProductImage(product.pictures?.[0]?.url);
+    if (!imageUrl) throw new Error('A API do Mercado Livre não retornou uma imagem HTTPS válida.');
+    const price = Number(product.price);
+    return {
+      itemId: String(product.id || itemId).replace(/-/g, '').toUpperCase(),
+      title: String(product.title || '').trim(),
+      productUrl: String(product.permalink || '').trim(),
+      price: Number.isFinite(price) && price > 0 ? price : null,
+      imageUrl,
+    };
+  } catch (error) {
+    directError = error instanceof Error ? error.message.slice(0, 220) : String(error).slice(0, 220);
+    console.warn('[review-generation] direct Mercado Livre API failed for ' + itemId + ': ' + directError);
+  }
+
+  // Fallback for environments where the Supabase OAuth token cannot be refreshed
+  // from GitHub Actions. Production uses its own configured Mercado Livre OAuth keys.
   const cronSecret = process.env.CRON_SECRET?.trim();
   if (!cronSecret) {
-    throw new Error('CRON_SECRET ausente; não é possível consultar detalhes de produto na API Production.');
+    throw new Error('Consulta direta do Mercado Livre falhou (' + directError + ') e CRON_SECRET não está disponível para fallback.');
   }
 
   const response = await fetch('https://www.vetor.blog/api/cron/ml-product-details', {
@@ -187,10 +212,13 @@ async function fetchProductionMLProductDetails(itemId: string): Promise<Producti
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
+    const contentType = response.headers.get('content-type') || 'desconhecido';
+    const detail = contentType.includes('json')
+      ? body.slice(0, 160)
+      : 'resposta não JSON (content-type=' + contentType + ')';
     throw new Error(
-      'Endpoint Production de detalhes Mercado Livre HTTP ' +
-      response.status +
-      (body ? ': ' + body.slice(0, 180) : '')
+      'Consulta direta do Mercado Livre falhou (' + directError + '); endpoint de fallback Production HTTP ' +
+      response.status + ': ' + detail
     );
   }
 
