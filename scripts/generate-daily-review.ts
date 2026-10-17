@@ -6,6 +6,7 @@ import { productLinkToPipelineInput, runReviewPipeline } from '../src/lib/conten
 import { getSupabaseServiceKeyClient } from '../src/lib/supabase';
 import { slugifyEditorialTitle } from '../src/lib/slug';
 import { searchProducts } from '../src/lib/mercadolivre-api';
+import { getValidAccessToken } from '../src/lib/mercadolivre-auth';
 import { extractProductData } from '../src/lib/product-extractor';
 
 type ExistingReview = {
@@ -103,6 +104,7 @@ function isEligibleProduct(link: ProductLink): boolean {
 type AffiliateMatchSource = {
   affiliate_link_id: string;
   matched_item_id: string | null;
+  matched_product_id: string | null;
   matched_title: string | null;
   matched_url: string | null;
   match_score: number | string | null;
@@ -182,15 +184,61 @@ type ProductionMLProductDetails = {
   imageUrl: string | null;
 };
 
-async function fetchProductionMLProductDetails(itemId: string, matchedUrl?: string, matchedTitle?: string): Promise<ProductionMLProductDetails> {
+async function fetchProductionMLProductDetails(itemId: string, matchedUrl?: string, matchedTitle?: string, catalogProductId?: string | null): Promise<ProductionMLProductDetails> {
   const normalizedItemId = itemId.replace(/-/g, '').toUpperCase();
   const pageUrl = isHttpsUrl(matchedUrl)
     ? matchedUrl
     : 'https://produto.mercadolivre.com.br/MLB-' + normalizedItemId.replace(/^MLB/, '');
   let extractionError = 'extração não identificada';
 
-  // Try the public site-search endpoint without OAuth first. Some Mercado Livre
-  // applications can search listings while the item-details endpoint returns 403.
+  // Prefer the catalog-product endpoint when the approved match has a catalog ID.
+  // Mercado Livre restricts /items/{id} and /sites/MLB/search for many external apps,
+  // but /products/{catalog_product_id} can expose the canonical product pictures.
+  const normalizedCatalogId = String(catalogProductId || '').trim().toUpperCase();
+  if (/^MLB\\d{5,}$/.test(normalizedCatalogId)) {
+    try {
+      const accessToken = await getValidAccessToken();
+      const catalogResponse = await fetch(
+        'https://api.mercadolibre.com/products/' + normalizedCatalogId,
+        {
+          headers: {
+            authorization: 'Bearer ' + accessToken,
+            accept: 'application/json',
+          },
+          signal: AbortSignal.timeout(12_000),
+          cache: 'no-store',
+        }
+      );
+      if (!catalogResponse.ok) {
+        throw new Error('Detalhes de catálogo Mercado Livre HTTP ' + catalogResponse.status);
+      }
+      const catalogProduct = await catalogResponse.json() as {
+        id?: string;
+        name?: string;
+        status?: string;
+        pictures?: Array<{ id?: string; url?: string; secure_url?: string }>;
+      };
+      const catalogImage = (catalogProduct.pictures || [])
+        .map((picture) => normalizeProductImage(picture.secure_url) || normalizeProductImage(picture.url))
+        .find((image): image is string => Boolean(image));
+      if (catalogImage && catalogProduct.status !== 'inactive') {
+        console.log('[review-generation] recovered verified catalog product image: ' + normalizedCatalogId);
+        return {
+          itemId: normalizedItemId,
+          title: String(catalogProduct.name || matchedTitle || '').trim(),
+          productUrl: pageUrl,
+          price: null,
+          imageUrl: catalogImage,
+        };
+      }
+      throw new Error('O produto de catálogo não possui imagem pública válida ou está inativo.');
+    } catch (error) {
+      extractionError = error instanceof Error ? error.message.slice(0, 220) : String(error).slice(0, 220);
+      console.warn('[review-generation] catalog product fallback failed for ' + normalizedCatalogId + ': ' + extractionError);
+    }
+  }
+
+  // Try the public site-search endpoint without OAuth next.
   // Accept only an exact item-ID match; never borrow another listing's photo.
   if (matchedTitle?.trim()) {
     try {
@@ -354,7 +402,7 @@ async function discoverAffiliateBackedProducts(
 
   const { data, error } = await supabase
     .from('affiliate_link_ml_matches')
-    .select('affiliate_link_id,matched_item_id,matched_title,matched_url,match_score,match_status,affiliate_links!inner(id,name,category,slug,destination_url,source_type,status,priority)')
+    .select('affiliate_link_id,matched_item_id,matched_product_id,matched_title,matched_url,match_score,match_status,affiliate_links!inner(id,name,category,slug,destination_url,source_type,status,priority)')
     .eq('match_status', 'matched')
     .order('match_score', { ascending: false })
     .limit(500);
@@ -434,7 +482,7 @@ async function discoverAffiliateBackedProducts(
 
     let productDetail: ProductionMLProductDetails;
     try {
-      productDetail = await fetchProductionMLProductDetails(String(row.matched_item_id), String(row.matched_url || ''), String(row.matched_title || source.name || ''));
+      productDetail = await fetchProductionMLProductDetails(String(row.matched_item_id), String(row.matched_url || ''), String(row.matched_title || source.name || ''), row.matched_product_id);
     } catch (error) {
       result.detailErrors += 1;
       console.warn(
