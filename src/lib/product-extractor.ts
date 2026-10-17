@@ -29,19 +29,38 @@ function detectMarketplace(url: string): ProductData['marketplace'] {
 }
 
 async function fetchPage(url: string): Promise<string> {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+      },
+      // Mercado Livre/Amazon may stall automated fetches. Always bound both
+      // response headers and body reads so queue processing cannot hang forever.
+      signal: AbortSignal.timeout(10_000),
+      cache: 'no-store',
+    });
+  } catch (error) {
+    if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+      throw new Error('Timeout de 10s ao consultar página do produto: ' + new URL(url).hostname);
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     throw new Error(`Failed to fetch page: ${response.status}`);
   }
 
-  return response.text();
+  try {
+    return await response.text();
+  } catch (error) {
+    if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+      throw new Error('Timeout ao baixar HTML do produto: ' + new URL(url).hostname);
+    }
+    throw error;
+  }
 }
 
 function extractAmazonData(dom: JSDOM, url: string): Partial<ProductData> {
