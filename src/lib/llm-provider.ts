@@ -114,11 +114,15 @@ export async function chatCompletion(params: {
 
         const remainingMs = deadline - Date.now();
         if (remainingMs < 8000) break;
+        const requestTimeoutMs = Math.max(1000, Math.min(
+          params.timeoutMs ?? (model.includes('nemotron-3.5-lightning') ? 70000 : 65000),
+          remainingMs - 7000
+        ));
+        // The SDK timeout can cover response headers without reliably stopping a
+        // stalled streamed body. An explicit AbortSignal also cancels stream reads.
         const requestOptions = {
-          timeout: Math.max(1000, Math.min(
-            params.timeoutMs ?? (model.includes('nemotron-3.5-lightning') ? 70000 : 65000),
-            remainingMs - 7000
-          )),
+          timeout: requestTimeoutMs,
+          signal: AbortSignal.timeout(requestTimeoutMs),
           maxRetries: 0,
         };
         const chatTemplateOptions = { enable_thinking: false, force_nonempty_content: true };
