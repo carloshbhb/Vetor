@@ -189,6 +189,56 @@ async function fetchProductionMLProductDetails(itemId: string, matchedUrl?: stri
     : 'https://produto.mercadolivre.com.br/MLB-' + normalizedItemId.replace(/^MLB/, '');
   let extractionError = 'extração não identificada';
 
+  // Try the public site-search endpoint without OAuth first. Some Mercado Livre
+  // applications can search listings while the item-details endpoint returns 403.
+  // Accept only an exact item-ID match; never borrow another listing's photo.
+  if (matchedTitle?.trim()) {
+    try {
+      const publicSearchUrl = new URL('https://api.mercadolibre.com/sites/MLB/search');
+      publicSearchUrl.searchParams.set('q', matchedTitle.trim());
+      publicSearchUrl.searchParams.set('limit', '50');
+      publicSearchUrl.searchParams.set('attributes', 'id,title,price,permalink,thumbnail,pictures');
+      const publicResponse = await fetch(publicSearchUrl.toString(), {
+        headers: { accept: 'application/json' },
+        signal: AbortSignal.timeout(12_000),
+        cache: 'no-store',
+      });
+      if (!publicResponse.ok) {
+        throw new Error('Busca pública Mercado Livre HTTP ' + publicResponse.status);
+      }
+      const publicPayload = await publicResponse.json() as {
+        results?: Array<{
+          id?: string;
+          title?: string;
+          permalink?: string;
+          thumbnail?: string;
+          pictures?: Array<{ secure_url?: string; url?: string }>;
+        }>;
+      };
+      const publicExactMatch = (publicPayload.results || []).find((candidate) =>
+        String(candidate.id || '').replace(/-/g, '').toUpperCase() === normalizedItemId
+      );
+      const publicImage = publicExactMatch && (
+        normalizeProductImage(publicExactMatch.thumbnail) ||
+        normalizeProductImage(publicExactMatch.pictures?.find((picture) => picture.secure_url)?.secure_url) ||
+        normalizeProductImage(publicExactMatch.pictures?.[0]?.url)
+      );
+      if (publicExactMatch && publicImage) {
+        console.log('[review-generation] recovered exact item from public Mercado Livre search: ' + normalizedItemId);
+        return {
+          itemId: normalizedItemId,
+          title: String(publicExactMatch.title || matchedTitle).trim(),
+          productUrl: String(publicExactMatch.permalink || pageUrl).trim(),
+          price: null,
+          imageUrl: publicImage,
+        };
+      }
+    } catch (error) {
+      extractionError = error instanceof Error ? error.message.slice(0, 220) : String(error).slice(0, 220);
+      console.warn('[review-generation] public Mercado Livre search failed for ' + itemId + ': ' + extractionError);
+    }
+  }
+
   // Item detail requests can return 403 even when public search results remain
   // available. Search for the exact stored item ID so the thumbnail comes from
   // Mercado Livre itself, not from a guessed URL or a different product.
