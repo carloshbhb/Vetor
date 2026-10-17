@@ -55,6 +55,10 @@ async function mlFetch<T>(endpoint: string, params?: Record<string, string>): Pr
       'Authorization': `Bearer ${token}`,
       'Accept': 'application/json',
     },
+    // Keep discovery jobs bounded; an unresponsive ML endpoint must not block
+    // the review workflow for its full 45-minute job timeout.
+    signal: AbortSignal.timeout(12_000),
+    cache: 'no-store',
   });
 
   if (!response.ok) {
