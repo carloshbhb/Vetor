@@ -291,6 +291,11 @@ async function generateVoiceover(text, outputPath) {
       }
     }
 
+    // In strict smoke tests, verify the online neural fallback itself before accepting offline speech.
+    if (process.env.TTS_TEST_REQUIRE_EDGE === 'true') {
+      throw new Error('[TTS_SMOKE_TEST] As duas vozes Edge TTS falharam; fallback offline foi deliberadamente omitido do teste estrito.');
+    }
+
     // Last-resort offline speech: lower quality, but prevents a provider outage from
     // stopping the entire render when the GitHub runner still has local speech binaries.
     execFileSync(
