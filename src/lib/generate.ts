@@ -401,13 +401,14 @@ export async function generateReview(product: {
   editorialBrief?: import('./prompt').EditorialBrief;
 }): Promise<ReviewOutput> {
   try {
-    // Generate one section per request: smaller outputs make exact markers and word-count validation more reliable.
-    // The provider retries malformed output with a correction instruction, then tries the NVIDIA fallback model.
+    // Generate two sections per request to reduce sequential round trips while
+    // keeping independent markers and word-count validation for each section.
+    // If a pair fails validation, the provider retries it and then tries NVIDIA fallback models.
     const sourceContext = buildReviewSourceContext(product);
     const modelSections: ReviewSection[] = [];
-    for (let index = 0; index < REVIEW_SECTION_PLAN.length; index += 1) {
-      const batch = REVIEW_SECTION_PLAN.slice(index, index + 1);
-      console.info('[review-generator] generating single section:', batch[0]?.id);
+    for (let index = 0; index < REVIEW_SECTION_PLAN.length; index += 2) {
+      const batch = REVIEW_SECTION_PLAN.slice(index, index + 2);
+      console.info('[review-generator] generating section batch:', batch.map((section) => section.id).join(', '));
       const generatedBatch = await generateReviewSectionBatch(sourceContext, batch);
       modelSections.push(...generatedBatch);
     }
