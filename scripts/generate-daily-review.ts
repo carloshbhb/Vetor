@@ -5,6 +5,7 @@ import {
 import { productLinkToPipelineInput, runReviewPipeline } from '../src/lib/content-pipeline';
 import { getSupabaseServiceKeyClient } from '../src/lib/supabase';
 import { slugifyEditorialTitle } from '../src/lib/slug';
+import { searchProducts } from '../src/lib/mercadolivre-api';
 import { extractProductData } from '../src/lib/product-extractor';
 
 type ExistingReview = {
@@ -169,15 +170,44 @@ type ProductionMLProductDetails = {
   imageUrl: string | null;
 };
 
-async function fetchProductionMLProductDetails(itemId: string, matchedUrl?: string): Promise<ProductionMLProductDetails> {
-  // Prefer the existing product extractor: it attempts OAuth and automatically
-  // falls back to scraping the public listing when the ML Items API returns 403.
+async function fetchProductionMLProductDetails(itemId: string, matchedUrl?: string, matchedTitle?: string): Promise<ProductionMLProductDetails> {
   const normalizedItemId = itemId.replace(/-/g, '').toUpperCase();
   const pageUrl = isHttpsUrl(matchedUrl)
     ? matchedUrl
     : 'https://produto.mercadolivre.com.br/MLB-' + normalizedItemId.replace(/^MLB/, '');
   let extractionError = 'extração não identificada';
 
+  // Item detail requests can return 403 even when public search results remain
+  // available. Search for the exact stored item ID so the thumbnail comes from
+  // Mercado Livre itself, not from a guessed URL or a different product.
+  if (matchedTitle?.trim()) {
+    try {
+      const search = await searchProducts(matchedTitle.trim(), { limit: 50 });
+      const exactMatch = (search.results || []).find((candidate) =>
+        String(candidate.id || '').replace(/-/g, '').toUpperCase() === normalizedItemId
+      );
+      if (exactMatch) {
+        const imageUrl = normalizeProductImage(exactMatch.thumbnail) ||
+          normalizeProductImage(exactMatch.pictures?.find((picture) => picture.secure_url)?.secure_url) ||
+          normalizeProductImage(exactMatch.pictures?.[0]?.url);
+        if (imageUrl) {
+          return {
+            itemId: normalizedItemId,
+            title: String(exactMatch.title || matchedTitle).trim(),
+            productUrl: String(exactMatch.permalink || pageUrl).trim(),
+            price: null,
+            imageUrl,
+          };
+        }
+      }
+    } catch (error) {
+      extractionError = error instanceof Error ? error.message.slice(0, 220) : String(error).slice(0, 220);
+      console.warn('[review-generation] Mercado Livre search fallback failed for ' + itemId + ': ' + extractionError);
+    }
+  }
+
+  // If the exact item is not returned by search, try the existing extractor;
+  // it attempts OAuth and then scrapes the public listing metadata.
   try {
     const extracted = await extractProductData(pageUrl);
     const imageUrl = normalizeProductImage(extracted.imageUrl);
@@ -342,7 +372,7 @@ async function discoverAffiliateBackedProducts(
 
     let productDetail: ProductionMLProductDetails;
     try {
-      productDetail = await fetchProductionMLProductDetails(String(row.matched_item_id), String(row.matched_url || ''));
+      productDetail = await fetchProductionMLProductDetails(String(row.matched_item_id), String(row.matched_url || ''), String(row.matched_title || source.name || ''));
     } catch (error) {
       result.detailErrors += 1;
       console.warn(
