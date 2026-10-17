@@ -195,7 +195,7 @@ async function fetchProductionMLProductDetails(itemId: string, matchedUrl?: stri
   // Mercado Livre restricts /items/{id} and /sites/MLB/search for many external apps,
   // but /products/{catalog_product_id} can expose the canonical product pictures.
   const normalizedCatalogId = String(catalogProductId || '').trim().toUpperCase();
-  if (/^MLB\\d{5,}$/.test(normalizedCatalogId)) {
+  if (/^MLB\d{5,}$/.test(normalizedCatalogId)) {
     try {
       const accessToken = await getValidAccessToken();
       const catalogResponse = await fetch(
