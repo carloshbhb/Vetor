@@ -1,14 +1,14 @@
 name: Process Video Queue
-run-name: Publish queued video(s) — ${{ github.event.inputs.max_videos || '1' }}
+run-name: Publish daily batch — up to ${{ github.event.inputs.max_videos || '15' }} videos
 
 concurrency:
   group: vetor-production-video-queue
   cancel-in-progress: false
 
 on:
-  # 15 execuções diárias distribuídas ao longo do dia (UTC).
+  # Um único lote diário evita perder execuções por substituição de itens pendentes no grupo de concorrência.
   schedule:
-    - cron: '0 0,1,2,4,6,8,9,10,12,14,16,17,18,20,22 * * *'
+    - cron: '0 5 * * *'
   workflow_dispatch:
     inputs:
       video_id:
@@ -17,9 +17,9 @@ on:
         default: ''
         type: string
       max_videos:
-        description: 'Maximum videos this run (hard daily cap: 15)'
+        description: 'Target videos per daily batch (hard daily cap: 15)'
         required: false
-        default: '1'
+        default: '15'
         type: string
 
 permissions:
@@ -86,7 +86,8 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
           VIDEO_ID: ${{ github.event.inputs.video_id || '' }}
-          MAX_VIDEOS: ${{ github.event.inputs.max_videos || '1' }}
+          MAX_VIDEOS: ${{ github.event_name == 'schedule' && '15' || github.event.inputs.max_videos || '15' }}
+          ELEVENLABS_ESTIMATED_CHARACTERS_PER_VIDEO: '1200'
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}

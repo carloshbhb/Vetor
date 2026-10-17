@@ -292,6 +292,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, queued: queued.length, videos: queued });
     }
 
+    if (action === "retryQuotaFailures") {
+      const limit = Math.min(Math.max(Number(body.limit || 15), 1), 15);
+      const { data: failed, error: failedError } = await supabase
+        .from("video_queue")
+        .select("id,product_title,error_message,updated_at")
+        .eq("status", "failed")
+        .ilike("error_message", "%quota_exceeded%")
+        .order("updated_at", { ascending: true })
+        .limit(limit);
+      if (failedError) throw failedError;
+
+      const retried = [];
+      for (const item of failed || []) {
+        const { data, error } = await supabase
+          .from("video_queue")
+          .update({
+            status: "pending",
+            error_message: null,
+            started_at: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", item.id)
+          .eq("status", "failed")
+          .select("id,product_title,status")
+          .maybeSingle();
+        if (error) throw error;
+        if (data) retried.push(data);
+      }
+      return NextResponse.json({ success: true, retried: retried.length, videos: retried });
+    }
+
     if (action === "next") {
       const quota = await getDailyPublicationQuota(supabase);
       if (quota.remaining <= 0) {
@@ -366,7 +397,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, videos: data || [] });
     }
 
-    return NextResponse.json({ success: false, error: "Ação inválida. Use quota, queueFromReviews, queueFromComparatives, next, get, update, pendingComments ou recent." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Ação inválida. Use quota, queueFromReviews, queueFromComparatives, retryQuotaFailures, next, get, update, pendingComments ou recent." }, { status: 400 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[video-queue-worker] failed:", message);

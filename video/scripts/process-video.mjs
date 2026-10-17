@@ -710,6 +710,46 @@ async function processVideo(video) {
   return true;
 }
 
+
+async function verifyElevenLabsBudget(videoCount) {
+  const apiKey = (process.env.ELEVENLABS_API_KEY || '').trim();
+  if (!apiKey) throw new Error('[TTS_QUOTA_PREFLIGHT] ELEVENLABS_API_KEY ausente; nenhum item da fila foi reivindicado.');
+
+  const response = await fetch('https://api.elevenlabs.io/v1/user/subscription', {
+    headers: { 'xi-api-key': apiKey, Accept: 'application/json' },
+    signal: AbortSignal.timeout(12000),
+  });
+  const subscription = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error('[TTS_QUOTA_PREFLIGHT] Não foi possível consultar a assinatura ElevenLabs (HTTP ' + response.status + '). Nenhum item da fila foi reivindicado.');
+  }
+
+  const characterCount = Number(subscription.character_count);
+  const characterLimit = Number(subscription.character_limit);
+  if (!Number.isFinite(characterCount) || !Number.isFinite(characterLimit) || characterLimit < 0) {
+    throw new Error('[TTS_QUOTA_PREFLIGHT] A API ElevenLabs não retornou character_count/character_limit válidos. Nenhum item da fila foi reivindicado.');
+  }
+
+  const remaining = Math.max(0, characterLimit - characterCount);
+  const configuredEstimate = Number.parseInt(process.env.ELEVENLABS_ESTIMATED_CHARACTERS_PER_VIDEO || '1200', 10);
+  if (!Number.isInteger(configuredEstimate) || configuredEstimate < 500) {
+    throw new Error('[TTS_QUOTA_PREFLIGHT] ELEVENLABS_ESTIMATED_CHARACTERS_PER_VIDEO deve ser um inteiro >= 500.');
+  }
+  const needed = videoCount * configuredEstimate;
+
+  console.log('[TTS_QUOTA_PREFLIGHT] Plano=' + String(subscription.tier || 'desconhecido') +
+    '; uso=' + characterCount + '/' + characterLimit +
+    '; saldo incluído=' + remaining +
+    '; lote solicitado=' + videoCount +
+    '; orçamento estimado=' + needed + ' caracteres.');
+
+  if (remaining < needed) {
+    throw new Error('[TTS_QUOTA_PREFLIGHT] Saldo ElevenLabs insuficiente: restam ' + remaining +
+      ' caracteres incluídos; o lote de ' + videoCount + ' vídeo(s) reserva aproximadamente ' + needed +
+      ' caracteres (' + configuredEstimate + ' por vídeo). Nenhum item da fila foi reivindicado. Recarregue/ajuste o plano ElevenLabs ou reduza MAX_VIDEOS.');
+  }
+}
+
 async function main() {
   console.log('🎬 Iniciando processamento de vídeos...');
   console.log(`   Timestamp: ${new Date().toISOString()}`);
@@ -730,6 +770,22 @@ async function main() {
   }
 
   const videoId = process.env.VIDEO_ID;
+  const requestedLimit = videoId
+    ? 1
+    : Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 15, Number(quota.remaining));
+  if (process.env.ELEVENLABS_REQUIRED === 'true') {
+    await verifyElevenLabsBudget(requestedLimit);
+  }
+
+  // Restore only items failed by an explicit ElevenLabs credit-exhaustion error.
+  // This is deliberately after quota preflight, so a zero-credit account never churns queue statuses.
+  if (!videoId && requestedLimit > 0) {
+    const restored = await queueApi('retryQuotaFailures', { limit: requestedLimit });
+    if (Number(restored.retried) > 0) {
+      console.log('[QUEUE_RECOVERY] Recolocados ' + Number(restored.retried) + ' vídeo(s) que falharam por quota_exceeded.');
+    }
+  }
+
   let failures = 0;
   let processedCount = 0;
   if (videoId) {
@@ -742,21 +798,22 @@ async function main() {
     processedCount += 1;
     if (!(await processVideo(video))) failures += 1;
   } else {
-    const limit = Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 15, Number(quota.remaining));
+    const limit = requestedLimit;
     let videos = await getPendingVideos(limit);
 
-    if (videos.length === 0 && limit > 0) {
-      console.log('Fila sem vídeos pendentes; tentando alimentar automaticamente a partir de reviews e comparativos publicados.');
+    if (videos.length < limit && limit > 0) {
+      const slotsNeeded = limit - videos.length;
+      console.log('Fila abaixo do lote solicitado (' + videos.length + '/' + limit + '); completando com reviews e comparativos publicados.');
       let queuedFromReviews = 0;
       try {
-        const refill = await queueApi('queueFromReviews', { limit });
-        queuedFromReviews = Math.min(limit, Math.max(0, Number(refill.queued) || 0));
+        const refill = await queueApi('queueFromReviews', { limit: slotsNeeded });
+        queuedFromReviews = Math.min(slotsNeeded, Math.max(0, Number(refill.queued) || 0));
         console.log(`Reposição da fila: ${queuedFromReviews} review(s) adicionado(s).`);
       } catch (error) {
         console.warn('[QUEUE_REFILL] Não foi possível adicionar reviews: ' +
           (error instanceof Error ? error.message : String(error)));
       }
-      const comparisonLimit = Math.max(0, limit - queuedFromReviews);
+      const comparisonLimit = Math.max(0, slotsNeeded - queuedFromReviews);
       if (comparisonLimit > 0) {
         try {
           const refill = await queueApi('queueFromComparatives', { limit: comparisonLimit });

@@ -1,136 +1,16 @@
-name: Generate and Publish Daily Videos
+name: Legacy video generation workflow (retired)
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
   workflow_dispatch:
-    inputs:
-      count:
-        description: 'Videos to queue from each published content type (review and comparative)'
-        required: false
-        default: '1'
-        type: string
 
 permissions:
   contents: read
 
-concurrency:
-  group: vetor-production-video-pipeline
-  cancel-in-progress: false
-
 jobs:
-  generate-and-publish-videos:
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      CRON_SECRET: ${{ secrets.CRON_SECRET }}
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_KEY }}
-      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-      YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-      YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-      YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-      COUNT: ${{ github.event.inputs.count || '1' }}
-      VIDEO_LIMIT: ${{ github.event.inputs.count || '1' }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install application dependencies
-        run: npm ci
-
-      - name: Install video renderer dependencies
-        run: npm ci --prefix video
-
-      - name: Install FFmpeg
+      - name: Explain the active production pipeline
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes ffmpeg
-
-      - name: Ensure Remotion browser is installed
-        working-directory: video
-        run: npx remotion browser ensure
-
-      - name: Validate credentials and limits before queue writes
-        run: |
-          set -euo pipefail
-          : "${CRON_SECRET:?CRON_SECRET secret is required}"
-          : "${SUPABASE_URL:?SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL secret is required}"
-          : "${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY secret is required}"
-          : "${NVIDIA_API_KEY:?NVIDIA_API_KEY secret is required}"
-          : "${YOUTUBE_CLIENT_ID:?YOUTUBE_CLIENT_ID secret is required}"
-          : "${YOUTUBE_CLIENT_SECRET:?YOUTUBE_CLIENT_SECRET secret is required}"
-          : "${YOUTUBE_REFRESH_TOKEN:?YOUTUBE_REFRESH_TOKEN secret is required}"
-          if ! [[ "${COUNT}" =~ ^[0-9]+$ ]] || [ "${COUNT}" -lt 1 ]; then
-            echo "::error::COUNT must be a positive integer"
-            exit 1
-          fi
-          if [ "${COUNT}" -gt 15 ]; then
-            echo "::warning::COUNT capped at 15 per content type so the worker stays inside 45min timeout (Remotion render ~3min/video)."
-            COUNT=15
-            echo 'COUNT=15' >> "$GITHUB_ENV"
-          fi
-          echo "VIDEO_LIMIT=$((COUNT * 2))" >> "$GITHUB_ENV"
-
-      - name: Run content regression tests and type checks
-        run: |
-          set -euo pipefail
-          npm run test:content-quality
-          npm run test:editorial-brief
-          npm run test:viral-quality
-          npx tsc --noEmit
-
-      - name: Type-check Remotion project
-        working-directory: video
-        run: npx tsc --noEmit -p tsconfig.json
-
-      - name: Queue eligible published reviews
-        run: |
-          set -euo pipefail
-          COUNT="${COUNT:-1}"
-          payload="$(jq -n --argjson limit "$COUNT" '{action:"queueFromReviews", limit:$limit}')"
-          code="$(curl -sS --max-time 25 -o queue-reviews.json -w '%{http_code}' -X POST "https://www.vetor.blog/api/cron/video-queue-worker/" -H "Authorization: Bearer ${CRON_SECRET}" -H "Content-Type: application/json" -d "$payload")"
-          if [ "$code" != "200" ] || ! jq -e '.success == true and (.queued | type == "number")' queue-reviews.json >/dev/null; then
-            cat queue-reviews.json 2>/dev/null || true
-            echo "::error::Review queue API failed (HTTP $code)."
-            exit 1
-          fi
-          jq . queue-reviews.json
-
-      - name: Queue eligible published comparatives
-        run: |
-          set -euo pipefail
-          COUNT="${COUNT:-1}"
-          payload="$(jq -n --argjson limit "$COUNT" '{action:"queueFromComparatives", limit:$limit}')"
-          code="$(curl -sS --max-time 25 -o queue-comparatives.json -w '%{http_code}' -X POST "https://www.vetor.blog/api/cron/video-queue-worker/" -H "Authorization: Bearer ${CRON_SECRET}" -H "Content-Type: application/json" -d "$payload")"
-          if [ "$code" != "200" ] || ! jq -e '.success == true and (.queued | type == "number")' queue-comparatives.json >/dev/null; then
-            cat queue-comparatives.json 2>/dev/null || true
-            echo "::error::Comparative queue API failed (HTTP $code)."
-            exit 1
-          fi
-          jq . queue-comparatives.json
-
-      - name: Render MP4 and publish to YouTube
-        run: npm run generate-videos
-
-      - name: Upload generated manifest and logs for diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: video-pipeline-diagnostics
-          path: |
-            video/out/manifest.json
-            video/logs/upload-log.json
-          if-no-files-found: ignore
-          retention-days: 7
-
+          echo "::notice::This legacy workflow is retired. Use 'Process Video Queue', which runs a daily batch of up to 15 videos with Remotion and ElevenLabs."
+          echo "No content was queued, rendered, or published by this retired workflow."
