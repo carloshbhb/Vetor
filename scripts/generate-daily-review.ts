@@ -5,7 +5,7 @@ import {
 import { productLinkToPipelineInput, runReviewPipeline } from '../src/lib/content-pipeline';
 import { getSupabaseServiceKeyClient } from '../src/lib/supabase';
 import { slugifyEditorialTitle } from '../src/lib/slug';
-import { getProductWithPictures } from '../src/lib/mercadolivre-api';
+import { extractProductData } from '../src/lib/product-extractor';
 
 type ExistingReview = {
   slug: string;
@@ -169,34 +169,39 @@ type ProductionMLProductDetails = {
   imageUrl: string | null;
 };
 
-async function fetchProductionMLProductDetails(itemId: string): Promise<ProductionMLProductDetails> {
-  // Prefer the authenticated Mercado Livre client directly. This avoids a fragile
-  // self-request to a Vercel route that may not yet be present on the current deploy.
-  let directError = 'erro não identificado';
+async function fetchProductionMLProductDetails(itemId: string, matchedUrl?: string): Promise<ProductionMLProductDetails> {
+  // Prefer the existing product extractor: it attempts OAuth and automatically
+  // falls back to scraping the public listing when the ML Items API returns 403.
+  const normalizedItemId = itemId.replace(/-/g, '').toUpperCase();
+  const pageUrl = isHttpsUrl(matchedUrl)
+    ? matchedUrl
+    : 'https://produto.mercadolivre.com.br/MLB-' + normalizedItemId.replace(/^MLB/, '');
+  let extractionError = 'extração não identificada';
+
   try {
-    const product = await getProductWithPictures(itemId);
-    const imageUrl = normalizeProductImage(product.thumbnail) ||
-      normalizeProductImage(product.pictures?.find((picture) => picture.secure_url)?.secure_url) ||
-      normalizeProductImage(product.pictures?.[0]?.url);
-    if (!imageUrl) throw new Error('A API do Mercado Livre não retornou uma imagem HTTPS válida.');
-    const price = Number(product.price);
+    const extracted = await extractProductData(pageUrl);
+    const imageUrl = normalizeProductImage(extracted.imageUrl);
+    if (!imageUrl) {
+      throw new Error('A extração do anúncio não retornou imagem HTTPS válida.');
+    }
+    // Do not reuse an old candidate price as if it were current. The review
+    // generator will say to check the live listing unless a fresh price exists.
     return {
-      itemId: String(product.id || itemId).replace(/-/g, '').toUpperCase(),
-      title: String(product.title || '').trim(),
-      productUrl: String(product.permalink || '').trim(),
-      price: Number.isFinite(price) && price > 0 ? price : null,
+      itemId: normalizedItemId,
+      title: String(extracted.title || '').trim(),
+      productUrl: String(extracted.url || pageUrl).trim(),
+      price: null,
       imageUrl,
     };
   } catch (error) {
-    directError = error instanceof Error ? error.message.slice(0, 220) : String(error).slice(0, 220);
-    console.warn('[review-generation] direct Mercado Livre API failed for ' + itemId + ': ' + directError);
+    extractionError = error instanceof Error ? error.message.slice(0, 220) : String(error).slice(0, 220);
+    console.warn('[review-generation] product extraction/scraping failed for ' + itemId + ': ' + extractionError);
   }
 
-  // Fallback for environments where the Supabase OAuth token cannot be refreshed
-  // from GitHub Actions. Production uses its own configured Mercado Livre OAuth keys.
+  // Final fallback for environments where the listing cannot be scraped.
   const cronSecret = process.env.CRON_SECRET?.trim();
   if (!cronSecret) {
-    throw new Error('Consulta direta do Mercado Livre falhou (' + directError + ') e CRON_SECRET não está disponível para fallback.');
+    throw new Error('Extração do anúncio falhou (' + extractionError + ') e CRON_SECRET não está disponível para fallback.');
   }
 
   const response = await fetch('https://www.vetor.blog/api/cron/ml-product-details', {
@@ -206,7 +211,7 @@ async function fetchProductionMLProductDetails(itemId: string): Promise<Producti
       'content-type': 'application/json',
       accept: 'application/json',
     },
-    body: JSON.stringify({ itemIds: [itemId] }),
+    body: JSON.stringify({ itemIds: [normalizedItemId] }),
     cache: 'no-store',
   });
 
@@ -217,13 +222,12 @@ async function fetchProductionMLProductDetails(itemId: string): Promise<Producti
       ? body.slice(0, 160)
       : 'resposta não JSON (content-type=' + contentType + ')';
     throw new Error(
-      'Consulta direta do Mercado Livre falhou (' + directError + '); endpoint de fallback Production HTTP ' +
+      'Extração do anúncio falhou (' + extractionError + '); endpoint de fallback Production HTTP ' +
       response.status + ': ' + detail
     );
   }
 
   const payload = await response.json() as { results?: ProductionMLProductDetails[] };
-  const normalizedItemId = itemId.replace(/-/g, '').toUpperCase();
   const product = (payload.results || []).find((entry) =>
     String(entry.itemId || '').replace(/-/g, '').toUpperCase() === normalizedItemId
   );
@@ -338,7 +342,7 @@ async function discoverAffiliateBackedProducts(
 
     let productDetail: ProductionMLProductDetails;
     try {
-      productDetail = await fetchProductionMLProductDetails(String(row.matched_item_id));
+      productDetail = await fetchProductionMLProductDetails(String(row.matched_item_id), String(row.matched_url || ''));
     } catch (error) {
       result.detailErrors += 1;
       console.warn(
