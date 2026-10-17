@@ -143,6 +143,18 @@ function normalizeProductImage(value: unknown): string | null {
   try {
     const url = new URL(value.trim());
     if (!['http:', 'https:'].includes(url.protocol)) return null;
+
+    const hostname = url.hostname.toLowerCase();
+    const isMarketplaceImageHost =
+      hostname === 'mlstatic.com' || hostname.endsWith('.mlstatic.com') ||
+      hostname === 'mlcdn.com' || hostname.endsWith('.mlcdn.com');
+    const path = url.pathname.toLowerCase();
+    // Mercado Livre listing HTML can expose its site-navigation logo as the first
+    // image. Never treat logos, favicons, sprites or interface assets as product photos.
+    if (!isMarketplaceImageHost || /frontend-assets\/ui-navigation|logo|favicon|sprite|tracking/.test(path)) {
+      return null;
+    }
+
     url.protocol = 'https:';
     return url.toString().replace('-I.jpg', '-O.jpg');
   } catch {
