@@ -28,6 +28,7 @@ async function getDailyPublicationQuota(supabase: SupabaseServiceClient) {
     .from("video_queue")
     .select("id", { count: "exact", head: true })
     .eq("status", "completed")
+    .eq("publication_mode", "automatic")
     .gte("completed_at", getSaoPauloDayStartIso());
   if (error) throw error;
   const completedToday = count || 0;
@@ -51,6 +52,7 @@ const UPDATABLE_FIELDS = new Set([
   "video_url",
   "youtube_video_id",
   "youtube_url",
+  "publication_mode",
 ]);
 
 export async function POST(request: NextRequest) {
@@ -263,12 +265,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "next") {
+      const manualOverride = body.manualOverride === true;
       const quota = await getDailyPublicationQuota(supabase);
-      if (quota.remaining <= 0) {
-        return NextResponse.json({ success: true, videos: [], ...quota, dailyLimitReached: true });
+      if (!manualOverride && quota.remaining <= 0) {
+        return NextResponse.json({ success: true, videos: [], ...quota, dailyLimitReached: true, manualOverride: false });
       }
-      const requestedLimit = Math.min(Math.max(Number(body.limit || 1), 1), 15);
-      const limit = Math.min(requestedLimit, quota.remaining);
+      // Automatic and manual runs are always limited to five videos per invocation.
+      const requestedLimit = Math.min(Math.max(Number(body.limit || 1), 1), manualOverride ? 5 : 15);
+      const limit = manualOverride ? requestedLimit : Math.min(requestedLimit, quota.remaining);
       const { data, error } = await supabase
         .from("video_queue")
         .select("*")
@@ -277,7 +281,13 @@ export async function POST(request: NextRequest) {
         .order("scheduled_at", { ascending: true })
         .limit(limit);
       if (error) throw error;
-      return NextResponse.json({ success: true, videos: data || [], ...quota, dailyLimitReached: false });
+      return NextResponse.json({
+        success: true,
+        videos: data || [],
+        ...quota,
+        dailyLimitReached: !manualOverride && quota.remaining <= 0,
+        manualOverride,
+      });
     }
 
     if (action === "get") {

@@ -104,8 +104,11 @@ async function queueApi(action, payload = {}) {
   return result;
 }
 
-async function getPendingVideos(limit = Number(process.env.MAX_VIDEOS || 1)) {
-  const result = await queueApi('next', { limit });
+async function getPendingVideos(
+  limit = Number(process.env.MAX_VIDEOS || 1),
+  manualOverride = process.env.MANUAL_RUN === 'true'
+) {
+  const result = await queueApi('next', { limit, manualOverride });
   return Array.isArray(result.videos) ? result.videos : [];
 }
 
@@ -837,16 +840,20 @@ async function main() {
   await verifyYouTubeOAuth();
   await retryPendingCtaComments();
 
+  const manualRun = process.env.MANUAL_RUN === 'true';
   const quota = await queueApi('quota');
-  if (Number(quota.remaining) <= 0) {
-    console.log(`Limite diário atingido: ${quota.completedToday}/${quota.dailyLimit} vídeos publicados no horário de São Paulo. Nenhum item novo foi reivindicado.`);
+  if (!manualRun && Number(quota.remaining) <= 0) {
+    console.log(`Limite automático diário atingido: ${quota.completedToday}/${quota.dailyLimit} publicações automáticas no horário de São Paulo. Execução encerrada sem reivindicar itens.`);
     return;
+  }
+  if (manualRun) {
+    console.log(`[MANUAL_RUN] Execução manual autorizada; não consome a cota automática de 15/dia. Limite deste lote: 5 vídeos. Publicações automáticas hoje: ${quota.completedToday}/${quota.dailyLimit}.`);
   }
 
   const videoId = process.env.VIDEO_ID;
   const requestedLimit = videoId
     ? 1
-    : Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 15, Number(quota.remaining));
+    : Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 5, manualRun ? 5 : Number(quota.remaining));
   // Restore only queue items previously failed by a TTS quota_exceeded error from the retired provider.
   if (!videoId && requestedLimit > 0) {
     const restored = await queueApi('retryQuotaFailures', { limit: requestedLimit });
@@ -864,11 +871,12 @@ async function main() {
       console.log(`Vídeo ${videoId} já foi publicado; evitando upload duplicado. Comentários pendentes são tratados separadamente.`);
       return;
     }
+    await updateVideoStatus(video.id, { publication_mode: manualRun ? 'manual' : 'automatic' });
     processedCount += 1;
     if (!(await processVideo(video))) failures += 1;
   } else {
     const limit = requestedLimit;
-    let videos = await getPendingVideos(limit);
+    let videos = await getPendingVideos(limit, manualRun);
 
     if (videos.length < limit && limit > 0) {
       const slotsNeeded = limit - videos.length;
@@ -892,11 +900,12 @@ async function main() {
             (error instanceof Error ? error.message : String(error)));
         }
       }
-      videos = await getPendingVideos(limit);
+      videos = await getPendingVideos(limit, manualRun);
     }
 
-    console.log(`   ${videos.length} vídeos pendentes encontrados (limite: ${limit}; restantes no dia: ${quota.remaining})`);
+    console.log(`   ${videos.length} vídeos pendentes encontrados (limite: ${limit}; cota automática restante: ${quota.remaining})`);
     for (const video of videos) {
+      await updateVideoStatus(video.id, { publication_mode: manualRun ? 'manual' : 'automatic' });
       processedCount += 1;
       if (!(await processVideo(video))) failures += 1;
     }
