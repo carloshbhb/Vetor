@@ -34,7 +34,7 @@ jobs:
       ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
       NVIDIA_MODEL: ${{ vars.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b' }}
-      NVIDIA_FALLBACK_MODEL: ${{ vars.NVIDIA_FALLBACK_MODEL || 'nvidia/nemotron-3-super-120b-a12b' }}
+      NVIDIA_FALLBACK_MODEL: 'nvidia/nemotron-3.5-super-vl-120b-a12b'
       REVIEW_GENERATION_MAX_ATTEMPTS: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[run-review-generation]') && '1' || '4' }}
       # Pushes comuns continuam em validação; a tag explícita permite um teste real controlado.
       DRY_RUN: ${{ (github.event_name == 'push' && !contains(github.event.head_commit.message, '[run-review-generation]')) || (github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
