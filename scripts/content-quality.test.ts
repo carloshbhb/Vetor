@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { validateGeneratedReview } from '../src/lib/content-quality';
+import { hasCompleteReviewMetadata } from '../src/lib/generate';
 
 const productName = 'Samsung Galaxy Fit3';
 const paragraph = `Esta seção analisa ${productName} com critérios claros, separa informações disponíveis de dados que precisam de confirmação e ajuda o leitor a comparar alternativas antes da compra. `;
@@ -49,6 +50,33 @@ const validPayload = {
     winnerCol: -1,
   },
 };
+
+const validMetadata = {
+  title: 'Review Samsung Galaxy Fit3',
+  description: 'Análise editorial do Samsung Galaxy Fit3 com critérios para comparar recursos e limitações antes da compra.',
+  meta_title: validPayload.meta_title,
+  meta_description: validPayload.meta_description,
+  hero_lead: validPayload.hero_lead,
+  verdict_label: 'Recomendação condicional',
+  verdict_text: 'Compare os recursos documentados com as suas necessidades e confirme as condições da oferta.',
+  hero_overall_score: 7,
+  hero_bars: validPayload.hero_bars,
+  specs: validPayload.specs,
+  pros: validPayload.pros,
+  cons: validPayload.cons,
+  faq: validPayload.faq,
+  compare_table: validPayload.compare_table,
+};
+assert.equal(hasCompleteReviewMetadata(JSON.stringify(validMetadata)), true, 'metadados com FAQs completas devem passar pelo validador');
+const shortFaqMetadata = {
+  ...validMetadata,
+  faq: [
+    validPayload.faq[0],
+    { question: 'A câmera funciona sem internet?', answer: 'Não.' },
+    validPayload.faq[2],
+  ],
+};
+assert.equal(hasCompleteReviewMetadata(JSON.stringify(shortFaqMetadata)), false, 'resposta de FAQ curta deve reprovar a resposta inicial da IA e disparar retry');
 
 const validResult = validateGeneratedReview(validPayload, { source: 'cron', slug: 'samsung-galaxy-fit3' });
 assert.equal(validResult.ok, true, `esperava aprovação, recebeu: ${validResult.ok ? '' : validResult.issues.join('; ')}`);
