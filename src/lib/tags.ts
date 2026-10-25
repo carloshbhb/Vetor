@@ -119,7 +119,7 @@ export function buildIndexableTagIndex(reviews: ReviewSummary[]): TagEntry[] {
 }
 
 export function buildTagIndex(
-  reviews: Review[],
+  reviews: ReviewSummary[],
   options?: { minCount?: number }
 ): TagEntry[] {
   const minCount = options?.minCount ?? 2;
