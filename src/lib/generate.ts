@@ -284,6 +284,7 @@ async function generateReviewSectionBatch(
       '',
       'Escreva APENAS as seções solicitadas abaixo. Cada seção deve ter 270–310 palavras úteis e específicas, em 3 a 5 parágrafos completos. Não inclua o título dentro do texto. Não copie uma seção na outra. Se um dado não foi fornecido, explique o que o comprador deve conferir em vez de inventar.',
       'Cada marcador de abertura e fechamento deve ficar sozinho em uma linha, exatamente como no exemplo. Inclua os dois marcadores para cada seção, sem crases, sem variações e sem texto antes, entre ou depois dos blocos.',
+      'Esta chamada contém somente as seções listadas abaixo. Complete a seção até atingir o limite de palavras e feche o bloco com seu marcador exato; não inicie nenhuma outra seção.',
       'Não responda em JSON. Não use Markdown, títulos extras, introdução, conclusão adicional ou cercas de código.',
       '',
       requestedSections,
@@ -292,7 +293,7 @@ async function generateReviewSectionBatch(
       formatExample,
     ].join('\n'),
     temperature: 0.35,
-    maxTokens: plans.length === 1 ? 1800 : 3400,
+    maxTokens: plans.length === 1 ? 1800 : 2600,
     timeoutMs: 70000,
     deadlineMs: 150000,
     validateResponse: (value) => {
@@ -417,14 +418,13 @@ export async function generateReview(product: {
   editorialBrief?: import('./prompt').EditorialBrief;
 }): Promise<ReviewOutput> {
   try {
-    // Generate two sections per request to reduce sequential round trips while
-    // keeping independent markers and word-count validation for each section.
-    // If a pair fails validation, the provider retries it and then tries NVIDIA fallback models.
+    // Generate one section per request so each response has a single marker pair.
+    // This keeps the 270–310 word target reliable across NVIDIA model variants.
     const sourceContext = buildReviewSourceContext(product);
     const modelSections: ReviewSection[] = [];
-    for (let index = 0; index < REVIEW_SECTION_PLAN.length; index += 2) {
-      const batch = REVIEW_SECTION_PLAN.slice(index, index + 2);
-      console.info('[review-generator] generating section batch:', batch.map((section) => section.id).join(', '));
+    for (let index = 0; index < REVIEW_SECTION_PLAN.length; index += 1) {
+      const batch = REVIEW_SECTION_PLAN.slice(index, index + 1);
+      console.info('[review-generator] generating section:', batch[0].id);
       const generatedBatch = await generateReviewSectionBatch(sourceContext, batch);
       modelSections.push(...generatedBatch);
     }
