@@ -153,9 +153,10 @@ function extractMarkedSection(raw: string, plan: ReviewSectionPlan): string | nu
 }
 
 function isCompleteSectionBatch(raw: string, plans: ReviewSectionPlan[]): boolean {
+  // Initial section responses may need a continuation pass to reach the full editorial target.
   return plans.every((plan) => {
     const body = extractMarkedSection(raw, plan);
-    return !!body && countVisibleWords(body) >= 260;
+    return !!body && countVisibleWords(body) >= 100;
   });
 }
 
@@ -306,7 +307,7 @@ async function generateReviewSectionBatch(
           words: body ? countVisibleWords(body) : 0,
         };
       });
-      const passed = checks.every((check) => check.openMarker && check.closeMarker && check.words >= 260);
+      const passed = checks.every((check) => check.openMarker && check.closeMarker && check.words >= 100);
       if (!passed) {
         console.warn('[review-generator] section batch rejected: ' + JSON.stringify(checks));
       }
@@ -314,20 +315,66 @@ async function generateReviewSectionBatch(
     },
   });
 
-  return plans.map((plan) => {
-    const body = extractMarkedSection(raw, plan);
-    if (!body || countVisibleWords(body) < 260) {
-      throw new Error('A seção ' + plan.id + ' não atingiu 260 palavras substantivas.');
+  return Promise.all(plans.map(async (plan) => {
+    let body = extractMarkedSection(raw, plan);
+    if (!body) {
+      throw new Error('A seção ' + plan.id + ' não retornou os marcadores obrigatórios.');
     }
-    const content = normalizeGeneratedSection(body, plan);
+
+    let words = countVisibleWords(body);
+    for (let continuationAttempt = 0; words < 260 && continuationAttempt < 3; continuationAttempt += 1) {
+      const targetAddition = Math.min(210, Math.max(90, 300 - words));
+      const continuation = await chatCompletion({
+        systemPrompt: 'Você é editor técnico sênior do Vetor.blog. Continue uma seção já iniciada, em português brasileiro natural, com fatos sustentados pelo contexto. Não invente especificações, preços, testes ou experiência prática. Não repita as mesmas ideias.',
+        userPrompt: [
+          'Contexto factual do produto:',
+          sourceContext,
+          '',
+          'A seção abaixo ainda está curta. Acrescente novos parágrafos que completem a análise sem repetir argumentos, frases ou informações já apresentadas.',
+          'Escreva aproximadamente ' + targetAddition + ' palavras novas, específicas e úteis. Não escreva título, marcador de seção, introdução genérica ou conclusão separada. Retorne somente os parágrafos adicionais.',
+          '',
+          'Tema e foco da seção: ' + plan.heading + '. ' + plan.focus + '.',
+          '',
+          'Texto existente — não o reescreva nem o repita:',
+          body,
+        ].join('\n'),
+        temperature: 0.35,
+        maxTokens: 1500,
+        timeoutMs: 55000,
+        deadlineMs: 100000,
+        validateResponse: (value) => countVisibleWords(value) >= 60,
+      });
+
+      const addition = continuation
+        .trim()
+        .replace(/^[\x60]{3}(?:html|text|markdown)?\s*/i, '')
+        .replace(/\s*[\x60]{3}$/, '')
+        .replace(/^\[\[\/?SECTION:[^\]]+\]\]\s*/i, '')
+        .trim();
+      if (!addition) break;
+
+      body = body + '\n\n' + addition;
+      words = countVisibleWords(body);
+      console.info('[review-generator] section continuation:', JSON.stringify({
+        section: plan.id,
+        attempt: continuationAttempt + 1,
+        totalWords: words,
+      }));
+    }
+
+    if (words < 260) {
+      throw new Error('A seção ' + plan.id + ' permaneceu com ' + words + ' palavras após continuações; mínimo: 260.');
+    }
+
+    const normalizedContent = normalizeGeneratedSection(body, plan);
     return {
       id: plan.id,
       heading: plan.heading,
       tocEmoji: plan.tocEmoji,
       tocLabel: plan.tocLabel,
-      content,
+      content: normalizedContent,
     };
-  });
+  }));
 }
 
 async function generateReviewMetadata(
