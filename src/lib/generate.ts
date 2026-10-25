@@ -178,7 +178,7 @@ export function hasCompleteReviewMetadata(raw: string): boolean {
       if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
       const entry = item as Record<string, unknown>;
       return typeof entry.question === 'string' && entry.question.trim().length >= 8 &&
-        typeof entry.answer === 'string' && entry.answer.trim().length >= 30;
+        typeof entry.answer === 'string' && entry.answer.trim().length >= 80;
     });
     return nonempty(value.title) &&
       nonempty(value.description) &&
@@ -394,7 +394,7 @@ async function generateReviewMetadata(
       sourceContext,
       '',
       'Retorne um objeto JSON curto para o review do produto ' + productTitle + ', sem o corpo e sem as seções do artigo.',
-      'Campos obrigatórios: title (comece com "Review" e nome do produto), description (100–160 caracteres), meta_title (35–65 caracteres), meta_description (100–160 caracteres), hero_overall_score (número de 6 a 9 sustentado por critérios editoriais, não por teste de laboratório), hero_bars (3 ou 4 itens {pct,label,value}; pct=value*10), specs (4–6 itens {label,value,highlight}), pros (3–5 pontos específicos), cons (3–5 limitações honestas), compare_table ({columns:["Critério","' + productTitle + '","Alternativa da categoria"], rows: pelo menos 3 objetos {feature,values:["valor do produto","comparativo factual ou não informado"],winner:-1}, caption, winnerCol:-1}), verdict_score, verdict_label, verdict_text, verdict_note, hero_lead (pelo menos 80 caracteres), hero_headline_line1, hero_headline_line2, hero_headline_em e faq (3–5 objetos {question,answer}); cada pergunta precisa ter pelo menos 8 caracteres e cada resposta deve ter pelo menos 40 caracteres, em frases completas e úteis.',
+      'Campos obrigatórios: title (comece com "Review" e nome do produto), description (100–160 caracteres), meta_title (35–65 caracteres), meta_description (100–160 caracteres), hero_overall_score (número de 6 a 9 sustentado por critérios editoriais, não por teste de laboratório), hero_bars (3 ou 4 itens {pct,label,value}; pct=value*10), specs (4–6 itens {label,value,highlight}), pros (3–5 pontos específicos), cons (3–5 limitações honestas), compare_table ({columns:["Critério","' + productTitle + '","Alternativa da categoria"], rows: pelo menos 3 objetos {feature,values:["valor do produto","comparativo factual ou não informado"],winner:-1}, caption, winnerCol:-1}), verdict_score, verdict_label, verdict_text, verdict_note, hero_lead (pelo menos 80 caracteres), hero_headline_line1, hero_headline_line2, hero_headline_em e faq (3–5 objetos {question,answer}); cada pergunta precisa ter pelo menos 8 caracteres e cada resposta deve ter pelo menos 80 caracteres (duas frases completas, com orientação prática específica e sem repetir a pergunta), em frases úteis.',
       'Não inclua content nem sections. Evite texto em markdown/fences.',
     ].join('\n'),
     temperature: 0.25,
@@ -588,9 +588,9 @@ export async function generateReview(product: {
     if (faq.length < 3) preflightIssues.push('faq deve conter pelo menos 3 perguntas');
     if (faq.some((item: any) =>
       typeof item?.question !== 'string' || visibleText(item.question).length < 8 ||
-      typeof item?.answer !== 'string' || visibleText(item.answer).length < 30
+      typeof item?.answer !== 'string' || visibleText(item.answer).length < 80
     )) {
-      preflightIssues.push('cada FAQ deve ter uma pergunta com pelo menos 8 caracteres e resposta com pelo menos 30 caracteres');
+      preflightIssues.push('cada FAQ deve ter uma pergunta com pelo menos 8 caracteres e resposta com pelo menos 80 caracteres');
     }
     if (!comparison || !Array.isArray(comparison.columns) || comparison.columns.length < 2 || comparison.columns.length > 4) {
       preflightIssues.push('compare_table precisa de 2 a 4 colunas');
