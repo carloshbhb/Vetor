@@ -13,7 +13,7 @@ import {
 } from './supabase';
 import { reviews as staticReviews } from '@/data/reviews';
 import { normalizeReviewCompareRows } from './review-compare';
-import type { Review, ReviewSummary, ViralArticle, ViralArticleSummary, Category } from './types';
+import type { Review, ReviewSummary, ViralArticle, ViralArticleSummary, ViralArticleSearchSummary, Category } from './types';
 
 const CATEGORY_ALIASES: Record<string, string> = {
   eletroportateis: 'Eletroportáteis',
