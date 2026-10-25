@@ -379,11 +379,11 @@ async function renderWithRemotion(videoData, outputPath) {
     }
     const renderOutput = execFileSync(
       process.execPath,
-      [tsxEntrypoint, 'video/src/utils/renderVideo.ts', dataPath],
+      [tsxEntrypoint, 'video/src/utils/renderVideo.ts', String(videoData.type || 'review'), dataPath],
       {
         encoding: 'utf8',
         stdio: 'pipe',
-        // Chrome is prepared before the queue is touched. Fifteen minutes leaves headroom for complex scenes.
+        // Chrome is prepared before the queue is touched. Twenty minutes leaves headroom for complex scenes.
         timeout: 1200000,
         maxBuffer: 32 * 1024 * 1024,
         cwd: path.resolve(process.cwd()),
