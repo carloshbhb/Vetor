@@ -4,7 +4,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 export const metadata: Metadata = {
   title: "Termos de uso — Vetor.blog",
   description: "Termos de uso do Vetor.blog: conteúdo informativo, preços, afiliados e responsabilidades.",
-  alternates: { canonical: "https://www.vetor.blog/termos" },
+  alternates: { canonical: "https://www.vetor.blog/termos/" },
 };
 
 export default function TermosPage() {
