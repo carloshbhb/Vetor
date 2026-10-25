@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminAuth } from "@/lib/admin-auth";
+import { revalidateAffiliateLinkSurfaces } from "@/lib/revalidate-content";
 import { syncPublishedReviewAffiliateLinks } from "@/lib/affiliate-links";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ export async function POST(request: Request) {
 
   try {
     const changed = await syncPublishedReviewAffiliateLinks();
+    if (changed > 0) revalidateAffiliateLinkSurfaces();
     const response = NextResponse.json({
       ok: true,
       changed,

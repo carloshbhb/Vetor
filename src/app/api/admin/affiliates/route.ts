@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminAuth } from "@/lib/admin-auth";
+import { revalidateAffiliateLinkSurfaces } from "@/lib/revalidate-content";
 import {
   createAffiliateLink,
   getAffiliateLinkStats,
@@ -91,6 +92,7 @@ export async function POST(request: Request) {
     });
 
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+    revalidateAffiliateLinkSurfaces();
     return NextResponse.json({ data: result.data }, { status: 201 });
   } catch (error) {
     return NextResponse.json(

@@ -3,9 +3,9 @@ import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SiteSearch from '@/components/SiteSearch';
 import { ItemListSchema, BreadcrumbSchema } from '@/components/SchemaMarkup';
-import { fetchAllReviews, fetchAllViralArticles, isGuiaLike } from '@/lib/public-data';
+import { fetchAllReviewSummaries, fetchAllViralArticleSearchSummaries, isGuiaLike } from '@/lib/public-data';
 import { isGuideLikeSlug, reviewScore } from '@/lib/buying';
-import type { Review, ViralArticle } from '@/lib/types';
+import type { ReviewSummary, ViralArticleSearchSummary } from '@/lib/types';
 
 export const metadata: Metadata = {
   title: 'Buscar no Vetor.blog',
@@ -26,23 +26,23 @@ function normalize(value: string): string {
     .trim();
 }
 
-function matchesReview(review: Review, query: string): boolean {
+function matchesReview(review: ReviewSummary, query: string): boolean {
   const haystack = normalize([
     review.product,
     review.category,
     review.meta_title,
     review.meta_description,
     review.hero_lead,
-    ...(review.sections ?? []).map((section) => section.heading),
   ].join(' '));
   return haystack.includes(query);
 }
 
-function matchesArticle(article: ViralArticle, query: string): boolean {
-  return normalize([article.title, article.description, article.category, article.content].join(' ')).includes(query);
+function matchesArticle(article: ViralArticleSearchSummary, query: string): boolean {
+  const productNames = (article.products || []).map((product) => product.name || '').join(' ');
+  return normalize([article.title, article.description, article.category, article.seo_title, article.seo_description, productNames].join(' ')).includes(query);
 }
 
-function scoreLabel(review: Review): string {
+function scoreLabel(review: ReviewSummary): string {
   const score = reviewScore(review);
   return score > 0 ? `Nota ${String(score).replace('.', ',')}/10` : 'Review completo';
 }
@@ -51,8 +51,8 @@ export default async function SearchPage({ searchParams }: PageProps) {
   const { q = '' } = await searchParams;
   const query = normalize(q).slice(0, 100);
   const [reviews, articles] = await Promise.all([
-    fetchAllReviews(),
-    fetchAllViralArticles(),
+    fetchAllReviewSummaries(),
+    fetchAllViralArticleSearchSummaries(),
   ]);
   const guides = reviews.filter(isGuiaLike);
 

@@ -64,6 +64,20 @@ export function revalidateReviewSurfaces(
   }
 }
 
+/** Invalidate the short-lived public cache after admin link mutations. */
+export function revalidateAffiliateLinkSurfaces(): void {
+  revalidateTag('vetor:affiliate-links');
+  revalidatePath('/');
+  revalidatePath('/reviews/[slug]', 'page');
+  revalidatePath('/comparativos/[slug]', 'page');
+}
+
+export function revalidateProductLinkSurfaces(): void {
+  revalidateTag('vetor:product-links');
+  revalidatePath('/');
+  revalidatePath('/reviews/[slug]', 'page');
+}
+
 /** Invalidates the comparison index and its dynamic article route. */
 export function revalidateComparativeSurfaces(slugs: string[] = []): void {
   revalidateTag('vetor:comparatives:full');

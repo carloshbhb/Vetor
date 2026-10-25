@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminAuth } from "@/lib/admin-auth";
+import { revalidateAffiliateLinkSurfaces } from "@/lib/revalidate-content";
 import { archiveAffiliateLink, getAffiliateLinkById, updateAffiliateLink } from "@/lib/affiliate-links";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -56,6 +57,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       ...(body.tags !== undefined ? { tags: Array.isArray(body.tags) ? body.tags.map(String).filter(Boolean) : [] } : {}),
     });
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+    revalidateAffiliateLinkSurfaces();
     return NextResponse.json({ data: result.data });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Não foi possível salvar." }, { status: 400 });
@@ -68,5 +70,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const { id } = await params;
   const result = await archiveAffiliateLink(id);
   if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+  revalidateAffiliateLinkSurfaces();
   return NextResponse.json({ data: result.data });
 }

@@ -147,6 +147,17 @@ export interface ViralArticleSummary {
   created_at: string;
 }
 
+export interface ViralArticleSearchSummary {
+  id?: string;
+  slug: string;
+  title: string;
+  description: string;
+  category: string;
+  seo_title: string;
+  seo_description: string;
+  products?: Array<{ name?: string; slug?: string }> | null;
+}
+
 export interface Category {
   name: string;
   count: number;

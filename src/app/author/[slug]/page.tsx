@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ReviewCard from "@/components/ReviewCard";
 import { authors, getAuthorBySlug } from "@/data/authors";
-import { fetchAllReviews } from "@/lib/public-data";
+import { fetchAllReviewSummaries } from "@/lib/public-data";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -44,7 +44,7 @@ export default async function AuthorPage({ params }: PageProps) {
 
   // Site single-author: todos os reviews pertencem ao autor. Se um dia houver
   // múltiplos autores, filtrar por campo de autoria no review antes de contar.
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   const sorted = [...reviews]
     .sort(
       (a, b) =>

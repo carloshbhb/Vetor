@@ -37,6 +37,11 @@ export interface AffiliateLink {
 const STATUS_VALUES: AffiliateLinkStatus[] = ["active", "paused", "broken", "archived"];
 const SOURCE_VALUES: AffiliateSourceType[] = ["review", "comparison_product", "product_link", "manual"];
 
+/** Small projection for public product/affiliate cards; admin reads keep the full row. */
+const PUBLIC_AFFILIATE_COLUMNS =
+  "id,slug,name,marketplace,category,source_type,source_ref,destination_url,product_url,affiliate_tag,affiliate_checked_at,image_url,price,status,priority,created_at,updated_at";
+
+
 export function normalizeAffiliateProductName(value: unknown): string {
   return String(value || "")
     .normalize("NFD")
@@ -203,7 +208,7 @@ export async function getAffiliateLinksForReview(slug: string): Promise<Affiliat
 
   const { data, error } = await supabase
     .from("affiliate_links")
-    .select("*")
+    .select(PUBLIC_AFFILIATE_COLUMNS)
     .eq("source_type", "review")
     .eq("source_ref", normalizedSlug)
     .eq("status", "active")
@@ -328,7 +333,7 @@ export async function getAffiliateLinksBySlugs(slugs: string[]): Promise<Affilia
   const supabase = getSupabaseServiceKeyClient();
   const uniqueSlugs = Array.from(new Set(slugs.map((slug) => String(slug || "").trim()).filter(Boolean))).slice(0, 100);
   if (!supabase || !uniqueSlugs.length) return [];
-  const { data, error } = await supabase.from("affiliate_links").select("*").in("slug", uniqueSlugs);
+  const { data, error } = await supabase.from("affiliate_links").select(PUBLIC_AFFILIATE_COLUMNS).in("slug", uniqueSlugs);
   if (error) return [];
   return (data || []).map((row) => normalizeRow(row as Record<string, unknown>));
 }
@@ -359,7 +364,7 @@ export async function getAffiliateLinksForProductNames(names: string[]): Promise
 
   const { data, error } = await supabase
     .from("affiliate_links")
-    .select("*")
+    .select(PUBLIC_AFFILIATE_COLUMNS)
     .or(filters.join(","))
     .limit(200);
   if (error || !data) return [];

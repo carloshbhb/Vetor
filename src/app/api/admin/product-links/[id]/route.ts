@@ -5,6 +5,7 @@ import {
   deleteProductLink,
 } from "@/lib/product-links";
 import { verifyAdminAuth } from "@/lib/admin-auth";
+import { revalidateProductLinkSurfaces } from "@/lib/revalidate-content";
 
 export async function GET(
   request: Request,
@@ -38,6 +39,7 @@ export async function PUT(
     return NextResponse.json({ error }, { status: 400 });
   }
 
+  revalidateProductLinkSurfaces();
   return NextResponse.json({ success: true });
 }
 
@@ -55,5 +57,6 @@ export async function DELETE(
     return NextResponse.json({ error }, { status: 400 });
   }
 
+  revalidateProductLinkSurfaces();
   return NextResponse.json({ success: true });
 }

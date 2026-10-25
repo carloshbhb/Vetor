@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAllProductLinks, createProductLink } from "@/lib/product-links";
 import { verifyAdminAuth } from "@/lib/admin-auth";
+import { revalidateProductLinkSurfaces } from "@/lib/revalidate-content";
 
 export async function GET(request: Request) {
   const authError = verifyAdminAuth(request);
@@ -60,5 +61,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error }, { status: 400 });
   }
 
+  revalidateProductLinkSurfaces();
   return NextResponse.json({ data }, { status: 201 });
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createProductLink } from "@/lib/product-links";
 import { verifyAdminAuth } from "@/lib/admin-auth";
+import { revalidateProductLinkSurfaces } from "@/lib/revalidate-content";
 
 export async function POST(request: Request) {
   const authError = verifyAdminAuth(request);
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
 
   const created = results.filter((r) => !r.error).length;
   const failed = results.filter((r) => r.error).length;
+  if (created > 0) revalidateProductLinkSurfaces();
 
   return NextResponse.json({
     data: { created, failed, total: items.length },

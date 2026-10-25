@@ -5,6 +5,7 @@ import {
   getReviewBySlug,
   getAllViralArticles,
   getAllViralArticleSummaries,
+  getAllViralArticleSearchSummaries,
   getViralArticleBySlug,
   getCategories,
   getReviewsByCategory as getSupabaseReviewsByCategory,
@@ -281,6 +282,15 @@ export async function fetchAllViralArticles(): Promise<ViralArticle[]> {
     // Supabase not available
   }
   return [];
+}
+
+export async function fetchAllViralArticleSearchSummaries(): Promise<ViralArticleSearchSummary[]> {
+  try {
+    return await getAllViralArticleSearchSummaries();
+  } catch (error) {
+    console.error("[Data] getAllViralArticleSearchSummaries failed:", error);
+    return [];
+  }
 }
 
 export async function fetchAllViralArticleSummaries(): Promise<ViralArticleSummary[]> {

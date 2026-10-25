@@ -10,6 +10,7 @@ import {
   fetchReviewBySlug as loadReviewBySlug,
   fetchAllViralArticles as loadAllViralArticles,
   fetchAllViralArticleSummaries as loadAllViralArticleSummaries,
+  fetchAllViralArticleSearchSummaries as loadAllViralArticleSearchSummaries,
   fetchViralArticleBySlug as loadViralArticleBySlug,
   fetchCategories as loadCategories,
   fetchReviewsByCategory as loadReviewsByCategory,
@@ -64,6 +65,12 @@ export const fetchAllViralArticles = unstable_cache(
 export const fetchAllViralArticleSummaries = unstable_cache(
   async () => loadAllViralArticleSummaries(),
   ['vetor-public-comparatives-summary-v1', SCOPE],
+  { revalidate: TTL_SECONDS, tags: ['vetor:comparatives:summary'] },
+);
+
+export const fetchAllViralArticleSearchSummaries = unstable_cache(
+  async () => loadAllViralArticleSearchSummaries(),
+  ['vetor-public-comparatives-search-v1', SCOPE],
   { revalidate: TTL_SECONDS, tags: ['vetor:comparatives:summary'] },
 );
 

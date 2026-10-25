@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Review, ReviewSummary, ViralArticle, ViralArticleSummary, Category } from './types';
+import type { Review, ReviewSummary, ViralArticle, ViralArticleSummary, ViralArticleSearchSummary, Category } from './types';
 import { validateGeneratedViralArticle } from './content-quality';
 import { normalizeReviewCompareRows } from './review-compare';
 import { buildReviewUpdatePayload, resolveReviewWriteMode } from './review-persistence';
@@ -389,6 +389,24 @@ export async function getReviewBySlug(slug: string): Promise<Review | null> {
   } catch (err) {
     console.error('[Supabase] getReviewBySlug error:', err);
     throw err;
+  }
+}
+
+export async function getAllViralArticleSearchSummaries(): Promise<ViralArticleSearchSummary[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('viral_articles')
+      .select('id,slug,title,description,category,products,seo_title,seo_description')
+      .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) return [];
+    return data as ViralArticleSearchSummary[];
+  } catch (err) {
+    console.error('[Supabase] getAllViralArticleSearchSummaries error:', err);
+    return [];
   }
 }
 
