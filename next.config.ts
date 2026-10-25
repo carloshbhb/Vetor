@@ -201,6 +201,16 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/review/air-fryer-mondial-5-5l-review',
+        destination: '/reviews/air-fryer-mondial-5-5l-review/',
+        permanent: true,
+      },
+      {
+        source: '/review/air-fryer-mondial-5-5l-review/',
+        destination: '/reviews/air-fryer-mondial-5-5l-review/',
+        permanent: true,
+      },
+      {
         source: '/review/:slug',
         destination: '/reviews/:slug/',
         permanent: true,
