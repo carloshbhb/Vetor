@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Contato — Fale com a Redação do vetor.blog",
   description:
     "Entre em contato com o vetor.blog: dúvidas, correções, sugestões de reviews e parcerios de conteúdo.",
-  alternates: { canonical: "/contato" },
+  alternates: { canonical: "/contato/" },
 };
 
 export default function ContatoPage() {
