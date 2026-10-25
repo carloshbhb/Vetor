@@ -486,6 +486,8 @@ export async function getCategories(): Promise<Category[]> {
     const { data, error } = await supabase
       .from('reviews')
       .select('category')
+      // Category archives only contain review content, never standalone LPs.
+      .eq('content_type', 'review')
       .eq('status', 'published');
 
     if (error || !data) return [];
