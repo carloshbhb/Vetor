@@ -18,6 +18,8 @@ const sitemap = read('src/app/sitemap.ts');
 const bestProducts = read('src/app/melhores/page.tsx');
 const dailyReviewWorkflow = read('.github/workflows/generate-daily-review.yml');
 const remotionRenderWorkflow = read('.github/workflows/remotion-render.yml');
+const socialVideoWorkflow = read('.github/workflows/create-remotion-elevenlabs-video.yml');
+const processVideoQueueWorkflow = read('.github/workflows/process-video-queue.yml');
 const slugReader = data.match(/export async function fetchReviewBySlug[\s\S]*?\n}\n/);
 
 const match = supabase.match(/const REVIEW_SUMMARY_COLUMNS\s*=\s*'([^']+)'/);
@@ -86,6 +88,13 @@ assert.match(dailyReviewWorkflow, /\n  workflow_dispatch:/, 'daily review remain
 assert.doesNotMatch(dailyReviewWorkflow, /\n  push:/, 'code pushes must not run extra Supabase reads');
 assert.match(remotionRenderWorkflow, /\n  workflow_dispatch:/, 'manual Remotion renders remain available');
 assert.doesNotMatch(remotionRenderWorkflow, /\n  push:/, 'code pushes must not start extra video renders');
+assert.match(socialVideoWorkflow, /\n  workflow_dispatch:/, 'manual Remotion/ElevenLabs social-video renders remain available');
+assert.doesNotMatch(socialVideoWorkflow, /\n  push:/, 'code pushes must not start one-off Remotion/ElevenLabs renders');
+assert.match(dailyReviewWorkflow, /github\.event_name == 'workflow_dispatch' && inputs\.dry_run/, 'manual review dispatch controls dry-run behavior');
+assert.match(processVideoQueueWorkflow, /\n  schedule:/, 'video queue remains scheduled');
+assert.match(processVideoQueueWorkflow, /\n  workflow_dispatch:/, 'video queue remains manually triggerable');
+assert.doesNotMatch(processVideoQueueWorkflow, /\n  push:/, 'code pushes must not render or publish queued videos');
+assert.equal((processVideoQueueWorkflow.match(/^\s+- cron:/gm) || []).length, 3, 'video queue retains exactly three scheduled batches');
 assert.match(invalidation, /revalidateAffiliateLinkSurfaces/);
 assert.match(invalidation, /revalidateProductLinkSurfaces/);
 console.log('Supabase egress/cache regression tests passed.');

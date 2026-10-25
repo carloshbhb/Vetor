@@ -1,10 +1,6 @@
 name: Create Remotion + ElevenLabs social video
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/create-remotion-elevenlabs-video.yml'
   workflow_dispatch:
 
 permissions:
