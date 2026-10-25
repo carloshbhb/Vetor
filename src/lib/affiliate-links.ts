@@ -335,29 +335,44 @@ export async function getAffiliateLinksBySlugs(slugs: string[]): Promise<Affilia
 
 export async function getAffiliateLinksForProductNames(names: string[]): Promise<AffiliateLink[]> {
   const supabase = getSupabaseServiceKeyClient();
-  const wanted = new Set(names.map(normalizeAffiliateProductName).filter(Boolean));
+  const uniqueNames = Array.from(
+    new Map(
+      names
+        .map((name) => String(name || "").trim())
+        .filter(Boolean)
+        .map((name) => [normalizeAffiliateProductName(name), name] as const)
+        .filter(([normalized]) => Boolean(normalized))
+    ).values()
+  ).slice(0, 20);
+  const wanted = new Set(uniqueNames.map(normalizeAffiliateProductName));
   if (!supabase || !wanted.size) return [];
 
-  const matched: AffiliateLink[] = [];
-  for (let offset = 0; ; offset += 500) {
-    const { data, error } = await supabase
-      .from("affiliate_links")
-      .select("*")
-      .range(offset, offset + 499);
-    if (error || !data) return matched;
-    for (const row of data) {
-      const normalized = normalizeRow(row as Record<string, unknown>);
-      if (wanted.has(normalizeAffiliateProductName(normalized.name))) matched.push(normalized);
-    }
-    if (data.length < 500) break;
-  }
+  // Query only the candidate names. This replaces repeated full-table downloads
+  // in 500-row pages whenever a comparison page is rendered.
+  const filters = uniqueNames
+    .map((name) => {
+      const term = name.replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
+      return term ? "name.ilike.%" + term + "%" : "";
+    })
+    .filter(Boolean);
+  if (!filters.length) return [];
 
-  return matched.sort((a, b) =>
-    Number(b.status === "active" && Boolean(b.destination_url)) - Number(a.status === "active" && Boolean(a.destination_url)) ||
-    Number(a.source_type !== "review") - Number(b.source_type !== "review") ||
-    b.priority - a.priority ||
-    new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  );
+  const { data, error } = await supabase
+    .from("affiliate_links")
+    .select("*")
+    .or(filters.join(","))
+    .limit(200);
+  if (error || !data) return [];
+
+  return data
+    .map((row) => normalizeRow(row as Record<string, unknown>))
+    .filter((row) => wanted.has(normalizeAffiliateProductName(row.name)))
+    .sort((a, b) =>
+      Number(b.status === "active" && Boolean(b.destination_url)) - Number(a.status === "active" && Boolean(a.destination_url)) ||
+      Number(a.source_type !== "review") - Number(b.source_type !== "review") ||
+      b.priority - a.priority ||
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
 }
 
 export async function syncPublishedReviewAffiliateLinks(): Promise<number> {

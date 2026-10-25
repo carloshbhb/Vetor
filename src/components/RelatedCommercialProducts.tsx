@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import type { ProductLink } from '@/lib/product-links';
-import type { Review } from '@/lib/types';
+import type { ReviewSummary } from '@/lib/types';
 import { marketplaceLabel } from '@/lib/buying';
 
 type RelatedCommercialItem = {
   link: ProductLink;
-  review: Review;
+  review: ReviewSummary;
 };
 
 function formatPrice(value: number | null): string | null {

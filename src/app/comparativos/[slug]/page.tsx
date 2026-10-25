@@ -9,20 +9,18 @@ import AdPlacement from "@/components/AdPlacement";
 import { BreadcrumbSchema, ItemListSchema } from "@/components/SchemaMarkup";
 import {
   fetchViralArticleBySlug,
-  fetchAllViralArticles,
-  fetchAllReviews,
-  fetchReviewBySlug,
+  fetchAllViralArticleSummaries,
+  fetchAllReviewSummaries,
+  fetchAffiliateLinksBySlugs,
+  fetchAffiliateLinksForProductNames,
   normalizeCategoryName,
 } from "@/lib/public-data";
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from "@/lib/buying";
 import { sanitizeHtml, wrapTablesForHorizontalScroll } from "@/lib/sanitize";
 import { buildComparisonSummaryRows } from "@/lib/comparison-tables";
 import { generateViralArticleSchema, resolveOgImage } from "@/lib/seo";
-import {
-  getAffiliateLinksBySlugs,
-  getAffiliateLinksForProductNames,
-  normalizeAffiliateProductName,
-} from "@/lib/affiliate-links";
+import { normalizeAffiliateProductName } from "@/lib/affiliate-links";
+import type { ReviewSummary } from "@/lib/types";
 import { primaryAuthor } from "@/data/authors";
 
 interface PageProps {
@@ -34,7 +32,7 @@ export const dynamicParams = true;
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  const articles = await fetchAllViralArticles();
+  const articles = await fetchAllViralArticleSummaries();
   return articles.map((article) => ({ slug: article.slug }));
 }
 
@@ -81,7 +79,7 @@ export default async function ViralArticlePage({ params }: PageProps) {
 
   if (!article) notFound();
 
-  const [related, allReviews] = await Promise.all([fetchAllViralArticles(), fetchAllReviews()]);
+  const [related, allReviews] = await Promise.all([fetchAllViralArticleSummaries(), fetchAllReviewSummaries()]);
   const normalizedCategory = normalizeCategoryName(article.category);
   const guide = buildBuyingGuideCategories(allReviews, 3).find((item) => item.name === normalizedCategory);
   const intentPages = buildBuyingIntentPages(allReviews, 4).filter((item) => item.categorySlug === guide?.slug);
@@ -95,17 +93,16 @@ export default async function ViralArticlePage({ params }: PageProps) {
 
   // Enriquece produtos com reviews existentes (preço, nota) — sem dado, sem bloco.
   const products = article.products ?? [];
-  const enriched = await Promise.all(
-    products.map(async (p) => ({
-      product: p,
-      review: p.slug ? await fetchReviewBySlug(p.slug) : null,
-    }))
-  );
+  const reviewBySlug = new Map(allReviews.map((review) => [review.slug, review]));
+  const enriched = products.map((product) => ({
+    product,
+    review: product.slug ? reviewBySlug.get(product.slug) ?? null : null,
+  }));
   const comparisonRouteSlugs = products.map((_, index) => article.slug + "-p" + String(index + 1));
   const reviewRouteSlugs = products.map((product) => product.slug || "").filter(Boolean);
   const [affiliateLinksBySlug, affiliateLinksByProductName] = await Promise.all([
-    getAffiliateLinksBySlugs([...comparisonRouteSlugs, ...reviewRouteSlugs]),
-    getAffiliateLinksForProductNames(products.map((product) => product.name)),
+    fetchAffiliateLinksBySlugs([...comparisonRouteSlugs, ...reviewRouteSlugs]),
+    fetchAffiliateLinksForProductNames(products.map((product) => product.name)),
   ]);
   const affiliateBySlug = new Map(affiliateLinksBySlug.map((link) => [link.slug, link]));
   const affiliateByName = new Map<string, typeof affiliateLinksByProductName>();
@@ -119,7 +116,7 @@ export default async function ViralArticlePage({ params }: PageProps) {
   const affiliateForProduct = (
     product: (typeof products)[number],
     index: number,
-    linkedReview: Awaited<ReturnType<typeof fetchReviewBySlug>>
+    linkedReview: ReviewSummary | null | undefined
   ) => {
     const comparisonLink = affiliateBySlug.get(article.slug + "-p" + String(index + 1));
     if (comparisonLink) return comparisonLink;
@@ -130,7 +127,7 @@ export default async function ViralArticlePage({ params }: PageProps) {
     const candidates = affiliateByName.get(normalizeAffiliateProductName(product.name)) || [];
     return candidates.find((link) => link.status === "active" && Boolean(link.destination_url.trim())) || candidates[0] || null;
   };
-  type EnrichedWithReview = { product: (typeof products)[number]; review: NonNullable<Awaited<ReturnType<typeof fetchReviewBySlug>>> };
+  type EnrichedWithReview = { product: (typeof products)[number]; review: ReviewSummary };
   const reviewed: EnrichedWithReview[] = enriched.filter(
     (e): e is EnrichedWithReview => e.review !== null
   );

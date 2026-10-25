@@ -5,7 +5,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { BreadcrumbSchema, ItemListSchema } from '@/components/SchemaMarkup';
 import BuyingChoiceCard from '@/components/BuyingChoiceCard';
 import EditorialEvidence from '@/components/EditorialEvidence';
-import { fetchAllReviews } from '@/lib/public-data';
+import { fetchAllReviewSummaries } from '@/lib/public-data';
 import {
   buildBuyingGuideCategories,
   buildBuyingIntentPages,
@@ -20,12 +20,12 @@ interface PageProps {
 }
 
 async function getCategory(slug: string) {
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   return buildBuyingGuideCategories(reviews, 3).find((category) => category.slug === slug) || null;
 }
 
 export async function generateStaticParams() {
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   return buildBuyingGuideCategories(reviews, 3).map((category) => ({ categoria: category.slug }));
 }
 
@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BestCategoryPage({ params }: PageProps) {
   const { categoria } = await params;
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   const category = buildBuyingGuideCategories(reviews, 3).find((item) => item.slug === categoria);
 
   if (!category) notFound();

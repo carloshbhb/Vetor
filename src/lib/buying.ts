@@ -30,7 +30,7 @@ export interface BuyingIntentPage {
   categorySlug: string;
   intent: BuyingIntent;
   count: number;
-  reviews: Review[];
+  reviews: ReviewSummary[];
 }
 
 export const BUYING_INTENTS: BuyingIntent[] = [
@@ -121,7 +121,7 @@ function dedupeBuyingProducts<T extends { slug: string; image_url?: string | nul
       continue;
     }
 
-    const normalizedImage = image.replace(/[?#].*$/, '').replace(/[/]+$/, '').toLowerCase();
+    const normalizedImage = image.replace(/[?#].*$/, '').replace(/\/+$/, '').toLowerCase();
     if (seenImages.has(normalizedImage)) continue;
     seenImages.add(normalizedImage);
     result.push(item);
@@ -175,21 +175,14 @@ export function buildBuyingGuideCategories(reviews: ReviewSummary[], minimum = 3
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'pt-BR'));
 }
 
-function reviewSearchCorpus(review: Review): string {
-  return [
-    review.product,
-    review.meta_title,
-    review.meta_description,
-    review.hero_lead,
-    JSON.stringify(review.specs || []),
-    JSON.stringify(review.sections || []),
-  ]
+function reviewSearchCorpus(review: ReviewSummary): string {
+  return [review.product, review.meta_title, review.meta_description, review.hero_lead]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
 }
 
-function matchesAdvancedBuyingIntent(review: Review, intent: BuyingIntent): boolean {
+function matchesAdvancedBuyingIntent(review: ReviewSummary, intent: BuyingIntent): boolean {
   const category = review.category.trim().toLowerCase();
   const corpus = reviewSearchCorpus(review);
 
@@ -220,7 +213,7 @@ function matchesAdvancedBuyingIntent(review: Review, intent: BuyingIntent): bool
   return true;
 }
 
-function intentEligibleReviews(reviews: Review[], intent: BuyingIntent): Review[] {
+function intentEligibleReviews(reviews: ReviewSummary[], intent: BuyingIntent): ReviewSummary[] {
   const candidates = reviews.filter(
     (review) =>
       review.status === 'published' &&
@@ -234,7 +227,7 @@ function intentEligibleReviews(reviews: Review[], intent: BuyingIntent): Review[
   return candidates.filter((review) => matchesAdvancedBuyingIntent(review, intent));
 }
 
-function rankByIntent(reviews: Review[], intent: BuyingIntent): Review[] {
+function rankByIntent(reviews: ReviewSummary[], intent: BuyingIntent): ReviewSummary[] {
   const withPrice = intentEligibleReviews(reviews, intent);
 
   const ranked = intent === 'baratos'
@@ -260,10 +253,10 @@ function rankByIntent(reviews: Review[], intent: BuyingIntent): Review[] {
 }
 
 export function buildBuyingIntentPages(
-  reviews: Review[],
+  reviews: ReviewSummary[],
   minimum = 4
 ): BuyingIntentPage[] {
-  const groups = new Map<string, Review[]>();
+  const groups = new Map<string, ReviewSummary[]>();
 
   for (const review of reviews) {
     if (

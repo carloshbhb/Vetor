@@ -5,7 +5,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { BreadcrumbSchema, ItemListSchema } from '@/components/SchemaMarkup';
 import BuyingChoiceCard from '@/components/BuyingChoiceCard';
 import EditorialEvidence from '@/components/EditorialEvidence';
-import { fetchAllReviews } from '@/lib/public-data';
+import { fetchAllReviewSummaries } from '@/lib/public-data';
 import {
   buildBuyingIntentPages,
   getBuyingIntentDescription,
@@ -25,7 +25,7 @@ function isBuyingIntent(value: string): value is BuyingIntent {
 }
 
 export async function generateStaticParams() {
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   return buildBuyingIntentPages(reviews, 4).map((item) => ({
     categoria: item.categorySlug,
     intencao: item.intent,
@@ -34,7 +34,7 @@ export async function generateStaticParams() {
 
 async function resolvePage(categoria: string, intencao: string) {
   if (!isBuyingIntent(intencao)) return null;
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   return buildBuyingIntentPages(reviews, 4).find(
     (item) => item.categorySlug === categoria && item.intent === intencao
   ) || null;
@@ -67,7 +67,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BuyingIntentPage({ params }: PageProps) {
   const { categoria, intencao } = await params;
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   const page = isBuyingIntent(intencao)
     ? buildBuyingIntentPages(reviews, 4).find(
         (item) => item.categorySlug === categoria && item.intent === intencao

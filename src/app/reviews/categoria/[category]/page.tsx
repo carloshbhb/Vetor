@@ -2,7 +2,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import ReviewCard from "@/components/ReviewCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { fetchAllReviews, fetchCategories, normalizeCategoryName } from "@/lib/public-data";
+import { fetchAllReviewSummaries, fetchCategories, normalizeCategoryName } from "@/lib/public-data";
 import { ItemListSchema } from "@/components/SchemaMarkup";
 import Link from "next/link";
 import { buildBuyingGuideCategories, buildBuyingIntentPages, getBuyingIntentDescription, getBuyingIntentLabel } from "@/lib/buying";
@@ -54,7 +54,7 @@ export default async function CategoryHubPage({ params }: PageProps) {
   const canonicalCategory = normalizeCategoryName(requestedCategory);
 
   const [reviews, categories] = await Promise.all([
-    fetchAllReviews(),
+    fetchAllReviewSummaries(),
     fetchCategories(),
   ]);
 

@@ -1,5 +1,7 @@
 import 'server-only';
 import { unstable_cache } from 'next/cache';
+import { getProductLinksByReviewSlug, getReviewedProductLinksByCategory } from './product-links';
+import { getAffiliateLinksBySlugs, getAffiliateLinksForProductNames, getAffiliateLinksForReview } from './affiliate-links';
 import {
   fetchAllReviews as loadAllReviews,
   fetchAllReviewSummaries as loadAllReviewSummaries,
@@ -96,3 +98,65 @@ export const fetchGuias = unstable_cache(
   ['vetor-public-guides-v1', SCOPE],
   { revalidate: TTL_SECONDS, tags: ['vetor:reviews:summary'] },
 );
+
+
+// Public product and affiliate data are read by many public pages. Keep a short-lived
+// server cache to avoid repeated database calls on every render/revalidation.
+const cachedProductLinksByReviewSlug = unstable_cache(
+  async (slug: string) => getProductLinksByReviewSlug(slug),
+  ['vetor-public-product-links-by-review-v1', SCOPE],
+  { revalidate: TTL_SECONDS, tags: ['vetor:product-links'] },
+);
+
+export async function fetchProductLinksByReviewSlug(slug: string) {
+  return cachedProductLinksByReviewSlug(slug);
+}
+
+const cachedReviewedProductLinksByCategory = unstable_cache(
+  async (category: string, excludeReviewSlug: string, limit: number) =>
+    getReviewedProductLinksByCategory(category, excludeReviewSlug || undefined, limit),
+  ['vetor-public-reviewed-product-links-by-category-v1', SCOPE],
+  { revalidate: TTL_SECONDS, tags: ['vetor:product-links'] },
+);
+
+export async function fetchReviewedProductLinksByCategory(
+  category: string,
+  excludeReviewSlug?: string,
+  limit = 6,
+) {
+  return cachedReviewedProductLinksByCategory(category, excludeReviewSlug || '', limit);
+}
+
+const cachedAffiliateLinksBySlugs = unstable_cache(
+  async (slugs: string[]) => getAffiliateLinksBySlugs(slugs),
+  ['vetor-public-affiliate-links-by-slugs-v1', SCOPE],
+  { revalidate: TTL_SECONDS, tags: ['vetor:affiliate-links'] },
+);
+
+export async function fetchAffiliateLinksBySlugs(slugs: string[]) {
+  const stableSlugs = Array.from(new Set(slugs.map((slug) => String(slug || '').trim()).filter(Boolean))).sort();
+  return cachedAffiliateLinksBySlugs(stableSlugs);
+}
+
+const cachedAffiliateLinksForReview = unstable_cache(
+  async (slug: string) => getAffiliateLinksForReview(slug),
+  ['vetor-public-affiliate-links-by-review-v1', SCOPE],
+  { revalidate: TTL_SECONDS, tags: ['vetor:affiliate-links'] },
+);
+
+export async function fetchAffiliateLinksForReview(slug: string) {
+  return cachedAffiliateLinksForReview(slug);
+}
+
+const cachedAffiliateLinksForProductNames = unstable_cache(
+  async (names: string[]) => getAffiliateLinksForProductNames(names),
+  ['vetor-public-affiliate-links-by-product-names-v1', SCOPE],
+  { revalidate: TTL_SECONDS, tags: ['vetor:affiliate-links'] },
+);
+
+export async function fetchAffiliateLinksForProductNames(names: string[]) {
+  const stableNames = Array.from(
+    new Set(names.map((name) => String(name || '').trim()).filter(Boolean)),
+  ).sort();
+  return cachedAffiliateLinksForProductNames(stableNames);
+}

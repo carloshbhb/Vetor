@@ -1,5 +1,7 @@
 import { getSupabaseServiceKeyClient } from './supabase';
 
+const PUBLIC_PRODUCT_LINK_COLUMNS = 'id,slug,product_name,category,product_url,affiliate_url,image_url,marketplace,status,review_slug,price,priority,updated_at';
+
 export interface ProductLink {
   id: string;
   slug: string;
@@ -81,7 +83,7 @@ export async function getProductLinksByReviewSlug(reviewSlug: string): Promise<P
   try {
     const { data, error } = await supabase
       .from('product_links')
-      .select('*')
+      .select(PUBLIC_PRODUCT_LINK_COLUMNS)
       .eq('review_slug', reviewSlug)
       .neq('status', 'archived')
       .order('priority', { ascending: false })
@@ -397,7 +399,7 @@ export async function getReviewedProductLinksByCategory(
   try {
     let query = supabase
       .from('product_links')
-      .select('*')
+      .select(PUBLIC_PRODUCT_LINK_COLUMNS)
       .eq('category', category)
       .eq('has_review', true)
       .eq('status', 'reviewed')

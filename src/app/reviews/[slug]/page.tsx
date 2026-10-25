@@ -11,9 +11,9 @@ import VerdictCard from "@/components/VerdictCard";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import AdPlacement from "@/components/AdPlacement";
 import { ReviewSchema, FAQSchema, BreadcrumbSchema } from "@/components/SchemaMarkup";
-import { fetchReviewBySlug, fetchAllReviews, fetchAllLandingPages, fetchAllViralArticleSummaries, normalizeCategoryName } from "@/lib/public-data";
+import { fetchReviewBySlug, fetchAllReviewSummaries, fetchAllLandingPageSummaries, fetchAllViralArticleSummaries, normalizeCategoryName, fetchProductLinksByReviewSlug, fetchReviewedProductLinksByCategory, fetchAffiliateLinksBySlugs, fetchAffiliateLinksForReview, fetchAffiliateLinksForProductNames } from "@/lib/public-data";
 import { resolveOgImage, serializeJsonLd } from "@/lib/seo";
-import type { Review } from "@/lib/types";
+import type { Review, ReviewSummary } from "@/lib/types";
 import AuthorBox from "@/components/AuthorBox";
 import { primaryAuthor } from "@/data/authors";
 import BuyingEngine from "@/components/BuyingEngine";
@@ -23,11 +23,8 @@ import RelatedCommercialProducts from "@/components/RelatedCommercialProducts";
 import ReviewPurchaseIntentLinks from "@/components/ReviewPurchaseIntentLinks";
 import LandingPageTemplate from "./LandingPageTemplate";
 import DecisionPath from "@/components/DecisionPath";
-import { getProductLinksByReviewSlug, getReviewedProductLinksByCategory } from "@/lib/product-links";
+
 import {
-  getAffiliateLinksForReview,
-  getAffiliateLinksBySlugs,
-  getAffiliateLinksForProductNames,
   normalizeAffiliateProductName,
   type AffiliateLink,
 } from "@/lib/affiliate-links";
@@ -42,7 +39,7 @@ interface PageProps {
 export const revalidate = 300;
 
 export async function generateStaticParams() {
-  const [reviews, landingPages] = await Promise.all([fetchAllReviews(), fetchAllLandingPages()]);
+  const [reviews, landingPages] = await Promise.all([fetchAllReviewSummaries(), fetchAllLandingPageSummaries()]);
   return [...reviews, ...landingPages].map((item) => ({ slug: item.slug }));
 }
 
@@ -147,11 +144,11 @@ function normalizeCompareColumns(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.map(cleanEditorialText);
 }
-function findComparisonReview(column: string, reviews: Review[], excludedSlug?: string): Review | null {
+function findComparisonReview(column: string, reviews: ReviewSummary[], excludedSlug?: string): ReviewSummary | null {
   const target = normalizeComparableText(column);
   if (!target) return null;
   const targetTokens = new Set(target.split(" ").filter((token) => token.length >= 3));
-  let best: { review: Review; score: number } | null = null;
+  let best: { review: ReviewSummary; score: number } | null = null;
 
   for (const candidate of reviews) {
     if (candidate.status !== "published" || isGuideLikeSlug(candidate.slug) || candidate.slug === excludedSlug) continue;
@@ -244,11 +241,11 @@ export default async function ReviewPage({ params }: PageProps) {
     : `${Math.max(3, Math.ceil(totalContentLength / 1000))} min`;
 
   const [allReviews, allComparatives, productLinks, relatedCommercialLinks, centralAffiliateLinks] = await Promise.all([
-    fetchAllReviews(),
+    fetchAllReviewSummaries(),
     fetchAllViralArticleSummaries(),
-    getProductLinksByReviewSlug(review.slug),
-    getReviewedProductLinksByCategory(review.category, review.slug, 6),
-    getAffiliateLinksForReview(review.slug),
+    fetchProductLinksByReviewSlug(review.slug),
+    fetchReviewedProductLinksByCategory(review.category, review.slug, 6),
+    fetchAffiliateLinksForReview(review.slug),
   ]);
   const buyingOffers = centralAffiliateLinks.length
     ? buildCentralMarketplaceOffers(review, centralAffiliateLinks)
@@ -263,7 +260,7 @@ export default async function ReviewPage({ params }: PageProps) {
       link,
       review: link.review_slug ? reviewBySlug.get(link.review_slug) : undefined,
     }))
-    .filter((item): item is { link: typeof relatedCommercialLinks[number]; review: Review } => Boolean(item.review))
+    .filter((item): item is { link: typeof relatedCommercialLinks[number]; review: ReviewSummary } => Boolean(item.review))
     .sort(
       (a, b) =>
         (b.review.verdict_score || b.review.hero_overall_score || 0) -
@@ -333,8 +330,8 @@ export default async function ReviewPage({ params }: PageProps) {
     return compareProductReviews[index]?.slug || null;
   });
   const [compareAffiliateLinksBySlug, compareAffiliateLinksByName] = await Promise.all([
-    getAffiliateLinksBySlugs([review.slug, ...compareColumnReviewSlugs.filter((slug): slug is string => Boolean(slug))]),
-    getAffiliateLinksForProductNames(compareColumns.slice(1)),
+    fetchAffiliateLinksBySlugs([review.slug, ...compareColumnReviewSlugs.filter((slug): slug is string => Boolean(slug))]),
+    fetchAffiliateLinksForProductNames(compareColumns.slice(1)),
   ]);
   const compareAffiliateBySlug = new Map(compareAffiliateLinksBySlug.map((link) => [link.slug, link]));
   const compareAffiliateByName = new Map<string, AffiliateLink[]>();
