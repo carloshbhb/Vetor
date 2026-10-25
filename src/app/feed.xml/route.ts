@@ -1,4 +1,4 @@
-import { fetchAllReviews, fetchAllViralArticles } from '@/lib/public-data';
+import { fetchAllReviewSummaries, fetchAllViralArticleSummaries } from '@/lib/public-data';
 
 export const revalidate = 3600;
 
@@ -30,8 +30,8 @@ interface FeedItem {
 
 export async function GET(): Promise<Response> {
   const [reviews, viralArticles] = await Promise.all([
-    fetchAllReviews(),
-    fetchAllViralArticles(),
+    fetchAllReviewSummaries(),
+    fetchAllViralArticleSummaries(),
   ]);
 
   const reviewItems: FeedItem[] = reviews
