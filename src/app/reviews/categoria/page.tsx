@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Categorias de Reviews — Wearables, Fones, Notebooks e Mais",
   description:
     "Navegue por todas as categorias de reviews do vetor.blog: wearables, fones de ouvido, notebooks, casa inteligente e mais.",
-  alternates: { canonical: "/reviews/categoria" },
+  alternates: { canonical: "/reviews/categoria/" },
 };
 
 export default async function CategoriesIndexPage() {
