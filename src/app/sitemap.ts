@@ -225,7 +225,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     };
   });
 
-  return [
+  const candidates: MetadataRoute.Sitemap = [
     ...staticPages,
     ...reviewPages,
     ...landingPageEntries,
@@ -236,4 +236,40 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...authorPages,
     ...tagPages,
   ];
+
+  // Keep the sitemap aligned with canonical, same-site, crawlable URL forms.
+  // Database-provided canonical fields can be relative or repeated by multiple
+  // content collections; normalize them and emit each canonical URL only once.
+  const uniqueEntries: MetadataRoute.Sitemap = [];
+  const seenUrls = new Set<string>();
+
+  for (const entry of candidates) {
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(entry.url, `${baseUrl}/`);
+    } catch {
+      continue;
+    }
+
+    if (
+      parsedUrl.protocol !== 'https:' ||
+      parsedUrl.origin !== baseUrl ||
+      parsedUrl.search ||
+      parsedUrl.hash
+    ) {
+      continue;
+    }
+
+    if (!parsedUrl.pathname.endsWith('/')) {
+      parsedUrl.pathname += '/';
+    }
+
+    const canonicalUrl = parsedUrl.toString();
+    if (seenUrls.has(canonicalUrl)) continue;
+
+    seenUrls.add(canonicalUrl);
+    uniqueEntries.push({ ...entry, url: canonicalUrl });
+  }
+
+  return uniqueEntries;
 }
