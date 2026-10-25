@@ -124,7 +124,7 @@ const ContentScene: React.FC<{
   const progress = frameInScene / (scene.duration * fps);
 
   const useBroll = brollVideos.length > 0 && progress > 0.3 && progress < 0.9;
-  const brollIndex = (sceneIndex + Math.floor(progress * 2)) % brollVideos.length;
+  const brollIndex = brollVideos.length > 0 ? sceneIndex % brollVideos.length : 0;
 
   const productOpacity = useBroll
     ? interpolate(progress, [0.2, 0.4, 0.8, 1], [1, 0.3, 0.3, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
@@ -149,8 +149,8 @@ const ContentScene: React.FC<{
     <GradientBackground>
       <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30 }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
-            {brollVideos.length > 0 && (
-              <Loop durationInFrames={Math.max(1, Math.round(scene.duration * fps))}>
+            {useBroll && brollVideos.length > 0 && (
+              <Loop durationInFrames={Math.max(1, Math.round(3 * fps))}>
                 <OffthreadVideo
                   src={brollVideos[brollIndex]}
                   style={{
