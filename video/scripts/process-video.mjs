@@ -567,6 +567,18 @@ async function fetchPexelsBroll(scenes, category, videoId) {
             const aVertical = Number(Number(a.height) > Number(a.width));
             const bVertical = Number(Number(b.height) > Number(b.width));
             if (aVertical !== bVertical) return bVertical - aVertical;
+
+            // OffthreadVideo downloads its sources before extracting frames. Prefer the largest
+            // portrait file at or below 1280px to avoid fetching 1080p/4K stock clips unnecessarily.
+            const resolutionRank = (file) => {
+              const longSide = Math.max(Number(file.height) || 0, Number(file.width) || 0);
+              if (!longSide) return Number.MAX_SAFE_INTEGER;
+              return longSide <= 1280 ? -longSide : 10000 + longSide;
+            };
+            const aRank = resolutionRank(a);
+            const bRank = resolutionRank(b);
+            if (aRank !== bRank) return aRank - bRank;
+
             const aHd = a.quality === 'hd' ? 1 : 0;
             const bHd = b.quality === 'hd' ? 1 : 0;
             if (aHd !== bHd) return bHd - aHd;
@@ -585,8 +597,10 @@ async function fetchPexelsBroll(scenes, category, videoId) {
   const seed = String(videoId || category || 'vetor');
   const hash = (value) => Array.from(String(value)).reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7);
   candidates.sort((a, b) => hash(seed + a.id) - hash(seed + b.id));
-  const selected = candidates.slice(0, 8).map((item) => item.url);
-  console.log('[BROLL] ' + selected.length + ' clipes exclusivos selecionados em ' + queries.length + ' buscas de apoio.');
+  // OffthreadVideo extracts frames outside Chromium but needs the source clip downloaded.
+  // Four distinct clips preserve variety while keeping source downloads predictable.
+  const selected = candidates.slice(0, 4).map((item) => item.url);
+  console.log('[BROLL] ' + selected.length + ' clipes exclusivos (preferência até 1280px) selecionados em ' + queries.length + ' buscas de apoio.');
   return selected;
 }
 
