@@ -50,6 +50,10 @@ jobs:
           npm ci
           cd video
           npm ci
+      - name: Preinstall Remotion Chrome Headless Shell
+        working-directory: video
+        timeout-minutes: 15
+        run: ./node_modules/.bin/remotion browser ensure --log info
       - name: Wait for authenticated production queue API
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}

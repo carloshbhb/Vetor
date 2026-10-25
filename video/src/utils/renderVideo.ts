@@ -1,7 +1,7 @@
 import type { VideoScene } from '../compositions/ReviewVideo';
 import type { ComparisonSceneData, SubtitleEntry } from '../compositions/ComparisonVideo';
 import { bundle } from '@remotion/bundler';
-import { renderMedia, getCompositions } from '@remotion/renderer';
+import { renderMedia, getCompositions, ensureBrowser } from '@remotion/renderer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -52,6 +52,8 @@ type VideoData = ReviewVideoData | ComparisonVideoData;
 
 async function renderVideo(data: VideoData, outputPath: string): Promise<string> {
   const projectRoot = path.resolve(__dirname, '../..');
+  console.log('[Remotion] Confirmando Chrome Headless Shell local antes de gerar o bundle...');
+  await ensureBrowser({ logLevel: 'info' });
   const bundleLocation = await bundle({
     entryPoint: path.resolve(projectRoot, 'src/Root.tsx'),
     webpackOverride: (config) => config,

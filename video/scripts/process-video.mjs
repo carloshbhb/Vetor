@@ -373,13 +373,18 @@ async function renderWithRemotion(videoData, outputPath) {
     const renderStartedAt = Date.now();
 
     // Capturar stdout/stderr no erro permite registrar a causa real do Remotion.
+    const tsxEntrypoint = path.resolve('video/node_modules/tsx/dist/cli.mjs');
+    if (!fs.existsSync(tsxEntrypoint)) {
+      throw new Error('tsx não encontrado em video/node_modules; execute npm ci no diretório video antes de renderizar.');
+    }
     const renderOutput = execFileSync(
-      'npx',
-      ['tsx', 'video/src/utils/renderVideo.ts', 'review', dataPath],
+      process.execPath,
+      [tsxEntrypoint, 'video/src/utils/renderVideo.ts', dataPath],
       {
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: 600000,
+        // Chrome is prepared before the queue is touched. Fifteen minutes leaves headroom for complex scenes.
+        timeout: 900000,
         maxBuffer: 32 * 1024 * 1024,
         cwd: path.resolve(process.cwd()),
       }
@@ -854,8 +859,14 @@ async function main() {
   const requestedLimit = videoId
     ? 1
     : Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 5, manualRun ? 5 : Number(quota.remaining));
-  // Restore only queue items previously failed by a TTS quota_exceeded error from the retired provider.
+  // Recover only render-timeout failures that definitely did not upload to YouTube.
   if (!videoId && requestedLimit > 0) {
+    const remotionRecovery = await queueApi('retryRemotionTimeouts', { limit: requestedLimit });
+    if (Number(remotionRecovery.retried) > 0) {
+      console.log('[QUEUE_RECOVERY] Recolocados ' + Number(remotionRecovery.retried) + ' vídeo(s) que falharam por timeout no Remotion.');
+    }
+
+    // Restore TTS quota failures from the retired provider as before.
     const restored = await queueApi('retryQuotaFailures', { limit: requestedLimit });
     if (Number(restored.retried) > 0) {
       console.log('[QUEUE_RECOVERY] Recolocados ' + Number(restored.retried) + ' vídeo(s) que falharam por quota_exceeded.');
