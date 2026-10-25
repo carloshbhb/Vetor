@@ -3,6 +3,11 @@ name: Generate Daily Review
 on:
   schedule:
     - cron: '15 4 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/generate.ts'
+      - '.github/workflows/generate-daily-review.yml'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -35,7 +40,7 @@ jobs:
       NVIDIA_FALLBACK_MODEL: 'nvidia/nemotron-3.5-super-vl-120b-a12b'
       REVIEW_GENERATION_MAX_ATTEMPTS: '4'
       # The daily schedule generates normally; manual dispatch defaults to dry-run unless disabled.
-      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+      DRY_RUN: ${{ (github.event_name == 'push' && !contains(github.event.head_commit.message, '[run-review-generation]')) || (github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
