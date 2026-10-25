@@ -1,6 +1,10 @@
 name: NVIDIA Model Benchmark
 
 on:
+  push:
+    paths:
+      - '.github/workflows/benchmark-nvidia-models.yml'
+      - 'scripts/benchmark-nvidia-models.ts'
   workflow_dispatch:
 
 permissions:
