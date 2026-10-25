@@ -21,11 +21,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `${author.name} — Artigos e Reviews`,
     robots: { index: true, follow: true },
     description: `Artigos e reviews independentes de ${author.name} no vetor.blog. ${author.tagline}`,
-    alternates: { canonical: `/author/${author.slug}` },
+    alternates: { canonical: `/author/${author.slug}/` },
     openGraph: {
       title: `${author.name} — Artigos e Reviews`,
       description: `Artigos e reviews independentes de ${author.name} no vetor.blog.`,
-      url: `https://www.vetor.blog/author/${author.slug}`,
+      url: `https://www.vetor.blog/author/${author.slug}/`,
       type: "profile",
     },
   };
