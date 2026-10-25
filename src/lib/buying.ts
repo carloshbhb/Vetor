@@ -121,7 +121,7 @@ function dedupeBuyingProducts<T extends { slug: string; image_url?: string | nul
       continue;
     }
 
-    const normalizedImage = image.replace(/[?#].*$/, '').replace(new RegExp('/+.toLowerCase();
+    const normalizedImage = image.replace(/[?#].*$/, '').replace(/\/+$/, '').toLowerCase();
     if (seenImages.has(normalizedImage)) continue;
     seenImages.add(normalizedImage);
     result.push(item);
