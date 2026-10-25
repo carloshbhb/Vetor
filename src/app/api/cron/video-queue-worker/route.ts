@@ -53,64 +53,6 @@ const UPDATABLE_FIELDS = new Set([
   "youtube_url",
 ]);
 
-function buildReviewVideoScript(input: {
-  title: string;
-  category: string;
-  price: string;
-  reviewUrl: string;
-}) {
-  const { title, category, price, reviewUrl } = input;
-  return {
-    hook: `Antes de comprar ${title}, confira a versão exata, a compatibilidade e os detalhes do anúncio.`,
-    scenes: [
-      {
-        id: 1,
-        text: `Antes de escolher ${title}, confira a versão exata, a compatibilidade e o que acompanha o produto. Esses detalhes ajudam a evitar comparar anúncios diferentes.`,
-        duration: 8,
-        visualCue: "Produto em destaque e checklist de compra",
-        brollKeywords: ["product close up", "unboxing product"],
-      },
-      {
-        id: 2,
-        text: `${title} está na categoria ${category}. Consulte o review do Vetor.blog para ver os critérios que devem entrar na sua comparação.`,
-        duration: 8,
-        visualCue: "Produto com identificação da categoria",
-        brollKeywords: ["product review setup", "product on desk"],
-      },
-      {
-        id: 3,
-        text: `O preço registrado no review é ${price}. Preço, frete e disponibilidade mudam; confira o anúncio atualizado antes de finalizar a compra.`,
-        duration: 8,
-        visualCue: "Preço e aviso para confirmar a oferta",
-        brollKeywords: ["online shopping", "product listing"],
-      },
-      {
-        id: 4,
-        text: "Compare ficha técnica, compatibilidade, garantia e política de devolução com outras opções da mesma categoria. A escolha depende do seu uso.",
-        duration: 8,
-        visualCue: "Checklist de comparação",
-        brollKeywords: ["product comparison", "shopping checklist"],
-      },
-      {
-        id: 5,
-        text: "Não presuma recursos apenas pelo nome do modelo. Confirme as especificações na ficha oficial e no anúncio exato antes de comprar.",
-        duration: 8,
-        visualCue: "Foco em ficha técnica e versão do produto",
-        brollKeywords: ["product specifications", "product details"],
-      },
-      {
-        id: 6,
-        text: `Acesse o review completo de ${title} e consulte o link de compra na descrição. Verifique preço e condições atuais antes de pagar.`,
-        duration: 7,
-        visualCue: "Tela final com chamada para review e compra",
-        brollKeywords: ["product shot", "product review"],
-      },
-    ],
-    totalDuration: 47,
-    callToAction: `Review completo: ${reviewUrl}. Link de compra na descrição; confira as condições atuais antes de comprar.`,
-  };
-}
-
 export async function POST(request: NextRequest) {
   const authError = verifyCronAuth(request);
   if (authError) return authError;
@@ -135,6 +77,7 @@ export async function POST(request: NextRequest) {
         .from("reviews")
         .select("slug,product,category,price_new,image_url,affiliate_url,updated_at")
         .eq("status", "published")
+        .eq("content_type", "review")
         .not("affiliate_url", "is", null)
         .not("image_url", "is", null)
         .order("updated_at", { ascending: false })
@@ -158,15 +101,11 @@ export async function POST(request: NextRequest) {
 
       const queued = [];
       for (const item of candidates) {
-        const price = typeof item.price_new === "string" && item.price_new.trim()
-          ? item.price_new.trim()
-          : "consulte o preço atual";
         const category = typeof item.category === "string" && item.category.trim()
           ? item.category.trim()
           : "Tecnologia";
         const title = item.product.trim();
         const reviewUrl = `https://www.vetor.blog/reviews/${item.slug}/`;
-        const script = buildReviewVideoScript({ title, category, price, reviewUrl });
 
         const { data: inserted, error: insertError } = await supabase
           .from("video_queue")
@@ -178,8 +117,8 @@ export async function POST(request: NextRequest) {
             product_image_url: item.image_url,
             affiliate_url: item.affiliate_url,
             shortened_affiliate_url: item.affiliate_url,
-            script_text: JSON.stringify(script),
-            script_hook: script.hook,
+            script_text: null,
+            script_hook: `Aguardando roteiro personalizado para ${title}`,
             voiceover_url: "",
             voiceover_duration: 0,
             media_assets: [],
