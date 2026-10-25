@@ -39,7 +39,7 @@ interface PageProps {
 
 // Permite que ajustes editoriais no Supabase sejam refletidos sem depender
 // exclusivamente de um novo build para cada alteração de conteúdo.
-export const revalidate = 3600;
+export const revalidate = 300;
 
 export async function generateStaticParams() {
   const [reviews, landingPages] = await Promise.all([fetchAllReviews(), fetchAllLandingPages()]);
