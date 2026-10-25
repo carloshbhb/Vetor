@@ -287,3 +287,5 @@ main().catch((error) => {
   console.error('[landing-generation] Fatal error:', error instanceof Error ? error.message : String(error));
   process.exit(1);
 });
+
+// Controlled production follow-up: exercise FAQ retry/quality gate with one eligible draft only.
