@@ -329,7 +329,7 @@ export async function fetchCategories(): Promise<Category[]> {
   } catch {
     // Supabase not available
   }
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   const categoryMap = new Map<string, number>();
   for (const review of reviews) {
     const count = categoryMap.get(review.category) || 0;
