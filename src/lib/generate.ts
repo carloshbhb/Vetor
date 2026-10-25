@@ -283,6 +283,7 @@ async function generateReviewSectionBatch(
       sourceContext,
       '',
       'Escreva APENAS as seções solicitadas abaixo. Cada seção deve ter 270–310 palavras úteis e específicas, em 3 a 5 parágrafos completos. Não inclua o título dentro do texto. Não copie uma seção na outra. Se um dado não foi fornecido, explique o que o comprador deve conferir em vez de inventar.',
+      'Cada marcador de abertura e fechamento deve ficar sozinho em uma linha, exatamente como no exemplo. Inclua os dois marcadores para cada seção, sem crases, sem variações e sem texto antes, entre ou depois dos blocos.',
       'Não responda em JSON. Não use Markdown, títulos extras, introdução, conclusão adicional ou cercas de código.',
       '',
       requestedSections,
@@ -291,10 +292,25 @@ async function generateReviewSectionBatch(
       formatExample,
     ].join('\n'),
     temperature: 0.35,
-    maxTokens: plans.length === 1 ? 1600 : 2600,
+    maxTokens: plans.length === 1 ? 1800 : 3400,
     timeoutMs: 70000,
     deadlineMs: 150000,
-    validateResponse: (value) => isCompleteSectionBatch(value, plans),
+    validateResponse: (value) => {
+      const checks = plans.map((plan) => {
+        const body = extractMarkedSection(value, plan);
+        return {
+          section: plan.id,
+          openMarker: value.includes('[[SECTION:' + plan.id + ']]'),
+          closeMarker: value.includes('[[/SECTION:' + plan.id + ']]'),
+          words: body ? countVisibleWords(body) : 0,
+        };
+      });
+      const passed = checks.every((check) => check.openMarker && check.closeMarker && check.words >= 260);
+      if (!passed) {
+        console.warn('[review-generator] section batch rejected: ' + JSON.stringify(checks));
+      }
+      return passed;
+    },
   });
 
   return plans.map((plan) => {
