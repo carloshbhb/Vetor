@@ -4,7 +4,8 @@ import {
   interpolate,
   useCurrentFrame,
   Img,
-  Video,
+  Loop,
+  OffthreadVideo,
   Audio,
   useVideoConfig,
   spring,
@@ -120,11 +121,13 @@ const ProductScene: React.FC<{
       <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30 }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
             {brollVideos.length > 0 && (
-              <Video
-                src={brollVideos[brollIndex]}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: brollOpacity, filter: 'brightness(0.35) blur(1px)' }}
-                muted loop
-              />
+              <Loop durationInFrames={Math.max(1, Math.round(duration * fps))}>
+                <OffthreadVideo
+                  src={brollVideos[brollIndex]}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: brollOpacity, filter: 'brightness(0.35) blur(1px)' }}
+                  muted
+                />
+              </Loop>
             )}
           </div>
 
