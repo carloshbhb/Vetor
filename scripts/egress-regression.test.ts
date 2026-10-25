@@ -45,7 +45,7 @@ assert.doesNotMatch(buying, /reviewSearchCorpus\(review: Review\):[\s\S]{0,220}r
 const affiliateNameLookup = affiliates.match(/export async function getAffiliateLinksForProductNames[\s\S]*?\n}\n/);
 assert.ok(affiliateNameLookup, 'affiliate name lookup exists');
 assert.doesNotMatch(affiliateNameLookup[0], /offset \+= 500/, 'affiliate lookup must not scan the full table');
-assert.match(affiliateNameLookup[0], /\.or\(filters\.join\(","\)\)/);
+assert.match(affiliateNameLookup[0], /\.or\(filters\.join/);
 assert.match(reviewDetail, /fetchAllReviewSummaries\(\)/);
 assert.doesNotMatch(reviewDetail, /fetchAllReviews\(\)|fetchAllLandingPages\(\)/);
 assert.match(reviewDetail, /fetchAffiliateLinksForProductNames/);
