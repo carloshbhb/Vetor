@@ -203,7 +203,9 @@ async function generateLandingPage(link: ProductLink): Promise<LandingResult> {
 async function main() {
   const testProductId = process.env.LANDING_TEST_PRODUCT_ID?.trim();
   console.log(testProductId
-    ? '[landing-generation] Smoke test controlado: uma LP de rascunho para o produto explicitamente selecionado.'
+    ? (testProductId === 'first-eligible'
+        ? '[landing-generation] Smoke test: uma LP de rascunho para o primeiro produto elegível.'
+        : '[landing-generation] Smoke test controlado: uma LP de rascunho para o produto explicitamente selecionado.')
     : '[landing-generation] Iniciando geração de 2 landing pages via NVIDIA + quality gate...');
 
   const allLinks = await getAllProductLinks({ has_review: false, limit: 500 });
@@ -222,7 +224,7 @@ async function main() {
   // Validate the image URL format, not network reachability from the CI runner.
   // Mercado Livre CDN endpoints may reject HEAD/automated probes even when browsers
   // can display the images. The full HTTP(S) URL was already validated above.
-  const modeLinks = testProductId
+  const modeLinks = testProductId && testProductId !== 'first-eligible'
     ? eligibleLinks.filter((link) => link.id === testProductId)
     : eligibleLinks;
   const requiredCount = testProductId ? 1 : 2;
@@ -238,7 +240,7 @@ async function main() {
     return [];
   }
 
-  if (testProductId && toProcess[0]?.id !== testProductId) {
+  if (testProductId && testProductId !== 'first-eligible' && toProcess[0]?.id !== testProductId) {
     console.error('[landing-generation] O ID do teste não corresponde ao único produto selecionado; abortando.');
     process.exitCode = 1;
     return [];
