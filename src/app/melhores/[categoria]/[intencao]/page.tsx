@@ -85,6 +85,15 @@ export default async function BuyingIntentPage({ params }: PageProps) {
   if (!page) notFound();
 
   const label = getBuyingIntentLabel(page.intent);
+  const qualifier =
+    page.intent === 'baratos'
+      ? 'baratos'
+      : page.intent === 'custo-beneficio'
+        ? 'custo-benefício'
+        : page.intent === 'premium'
+          ? 'premium'
+          : label.toLocaleLowerCase('pt-BR');
+  const title = 'Melhores ' + page.categoryName + ' ' + qualifier + ' em 2026';
   const guideHref = '/melhores/' + page.categorySlug + '/';
   const categoryHref = '/reviews/categoria/' + encodeURIComponent(page.categoryName) + '/';
   const siblingIntent = buildBuyingIntentPages(reviews, 4).find(
