@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { BreadcrumbSchema, ItemListSchema } from '@/components/SchemaMarkup';
-import { fetchAllReviews } from '@/lib/public-data';
+import { fetchAllReviewSummaries } from '@/lib/public-data';
 import {
   buildBuyingGuideCategories,
   buildBuyingIntentPages,
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BestProductsPage() {
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   const categories = buildBuyingGuideCategories(reviews, 3);
   const priorityCategories = buildPriorityBuyingCategories(reviews, 3);
   const intentPages = buildBuyingIntentPages(reviews, 4);

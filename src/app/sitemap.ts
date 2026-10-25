@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { fetchAllReviews, fetchAllLandingPageSummaries, fetchAllViralArticleSummaries, fetchCategories } from '@/lib/public-data';
+import { fetchAllReviewSummaries, fetchAllLandingPageSummaries, fetchAllViralArticleSummaries, fetchCategories } from '@/lib/public-data';
 import { authors } from '@/data/authors';
 import { buildIndexableTagIndex } from '@/lib/tags';
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from '@/lib/buying';
@@ -24,7 +24,7 @@ function normalizeCategory(value: string): string {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [reviews, landingPages, viralArticles, categories] = await Promise.all([
-    fetchAllReviews(),
+    fetchAllReviewSummaries(),
     fetchAllLandingPageSummaries(),
     fetchAllViralArticleSummaries(),
     fetchCategories(),
