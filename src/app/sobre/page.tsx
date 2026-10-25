@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Sobre o vetor.blog — Reviews Independentes em Português",
   description:
     "Conheça o vetor.blog: reviews independentes em português com a missão pare de comprar no escuro — dados, notas e transparência.",
-  alternates: { canonical: "https://www.vetor.blog/sobre" },
+  alternates: { canonical: "https://www.vetor.blog/sobre/" },
 };
 
 export default function SobrePage() {
