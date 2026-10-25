@@ -54,16 +54,19 @@ async function main() {
 
       const output = response.choices[0]?.message?.content ?? '';
       const wordCount = output.trim() ? output.trim().split(/\s+/).length : 0;
-      const qualityChecks = {
+      const qualityCheckDetails = {
         sufficientLength: wordCount >= 350,
         productSpecific: /galaxy fit3/i.test(output) && /amoled|tela/i.test(output) && /bateria|autonomia/i.test(output) && /gps/i.test(output),
-        structuredSections: (output.match(/(^|\\n)\\s{0,3}(?:#{1,6}\\s|\\*\\*[^*\\n]{3,}\\*\\*)/gim) || []).length >= 3,
+        structuredSections: (output.match(/(^|\n)\s{0,3}(?:#{1,6}\s|\*\*[^*\n]{3,}\*\*)/gim) || []).length >= 3,
         includesProsAndCons: /pr[oó]s|vantagens/i.test(output) && /contras|limita[cç][oõ]es/i.test(output),
         includesVerdict: /veredito|vale a pena/i.test(output),
         metadataPresent: /meta[- ]?description|meta descri[cç][aã]o|descri[cç][aã]o meta/i.test(output),
         avoidsUnsupportedTestClaims: !/em nossos testes|nos nossos testes|testamos|medimos/i.test(output),
       };
-      qualityChecks.passed = Object.values(qualityChecks).every(Boolean);
+      const qualityChecks = {
+        ...qualityCheckDetails,
+        passed: Object.values(qualityCheckDetails).every(Boolean),
+      };
       results.push({
         model,
         status: output.trim() ? 'success' : 'empty_response',
