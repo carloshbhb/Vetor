@@ -3,7 +3,17 @@ name: Generate Content
 on:
   schedule:
     - cron: '0 3 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'tmp/generate-2-landing-pages.ts'
+      - '.github/workflows/generate-content.yml'
   workflow_dispatch:
+    inputs:
+      test_product_id:
+        description: 'Optional product_links.id; use first-eligible to test one LP draft'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -41,6 +51,7 @@ jobs:
           test -n "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" || { echo "::error::NEXT_PUBLIC_SUPABASE_ANON_KEY is missing."; exit 1; }
           echo "Required NVIDIA and Supabase secrets are present (values are not displayed)."
       - name: Generate content (NVIDIA only)
+        if: github.event_name != 'push' || contains(github.event.head_commit.message, '[run-landing-smoke-test]')
         run: npx tsx tmp/generate-2-landing-pages.ts
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
@@ -53,3 +64,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.REPO_OWNER_TOKEN }}
           GITHUB_REPO: carloshbhb/Vetor
           INDEXNOW_API_KEY: ${{ secrets.INDEXNOW_API_KEY }}
+          LANDING_TEST_PRODUCT_ID: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[run-landing-smoke-test]') && 'first-eligible' || inputs.test_product_id || '' }}
