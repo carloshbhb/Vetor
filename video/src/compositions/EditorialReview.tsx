@@ -190,8 +190,8 @@ const FeatureScene: React.FC<{
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            opacity: 0.2,
-            filter: 'brightness(0.55) blur(2px)',
+            opacity: 0.36,
+            filter: 'brightness(0.68) blur(1px)',
           }}
         />
       ) : null}
@@ -264,9 +264,9 @@ const ClosingScene: React.FC<{
   return (
     <Background>
       <div style={{ position: 'absolute', top: 150, left: 82, right: 82, textAlign: 'center' }}>
-        <Eyebrow>Veredito Vetor • {score.toFixed(1)} / 10</Eyebrow>
+        <Eyebrow>{score > 0 ? `Nota do review • ${score.toFixed(1)} / 10` : 'Conclusão editorial'}</Eyebrow>
         <div style={{ marginTop: 35, fontSize: 72, lineHeight: 1.02, fontWeight: 900, letterSpacing: -4 }}>
-          Vale a pena?
+          {score > 0 ? 'Vale a pena para você?' : 'Faz sentido para seu uso?'}
         </div>
       </div>
       <ProductImage
