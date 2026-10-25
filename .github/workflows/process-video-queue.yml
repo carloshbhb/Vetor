@@ -26,7 +26,7 @@ jobs:
   process-queue:
     name: Render and publish queued videos
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

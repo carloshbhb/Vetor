@@ -384,7 +384,7 @@ async function renderWithRemotion(videoData, outputPath) {
         encoding: 'utf8',
         stdio: 'pipe',
         // Chrome is prepared before the queue is touched. Fifteen minutes leaves headroom for complex scenes.
-        timeout: 900000,
+        timeout: 1200000,
         maxBuffer: 32 * 1024 * 1024,
         cwd: path.resolve(process.cwd()),
       }
