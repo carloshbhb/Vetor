@@ -46,10 +46,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!page) return { title: 'Seleção de compra não encontrada' };
 
   const label = getBuyingIntentLabel(page.intent);
-  const title = 'Melhores ' + page.categoryName + ' ' + label.toLowerCase() + ' em 2026';
+  const qualifier =
+    page.intent === 'baratos'
+      ? 'baratos'
+      : page.intent === 'custo-beneficio'
+        ? 'custo-benefício'
+        : page.intent === 'premium'
+          ? 'premium'
+          : label.toLocaleLowerCase('pt-BR');
+  const title = 'Melhores ' + page.categoryName + ' ' + qualifier + ' em 2026';
   const description =
     getBuyingIntentDescription(page.intent, page.categoryName) +
-    ' Veja notas, preços consultados e links para as análises.';
+    ' Compare as opções, confira os preços consultados e leia cada análise antes de comprar.';
 
   return {
     title,
@@ -118,15 +126,10 @@ export default async function BuyingIntentPage({ params }: PageProps) {
               ]}
             />
             <span className="eyebrow">{label}</span>
-            <h1>
-              {page.intent === 'baratos'
-                ? 'Melhores ' + page.categoryName + ' baratos em 2026'
-                : 'Melhores ' + page.categoryName + ' custo-benefício em 2026'}
-            </h1>
+            <h1>{title}</h1>
             <p className="hero-lead">
-              {page.intent === 'baratos'
-                ? 'Seleção pelas menores faixas de preço consultadas entre as análises disponíveis, mantendo a nota e a página completa de cada produto para você conferir.'
-                : 'Seleção calculada a partir da relação entre nota Vetor e preço consultado, com fórmula explícita para você entender como a lista foi ordenada.'}
+              {getBuyingIntentDescription(page.intent, page.categoryName)}{' '}
+              A seleção reúne {page.count} opções com preço consultado e link para a análise individual.
             </p>
           </div>
         </section>
