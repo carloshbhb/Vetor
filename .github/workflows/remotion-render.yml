@@ -123,7 +123,7 @@ jobs:
           }
           JSON
           npx tsx src/utils/renderVideo.ts review "$BROLL_FIXTURE"
-          SMOKE_VIDEO="$(find out -maxdepth 1 -type f -name 'review-*.mp4' -printf '%T@ %p\\n' | sort -nr | head -1 | cut -d' ' -f2-)"
+          SMOKE_VIDEO="$(find out -maxdepth 1 -type f -name 'review-*.mp4' -printf '%T@ %p\n' | sort -nr | head -1 | cut -d' ' -f2-)"
           test -n "$SMOKE_VIDEO"
           ffprobe -v error -show_entries format=duration:stream=codec_type,width,height -of json "$SMOKE_VIDEO" |
             jq -e '(.format.duration | tonumber > 0) and any(.streams[]?; .codec_type == "video" and (.width | tonumber) > 0 and (.height | tonumber) > 0)' >/dev/null
