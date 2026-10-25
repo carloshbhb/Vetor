@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { BreadcrumbSchema, ItemListSchema } from '@/components/SchemaMarkup';
-import { fetchAllReviews } from '@/lib/data';
+import { fetchAllReviews } from '@/lib/public-data';
 import {
   buildBuyingGuideCategories,
   buildBuyingIntentPages,

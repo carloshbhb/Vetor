@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import ReviewCard from "@/components/ReviewCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { ItemListSchema } from "@/components/SchemaMarkup";
-import { fetchAllReviews } from "@/lib/data";
+import { fetchAllReviewSummaries } from "@/lib/public-data";
 import { buildTagIndex, buildIndexableTagIndex, isIndexableTag } from "@/lib/tags";
 
 interface PageProps {
@@ -19,7 +19,7 @@ function safeDecode(value: string): string {
 }
 
 export async function generateStaticParams() {
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   const tags = buildIndexableTagIndex(reviews);
   return tags.map((tag) => ({ tag: tag.slug }));
 }
@@ -27,7 +27,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { tag: raw } = await params;
   const slug = safeDecode(raw);
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   const entry = buildTagIndex(reviews).find((t) => t.slug === slug);
   const indexable = Boolean(entry && isIndexableTag(entry));
   const label = entry?.tag || slug;
@@ -64,7 +64,7 @@ export default async function TagHubPage({ params }: PageProps) {
   const { tag: raw } = await params;
   const slug = safeDecode(raw);
 
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   const tags = buildTagIndex(reviews);
   const entry = tags.find((t) => t.slug === slug);
 

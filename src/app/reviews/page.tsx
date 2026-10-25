@@ -4,7 +4,7 @@ import Link from "next/link";
 import ReviewCard from "@/components/ReviewCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { BreadcrumbSchema, ItemListSchema } from "@/components/SchemaMarkup";
-import { fetchAllReviews, fetchCategories, normalizeCategoryName } from "@/lib/data";
+import { fetchAllReviewSummaries, fetchCategories, normalizeCategoryName } from "@/lib/public-data";
 
 export const dynamic = "force-dynamic";
 
@@ -91,7 +91,7 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
   const activeCategory = category?.trim() || null;
 
   const [allReviews, categories] = await Promise.all([
-    fetchAllReviews(),
+    fetchAllReviewSummaries(),
     fetchCategories(),
   ]);
 

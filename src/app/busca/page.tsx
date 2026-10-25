@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SiteSearch from '@/components/SiteSearch';
 import { ItemListSchema, BreadcrumbSchema } from '@/components/SchemaMarkup';
-import { fetchAllReviews, fetchAllViralArticles, fetchGuias } from '@/lib/data';
+import { fetchAllReviews, fetchAllViralArticles, isGuiaLike } from '@/lib/public-data';
 import { isGuideLikeSlug, reviewScore } from '@/lib/buying';
 import type { Review, ViralArticle } from '@/lib/types';
 
@@ -50,11 +50,11 @@ function scoreLabel(review: Review): string {
 export default async function SearchPage({ searchParams }: PageProps) {
   const { q = '' } = await searchParams;
   const query = normalize(q).slice(0, 100);
-  const [reviews, articles, guides] = await Promise.all([
+  const [reviews, articles] = await Promise.all([
     fetchAllReviews(),
     fetchAllViralArticles(),
-    fetchGuias(),
   ]);
+  const guides = reviews.filter(isGuiaLike);
 
   const publishedReviews = reviews.filter((review) => review.status === 'published');
   const reviewResults = query

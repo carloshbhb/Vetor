@@ -1,10 +1,10 @@
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { safeImageSrc } from "@/lib/images";
-import type { Review } from "@/lib/types";
+import type { ReviewSummary } from "@/lib/types";
 import { formatScoreBR } from "@/lib/images";
 
-export default function GuideCard({ guia, index }: { guia: Review; index: number }) {
+export default function GuideCard({ guia, index }: { guia: ReviewSummary; index: number }) {
   const score = formatScoreBR(guia.verdict_score);
   return (
     <Link className="home-guide guide-card-v2" href={"/reviews/" + guia.slug + "/"}>

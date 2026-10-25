@@ -1,10 +1,10 @@
-import type { Review } from './types';
+import type { ReviewSummary } from './types';
 
 export interface TagEntry {
   tag: string;
   slug: string;
   count: number;
-  reviews: Review[];
+  reviews: ReviewSummary[];
 }
 
 const GENERIC_TAGS = new Set([
@@ -86,7 +86,7 @@ function isUsableTag(display: string, normalized: string, categoryKeys: Set<stri
 }
 
 export function extractReviewTags(
-  review: Review,
+  review: ReviewSummary,
   categoryKeys: Set<string>
 ): Array<{ tag: string; slug: string }> {
   const seen = new Set<string>();
@@ -114,7 +114,7 @@ export function isIndexableTag(entry: Pick<TagEntry, "count">): boolean {
   return entry.count >= INDEXABLE_TAG_MIN_COUNT;
 }
 
-export function buildIndexableTagIndex(reviews: Review[]): TagEntry[] {
+export function buildIndexableTagIndex(reviews: ReviewSummary[]): TagEntry[] {
   return buildTagIndex(reviews, { minCount: INDEXABLE_TAG_MIN_COUNT });
 }
 

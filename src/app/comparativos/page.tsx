@@ -3,7 +3,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import SafeImage from "@/components/SafeImage";
 import { safeImageSrc } from "@/lib/images";
 import { ItemListSchema } from "@/components/SchemaMarkup";
-import { fetchAllReviews, fetchAllViralArticleSummaries, normalizeCategoryName } from "@/lib/data";
+import { fetchAllReviews, fetchAllViralArticleSummaries, normalizeCategoryName } from "@/lib/public-data";
 import { buildBuyingGuideCategories } from "@/lib/buying";
 import type { Metadata } from "next";
 

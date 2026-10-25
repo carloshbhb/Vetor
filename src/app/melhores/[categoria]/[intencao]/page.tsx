@@ -5,7 +5,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { BreadcrumbSchema, ItemListSchema } from '@/components/SchemaMarkup';
 import BuyingChoiceCard from '@/components/BuyingChoiceCard';
 import EditorialEvidence from '@/components/EditorialEvidence';
-import { fetchAllReviews } from '@/lib/data';
+import { fetchAllReviews } from '@/lib/public-data';
 import {
   buildBuyingIntentPages,
   getBuyingIntentDescription,

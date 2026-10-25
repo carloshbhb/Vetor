@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { ItemListSchema } from '@/components/SchemaMarkup';
-import { fetchAllReviews, fetchAllViralArticleSummaries, fetchGuias } from '@/lib/data';
+import { fetchAllReviewSummaries, fetchAllViralArticleSummaries, isGuiaLike } from '@/lib/public-data';
 import NewsletterForm from '@/components/NewsletterForm';
 import GuideCard from '@/components/GuideCard';
 import AdPlacement from '@/components/AdPlacement';
@@ -19,11 +19,11 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [reviews, viralArticles, guias] = await Promise.all([
-    fetchAllReviews(),
+  const [reviews, viralArticles] = await Promise.all([
+    fetchAllReviewSummaries(),
     fetchAllViralArticleSummaries(),
-    fetchGuias(),
   ]);
+  const guias = reviews.filter(isGuiaLike);
 
   const isHomeProductReview = (review: typeof reviews[number]) => {
     const slug = review.slug.toLowerCase();

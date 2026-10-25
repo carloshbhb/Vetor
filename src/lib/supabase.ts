@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Review, ViralArticle, ViralArticleSummary, Category } from './types';
+import type { Review, ReviewSummary, ViralArticle, ViralArticleSummary, Category } from './types';
 import { validateGeneratedViralArticle } from './content-quality';
 import { normalizeReviewCompareRows } from './review-compare';
 import { buildReviewUpdatePayload, resolveReviewWriteMode } from './review-persistence';
@@ -33,6 +33,9 @@ export function getSupabaseServiceKeyClient(): SupabaseClient | null {
 
 const REVIEW_COLUMNS =
   'slug,status,content_type,product,category,marketplace,price_old,price_new,affiliate_url,image_url,ads_enabled,meta_title,meta_description,meta_keywords,meta_reading_time,meta_canonical,meta_og_image,hero_headline_line1,hero_headline_line2,hero_headline_em,hero_lead,hero_overall_score,hero_bars,specs,sections,compare_table,pros,cons,testimonials,verdict_score,verdict_label,verdict_text,verdict_note,schema_rating_value,schema_review_count,google_rank,last_rank_check,created_at,updated_at,faq';
+
+const REVIEW_SUMMARY_COLUMNS =
+  'slug,status,content_type,product,category,marketplace,price_old,price_new,affiliate_url,image_url,ads_enabled,meta_title,meta_description,meta_keywords,meta_reading_time,meta_canonical,meta_og_image,hero_headline_line1,hero_headline_line2,hero_headline_em,hero_lead,hero_overall_score,verdict_score,verdict_label,verdict_text,verdict_note,created_at,updated_at';
 
 export async function createReview(data: {
   slug: string;
@@ -250,6 +253,23 @@ function normalizeReviewFields(data: any): any {
   return r;
 }
 
+export async function getAllReviewSummaries(
+  contentType: 'review' | 'lp' = 'review'
+): Promise<ReviewSummary[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('reviews')
+    .select(REVIEW_SUMMARY_COLUMNS)
+    .eq('content_type', contentType)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data || []) as ReviewSummary[];
+}
+
 export async function getAllReviews(options?: {
   includeUnpublished?: boolean;
 }): Promise<Review[]> {
@@ -359,15 +379,16 @@ export async function getReviewBySlug(slug: string): Promise<Review | null> {
       .select(REVIEW_COLUMNS)
       .eq('slug', slug)
       .eq('status', 'published')
-      .single();
+      .maybeSingle();
 
-    if (error || !data) return null;
+    if (error) throw error;
+    if (!data) return null;
     if (typeof data.slug !== 'string') return null;
 
     return normalizeReviewFields(data) as Review;
   } catch (err) {
     console.error('[Supabase] getReviewBySlug error:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -443,7 +464,8 @@ export async function getReviewsByCategory(category: string): Promise<Review[]> 
   try {
     const { data, error } = await supabase
       .from('reviews')
-      .select('*')
+      .select(REVIEW_COLUMNS)
+      .eq('content_type', 'review')
       .eq('category', category)
       .eq('status', 'published')
       .order('created_at', { ascending: false });

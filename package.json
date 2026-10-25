@@ -30,7 +30,8 @@
     "test:viral-quality": "tsx scripts/viral-quality.test.ts",
     "test:sanitize": "tsx scripts/sanitize.test.ts",
     "test:review-persistence": "tsx scripts/review-persistence.test.ts",
-    "test:lp-template": "tsx scripts/lp-template-contract.test.ts"
+    "test:lp-template": "tsx scripts/lp-template-contract.test.ts",
+    "test:egress": "tsx scripts/egress-regression.test.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

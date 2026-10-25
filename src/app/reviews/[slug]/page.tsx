@@ -11,7 +11,7 @@ import VerdictCard from "@/components/VerdictCard";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import AdPlacement from "@/components/AdPlacement";
 import { ReviewSchema, FAQSchema, BreadcrumbSchema } from "@/components/SchemaMarkup";
-import { fetchReviewBySlug, fetchAllReviews, fetchAllLandingPages, fetchAllViralArticleSummaries, normalizeCategoryName } from "@/lib/data";
+import { fetchReviewBySlug, fetchAllReviews, fetchAllLandingPages, fetchAllViralArticleSummaries, normalizeCategoryName } from "@/lib/public-data";
 import { resolveOgImage, serializeJsonLd } from "@/lib/seo";
 import type { Review } from "@/lib/types";
 import AuthorBox from "@/components/AuthorBox";

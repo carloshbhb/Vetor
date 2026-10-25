@@ -3,7 +3,7 @@ import Link from "next/link";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import GuideCard from "@/components/GuideCard";
 import { ItemListSchema } from "@/components/SchemaMarkup";
-import { fetchCategories, fetchGuias } from "@/lib/data";
+import { fetchCategories, fetchGuias } from "@/lib/public-data";
 
 export const revalidate = 300;
 

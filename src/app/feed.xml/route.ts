@@ -1,4 +1,4 @@
-import { fetchAllReviews, fetchAllViralArticles } from '@/lib/data';
+import { fetchAllReviews, fetchAllViralArticles } from '@/lib/public-data';
 
 export const revalidate = 3600;
 

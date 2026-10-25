@@ -1,4 +1,4 @@
-import type { Review } from './types';
+import type { Review, ReviewSummary } from './types';
 import type { ProductLink } from './product-links';
 
 export interface MarketplaceOffer {
@@ -14,7 +14,7 @@ export interface BuyingGuideCategory {
   name: string;
   slug: string;
   count: number;
-  featured: Review[];
+  featured: ReviewSummary[];
 }
 
 export type BuyingIntent =
@@ -53,7 +53,7 @@ export const PRIORITY_BUYING_CATEGORIES = [
 ] as const;
 
 export function buildPriorityBuyingCategories(
-  reviews: Review[],
+  reviews: ReviewSummary[],
   minimum = 3
 ): BuyingGuideCategory[] {
   const categories = buildBuyingGuideCategories(reviews, minimum);
@@ -91,7 +91,7 @@ export function buyingCategorySlug(value: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function reviewScore(review: Review): number {
+export function reviewScore(review: Pick<Review, 'verdict_score' | 'hero_overall_score'>): number {
   const value = Number(review.verdict_score || review.hero_overall_score || 0);
   return Number.isFinite(value) ? value : 0;
 }
@@ -101,7 +101,7 @@ export function isGuideLikeSlug(slug: string): boolean {
   return value.includes('guia') || value.startsWith('melhores-') || value.startsWith('top-');
 }
 
-export function rankBuyingReviews(reviews: Review[]): Review[] {
+export function rankBuyingReviews(reviews: ReviewSummary[]): ReviewSummary[] {
   return reviews
     .filter(
       (review) =>
@@ -119,8 +119,8 @@ export function rankBuyingReviews(reviews: Review[]): Review[] {
     });
 }
 
-export function buildBuyingGuideCategories(reviews: Review[], minimum = 3): BuyingGuideCategory[] {
-  const groups = new Map<string, Review[]>();
+export function buildBuyingGuideCategories(reviews: ReviewSummary[], minimum = 3): BuyingGuideCategory[] {
+  const groups = new Map<string, ReviewSummary[]>();
 
   for (const review of reviews) {
     if (review.status !== 'published' || isGuideLikeSlug(review.slug)) continue;

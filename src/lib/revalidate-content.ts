@@ -1,4 +1,4 @@
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 /**
  * Invalidates every App Router surface that can change after a review write.
@@ -9,6 +9,16 @@ export function revalidateReviewSurfaces(
   slugs: string[] = [],
   categories: string[] = []
 ): void {
+  for (const tag of [
+    'vetor:reviews:full',
+    'vetor:reviews:summary',
+    'vetor:landing-pages:full',
+    'vetor:landing-pages:summary',
+    'vetor:categories',
+  ]) {
+    revalidateTag(tag);
+  }
+
   const safeSlugs = Array.from(
     new Set(
       slugs
@@ -56,6 +66,8 @@ export function revalidateReviewSurfaces(
 
 /** Invalidates the comparison index and its dynamic article route. */
 export function revalidateComparativeSurfaces(slugs: string[] = []): void {
+  revalidateTag('vetor:comparatives:full');
+  revalidateTag('vetor:comparatives:summary');
   const safeSlugs = Array.from(
     new Set(
       slugs

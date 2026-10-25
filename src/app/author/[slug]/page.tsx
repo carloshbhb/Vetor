@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ReviewCard from "@/components/ReviewCard";
 import { authors, getAuthorBySlug } from "@/data/authors";
-import { fetchAllReviews } from "@/lib/data";
+import { fetchAllReviews } from "@/lib/public-data";
 
 interface PageProps {
   params: Promise<{ slug: string }>;

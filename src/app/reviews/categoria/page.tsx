@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
 import { BreadcrumbSchema } from "@/components/SchemaMarkup";
-import { fetchCategories } from "@/lib/data";
+import { fetchCategories } from "@/lib/public-data";
 
 export const metadata: Metadata = {
   title: "Categorias de Reviews — Wearables, Fones, Notebooks e Mais",

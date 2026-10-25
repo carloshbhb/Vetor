@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import SafeImage from './SafeImage';
 import { safeImageSrc } from '@/lib/images';
-import type { Review } from '@/lib/types';
+import type { ReviewSummary } from '@/lib/types';
 import { getBuyingIntentLabel, marketplaceLabel, reviewScore, type BuyingIntent } from '@/lib/buying';
 
 const br = (n: number) => String(n).replace('.', ',');
@@ -16,7 +16,7 @@ export default function BuyingChoiceCard({
   ctaLabel,
   ctaPos,
 }: {
-  review: Review;
+  review: ReviewSummary;
   rank: number;
   intent?: BuyingIntent;
   context?: 'ranking' | 'review' | 'comparison';

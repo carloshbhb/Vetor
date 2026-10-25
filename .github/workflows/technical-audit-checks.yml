@@ -63,6 +63,9 @@ jobs:
       - name: Review persistence regression test
         run: npm run test:review-persistence
 
+      - name: Supabase egress and cache regression test
+        run: npm run test:egress
+
       - name: Mercado Livre product-match guardrails
         run: npm run test:mercadolivre-search
 

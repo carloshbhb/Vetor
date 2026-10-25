@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchReviewBySlug, fetchViralArticleBySlug } from "@/lib/data";
+import { fetchReviewBySlug, fetchViralArticleBySlug } from "@/lib/public-data";
 import { getProductLinkBySlug } from "@/lib/product-links";
 import { getAffiliateLinkBySlug, recordAffiliateClick } from "@/lib/affiliate-links";
 

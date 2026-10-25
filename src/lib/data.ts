@@ -1,16 +1,18 @@
 import {
   getAllReviews,
+  getAllReviewSummaries,
   getAllLandingPages,
   getReviewBySlug,
   getAllViralArticles,
   getAllViralArticleSummaries,
   getViralArticleBySlug,
   getCategories,
+  getReviewsByCategory as getSupabaseReviewsByCategory,
   getSupabaseClient,
 } from './supabase';
 import { reviews as staticReviews } from '@/data/reviews';
 import { normalizeReviewCompareRows } from './review-compare';
-import type { Review, ViralArticle, ViralArticleSummary, Category } from './types';
+import type { Review, ReviewSummary, ViralArticle, ViralArticleSummary, Category } from './types';
 
 const CATEGORY_ALIASES: Record<string, string> = {
   eletroportateis: 'Eletroportáteis',
@@ -197,6 +199,42 @@ function normalizeStaticReviews(): Review[] {
   })).map(r => ({ ...r, marketplace: 'mercadolivre', category: normalizeCategoryName(r.category) }));
 }
 
+function normalizeReviewSummary(review: ReviewSummary): ReviewSummary {
+  const score = normalizeScore(review.hero_overall_score);
+  return {
+    ...review,
+    category: normalizeCategoryName(String(review.category || '')),
+    meta_title: cleanReviewEditorialText(String(review.meta_title || '')).trim(),
+    meta_description: normalizeMetaDescription(review.meta_description, review.product),
+    hero_lead: cleanReviewEditorialText(String(review.hero_lead || '')).trim(),
+    hero_overall_score: score,
+    verdict_score: normalizeScore(review.verdict_score, score),
+    verdict_label: cleanReviewEditorialText(String(review.verdict_label || '')).trim(),
+  };
+}
+
+export async function fetchAllReviewSummaries(): Promise<ReviewSummary[]> {
+  if (!getSupabaseClient()) {
+    return normalizeStaticReviews().map((review) => normalizeReviewSummary(review));
+  }
+  try {
+    return (await getAllReviewSummaries('review')).map(normalizeReviewSummary);
+  } catch (error) {
+    console.error('[Data] getAllReviewSummaries failed:', error);
+    return [];
+  }
+}
+
+export async function fetchAllLandingPageSummaries(): Promise<ReviewSummary[]> {
+  if (!getSupabaseClient()) return [];
+  try {
+    return (await getAllReviewSummaries('lp')).map(normalizeReviewSummary);
+  } catch (error) {
+    console.error('[Data] getAllLandingPageSummaries failed:', error);
+    return [];
+  }
+}
+
 export async function fetchAllReviews(): Promise<Review[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return normalizeStaticReviews();
@@ -222,17 +260,11 @@ export async function fetchAllLandingPages(): Promise<Review[]> {
 
 export async function fetchReviewBySlug(slug: string): Promise<Review | null> {
   if (getSupabaseClient()) {
-    const review = await getReviewBySlug(slug);
-    if (review) return normalizeReviewCategory(review);
-
-    // Fallback defensivo: o índice público de reviews pode estar disponível
-    // mesmo quando a consulta pontual ao slug falha.
     try {
-      const reviews = await getAllReviews();
-      const fallback = reviews.find((item) => item.slug === slug);
-      return fallback ? normalizeReviewCategory(fallback) : null;
+      const review = await getReviewBySlug(slug);
+      return review ? normalizeReviewCategory(review) : null;
     } catch (error) {
-      console.error('[Data] getReviewBySlug fallback failed:', error);
+      console.error('[Data] getReviewBySlug failed:', error);
       return null;
     }
   }
@@ -303,18 +335,27 @@ export async function fetchReviewsByCategory(
   category: string
 ): Promise<Review[]> {
   const normalizedCategory = normalizeCategoryName(category);
-  const reviews = await fetchAllReviews();
-  return reviews.filter((r) => r.category === normalizedCategory);
+  if (!getSupabaseClient()) {
+    const reviews = await fetchAllReviews();
+    return reviews.filter((review) => review.category === normalizedCategory);
+  }
+  try {
+    const reviews = await getSupabaseReviewsByCategory(normalizedCategory);
+    return reviews.map(normalizeReviewCategory);
+  } catch (error) {
+    console.error('[Data] getReviewsByCategory failed:', error);
+    return [];
+  }
 }
 
 // Reviews que funcionam como guias (contêm "guia" ou prefixos top-N/melhores-*).
 // Usado pela home e pela rota /guias/ (aponta para /reviews/[slug], sem duplicar).
-export function isGuiaLike(review: Review): boolean {
+export function isGuiaLike(review: Pick<Review, 'slug'>): boolean {
   const s = review.slug.toLowerCase();
   return s.includes('guia') || s.startsWith('melhores-') || s.startsWith('top-');
 }
 
-export async function fetchGuias(): Promise<Review[]> {
-  const reviews = await fetchAllReviews();
+export async function fetchGuias(): Promise<ReviewSummary[]> {
+  const reviews = await fetchAllReviewSummaries();
   return reviews.filter(isGuiaLike);
 }

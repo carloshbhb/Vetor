@@ -13,7 +13,7 @@ import {
   fetchAllReviews,
   fetchReviewBySlug,
   normalizeCategoryName,
-} from "@/lib/data";
+} from "@/lib/public-data";
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from "@/lib/buying";
 import { sanitizeHtml, wrapTablesForHorizontalScroll } from "@/lib/sanitize";
 import { buildComparisonSummaryRows } from "@/lib/comparison-tables";

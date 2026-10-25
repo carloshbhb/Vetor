@@ -2,7 +2,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import ReviewCard from "@/components/ReviewCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { fetchAllReviews, fetchCategories, normalizeCategoryName } from "@/lib/data";
+import { fetchAllReviews, fetchCategories, normalizeCategoryName } from "@/lib/public-data";
 import { ItemListSchema } from "@/components/SchemaMarkup";
 import Link from "next/link";
 import { buildBuyingGuideCategories, buildBuyingIntentPages, getBuyingIntentDescription, getBuyingIntentLabel } from "@/lib/buying";

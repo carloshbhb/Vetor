@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { fetchAllReviews } from "@/lib/data";
+import { fetchAllReviewSummaries } from "@/lib/public-data";
 import { buildIndexableTagIndex } from "@/lib/tags";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function TagsIndexPage() {
-  const reviews = await fetchAllReviews();
+  const reviews = await fetchAllReviewSummaries();
   const tags = buildIndexableTagIndex(reviews);
 
   return (
