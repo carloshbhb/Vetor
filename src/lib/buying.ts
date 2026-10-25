@@ -101,12 +101,42 @@ export function isGuideLikeSlug(slug: string): boolean {
   return value.includes('guia') || value.startsWith('melhores-') || value.startsWith('top-');
 }
 
+function isComparisonLikeSlug(slug: string): boolean {
+  const value = slug.toLowerCase();
+  return /(^|-)vs(-|$)/.test(value) || value.includes('comparativo') || value.includes('comparacao');
+}
+
+// The same marketplace image was attached to two Havit H2002d records, so
+// commercial lists showed the same headset twice under slightly different names.
+// Deduplicate only generated selections; the underlying review pages and links
+// remain published and accessible.
+function dedupeBuyingProducts<T extends { slug: string; image_url?: string | null }>(items: T[]): T[] {
+  const seenImages = new Set<string>();
+  const result: T[] = [];
+
+  for (const item of items) {
+    const image = item.image_url?.trim();
+    if (!image) {
+      result.push(item);
+      continue;
+    }
+
+    const normalizedImage = image.replace(/[?#].*$/, '').replace(/\\/+$/, '').toLowerCase();
+    if (seenImages.has(normalizedImage)) continue;
+    seenImages.add(normalizedImage);
+    result.push(item);
+  }
+
+  return result;
+}
+
 export function rankBuyingReviews(reviews: ReviewSummary[]): ReviewSummary[] {
-  return reviews
+  const ranked = reviews
     .filter(
       (review) =>
         review.status === 'published' &&
         !isGuideLikeSlug(review.slug) &&
+        !isComparisonLikeSlug(review.slug) &&
         reviewScore(review) > 0
     )
     .sort((a, b) => {
@@ -117,13 +147,19 @@ export function rankBuyingReviews(reviews: ReviewSummary[]): ReviewSummary[] {
         new Date(a.updated_at || a.created_at).getTime()
       );
     });
+
+  return dedupeBuyingProducts(ranked);
 }
 
 export function buildBuyingGuideCategories(reviews: ReviewSummary[], minimum = 3): BuyingGuideCategory[] {
   const groups = new Map<string, ReviewSummary[]>();
 
   for (const review of reviews) {
-    if (review.status !== 'published' || isGuideLikeSlug(review.slug)) continue;
+    if (
+      review.status !== 'published' ||
+      isGuideLikeSlug(review.slug) ||
+      isComparisonLikeSlug(review.slug)
+    ) continue;
     const list = groups.get(review.category) || [];
     list.push(review);
     groups.set(review.category, list);
@@ -131,8 +167,9 @@ export function buildBuyingGuideCategories(reviews: ReviewSummary[], minimum = 3
 
   return Array.from(groups.entries())
     .map(([name, items]) => {
-      const featured = rankBuyingReviews(items).slice(0, 3);
-      return { name, slug: buyingCategorySlug(name), count: items.length, featured };
+      const ranked = rankBuyingReviews(items);
+      const featured = ranked.slice(0, 3);
+      return { name, slug: buyingCategorySlug(name), count: ranked.length, featured };
     })
     .filter((category) => category.featured.length >= minimum)
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'pt-BR'));
@@ -188,6 +225,7 @@ function intentEligibleReviews(reviews: Review[], intent: BuyingIntent): Review[
     (review) =>
       review.status === 'published' &&
       !isGuideLikeSlug(review.slug) &&
+      !isComparisonLikeSlug(review.slug) &&
       reviewScore(review) > 0 &&
       parseReviewPrice(review.price_new) !== null
   );
@@ -199,26 +237,26 @@ function intentEligibleReviews(reviews: Review[], intent: BuyingIntent): Review[
 function rankByIntent(reviews: Review[], intent: BuyingIntent): Review[] {
   const withPrice = intentEligibleReviews(reviews, intent);
 
-  if (intent === 'baratos') {
-    return [...withPrice].sort((a, b) => {
-      const aPrice = parseReviewPrice(a.price_new) ?? Number.POSITIVE_INFINITY;
-      const bPrice = parseReviewPrice(b.price_new) ?? Number.POSITIVE_INFINITY;
-      return (
-        aPrice - bPrice ||
-        reviewScore(b) - reviewScore(a) ||
-        new Date(b.updated_at || b.created_at).getTime() -
-          new Date(a.updated_at || a.created_at).getTime()
-      );
-    });
-  }
+  const ranked = intent === 'baratos'
+    ? [...withPrice].sort((a, b) => {
+        const aPrice = parseReviewPrice(a.price_new) ?? Number.POSITIVE_INFINITY;
+        const bPrice = parseReviewPrice(b.price_new) ?? Number.POSITIVE_INFINITY;
+        return (
+          aPrice - bPrice ||
+          reviewScore(b) - reviewScore(a) ||
+          new Date(b.updated_at || b.created_at).getTime() -
+            new Date(a.updated_at || a.created_at).getTime()
+        );
+      })
+    : [...withPrice].sort((a, b) => {
+        const aPrice = parseReviewPrice(a.price_new) ?? Number.POSITIVE_INFINITY;
+        const bPrice = parseReviewPrice(b.price_new) ?? Number.POSITIVE_INFINITY;
+        const aIndex = (reviewScore(a) * 1000) / aPrice;
+        const bIndex = (reviewScore(b) * 1000) / bPrice;
+        return bIndex - aIndex || reviewScore(b) - reviewScore(a) || aPrice - bPrice;
+      });
 
-  return [...withPrice].sort((a, b) => {
-    const aPrice = parseReviewPrice(a.price_new) ?? Number.POSITIVE_INFINITY;
-    const bPrice = parseReviewPrice(b.price_new) ?? Number.POSITIVE_INFINITY;
-    const aIndex = (reviewScore(a) * 1000) / aPrice;
-    const bIndex = (reviewScore(b) * 1000) / bPrice;
-    return bIndex - aIndex || reviewScore(b) - reviewScore(a) || aPrice - bPrice;
-  });
+  return dedupeBuyingProducts(ranked);
 }
 
 export function buildBuyingIntentPages(
@@ -231,6 +269,7 @@ export function buildBuyingIntentPages(
     if (
       review.status !== 'published' ||
       isGuideLikeSlug(review.slug) ||
+      isComparisonLikeSlug(review.slug) ||
       reviewScore(review) <= 0
     ) {
       continue;
