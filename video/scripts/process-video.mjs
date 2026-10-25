@@ -168,9 +168,6 @@ async function retryPendingCtaComments() {
   }
 }
 
-let azureTtsUnavailableForRun = false;
-let azureTtsStatusLogged = false;
-
 function getAudioDuration(filePath, provider) {
   if (!fs.existsSync(filePath) || fs.statSync(filePath).size < 1000) {
     throw new Error(provider + " não produziu um arquivo de áudio utilizável.");
@@ -181,22 +178,18 @@ function getAudioDuration(filePath, provider) {
     { encoding: 'utf-8', timeout: 10000 }
   ).trim();
   const duration = parseFloat(durationStr);
-  if (!Number.isFinite(duration) || duration <= 0) {
-    throw new Error('ffprobe não conseguiu validar a duração do áudio de ' + provider + '.');
-  }
+  if (!Number.isFinite(duration) || duration <= 0) throw new Error('ffprobe não conseguiu validar a duração de ' + provider + '.');
   return duration;
 }
 
 function escapeXml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+  return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
 async function generateVoiceover(text, outputPath) {
+  const elevenKey = (process.env.ELEVENLABS_API_KEY || '').trim();
+  const elevenVoiceId = (process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL').trim();
   const azureVoice = (process.env.AZURE_SPEECH_VOICE || 'pt-BR-AntonioNeural').trim();
   const azureKey = (process.env.AZURE_SPEECH_KEY || '').trim();
   const azureRegion = (process.env.AZURE_SPEECH_REGION || '').trim();
@@ -208,32 +201,72 @@ async function generateVoiceover(text, outputPath) {
     .replace(/[\u2014\u2013]/g, '-')
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201C\u201D]/g, '"')
-    .replace(/\s+/g, ' ')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-  if (!safeText) throw new Error('[TTS] Não é possível gerar áudio de uma cena vazia.');
+  if (!safeText) throw new Error('[TTS] Não é possível gerar áudio de um roteiro vazio.');
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(textFile, safeText, 'utf8');
-  if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-  if (fs.existsSync(wavPath)) fs.unlinkSync(wavPath);
+  for (const stale of [tempFile, wavPath]) if (fs.existsSync(stale)) fs.unlinkSync(stale);
 
   const finishFromTemp = (provider, voice) => {
     const duration = getAudioDuration(tempFile, provider);
     fs.renameSync(tempFile, outputPath);
-    if (fs.existsSync(textFile)) fs.unlinkSync(textFile);
-    console.log('   [TTS] Provider selecionado: ' + provider + '; voz=' + voice + '; duração=' + duration.toFixed(2) + 's.');
+    console.log('   [TTS] Provider=' + provider + '; voz=' + voice + '; duração=' + duration.toFixed(2) + 's.');
     return duration;
   };
 
+  const strictAzure = process.env.TTS_TEST_REQUIRE_AZURE === 'true';
+  const strictEdge = process.env.TTS_TEST_REQUIRE_EDGE === 'true';
+  const forceFallback = process.env.TTS_FORCE_FALLBACK === 'true';
+
   try {
-    // Azure Speech is primary. A failure disables it for the rest of this worker run,
-    // avoiding repeated timeouts and allowing the daily batch to complete via fallback.
-    if (process.env.TTS_FORCE_FALLBACK !== 'true' && !azureTtsUnavailableForRun && azureKey && azureRegion) {
+    // One continuous narration per video preserves natural cadence and avoids audible cuts between every sentence.
+    if (!strictAzure && !strictEdge && !forceFallback && elevenKey) {
+      try {
+        const response = await fetch(
+          'https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(elevenVoiceId) + '?output_format=mp3_44100_128',
+          {
+            method: 'POST',
+            headers: {
+              'xi-api-key': elevenKey,
+              'Content-Type': 'application/json',
+              Accept: 'audio/mpeg',
+            },
+            body: JSON.stringify({
+              text: safeText,
+              model_id: 'eleven_multilingual_v2',
+              voice_settings: { stability: 0.38, similarity_boost: 0.78, style: 0.32, use_speaker_boost: true },
+            }),
+            signal: AbortSignal.timeout(55000),
+          }
+        );
+        if (!response.ok) {
+          const detail = (await response.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 260);
+          throw new Error('ElevenLabs HTTP ' + response.status + (detail ? ': ' + detail : ''));
+        }
+        const audio = Buffer.from(await response.arrayBuffer());
+        if (audio.length < 1000) throw new Error('ElevenLabs retornou áudio vazio.');
+        fs.writeFileSync(tempFile, audio);
+        return finishFromTemp('ElevenLabs / eleven_multilingual_v2', elevenVoiceId);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn('   [TTS_FAILOVER] ElevenLabs indisponível; tentando Azure/Edge. ' + message);
+        if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+      }
+    } else if (!strictAzure && !strictEdge && !forceFallback && !elevenKey) {
+      console.warn('   [TTS_FAILOVER] ELEVENLABS_API_KEY ausente; priorizando Azure/Edge.');
+    }
+
+    if (!strictEdge && !forceFallback && azureKey && azureRegion) {
       try {
         const endpoint = 'https://' + encodeURIComponent(azureRegion) + '.tts.speech.microsoft.com/cognitiveservices/v1';
+        const ssmlText = safeText.split(/\n\s*\n/).map(escapeXml).join('<break time="260ms"/>');
         const ssml = '<?xml version="1.0" encoding="utf-8"?>' +
-          '<speak version="1.0" xml:lang="pt-BR">' +
-          '<voice name="' + escapeXml(azureVoice) + '">' + escapeXml(safeText) + '</voice></speak>';
+          '<speak version="1.0" xml:lang="pt-BR"><voice name="' + escapeXml(azureVoice) + '">' +
+          ssmlText + '</voice></speak>';
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
@@ -243,84 +276,59 @@ async function generateVoiceover(text, outputPath) {
             'User-Agent': 'VetorBlog-VideoWorker',
           },
           body: ssml,
-          signal: AbortSignal.timeout(35000),
+          signal: AbortSignal.timeout(40000),
         });
         if (!response.ok) {
           const detail = (await response.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 240);
           throw new Error('Azure Speech HTTP ' + response.status + (detail ? ': ' + detail : ''));
         }
         const audio = Buffer.from(await response.arrayBuffer());
-        if (audio.length < 1000) throw new Error('Azure Speech retornou áudio vazio ou muito pequeno.');
+        if (audio.length < 1000) throw new Error('Azure Speech retornou áudio vazio.');
         fs.writeFileSync(tempFile, audio);
-        return finishFromTemp('Azure Speech', azureVoice);
+        return finishFromTemp('Azure Speech neural', azureVoice);
       } catch (error) {
-        azureTtsUnavailableForRun = true;
         const message = error instanceof Error ? error.message : String(error);
-        console.warn('   [TTS_FAILOVER] Azure Speech indisponível nesta execução; Edge TTS será usado como alternativa. ' + message);
+        console.warn('   [TTS_FAILOVER] Azure Speech indisponível; tentando Edge TTS. ' + message);
+        if (strictAzure) throw new Error('[TTS_SMOKE_TEST] Azure obrigatório falhou: ' + message);
         if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-        if (process.env.TTS_TEST_REQUIRE_AZURE === 'true') {
-          throw new Error('[TTS_SMOKE_TEST] Azure Speech falhou no teste obrigatório: ' + message);
-        }
       }
-    } else if (!azureTtsStatusLogged) {
-      azureTtsStatusLogged = true;
-      azureTtsUnavailableForRun = true;
-      const reason = process.env.TTS_FORCE_FALLBACK === 'true'
-        ? 'fallback forçado por teste'
-        : (!azureKey || !azureRegion ? 'AZURE_SPEECH_KEY/AZURE_SPEECH_REGION não configurados' : 'Azure desativado após falha anterior');
-      console.warn('   [TTS_FAILOVER] Azure Speech não será usado nesta execução (' + reason + '); tentando Edge TTS.');
+    } else if (strictAzure && (!azureKey || !azureRegion)) {
+      throw new Error('[TTS_SMOKE_TEST] AZURE_SPEECH_KEY/AZURE_SPEECH_REGION não configurados para o teste estrito.');
+    } else if (!azureKey || !azureRegion) {
+      console.warn('   [TTS_FAILOVER] Azure não configurado; tentando Edge TTS gratuito.');
     }
 
-    // Free neural fallback, accessed through the Edge TTS endpoint; try male, then female.
     for (const voice of edgeVoices) {
       try {
         if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-        execFileSync(
-          'edge-tts',
-          ['--voice', voice, '--file', textFile, '--write-media', tempFile],
-          { stdio: 'pipe', timeout: 30000 }
-        );
-        return finishFromTemp('Edge TTS (fallback)', voice);
+        execFileSync('edge-tts', ['--voice', voice, '--file', textFile, '--write-media', tempFile], {
+          stdio: 'pipe', timeout: 45000,
+        });
+        return finishFromTemp('Edge TTS neural (fallback gratuito)', voice);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         const stderr = error && typeof error === 'object' && 'stderr' in error
-          ? String(error.stderr || '').replace(/\s+/g, ' ').slice(-250)
-          : '';
-        console.warn('   [TTS_FAILOVER] Edge TTS voz ' + voice + ' falhou: ' + (stderr || message).slice(0, 400));
+          ? String(error.stderr || '').replace(/\s+/g, ' ').slice(-250) : '';
+        console.warn('   [TTS_FAILOVER] Edge TTS ' + voice + ' falhou: ' + (stderr || message).slice(0, 360));
         if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
       }
     }
 
-    // In strict smoke tests, verify the online neural fallback itself before accepting offline speech.
-    if (process.env.TTS_TEST_REQUIRE_EDGE === 'true') {
-      throw new Error('[TTS_SMOKE_TEST] As duas vozes Edge TTS falharam; fallback offline foi deliberadamente omitido do teste estrito.');
-    }
+    if (strictEdge) throw new Error('[TTS_SMOKE_TEST] As vozes Edge TTS falharam; fallback offline omitido no teste estrito.');
 
-    // Last-resort offline speech: lower quality, but prevents a provider outage from
-    // stopping the entire render when the GitHub runner still has local speech binaries.
-    execFileSync(
-      'espeak-ng',
-      ['-v', 'pt-br', '-s', '150', '-f', textFile, '-w', wavPath],
-      { stdio: 'pipe', timeout: 20000 }
-    );
-    if (!fs.existsSync(wavPath) || fs.statSync(wavPath).size < 1000) {
-      throw new Error('espeak-ng não produziu WAV utilizável.');
-    }
-    execFileSync(
-      'ffmpeg',
-      ['-y', '-i', wavPath, '-codec:a', 'libmp3lame', '-q:a', '4', tempFile],
-      { stdio: 'pipe', timeout: 20000 }
-    );
-    return finishFromTemp('espeak-ng (fallback offline)', 'pt-br');
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error('[TTS] Azure Speech, Edge TTS e fallback offline falharam. ' + message);
+    execFileSync('espeak-ng', ['-v', 'pt-br', '-s', '150', '-f', textFile, '-w', wavPath], {
+      stdio: 'pipe', timeout: 20000,
+    });
+    if (!fs.existsSync(wavPath) || fs.statSync(wavPath).size < 1000) throw new Error('espeak-ng não produziu WAV utilizável.');
+    execFileSync('ffmpeg', ['-y', '-i', wavPath, '-codec:a', 'libmp3lame', '-q:a', '4', tempFile], {
+      stdio: 'pipe', timeout: 20000,
+    });
+    return finishFromTemp('espeak-ng offline (último recurso)', 'pt-br');
   } finally {
-    for (const file of [textFile, tempFile, wavPath]) {
-      if (fs.existsSync(file)) fs.unlinkSync(file);
-    }
+    for (const file of [textFile, tempFile, wavPath]) if (fs.existsSync(file)) fs.unlinkSync(file);
   }
 }
+
 async function combineAudioFiles(audioFiles, outputPath) {
   const existingFiles = audioFiles.filter(f => fs.existsSync(f));
   if (existingFiles.length === 0) {
@@ -513,6 +521,67 @@ async function uploadToYouTube(videoPath, title, description, tags, commentText)
   }
 }
 
+async function fetchPexelsBroll(scenes, category, videoId) {
+  const apiKey = (process.env.PEXELS_API_KEY || process.env.PEXELS_KEY || '').trim();
+  if (!apiKey) {
+    console.warn('[BROLL] PEXELS_API_KEY ausente; render seguirá sem footage de apoio.');
+    return [];
+  }
+
+  const keywords = [];
+  for (const scene of (Array.isArray(scenes) ? scenes : [])) {
+    for (const keyword of (Array.isArray(scene.brollKeywords) ? scene.brollKeywords : [])) {
+      const normalized = String(keyword || '').trim();
+      if (normalized.length >= 3 && !keywords.includes(normalized)) keywords.push(normalized);
+    }
+  }
+  const queries = keywords.slice(0, 3);
+  const candidates = [];
+  const seenIds = new Set();
+
+  for (const keyword of queries) {
+    try {
+      const response = await fetch(
+        'https://api.pexels.com/videos/search?query=' + encodeURIComponent(keyword) +
+          '&per_page=8&orientation=portrait',
+        { headers: { Authorization: apiKey }, signal: AbortSignal.timeout(12000) }
+      );
+      if (!response.ok) {
+        console.warn('[BROLL] Pexels HTTP ' + response.status + ' para consulta visual.');
+        continue;
+      }
+      const payload = await response.json();
+      for (const video of (Array.isArray(payload.videos) ? payload.videos : [])) {
+        if (!video || seenIds.has(video.id)) continue;
+        const files = (Array.isArray(video.video_files) ? video.video_files : [])
+          .filter((file) => typeof file.link === 'string' && file.link.startsWith('https://'))
+          .sort((a, b) => {
+            const aVertical = Number(Number(a.height) > Number(a.width));
+            const bVertical = Number(Number(b.height) > Number(b.width));
+            if (aVertical !== bVertical) return bVertical - aVertical;
+            const aHd = a.quality === 'hd' ? 1 : 0;
+            const bHd = b.quality === 'hd' ? 1 : 0;
+            if (aHd !== bHd) return bHd - aHd;
+            return (Number(b.width) || 0) - (Number(a.width) || 0);
+          });
+        if (!files.length) continue;
+        seenIds.add(video.id);
+        candidates.push({ id: String(video.id), url: files[0].link, query: keyword });
+      }
+    } catch (error) {
+      console.warn('[BROLL] Busca de footage falhou: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  }
+
+  // Reordenar deterministicamente por ID do item evita que todos os vídeos escolham sempre os primeiros resultados do Pexels.
+  const seed = String(videoId || category || 'vetor');
+  const hash = (value) => Array.from(String(value)).reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7);
+  candidates.sort((a, b) => hash(seed + a.id) - hash(seed + b.id));
+  const selected = candidates.slice(0, 8).map((item) => item.url);
+  console.log('[BROLL] ' + selected.length + ' clipes exclusivos selecionados em ' + queries.length + ' buscas de apoio.');
+  return selected;
+}
+
 async function processVideo(video) {
   console.log(`\n🎬 Processando: ${video.product_title}`);
   console.log(`   ID: ${video.id}`);
@@ -527,7 +596,15 @@ async function processVideo(video) {
     if (typeof video.script_text === 'string' && video.script_text.trim()) {
       try {
         const candidate = JSON.parse(video.script_text);
-        if (candidate && typeof candidate === 'object' && Array.isArray(candidate.scenes) && candidate.scenes.length >= 5) {
+        if (
+          candidate &&
+          typeof candidate === 'object' &&
+          candidate.generationVersion === 2 &&
+          typeof candidate.creativeAngle === 'string' &&
+          candidate.creativeAngle.trim() &&
+          Array.isArray(candidate.scenes) &&
+          candidate.scenes.length >= 6
+        ) {
           script = candidate;
         }
       } catch {
@@ -558,40 +635,37 @@ async function processVideo(video) {
     }
 
     processingStage = 'narração';
-    console.log('   [1/4] Gerando voiceover...');
-    console.log(`   [TTS] Azure Speech: ${Boolean((process.env.AZURE_SPEECH_KEY || '').trim() && (process.env.AZURE_SPEECH_REGION || '').trim()) ? 'configurado' : 'sem credenciais; usará Edge TTS'}; voz preferencial=${(process.env.AZURE_SPEECH_VOICE || 'pt-BR-AntonioNeural').trim()}; fallback=Edge TTS e espeak-ng.`);
+    console.log('   [1/4] Gerando uma narração contínua para manter ritmo e entonação naturais...');
+    console.log('[TTS] Preferência=ElevenLabs multilingual v2; fallback=Azure Speech neural, Edge TTS neural e espeak-ng.');
     const audioDir = path.resolve(`/tmp/video-${video.id}`);
-    if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
-
-    const audioFiles = [];
-    let totalDuration = 0;
-
-    const hookAudioPath = path.join(audioDir, 'hook.mp3');
-    const hookDuration = await generateVoiceover(script.hook, hookAudioPath);
-    audioFiles.push(hookAudioPath);
-    totalDuration += hookDuration;
-
-    for (const scene of script.scenes) {
-      const sceneAudioPath = path.join(audioDir, `scene-${scene.id}.mp3`);
-      const duration = await generateVoiceover(scene.text, sceneAudioPath);
-      audioFiles.push(sceneAudioPath);
-      totalDuration += duration;
-    }
-
-    const ctaAudioPath = path.join(audioDir, 'cta.mp3');
-    const ctaDuration = await generateVoiceover(script.callToAction, ctaAudioPath);
-    audioFiles.push(ctaAudioPath);
-    totalDuration += ctaDuration;
-
-    processingStage = 'combinação de áudio';
-    console.log('   [2/4] Combinando áudio...');
+    fs.mkdirSync(audioDir, { recursive: true });
     const combinedAudioPath = path.join(audioDir, 'combined.mp3');
-    await combineAudioFiles(audioFiles, combinedAudioPath);
+    const narrationSegments = [
+      { kind: 'hook', text: String(script.hook || '').trim() },
+      ...script.scenes.map((scene) => ({ kind: 'scene', scene, text: String(scene.text || '').trim() })),
+      { kind: 'cta', text: String(script.callToAction || '').trim() },
+    ];
+    const completeNarration = narrationSegments.map((segment) => segment.text).filter(Boolean).join('\n\n');
+    const totalDuration = await generateVoiceover(completeNarration, combinedAudioPath);
     if (!fs.existsSync(combinedAudioPath) || fs.statSync(combinedAudioPath).size < 1000) {
-      throw new Error('A locução combinada não foi produzida corretamente.');
+      throw new Error('A narração contínua não foi produzida corretamente.');
     }
     fs.mkdirSync(path.dirname(publicAudioPath), { recursive: true });
     fs.copyFileSync(combinedAudioPath, publicAudioPath);
+
+    // Proporcionalizar os intervalos por quantidade de palavras para sincronizar a narração única com cenas/legendas.
+    const weights = narrationSegments.map((segment) => Math.max(1, segment.text.split(/\s+/).filter(Boolean).length));
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    let accumulatedSeconds = 0;
+    const narrationTimings = narrationSegments.map((segment, index) => {
+      const start = accumulatedSeconds;
+      const duration = index === narrationSegments.length - 1
+        ? Math.max(0.1, totalDuration - accumulatedSeconds)
+        : totalDuration * weights[index] / totalWeight;
+      accumulatedSeconds += duration;
+      return { ...segment, start, end: accumulatedSeconds, duration };
+    });
+    const hookDuration = narrationTimings[0]?.duration || Math.min(3, totalDuration);
 
     processingStage = 'renderização Remotion';
     console.log('   [3/4] Renderizando vídeo com Remotion...');
@@ -599,37 +673,32 @@ async function processVideo(video) {
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
     const fps = 30;
-    const hookFrames = 3 * fps;
     const scenesWithFrames = script.scenes.map((scene, index) => {
-      const prevFrames = script.scenes.slice(0, index).reduce((sum, s) => sum + s.duration * fps, 0);
-      return {
-        ...scene,
-        startFrame: hookFrames + prevFrames,
-        endFrame: hookFrames + prevFrames + scene.duration * fps,
-      };
+      const timing = narrationTimings[index + 1];
+      const startFrame = Math.max(0, Math.round((timing?.start || 0) * fps));
+      const endFrame = Math.max(startFrame + 1, Math.round((timing?.end || 0) * fps));
+      return { ...scene, startFrame, endFrame };
     });
+    const brollVideos = await fetchPexelsBroll(script.scenes, video.product_category, video.id);
 
     const videoData = {
       type: 'review',
       title: video.product_title,
       imageUrl: video.product_image_url,
-      score: 8.5,
+      score: Number.isFinite(Number(script.score)) && Number(script.score) > 0 && Number(script.score) <= 10 ? Number(script.score) : 0,
       category: video.product_category,
       hook: script.hook,
       scenes: scenesWithFrames,
       callToAction: script.callToAction,
       audioUrl: `tmp/video-${video.id}.mp3`,
-      subtitleEntries: [
-        { start: 0, end: hookDuration, text: script.hook },
-        ...script.scenes.map((scene, i) => {
-          const start = hookDuration + script.scenes.slice(0, i).reduce((sum, s) => {
-            return sum + s.duration;
-          }, 0);
-          return { start, end: start + 5, text: scene.text };
-        }),
-      ],
+      hookDuration,
+      subtitleEntries: narrationTimings.map((segment) => ({
+        start: segment.start,
+        end: segment.end,
+        text: segment.text,
+      })),
       productImages: [video.product_image_url],
-      brollVideos: [],
+      brollVideos,
       totalDuration,
       fps,
     };
@@ -740,10 +809,8 @@ async function processVideo(video) {
 async function main() {
   console.log('🎬 Iniciando processamento de vídeos...');
   console.log(`   Timestamp: ${new Date().toISOString()}`);
-  console.log('[TTS] Principal=Azure Speech; failover=Edge TTS; última alternativa=espeak-ng offline. ' +
-    (process.env.AZURE_SPEECH_KEY && process.env.AZURE_SPEECH_REGION
-      ? 'Credenciais Azure encontradas.'
-      : 'Credenciais Azure ausentes; será usada a alternativa gratuita até configurar AZURE_SPEECH_KEY e AZURE_SPEECH_REGION.'));
+  console.log('[TTS] Principal=ElevenLabs multilingual v2; fallback=Azure Speech, Edge TTS e espeak-ng. ' +
+    (process.env.ELEVENLABS_API_KEY ? 'Chave ElevenLabs configurada.' : 'Chave ElevenLabs ausente; será usado o próximo provider disponível.'));
 
   // Test mode generates a short local sample and exits before touching the queue, Supabase or YouTube.
   if (process.env.TTS_SMOKE_TEST === 'true') {
