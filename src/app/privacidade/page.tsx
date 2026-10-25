@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Política de Privacidade — vetor.blog",
   description:
     "Política de privacidade do vetor.blog: como tratamos dados, cookies, links de afiliados e suas opções de contato.",
-  alternates: { canonical: "/privacidade" },
+  alternates: { canonical: "/privacidade/" },
 };
 
 export default function PrivacidadePage() {
