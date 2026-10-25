@@ -16,6 +16,8 @@ const searchPage = read('src/app/busca/page.tsx');
 const authorPage = read('src/app/author/[slug]/page.tsx');
 const sitemap = read('src/app/sitemap.ts');
 const bestProducts = read('src/app/melhores/page.tsx');
+const videoQueueWorker = read('src/app/api/cron/video-queue-worker/route.ts');
+const processVideo = read('video/scripts/process-video.mjs');
 const dailyReviewWorkflow = read('.github/workflows/generate-daily-review.yml');
 const remotionRenderWorkflow = read('.github/workflows/remotion-render.yml');
 const socialVideoWorkflow = read('.github/workflows/create-remotion-elevenlabs-video.yml');
@@ -97,4 +99,16 @@ assert.doesNotMatch(processVideoQueueWorkflow, /\n  push:/, 'code pushes must no
 assert.equal((processVideoQueueWorkflow.match(/^\s+- cron:/gm) || []).length, 3, 'video queue retains exactly three scheduled batches');
 assert.match(invalidation, /revalidateAffiliateLinkSurfaces/);
 assert.match(invalidation, /revalidateProductLinkSurfaces/);
+
+// Video queue contract: a published review can be queued without violating the
+// NOT NULL constraint on video_queue.script_text, and worker failures remain diagnosable.
+const queueFromReviews = videoQueueWorker.match(/if \(action === "queueFromReviews"\) \{[\s\S]*?\n    \}\n\n    if \(action === "queueFromComparatives"\)/);
+assert.ok(queueFromReviews, 'queueFromReviews action exists');
+assert.match(queueFromReviews[0], /script_text: ""/);
+assert.doesNotMatch(queueFromReviews[0], /script_text: null/);
+assert.match(videoQueueWorker, /function formatVideoQueueError\(error: unknown\)/);
+assert.match(videoQueueWorker, /failed: action=\$\{action\}/);
+
+// Remotion's CLI contract requires the composition type before the JSON input path.
+assert.match(processVideo, /\[tsxEntrypoint, 'video\/src\/utils\/renderVideo\.ts', String\(videoData\.type \|\| 'review'\), dataPath\]/);
 console.log('Supabase egress/cache regression tests passed.');

@@ -64,9 +64,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Supabase service client não configurado no Vetor." }, { status: 500 });
   }
 
+  let action = "unknown";
   try {
     const body = await request.json().catch(() => ({}));
-    const action = typeof body.action === "string" ? body.action : "";
+    action = typeof body.action === "string" ? body.action : "";
 
     if (action === "quota") {
       const quota = await getDailyPublicationQuota(supabase);
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
             product_image_url: item.image_url,
             affiliate_url: item.affiliate_url,
             shortened_affiliate_url: item.affiliate_url,
-            script_text: null,
+            script_text: "",
             script_hook: `Aguardando roteiro personalizado para ${title}`,
             voiceover_url: "",
             voiceover_duration: 0,
@@ -382,8 +383,26 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: false, error: "Ação inválida. Use quota, queueFromReviews, queueFromComparatives, retryRemotionTimeouts, retryQuotaFailures, next, get, update, pendingComments ou recent." }, { status: 400 });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("[video-queue-worker] failed:", message);
+    const message = formatVideoQueueError(error);
+    console.error(`[video-queue-worker] failed: action=${action} ${message}`);
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
+}
+
+function formatVideoQueueError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const detail = error as Record<string, unknown>;
+    const message = typeof detail.message === "string" ? detail.message : "";
+    const code = typeof detail.code === "string" ? ` [${detail.code}]` : "";
+    const hint = typeof detail.hint === "string" && detail.hint.trim() ? ` Hint: ${detail.hint.trim()}` : "";
+    const details = typeof detail.details === "string" && detail.details.trim() ? ` Details: ${detail.details.trim()}` : "";
+    if (message) return `${message}${code}${details}${hint}`;
+    try {
+      return JSON.stringify(detail);
+    } catch {
+      return Object.prototype.toString.call(error);
+    }
+  }
+  return String(error);
 }
