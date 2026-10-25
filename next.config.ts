@@ -71,6 +71,16 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/categoria/acessorios-para-games',
+        destination: '/reviews/categoria/Acess%C3%B3rios%20para%20Games/',
+        permanent: true,
+      },
+      {
+        source: '/categoria/acessorios-para-games/',
+        destination: '/reviews/categoria/Acess%C3%B3rios%20para%20Games/',
+        permanent: true,
+      },
+      {
         source: '/metodologia',
         destination: '/como-avaliamos/',
         permanent: true,
