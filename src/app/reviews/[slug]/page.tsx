@@ -34,13 +34,15 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-// Permite que ajustes editoriais no Supabase sejam refletidos sem depender
-// exclusivamente de um novo build para cada alteração de conteúdo.
+// Serve review/LP routes on demand and cache them with ISR. This avoids
+// rebuilding every editorial page (and rereading every full review from Supabase)
+// on each deployment triggered by automated workflows.
+export const dynamicParams = true;
 export const revalidate = 300;
 
 export async function generateStaticParams() {
-  const [reviews, landingPages] = await Promise.all([fetchAllReviewSummaries(), fetchAllLandingPageSummaries()]);
-  return [...reviews, ...landingPages].map((item) => ({ slug: item.slug }));
+  // No catalog-wide prerender at build time; requested URLs are generated on demand.
+  return [];
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

@@ -52,6 +52,9 @@ assert.match(reviewDetail, /fetchAllReviewSummaries\(\)/);
 assert.doesNotMatch(reviewDetail, /fetchAllReviews\(\)|fetchAllLandingPages\(\)/);
 assert.match(reviewDetail, /fetchAffiliateLinksForProductNames/);
 assert.match(comparativeDetail, /fetchAllViralArticleSummaries/);
+assert.match(reviewDetail, /export async function generateStaticParams\(\)\s*\{\s*\/\/ No catalog-wide prerender at build time; requested URLs are generated on demand\.\s*return \[\];\s*\}/);
+assert.match(comparativeDetail, /export async function generateStaticParams\(\)\s*\{\s*return \[\];\s*\}/);
+
 assert.doesNotMatch(comparativeDetail, /fetchAllViralArticles\(\)|fetchAllReviews\(\)|fetchReviewBySlug\(/);
 assert.match(publicData, /vetor-public-affiliate-links-by-review-v1/);
 assert.match(publicData, /vetor-public-product-links-by-review-v1/);

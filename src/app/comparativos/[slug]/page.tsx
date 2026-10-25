@@ -27,13 +27,13 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-// Permite que novos comparativos cadastrados no Supabase sejam renderizados mesmo fora do build inicial.
+// Render each comparative on demand with ISR instead of loading every full article
+// during each deployment build. Search/index pages continue to list summary records.
 export const dynamicParams = true;
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  const articles = await fetchAllViralArticleSummaries();
-  return articles.map((article) => ({ slug: article.slug }));
+  return [];
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
