@@ -7,12 +7,12 @@ export const metadata: Metadata = {
   title: "Quem Escreve — Autores e Redação do vetor.blog",
   description:
     "Conheça a equipe editorial do vetor.blog: quem testa, analisa e escreve os reviews independentes.",
-  alternates: { canonical: "/author" },
+  alternates: { canonical: "/author/" },
   openGraph: {
     title: "Quem escreve — vetor.blog",
     description:
       "Conheça a equipe editorial do vetor.blog: quem testa, analisa e escreve os reviews independentes.",
-    url: "https://www.vetor.blog/author",
+    url: "https://www.vetor.blog/author/",
     type: "website",
   },
 };
