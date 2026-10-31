@@ -183,15 +183,15 @@ function escapeXml(value) {
 async function generateVoiceover(text, outputPath) {
   // Única voz de narração do Vetor: Edge TTS neural pt-BR-FranciscaNeural.
   const voice = 'pt-BR-FranciscaNeural';
-  const tempFile = outputPath.replace(/\\.mp3$/i, '-temp.mp3');
-  const textFile = outputPath.replace(/\\.mp3$/i, '-text.txt');
+  const tempFile = outputPath.replace(/\.mp3$/i, '-temp.mp3');
+  const textFile = outputPath.replace(/\.mp3$/i, '-text.txt');
   const safeText = String(text || '')
-    .replace(/[\\u2014\\u2013]/g, '-')
-    .replace(/[\\u2018\\u2019]/g, "'")
-    .replace(/[\\u201C\\u201D]/g, '"')
-    .replace(/\\r\\n/g, '\\n')
-    .replace(/[ \\t]+/g, ' ')
-    .replace(/\\n{3,}/g, '\\n\\n')
+    .replace(/[\u2014\u2013]/g, '-')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 
   if (!safeText) throw new Error('[TTS] Não é possível gerar áudio de um roteiro vazio.');
@@ -214,7 +214,7 @@ async function generateVoiceover(text, outputPath) {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const stderr = error && typeof error === 'object' && 'stderr' in error
-      ? String(error.stderr || '').replace(/\\s+/g, ' ').slice(-500) : '';
+      ? String(error.stderr || '').replace(/\s+/g, ' ').slice(-500) : '';
     throw new Error('[TTS] A única voz configurada (' + voice + ') falhou: ' + (stderr || message).slice(0, 700));
   } finally {
     for (const file of [textFile, tempFile]) if (fs.existsSync(file)) fs.unlinkSync(file);
