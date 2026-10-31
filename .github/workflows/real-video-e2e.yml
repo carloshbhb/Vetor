@@ -50,6 +50,12 @@ jobs:
       - name: Validate format, affiliate link and chapter contracts
         run: node video/scripts/video-format.test.mjs
 
+      - name: Restore Remotion browser cache
+        uses: actions/cache@v4
+        with:
+          path: video/node_modules/.remotion
+          key: ${{ runner.os }}-remotion-browser-4.0.534-headless-shell-v1
+
       - name: Preinstall Remotion browser
         working-directory: video
         timeout-minutes: 15

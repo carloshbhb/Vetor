@@ -1,4 +1,4 @@
-import { execFileSync, execSync } from 'child_process';
+import { execFileSync, execSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { buildCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
@@ -366,20 +366,37 @@ async function renderWithRemotion(videoData, outputPath) {
     if (!fs.existsSync(tsxEntrypoint)) {
       throw new Error('tsx não encontrado em video/node_modules; execute npm ci no diretório video antes de renderizar.');
     }
-    const renderOutput = execFileSync(
-      process.execPath,
-      [tsxEntrypoint, 'video/src/utils/renderVideo.ts', String(videoData.type || 'review'), dataPath],
-      {
-        encoding: 'utf8',
-        stdio: 'pipe',
-        // Chrome is prepared before the queue is touched. Twenty minutes leaves headroom for complex scenes.
-        timeout: 1200000,
-        maxBuffer: 32 * 1024 * 1024,
-        cwd: path.resolve(process.cwd()),
-      }
-    );
-    if (renderOutput.trim()) {
-      console.log('   [Remotion] ' + renderOutput.trim().slice(-1600));
+    const videoProjectRoot = path.resolve(process.cwd(), 'video');
+    console.log('   [Remotion] Executando no diretório do projeto para reutilizar o Chrome previamente instalado.');
+    const renderOutput = await new Promise((resolve, reject) => {
+      const child = spawn(
+        process.execPath,
+        [tsxEntrypoint, 'src/utils/renderVideo.ts', String(videoData.type || 'review'), path.resolve(dataPath)],
+        {
+          cwd: videoProjectRoot,
+          stdio: ['ignore', 'pipe', 'pipe'],
+          signal: AbortSignal.timeout(2700000),
+        }
+      );
+      let outputTail = '';
+      const collect = (target, chunk) => {
+        const value = chunk.toString();
+        target.write(value);
+        outputTail = (outputTail + value).slice(-24000);
+      };
+      child.stdout.on('data', (chunk) => collect(process.stdout, chunk));
+      child.stderr.on('data', (chunk) => collect(process.stderr, chunk));
+      child.once('error', (error) => reject(new Error('Não foi possível iniciar o processo Remotion: ' + error.message)));
+      child.once('close', (code, signal) => {
+        if (code === 0) resolve(outputTail);
+        else reject(new Error(
+          'Processo Remotion encerrado (exit=' + code + ', signal=' + (signal || 'none') +
+          '). Últimos logs:\\n' + outputTail
+        ));
+      });
+    });
+    if (String(renderOutput).trim()) {
+      console.log('   [Remotion] Processo finalizado; logs transmitidos em tempo real.');
     }
 
     if (!fs.existsSync(renderedDir)) {

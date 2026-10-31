@@ -52,8 +52,9 @@ type VideoData = ReviewVideoData | ComparisonVideoData;
 
 async function renderVideo(data: VideoData, outputPath: string): Promise<string> {
   const projectRoot = path.resolve(__dirname, '../..');
-  console.log('[Remotion] Confirmando Chrome Headless Shell local antes de gerar o bundle...');
+  console.log('[Remotion] Confirmando Chrome Headless Shell local no cache do projeto...');
   await ensureBrowser({ logLevel: 'info' });
+  console.log('[Remotion] Chrome pronto. Iniciando bundle da composição...');
   const bundleLocation = await bundle({
     entryPoint: path.resolve(projectRoot, 'src/Root.tsx'),
     webpackOverride: (config) => config,
@@ -100,6 +101,11 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
     outputLocation,
     inputProps: data as unknown as InputProps,
     crf: 18,
+    imageFormat: 'jpeg',
+    concurrency: 2,
+    onStart: ({ frameCount, resolvedConcurrency }) => {
+      console.log('[Remotion] Render iniciado: ' + frameCount + ' frames; concorrência=' + resolvedConcurrency + '.');
+    },
   });
 
   return outputLocation;
