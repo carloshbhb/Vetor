@@ -15,7 +15,7 @@ type LinkRow = {
   total_clicks: number; last_clicked_at: string | null; created_at: string; updated_at: string;
 };
 
-type Stats = { total: number; active: number; paused: number; broken: number; archived: number; unchecked: number; healthErrors: number; pendingLinks: number; clicks: number; };
+type Stats = { total: number; active: number; paused: number; broken: number; archived: number; unchecked: number; blockedChecks: number; healthErrors: number; pendingLinks: number; clicks: number; };
 type FormData = Pick<LinkRow, "slug"|"name"|"marketplace"|"category"|"source_type"|"source_ref"|"destination_url"|"product_url"|"affiliate_tag"|"affiliate_checked_at"|"image_url"|"price"|"status"|"priority"|"notes"|"tags">;
 
 type Props = {
@@ -363,10 +363,11 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
             <div className="mt-1 flex items-baseline gap-2"><strong className="font-display text-4xl">{total}</strong><span className="text-sm text-[var(--muted)]">links reais no banco central</span></div>
             <p className="mt-1 text-xs text-[var(--muted)]">Leitura {date(lastRead)} · nenhum contador de inventário antigo · build {buildVersion}.</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
             {[
               ["Ativos", stats.active], ["Aguardando link", stats.pendingLinks],
-              ["Problemas", stats.broken + stats.healthErrors], ["Não verificados", stats.unchecked], ["Cliques", stats.clicks]
+              ["Problemas", stats.broken + stats.healthErrors], ["Verificação pendente", stats.unchecked],
+              ["Bloqueados pelo destino", stats.blockedChecks], ["Cliques", stats.clicks]
             ].map(([label, value]) => (
               <div key={String(label)} className="rounded-xl border border-border bg-[var(--surface2)] px-3 py-2.5 min-w-[112px]">
                 <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">{label}</p>
@@ -374,6 +375,9 @@ export default function AffiliateCenterClient({ initialLinks, initialTotal, init
               </div>
             ))}
           </div>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Respostas 401, 403 ou 429 são bloqueios à verificação automatizada; isoladamente, não comprovam que o link esteja quebrado.
+          </p>
         </div>
       </section>
 

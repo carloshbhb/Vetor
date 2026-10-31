@@ -1,4 +1,5 @@
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
+import { summarizeAffiliateLinkStats, type AffiliateStatRow } from "./affiliate-stats";
 import { isGuideLikeSlug } from "@/lib/buying";
 
 export type AffiliateLinkStatus = "active" | "paused" | "broken" | "archived";
@@ -289,44 +290,21 @@ export async function getAffiliateLinksByIds(ids: string[]): Promise<AffiliateLi
 
 export async function getAffiliateLinkStats() {
   const supabase = getSupabaseServiceKeyClient();
-  const empty = {
-    total: 0,
-    active: 0,
-    paused: 0,
-    broken: 0,
-    archived: 0,
-    unchecked: 0,
-    healthErrors: 0,
-    pendingLinks: 0,
-    clicks: 0,
-  };
-  if (!supabase) return empty;
+  if (!supabase) return summarizeAffiliateLinkStats([]);
 
-  const data: Array<{ status: string; health_status: string; total_clicks: number; destination_url: string }> = [];
+  const data: AffiliateStatRow[] = [];
   for (let offset = 0; ; offset += 1000) {
     const { data: page, error } = await supabase
       .from("affiliate_links")
-      .select("status,health_status,total_clicks,destination_url")
+      .select("status,health_status,total_clicks,destination_url,last_checked_at,http_status")
       .range(offset, offset + 999);
-    if (error || !page) return empty;
-    data.push(...page);
+    if (error || !page) return summarizeAffiliateLinkStats([]);
+    data.push(...(page as AffiliateStatRow[]));
     if (page.length < 1000) break;
   }
 
-  return data.reduce((stats, row) => {
-    stats.total += 1;
-    if (row.status === "active") stats.active += 1;
-    if (row.status === "paused") stats.paused += 1;
-    if (row.status === "broken") stats.broken += 1;
-    if (row.status === "archived") stats.archived += 1;
-    if (row.health_status === "unknown") stats.unchecked += 1;
-    if (row.health_status === "error") stats.healthErrors += 1;
-    if (!String(row.destination_url || "").trim()) stats.pendingLinks += 1;
-    stats.clicks += Number(row.total_clicks || 0);
-    return stats;
-  }, empty);
+  return summarizeAffiliateLinkStats(data);
 }
-
 
 
 export async function getAffiliateLinksBySlugs(slugs: string[]): Promise<AffiliateLink[]> {
