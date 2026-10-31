@@ -1,0 +1,200 @@
+name: Real Video E2E — one long-form production upload
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/real-video-e2e.yml"
+      - ".real-video-e2e-trigger"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vetor-production-video-queue
+  cancel-in-progress: false
+
+jobs:
+  publish-one:
+    name: Render, publish and verify one long-form video
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - name: Checkout current production code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install FFmpeg and speech utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng
+          pip install edge-tts aiohttp
+
+      - name: Install application and Remotion dependencies
+        run: |
+          npm ci
+          cd video
+          npm ci
+
+      - name: Validate format, affiliate link and chapter contracts
+        run: node video/scripts/video-format.test.mjs
+
+      - name: Preinstall Remotion browser
+        working-directory: video
+        timeout-minutes: 15
+        run: ./node_modules/.bin/remotion browser ensure --log info
+
+      - name: Wait for authenticated production queue API
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+        run: |
+          set -euo pipefail
+          : "\${CRON_SECRET:?CRON_SECRET secret is required}"
+          ready=0
+          for attempt in $(seq 1 24); do
+            curl_exit=0
+            code="$(curl -sS --max-time 12 -o queue-api-ready.json -w '%{http_code}' \
+              -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              -d '{"action":"recent"}' || curl_exit=$?)"
+            if [ "$curl_exit" -eq 0 ] && [ "$code" = "200" ] && jq -e '.success == true' queue-api-ready.json >/dev/null; then
+              echo "Production queue API is ready."
+              ready=1
+              break
+            fi
+            echo "Queue API not ready (attempt $attempt, curl=$curl_exit, HTTP=\${code:-000})."
+            if [ "$attempt" -lt 24 ]; then sleep 10; fi
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat queue-api-ready.json 2>/dev/null || true
+            echo "::error::Production queue API did not become ready."
+            exit 1
+          fi
+
+      - name: Render and upload exactly one selected video
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          VIDEO_ID: "23b04b13-6b41-4460-8450-97e961f1858e"
+          MANUAL_RUN: "true"
+          MAX_VIDEOS: "1"
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
+          AZURE_SPEECH_VOICE: pt-BR-AntonioNeural
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          node video/scripts/process-video.mjs 2>&1 | tee real-video-e2e.log
+          grep -F "[UPLOAD_CONFIRMED_THIS_RUN] queue_id=$VIDEO_ID" real-video-e2e.log
+          grep -F "[CTA_COMMENT_CONFIRMED] video_id=" real-video-e2e.log
+
+      - name: Verify public YouTube video, description, comment and queue record
+        working-directory: video
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          VIDEO_ID: "23b04b13-6b41-4460-8450-97e961f1858e"
+          EXPECTED_PURCHASE_URL: https://www.vetor.blog/go/logitech-g305-lightspeed-mouse-gamer/
+          EXPECTED_REVIEW_URL: https://www.vetor.blog/reviews/logitech-g305-lightspeed-mouse-gamer/
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { google } from "googleapis";
+
+          const required = ["CRON_SECRET", "VETOR_SITE_URL", "VIDEO_ID", "YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN"];
+          for (const key of required) assert.ok(process.env[key], key + " is missing");
+
+          const response = await fetch(process.env.VETOR_SITE_URL + "/api/cron/video-queue-worker/", {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + process.env.CRON_SECRET,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ action: "get", id: process.env.VIDEO_ID }),
+          });
+          assert.equal(response.status, 200, "Vetor queue API did not return HTTP 200");
+          const payload = await response.json();
+          assert.equal(payload.success, true);
+          const record = payload.video;
+          assert.ok(record, "Queue record was not returned");
+          assert.equal(record.status, "completed", "Queue item was not completed");
+          assert.equal(record.publication_mode, "manual");
+          assert.equal(record.media_assets?.[0]?.format, "long");
+          assert.ok(record.youtube_video_id, "youtube_video_id is missing");
+          assert.ok(record.youtube_url, "youtube_url is missing");
+          assert.equal(record.error_message, null, "Queue still has a publication/comment error");
+
+          const oauth = new google.auth.OAuth2(process.env.YOUTUBE_CLIENT_ID, process.env.YOUTUBE_CLIENT_SECRET);
+          oauth.setCredentials({ refresh_token: process.env.YOUTUBE_REFRESH_TOKEN });
+          const youtube = google.youtube({ version: "v3", auth: oauth });
+
+          const listing = await youtube.videos.list({
+            part: ["snippet", "status", "contentDetails"],
+            id: [record.youtube_video_id],
+          });
+          const video = listing.data.items?.[0];
+          assert.ok(video, "Published video was not found by YouTube API");
+          assert.equal(video.status?.privacyStatus, "public", "YouTube video is not public");
+          assert.ok(video.snippet?.description?.includes(process.env.EXPECTED_PURCHASE_URL), "Description is missing the tracked purchase URL");
+          assert.ok(video.snippet?.description?.includes(process.env.EXPECTED_REVIEW_URL), "Description is missing the review URL");
+          assert.ok(!String(video.snippet?.title || "").includes("#Shorts"), "Long-form title is incorrectly marked as a Short");
+
+          const duration = String(video.contentDetails?.duration || "");
+          const parsed = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/.exec(duration);
+          assert.ok(parsed, "YouTube did not return a valid duration");
+          const seconds = Number(parsed[1] || 0) * 3600 + Number(parsed[2] || 0) * 60 + Number(parsed[3] || 0);
+          assert.ok(seconds >= 180, "Uploaded video is too short to qualify as long-form: " + seconds + "s");
+
+          let commentFound = false;
+          for (let attempt = 1; attempt <= 3 && !commentFound; attempt += 1) {
+            const threads = await youtube.commentThreads.list({
+              part: ["snippet"],
+              videoId: record.youtube_video_id,
+              maxResults: 100,
+              order: "time",
+            });
+            const comments = (threads.data.items || []).map((item) =>
+              item.snippet?.topLevelComment?.snippet?.textOriginal ||
+              item.snippet?.topLevelComment?.snippet?.textDisplay || ""
+            );
+            commentFound = comments.some((comment) =>
+              comment.includes(process.env.EXPECTED_PURCHASE_URL) &&
+              comment.includes(process.env.EXPECTED_REVIEW_URL)
+            );
+            if (!commentFound && attempt < 3) await new Promise((resolve) => setTimeout(resolve, 3000));
+          }
+          assert.ok(commentFound, "CTA comment with both tracked links was not found via YouTube API");
+
+          console.log(JSON.stringify({
+            verification: "PASS",
+            queueId: record.id,
+            youtubeUrl: record.youtube_url,
+            privacyStatus: video.status?.privacyStatus,
+            durationSeconds: seconds,
+            descriptionHasPurchaseLink: true,
+            descriptionHasReviewLink: true,
+            ctaCommentHasBothLinks: true,
+            publicationMode: record.publication_mode,
+          }, null, 2));
+          NODE
