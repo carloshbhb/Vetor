@@ -37,7 +37,7 @@ jobs:
       - name: Install FFmpeg and speech utilities
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak-ng
+          sudo apt-get install -y ffmpeg
           pip install edge-tts aiohttp
 
       - name: Install application and Remotion dependencies
@@ -97,9 +97,6 @@ jobs:
           MANUAL_RUN: "true"
           MAX_VIDEOS: "1"
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
-          AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
-          AZURE_SPEECH_VOICE: pt-BR-AntonioNeural
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
