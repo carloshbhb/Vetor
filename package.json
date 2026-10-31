@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsx scripts/content-quality.test.ts && tsx scripts/lp-template-contract.test.ts && next build",
+    "build": "tsx scripts/content-quality.test.ts && tsx scripts/viral-quality.test.ts && tsx scripts/lp-template-contract.test.ts && next build",
     "start": "next start",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"scripts/**/*.ts\" \"tmp/**/*.ts\"",
     "generate": "tsx tmp/generate-8-articles.ts",
