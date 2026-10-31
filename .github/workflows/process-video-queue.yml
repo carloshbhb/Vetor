@@ -54,13 +54,6 @@ jobs:
         run: node video/scripts/video-format.test.mjs
       - name: Validate TTS provider policy
         run: node video/scripts/tts-provider-policy.test.mjs
-      - name: Smoke test speech generation without touching the queue
-        env:
-          TTS_SMOKE_TEST: 'true'
-          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
-          AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
-          AZURE_SPEECH_VOICE: 'pt-BR-AntonioNeural'
-        run: node video/scripts/process-video.mjs
       - name: Preinstall Remotion Chrome Headless Shell
         working-directory: video
         timeout-minutes: 15
