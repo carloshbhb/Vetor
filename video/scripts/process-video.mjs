@@ -1,7 +1,7 @@
 import { execFileSync, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
+import { buildCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -769,11 +769,7 @@ async function processVideo(video) {
       callToAction: script.callToAction,
       audioUrl: `tmp/video-${video.id}.mp3`,
       hookDuration,
-      subtitleEntries: narrationTimings.map((segment) => ({
-        start: segment.start,
-        end: segment.end,
-        text: segment.text,
-      })),
+      subtitleEntries: buildCaptionEntries(narrationTimings, 7),
       productImages: [productImageSource],
       brollVideos,
       totalDuration,

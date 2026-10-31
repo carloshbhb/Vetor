@@ -34,7 +34,7 @@ const Detail: React.FC<{ scene: EditorialScene; index: number; count: number; ca
       {brollUrl ? <Video src={brollUrl} muted loop style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.13, filter: "brightness(.6)" }} /> : null}
       <div style={{ position: "absolute", top: 118, left: 112, right: 890, opacity, transform: "translateY(" + y + "px)" }}>
         <div style={{ color: palette.blue, fontSize: 23, fontWeight: 800, letterSpacing: 4, textTransform: "uppercase" }}>{scene.visualCue || category}</div>
-        <div style={{ marginTop: 30, fontSize: 48, lineHeight: 1.13, fontWeight: 850, letterSpacing: -1.5 }}>{scene.text}</div>
+        <div style={{ marginTop: 30, maxWidth: 760, fontSize: 54, lineHeight: 1.08, fontWeight: 900, letterSpacing: -1.8 }}>{scene.visualCue || category}</div>
       </div>
       <Product src={imageUrl} style={{ position: "absolute", right: 42, top: 245 }} />
       <div style={{ position: "absolute", bottom: 48, left: 112, right: 112, display: "flex", alignItems: "center", gap: 20 }}>
@@ -62,7 +62,7 @@ const Captions: React.FC<{ entries: EditorialReviewProps["subtitleEntries"]; fra
   const entry = entries.find((item) => time >= item.start && time < item.end);
   if (!entry) return null;
   const opacity = interpolate((time - entry.start) / Math.max(0.01, entry.end - entry.start), [0, 0.08, 0.92, 1], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  return <div style={{ position: "absolute", zIndex: 20, bottom: 96, left: 140, right: 140, opacity, textAlign: "center" }}><span style={{ display: "inline-block", maxWidth: "100%", padding: "10px 18px", borderRadius: 12, background: "rgba(7,10,17,.86)", color: "#fff", fontSize: 30, lineHeight: 1.15, fontWeight: 700 }}>{entry.text}</span></div>;
+  return <div style={{ position: "absolute", zIndex: 20, bottom: 76, left: 240, right: 240, opacity, textAlign: "center" }}><span style={{ display: "inline-block", maxWidth: "100%", padding: "10px 18px", borderRadius: 12, background: "rgba(7,10,17,.9)", color: "#fff", fontSize: 27, lineHeight: 1.18, fontWeight: 750 }}>{entry.text}</span></div>;
 };
 export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) => {
   const frame = useCurrentFrame();

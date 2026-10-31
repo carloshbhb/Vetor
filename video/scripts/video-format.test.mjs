@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  buildCaptionEntries,
   buildCtaComment,
   buildVideoDescription,
   buildVideoTitle,
@@ -18,6 +19,12 @@ assert.equal(resolveVideoFormat([]), "short");
 assert.equal(formatYouTubeTimestamp(0), "0:00");
 assert.equal(formatYouTubeTimestamp(75), "1:15");
 assert.equal(formatYouTubeTimestamp(3661), "1:01:01");
+const captions = buildCaptionEntries([{ start: 10, end: 20, text: "Um dois três quatro cinco seis sete oito nove dez" }], 5);
+assert.equal(captions.length, 2);
+assert.equal(captions[0].text, "Um dois três quatro cinco");
+assert.equal(captions[1].text, "seis sete oito nove dez");
+assert.ok(captions[0].start >= 10 && captions[1].end <= 20);
+assert.ok(Math.abs(captions[0].end - captions[1].start) < 0.0001);
 
 const longDescription = buildVideoDescription({
   format: longFormat,

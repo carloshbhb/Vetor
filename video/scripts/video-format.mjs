@@ -14,6 +14,27 @@ export function formatYouTubeTimestamp(value) {
     : minutes + ":" + String(remainder).padStart(2, "0");
 }
 
+export function buildCaptionEntries(segments, maxWords = 7) {
+  const limit = Math.min(10, Math.max(3, Math.floor(Number(maxWords) || 7)));
+  return (Array.isArray(segments) ? segments : []).flatMap((segment) => {
+    const words = String(segment?.text || "").trim().split(/\s+/).filter(Boolean);
+    const start = Number(segment?.start);
+    const end = Number(segment?.end);
+    if (!words.length || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
+    const duration = end - start;
+    const chunks = [];
+    for (let index = 0; index < words.length; index += limit) {
+      const next = Math.min(words.length, index + limit);
+      chunks.push({
+        start: start + duration * index / words.length,
+        end: start + duration * next / words.length,
+        text: words.slice(index, next).join(" "),
+      });
+    }
+    return chunks;
+  });
+}
+
 export function buildVideoTitle(input) {
   const productTitle = String(input.productTitle || "Produto de tecnologia").trim();
   const hook = String(input.hook || "").trim().replace(/[.!?]+$/, "");
