@@ -18,6 +18,10 @@ export async function POST(request: NextRequest) {
     const video = await getVideoById(videoId);
     if (!video) return NextResponse.json({ error: "Vídeo não encontrado na fila." }, { status: 404 });
 
+    const mediaAssets = Array.isArray(video.media_assets) ? video.media_assets : [];
+    const formatAsset = mediaAssets.find((asset: any) => asset && asset.type === "publication_format");
+    const videoFormat = formatAsset?.format === "long" ? "long" : "short";
+
     if (typeof video.script_text === "string" && video.script_text.trim()) {
       try {
         const existing = JSON.parse(video.script_text);
@@ -35,10 +39,6 @@ export async function POST(request: NextRequest) {
         // Replace a corrupted script only when a new script passes validation.
       }
     }
-
-    const mediaAssets = Array.isArray(video.media_assets) ? video.media_assets : [];
-    const formatAsset = mediaAssets.find((asset: any) => asset && asset.type === "publication_format");
-    const videoFormat = formatAsset?.format === "long" ? "long" : "short";
 
     const supabase = getSupabaseServiceKeyClient();
     const reviewSlug = (() => {
