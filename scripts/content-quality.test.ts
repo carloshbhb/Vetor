@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { validateGeneratedReview } from '../src/lib/content-quality';
-import { hasCompleteReviewMetadata } from '../src/lib/generate';
+import { hasCompleteReviewMetadata, rewriteEditorialText } from '../src/lib/generate';
 
 const productName = 'Samsung Galaxy Fit3';
 const paragraph = `Esta seção analisa ${productName} com critérios claros, separa informações disponíveis de dados que precisam de confirmação e ajuda o leitor a comparar alternativas antes da compra. `;
@@ -77,6 +77,15 @@ const shortFaqMetadata = {
   ],
 };
 assert.equal(hasCompleteReviewMetadata(JSON.stringify(shortFaqMetadata)), false, 'resposta de FAQ curta deve reprovar a resposta inicial da IA e disparar retry');
+
+const rawClaims = 'Em nossos testes, testamos o produto e medimos o desempenho.';
+assert.equal(rewriteEditorialText(rawClaims), rawClaims, 'reescrita editorial não pode mascarar alegações de testes e medições');
+
+const unsupportedMetadataResult = validateGeneratedReview({
+  ...validPayload,
+  hero_lead: `Em nossos testes, avaliamos ${productName} sem documentação.`,
+}, { source: 'cron', slug: 'samsung-galaxy-fit3-unsupported-metadata' });
+assert.equal(unsupportedMetadataResult.ok, false, 'alegações sem evidência em metadados também devem ser reprovadas');
 
 const validResult = validateGeneratedReview(validPayload, { source: 'cron', slug: 'samsung-galaxy-fit3' });
 assert.equal(validResult.ok, true, `esperava aprovação, recebeu: ${validResult.ok ? '' : validResult.issues.join('; ')}`);
