@@ -81,7 +81,7 @@ function routeFor(keyword: string, reviews: Awaited<ReturnType<typeof getAllRevi
   const match = reviews.find((r) => {
     const product = normalize(r.product || "");
     const productTokens = product.split(" ").filter((x) => x.length > 2);
-    return Boolean(product && (q.includes(product) || (productTokens.length >= 2 && productTokens.every((token) => q.includes(token))));
+    return Boolean(product && (q.includes(product) || (productTokens.length >= 2 && productTokens.every((token) => q.includes(token)))));
   });
   return match ? "/reviews/" + match.slug + "/" : "";
 }
