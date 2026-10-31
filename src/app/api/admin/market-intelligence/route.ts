@@ -34,7 +34,7 @@ async function collectAndStore() {
       suggested_route: item.suggestedRoute || null,
       last_source_at: now,
       last_seen_at: now,
-      metadata: { sources: item.sources, period: intelligence.searchConsole.period },
+      metadata: { sources: item.sources, period: intelligence.searchConsole.period, searchConsole: intelligence.searchConsole },
     }));
 
     let stored = 0;
