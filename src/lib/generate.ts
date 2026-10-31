@@ -29,12 +29,6 @@ const ACCENT_CLASS: Record<string, string> = {
 const EDITORIAL_SIGNAL_REWRITES: Array<{ phrase: string; replacement: string }> = [
   { phrase: 'temos um claro vencedor', replacement: 'há um vencedor claro' },
   { phrase: 'claro vencedor', replacement: 'vencedor' },
-  { phrase: 'em nossos testes', replacement: 'na análise de especificações' },
-  { phrase: 'nos nossos testes', replacement: 'na análise de especificações' },
-  { phrase: 'benchmark feito por nós', replacement: 'comparativo técnico' },
-  { phrase: 'testamos', replacement: 'analisamos' },
-  { phrase: 'medimos', replacement: 'verificamos' },
-  { phrase: 'garantimos', replacement: 'confirmamos' },
   { phrase: 'padrão ouro', replacement: 'padrão de mercado' },
   { phrase: 'escolha definitiva', replacement: 'escolha sólida' },
   { phrase: 'líder do mercado', replacement: 'destaque do mercado' },
@@ -42,11 +36,6 @@ const EDITORIAL_SIGNAL_REWRITES: Array<{ phrase: string; replacement: string }> 
   { phrase: 'compra certa', replacement: 'boa escolha' },
   { phrase: 'deve ser evitado por', replacement: 'não é indicado para' },
   { phrase: 'deve ser evitado', replacement: 'não é indicado' },
-  { phrase: 'nível médico', replacement: 'nível profissional' },
-  { phrase: 'clinicamente útil', replacement: 'útil no dia a dia' },
-  { phrase: 'garante visibilidade perfeita', replacement: 'oferece ótima visibilidade' },
-  { phrase: 'funcionam sem falhas', replacement: 'funcionam de forma consistente' },
-  { phrase: 'sem engasgos', replacement: 'sem travamentos' },
 ].sort((a, b) => b.phrase.length - a.phrase.length); // frases maiores primeiro
 
 const EDITORIAL_SIGNAL_RULES = EDITORIAL_SIGNAL_REWRITES.map(({ phrase, replacement }) => {
