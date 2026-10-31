@@ -176,6 +176,7 @@ export interface ViralArticleSearchSummary {
   category: string;
   seo_title: string;
   seo_description: string;
+  published_at?: string | null;
   products?: Array<{ name?: string; slug?: string }> | null;
 }
 
