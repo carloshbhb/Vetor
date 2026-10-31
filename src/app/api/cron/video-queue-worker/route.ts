@@ -102,6 +102,29 @@ export async function POST(request: NextRequest) {
         !existingUrls.has(`https://www.vetor.blog/reviews/${item.slug}/`)
       ).slice(0, limit);
 
+      // Reserve 5 long-form slots and 10 Shorts in each day of 15 automatic slots.
+      const [{ count: doneToday, error: doneError }, { count: pendingCount, error: pendingError }] = await Promise.all([
+        supabase.from("video_queue").select("id", { count: "exact", head: true })
+          .eq("status", "completed").eq("publication_mode", "automatic")
+          .gte("completed_at", getSaoPauloDayStartIso()),
+        supabase.from("video_queue").select("id", { count: "exact", head: true })
+          .in("status", ["pending", "processing"]).eq("publication_mode", "automatic")
+          .lte("scheduled_at", new Date().toISOString()),
+      ]);
+      if (doneError) throw doneError;
+      if (pendingError) throw pendingError;
+      let slotCursor = (doneToday || 0) + (pendingCount || 0);
+
+      const { data: managedLinks, error: managedError } = await supabase
+        .from("affiliate_links").select("slug,source_ref")
+        .eq("source_type", "review").eq("status", "active").limit(500);
+      if (managedError) console.warn("[video-queue-worker] affiliate registry lookup failed:", managedError.message);
+      const managedSlugByReview = new Map(
+        (managedLinks || [])
+          .filter((link) => typeof link.source_ref === "string" && typeof link.slug === "string")
+          .map((link) => [link.source_ref, link.slug])
+      );
+
       const queued = [];
       for (const item of candidates) {
         const category = typeof item.category === "string" && item.category.trim()
@@ -109,6 +132,14 @@ export async function POST(request: NextRequest) {
           : "Tecnologia";
         const title = item.product.trim();
         const reviewUrl = `https://www.vetor.blog/reviews/${item.slug}/`;
+        const batch = Math.floor(slotCursor / 5);
+        const position = slotCursor % 5;
+        const videoFormat = position < (batch >= 2 ? 1 : 2) ? "long" : "short";
+        slotCursor += 1;
+        const managedSlug = managedSlugByReview.get(item.slug);
+        const trackedPurchaseUrl = managedSlug
+          ? `https://www.vetor.blog/go/${encodeURIComponent(managedSlug)}/`
+          : item.affiliate_url;
 
         const { data: inserted, error: insertError } = await supabase
           .from("video_queue")
@@ -119,12 +150,12 @@ export async function POST(request: NextRequest) {
             product_price: item.price_new || "Consulte o preço atual",
             product_image_url: item.image_url,
             affiliate_url: item.affiliate_url,
-            shortened_affiliate_url: item.affiliate_url,
+            shortened_affiliate_url: trackedPurchaseUrl,
             script_text: "",
-            script_hook: `Aguardando roteiro personalizado para ${title}`,
+            script_hook: `Preparando vídeo ${videoFormat === "long" ? "completo" : "curto"} para ${title}`,
             voiceover_url: "",
             voiceover_duration: 0,
-            media_assets: [],
+            media_assets: [{ type: "publication_format", format: videoFormat }],
             status: "pending",
             review_url: reviewUrl,
             scheduled_at: new Date().toISOString(),
@@ -241,8 +272,7 @@ export async function POST(request: NextRequest) {
         .select("id,product_title,error_message,updated_at")
         .eq("status", "failed")
         .is("youtube_url", null)
-        .ilike("error_message", "%renderização Remotion%")
-        .ilike("error_message", "%ETIMEDOUT%")
+        .or("error_message.ilike.%ETIMEDOUT%,error_message.ilike.%delayRender%,error_message.ilike.%not cleared after%,error_message.ilike.%operation was aborted due to timeout%,error_message.ilike.%Browser failed to load%")
         .order("updated_at", { ascending: true })
         .limit(limit);
       if (failedError) throw failedError;
@@ -362,7 +392,7 @@ export async function POST(request: NextRequest) {
       const limit = Math.min(Math.max(Number(body.limit || 5), 1), 10);
       const { data, error } = await supabase
         .from("video_queue")
-        .select("id,product_title,review_url,affiliate_url,shortened_affiliate_url,youtube_video_id,youtube_url,error_message")
+        .select("id,product_title,review_url,affiliate_url,shortened_affiliate_url,youtube_video_id,youtube_url,error_message,media_assets")
         .eq("status", "completed")
         .like("error_message", "[CTA_COMMENT_PENDING]%")
         .order("completed_at", { ascending: true })

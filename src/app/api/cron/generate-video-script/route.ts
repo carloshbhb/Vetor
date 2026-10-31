@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
       try {
         const existing = JSON.parse(video.script_text);
         if (
-          existing.generationVersion === 2 &&
+          existing.generationVersion === 3 &&
+          existing.videoFormat === videoFormat &&
           typeof existing.creativeAngle === "string" &&
           existing.creativeAngle.trim() &&
           Array.isArray(existing.scenes) &&
@@ -34,6 +35,10 @@ export async function POST(request: NextRequest) {
         // Replace a corrupted script only when a new script passes validation.
       }
     }
+
+    const mediaAssets = Array.isArray(video.media_assets) ? video.media_assets : [];
+    const formatAsset = mediaAssets.find((asset: any) => asset && asset.type === "publication_format");
+    const videoFormat = formatAsset?.format === "long" ? "long" : "short";
 
     const supabase = getSupabaseServiceKeyClient();
     const reviewSlug = (() => {
@@ -101,16 +106,16 @@ export async function POST(request: NextRequest) {
     const editorialContext = editorialLines.join("\n").slice(0, 6500);
 
     const angles = [
-      "Custo-benefício real: explique o que os dados confirmados significam para o comprador, sem prometer economia.",
-      "Perfil de uso: mostre para quem os recursos são relevantes e para quem talvez não façam diferença.",
-      "Detalhe decisivo: construa o roteiro a partir de uma especificação confirmada que influencia a escolha.",
-      "Trade-off honesto: conecte um ponto positivo documentado a uma limitação real, sem exagerar nenhum dos lados.",
-      "Dúvida do comprador: responda uma pergunta concreta que as especificações e o review permitem esclarecer.",
-      "Decisão em três critérios: priorize os fatores mais importantes deste modelo, não uma lista genérica.",
-      "Confusão a evitar: esclareça uma diferença de versão ou recurso somente quando estiver documentada no review.",
-      "Cenário de uso: relacione recursos confirmados a um caso de uso possível, sem afirmar que houve teste prático.",
-      "O que vale conferir: destaque quais dados documentados resolvem a decisão e quais precisam ser confirmados no anúncio.",
-      "Expectativa versus realidade: explique apenas as capacidades e limitações registradas, sem inventar resultados de testes."
+      "Pergunta que trava a compra: responda à dúvida mais importante usando fatos documentados.",
+      "Custo-benefício com contexto: explique o que o comprador recebe e o que ainda precisa comparar.",
+      "Para quem vale e para quem não vale: diferencie perfis de uso sem inventar experiência.",
+      "O detalhe que muda a decisão: coloque uma especificação confirmada no centro do roteiro.",
+      "Trade-off honesto: contraste vantagem e limitação real e explique a consequência prática.",
+      "Custo total: destaque acessórios, compatibilidade e garantia somente quando documentados.",
+      "Alternativa a considerar: explique quais critérios comparar sem declarar vencedor sem dados.",
+      "Expectativa versus realidade: separe fatos confirmados de pontos que precisam ser conferidos.",
+      "Decisão em três critérios: priorize fatores específicos deste produto.",
+      "Compra consciente: organize fatos, limitações e verificações antes da compra."
     ];
     const seed = videoId + ":" + String(video.product_title || "");
     const angleIndex = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0) % angles.length;
@@ -146,14 +151,21 @@ export async function POST(request: NextRequest) {
       editorialContext,
       creativeAngle,
       recentHooksToAvoid,
+      videoFormat,
+      // Leave time for response validation and persistence inside the Hobby 60s function ceiling.
+      deadlineMs: 52000,
+      timeoutMs: 42000,
     });
-    if (!script.hook || script.scenes.length < 6 || script.scenes.length > 7) {
+    const minScenes = videoFormat === "long" ? 8 : 6;
+    const maxScenes = videoFormat === "long" ? 10 : 7;
+    if (!script.hook || script.scenes.length < minScenes || script.scenes.length > maxScenes) {
       return NextResponse.json({ error: "Roteiro personalizado não passou pela validação de estrutura." }, { status: 422 });
     }
     const rawScore = Number(reviewFacts?.verdict_score ?? reviewFacts?.hero_overall_score);
     const finalScript = {
       ...script,
-      generationVersion: 2 as const,
+      generationVersion: 3 as const,
+      videoFormat,
       creativeAngle,
       ...(Number.isFinite(rawScore) && rawScore > 0 && rawScore <= 10 ? { score: rawScore } : {}),
     };

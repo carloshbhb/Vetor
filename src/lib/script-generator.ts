@@ -5,7 +5,8 @@ export interface VideoScript {
   scenes: VideoScene[];
   totalDuration: number;
   callToAction: string;
-  generationVersion?: 2;
+  generationVersion?: 3;
+  videoFormat?: "short" | "long";
   creativeAngle?: string;
   score?: number;
 }
@@ -27,75 +28,37 @@ interface ProductInfo {
   editorialContext?: string;
   creativeAngle?: string;
   recentHooksToAvoid?: string[];
+  videoFormat?: "short" | "long";
 }
 
 function buildScriptPrompt(product: ProductInfo): string {
-  const specsText = product.specifications && Object.keys(product.specifications).length
-    ? Object.entries(product.specifications).map(([key, value]) => `- ${key}: ${value}`).join("\n")
+  const isLong = product.videoFormat === "long";
+  const specs = product.specifications && Object.keys(product.specifications).length
+    ? Object.entries(product.specifications).map(([key, value]) => "- " + key + ": " + value).join("\n")
     : "Nenhuma especificação estruturada foi fornecida.";
   const context = (product.editorialContext || "Não há mais dados editoriais disponíveis.")
     .replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").slice(0, 6500);
-  const hooksToAvoid = (product.recentHooksToAvoid || []).filter(Boolean).slice(0, 12)
-    .map((hook) => `- ${String(hook).slice(0, 180)}`).join("\n") || "- Nenhum roteiro anterior foi fornecido.";
-  const angle = product.creativeAngle || "Escolha o ângulo mais específico para este produto e evite fórmulas comuns.";
+  const hooks = (product.recentHooksToAvoid || []).filter(Boolean).slice(0, 12)
+    .map((hook) => "- " + String(hook).slice(0, 180)).join("\n") || "- Nenhum roteiro anterior foi fornecido.";
+  const instructions = isLong
+    ? "VÍDEO LONGO HORIZONTAL, 4–7 MINUTOS. Crie 8–10 cenas de 29–40 segundos e aproximadamente 55–85 palavras por cena. Conte uma decisão de compra completa: pergunta central, contexto, recursos que importam, implicações práticas baseadas nos fatos fornecidos, limitações, para quem serve/não serve, critérios de comparação e veredito. Cada visualCue deve ser um capítulo específico. Não leia a ficha técnica."
+    : "YOUTUBE SHORTS VERTICAL, 60–90 SEGUNDOS. Crie 6–7 cenas de 9–10 segundos e aproximadamente 18–28 palavras por cena. Um único assunto, gancho nos dois primeiros segundos, argumentos específicos e decisão rápida.";
 
-  return `Você é roteirista e apresentador de tecnologia do Vetor.blog. Escreva em português brasileiro natural, para ser falado em voz alta por uma pessoa real.
-
-OBJETIVO
-Crie um roteiro original para YouTube Shorts/Reels de aproximadamente 60–75 segundos que ajude alguém a decidir se o produto serve para seu caso. Precisa soar como conversa clara, não como texto de catálogo ou anúncio.
-
-PRODUTO
-- Nome: ${product.title}
-- Categoria: ${product.category}
-- Preço informado: ${product.price}
-- Marketplace: ${product.marketplace}
-- Especificações fornecidas:
-${specsText}
-
-CONTEXTO EDITORIAL REAL DO REVIEW
-${context}
-
-ÂNGULO NARRATIVO OBRIGATÓRIO DESTE VÍDEO
-${angle}
-Esse ângulo precisa comandar a abertura, a ordem dos argumentos, os exemplos e a conclusão. Não troque apenas o nome do produto em um roteiro padrão.
-
-ABERTURAS RECENTES A NÃO IMITAR
-Não reutilize estas frases nem paráfrases superficiais:
-${hooksToAvoid}
-
-TOM DE VOZ
-- Soe natural, próximo e seguro, como um bom criador de tecnologia explicando algo útil a uma pessoa.
-- Varie tamanho e cadência das frases; use perguntas ou apartes apenas quando fizerem sentido.
-- Prefira português brasileiro idiomático, palavras concretas e transições naturais.
-- Não repita o nome completo do produto em todas as cenas nem comece todas da mesma forma.
-- Evite propaganda, superlativos vazios, listas mecânicas e frases burocráticas como "está na categoria", "o preço informado é" ou "confira a versão exata" como preenchimento.
-- Não diga que testou, usou, mediu ou comparou pessoalmente o produto; não invente experiência em primeira pessoa.
-- Não invente características, medições, compatibilidade, autonomia, desempenho, acessórios, avaliações ou preços. Use as especificações e o contexto acima. Se faltar algo importante, apresente como dado a confirmar, sem transformar todas as cenas no mesmo aviso genérico.
-- Se houver poucos fatos, faça roteiro honesto centrado no perfil de uso, decisão de compra e detalhes realmente relevantes; não preencha lacunas com clichês.
-
-ESTRUTURA JSON OBRIGATÓRIA
-{
-  "hook": "abertura específica e curiosa, 6 a 14 palavras",
-  "scenes": [
-    {
-      "id": 1,
-      "text": "narração conversacional, aproximadamente 18 a 28 palavras",
-      "duration": 9,
-      "visualCue": "ação visual específica que combine com esta cena",
-      "brollKeywords": ["termo visual concreto em inglês", "segundo termo relevante"]
-    }
-  ],
-  "callToAction": "fechamento natural que combine com a análise e lembre onde consultar review e oferta"
-}
-
-REGRAS DE QUALIDADE
-1. Crie 6 ou 7 cenas de 9–10 segundos cada; com abertura e fechamento, total de 60 a 90 segundos.
-2. Cada cena deve acrescentar uma ideia nova e concreta. Não repita uma recomendação em outras palavras.
-3. Crie progressão narrativa: abertura, argumento principal, detalhes relevantes, limitação/cuidado se fundamentado e conclusão útil.
-4. O visualCue deve variar e descrever algo filmável; não use "produto em destaque" em todas as cenas.
-5. Use brollKeywords específicas para cada cena, sem repetir termos genéricos.
-6. CTA em português brasileiro, natural e específico; sem prometer desconto, estoque ou preço não confirmado.
-7. Responda somente JSON válido, sem markdown ou texto adicional.`;
+  return [
+    "Você é roteirista editorial e apresentador de tecnologia do Vetor.blog. Escreva em português brasileiro natural, para ser falado por uma pessoa real.",
+    "OBJETIVO COMERCIAL: ajude a pessoa a decidir se o produto serve para seu uso e o que precisa conferir antes de comprar. Entregue valor antes de convidar a consultar o review e a oferta. Nunca prometa desconto, estoque, testes ou economia sem fonte.",
+    "PRODUTO: " + product.title,
+    "Categoria: " + product.category + " | Preço informado: " + product.price + " | Marketplace: " + product.marketplace,
+    "Formato: " + (isLong ? "Vídeo longo" : "Short"),
+    "ESPECIFICAÇÕES DOCUMENTADAS:\n" + specs,
+    "CONTEXTO EDITORIAL REAL:\n" + context,
+    "ÂNGULO NARRATIVO OBRIGATÓRIO:\n" + (product.creativeAngle || "Escolha o ângulo mais específico para este produto."),
+    "Esse ângulo deve guiar a abertura, ordem dos argumentos, exemplos e conclusão; não troque apenas o nome do produto num roteiro padrão.",
+    "ABERTURAS RECENTES A NÃO IMITAR:\n" + hooks,
+    "TOM E PRECISÃO: seja conversacional, idiomático e seguro. Varie cadência e construção. Evite propaganda, superlativos vazios, listas mecânicas e frases burocráticas. Não alegue testes ou experiências pessoais. Não invente especificações, compatibilidade, autonomia, desempenho, acessórios, avaliações ou preços. Se um dado faltar, diga exatamente o que o comprador deve confirmar. Cada cena acrescenta uma ideia nova e concreta.",
+    instructions,
+    'Retorne somente JSON válido com esta estrutura: {"hook":"abertura específica e curiosa","scenes":[{"id":1,"text":"narração factual e natural","duration":' + (isLong ? "32" : "9") + ',"visualCue":"ação ou capítulo visual único","brollKeywords":["termo visual concreto em inglês"]}],"callToAction":"convite para consultar review e preço atualizado"}'
+  ].join("\n\n");
 }
 
 function normalizeHookTokens(value: string): Set<string> {
@@ -116,32 +79,42 @@ function hookSimilarity(left: string, right: string): number {
 function isDistinctScriptResponse(content: string, product: ProductInfo): boolean {
   try {
     const parsed = JSON.parse(content);
+    const isLong = product.videoFormat === "long";
+    const minScenes = isLong ? 8 : 6;
+    const maxScenes = isLong ? 10 : 7;
+    const minDuration = isLong ? 29 : 9;
+    const maxDuration = isLong ? 40 : 10;
     if (typeof parsed.hook !== "string" || !parsed.hook.trim()) return false;
-    if (!Array.isArray(parsed.scenes) || parsed.scenes.length < 6 || parsed.scenes.length > 7) return false;
+    if (!Array.isArray(parsed.scenes) || parsed.scenes.length < minScenes || parsed.scenes.length > maxScenes) return false;
     if (parsed.scenes.some((scene: any) =>
-      !scene || typeof scene.text !== "string" || scene.text.trim().split(/\s+/).length < 8 ||
-      !Number.isFinite(scene.duration) || scene.duration < 9 || scene.duration > 10 ||
-      typeof scene.visualCue !== "string" || !Array.isArray(scene.brollKeywords)
+      !scene || typeof scene.text !== "string" ||
+      scene.text.trim().split(/\s+/).length < (isLong ? 35 : 8) ||
+      !Number.isFinite(scene.duration) || scene.duration < minDuration || scene.duration > maxDuration ||
+      typeof scene.visualCue !== "string" || !scene.visualCue.trim() ||
+      !Array.isArray(scene.brollKeywords)
     )) return false;
-    const banned = [
-      /está na categoria/i,
-      /o preço informado é/i,
-      /antes de comprar .{0,100} confira a versão exata/i,
-      /pare! antes de comprar/i,
-    ];
+    const cues = parsed.scenes.map((scene: any) => scene.visualCue.trim().toLowerCase());
+    if (new Set(cues).size < Math.min(6, cues.length)) return false;
+    const banned = [/está na categoria/i, /o preço informado é/i, /antes de comprar .{0,100} confira a versão exata/i, /pare! antes de comprar/i, /testamos|em nossos testes|nos nossos testes|medimos|testei pessoalmente/i];
     if (banned.some((pattern) => pattern.test([parsed.hook, ...parsed.scenes.map((scene: any) => scene.text)].join(" ")))) return false;
+    const seconds = parsed.scenes.reduce((sum: number, scene: any) => sum + Number(scene.duration || 0), 8);
+    if (isLong && (seconds < 240 || seconds > 420)) return false;
+    if (!isLong && (seconds < 60 || seconds > 90)) return false;
     return !(product.recentHooksToAvoid || []).some((hook) => hookSimilarity(parsed.hook, hook) >= 0.68);
   } catch { return false; }
 }
 
 export async function generateVideoScript(product: ProductInfo): Promise<VideoScript> {
   const prompt = buildScriptPrompt(product);
+  const isLong = product.videoFormat === "long";
   getLLMProvider();
   const content = await chatCompletion({
-    systemPrompt: "Você é roteirista editorial de tecnologia do Vetor.blog. Produza roteiro falado, natural, factual e distinto para cada produto. Responda somente JSON válido.",
+    systemPrompt: "Você é roteirista editorial de tecnologia do Vetor.blog. Produza roteiro falado, natural, factual e distinto. Responda somente JSON válido.",
     userPrompt: prompt,
-    temperature: 0.82,
-    maxTokens: 2200,
+    temperature: isLong ? 0.74 : 0.82,
+    maxTokens: isLong ? 3000 : 2200,
+    timeoutMs: 42000,
+    deadlineMs: 52000,
     responseFormat: { type: "json_object" },
     validateResponse: (candidate) => isDistinctScriptResponse(candidate, product),
   });
@@ -155,22 +128,32 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     throw new Error("[video-script] JSON inválido: " + (error instanceof Error ? error.message : String(error)));
   }
 
+  const isLong = product.videoFormat === "long";
   const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
+  const minScenes = isLong ? 8 : 6;
+  const maxScenes = isLong ? 10 : 7;
+  const minDuration = isLong ? 29 : 9;
+  const maxDuration = isLong ? 40 : 10;
   if (
     typeof parsed.hook !== "string" || !parsed.hook.trim() ||
-    scenes.length < 6 || scenes.length > 7 ||
+    scenes.length < minScenes || scenes.length > maxScenes ||
     scenes.some((scene: unknown) => {
       if (!scene || typeof scene !== "object") return true;
       const item = scene as Partial<VideoScene>;
-      return typeof item.text !== "string" || !item.text.trim() ||
-        !Number.isFinite(item.duration) || (item.duration as number) < 9 || (item.duration as number) > 10 ||
-        typeof item.visualCue !== "string" || !Array.isArray(item.brollKeywords);
+      return typeof item.text !== "string" || item.text.trim().split(/\s+/).length < (isLong ? 35 : 8) ||
+        !Number.isFinite(item.duration) || (item.duration as number) < minDuration || (item.duration as number) > maxDuration ||
+        typeof item.visualCue !== "string" || !item.visualCue.trim() || !Array.isArray(item.brollKeywords);
     })
   ) throw new Error("[video-script] Roteiro reprovado: estrutura, duração ou cenas incompletas.");
 
   const sceneSeconds = scenes.reduce((sum: number, scene: VideoScene) => sum + scene.duration, 0);
   const computedDuration = sceneSeconds + 8;
-  if (computedDuration < 60 || computedDuration > 90) throw new Error("[video-script] Duração inválida: " + computedDuration + "s.");
+  if (isLong && (computedDuration < 240 || computedDuration > 420)) {
+    throw new Error("[video-script] Duração longa fora de 4–7 minutos: " + computedDuration + "s.");
+  }
+  if (!isLong && (computedDuration < 60 || computedDuration > 90)) {
+    throw new Error("[video-script] Duração do Short inválida: " + computedDuration + "s.");
+  }
   const scriptText = [parsed.hook, ...scenes.map((scene: VideoScene) => scene.text), parsed.callToAction || ""].join(" ");
   if (/\b(testamos|vamos testar|vou testar|em nossos testes|nos nossos testes|medimos|rodo tudo liso|sem engasgos)\b/i.test(scriptText)) {
     throw new Error("[video-script] Roteiro reprovado: alegação de teste/experiência não fornecida.");
@@ -183,7 +166,8 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     callToAction: typeof parsed.callToAction === "string" && parsed.callToAction.trim()
       ? parsed.callToAction.trim()
       : "Veja o review completo e confira a oferta atual na descrição.",
-    generationVersion: 2,
+    generationVersion: 3,
+    videoFormat: product.videoFormat || "short",
     creativeAngle: product.creativeAngle || "Ângulo editorial definido pelo gerador.",
   };
 }

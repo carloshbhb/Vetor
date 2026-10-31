@@ -1,6 +1,7 @@
 import { execFileSync, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -43,18 +44,6 @@ async function createYouTubeClient() {
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
   oauth2Client.setCredentials({ refresh_token: refreshToken });
   return google.youtube({ version: 'v3', auth: oauth2Client });
-}
-
-function buildCtaComment({ productTitle, purchaseUrl, reviewUrl }) {
-  return [
-    `👇 Quer conferir o preço e analisar ${productTitle} antes de comprar?`,
-    '',
-    `🛒 Link de compra: ${purchaseUrl}`,
-    `📝 Review completo no Vetor.blog: ${reviewUrl}`,
-    '',
-    'Confira preço, frete, disponibilidade e condições atuais no anúncio.',
-    'Se o vídeo ajudou, deixe o like e inscreva-se no canal para mais reviews!',
-  ].join('\n');
 }
 
 function extractYouTubeVideoId(video) {
@@ -155,6 +144,7 @@ async function retryPendingCtaComments() {
         productTitle: String(video.product_title || 'este produto'),
         purchaseUrl,
         reviewUrl,
+        format: resolveVideoFormat(video.media_assets),
       }));
       await updateVideoStatus(video.id, { error_message: null });
       console.log('[CTA_COMMENT_RETRIED] queue_id=' + video.id + ' comment_id=' + commentId);
@@ -433,15 +423,15 @@ async function renderWithRemotion(videoData, outputPath) {
     const videoStream = Array.isArray(media.streams)
       ? media.streams.find((stream) => stream.codec_type === 'video')
       : null;
+    const width = Number(videoStream?.width || 0);
+    const height = Number(videoStream?.height || 0);
     if (
-      !Number.isFinite(duration) ||
-      duration <= 0 ||
-      !videoStream ||
-      !videoStream.codec_name ||
-      Number(videoStream.width) <= 0 ||
-      Number(videoStream.height) <= 0
+      !Number.isFinite(duration) || duration <= 0 || !videoStream || !videoStream.codec_name ||
+      width <= 0 || height <= 0 ||
+      (videoData.type === "long" && width <= height) ||
+      (videoData.type !== "long" && width >= height)
     ) {
-      throw new Error('MP4 inválido: ffprobe não encontrou stream de vídeo com resolução e duração válidas.');
+      throw new Error('MP4 inválido: ffprobe não confirmou duração, stream e orientação compatível com o formato.');
     }
     console.log(
       '   [Remotion] MP4 validado pelo ffprobe: ' +
@@ -529,79 +519,137 @@ async function uploadToYouTube(videoPath, title, description, tags, commentText)
   }
 }
 
+async function readResponseLimited(response, maxBytes) {
+  if (!response.body) {
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length > maxBytes) throw new Error("Arquivo remoto excedeu o limite permitido.");
+    return buffer;
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new Error("Arquivo remoto excedeu o limite permitido.");
+    }
+    chunks.push(Buffer.from(value));
+  }
+  return Buffer.concat(chunks, total);
+}
+
+function safeVideoAssetId(value) {
+  return String(value || "video").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80) || "video";
+}
+
+async function downloadProductImage(sourceUrl, videoId, productTitle) {
+  const tempDir = path.resolve("video/public/tmp");
+  fs.mkdirSync(tempDir, { recursive: true });
+  const safeId = safeVideoAssetId(videoId);
+  try {
+    const parsed = new URL(String(sourceUrl || ""));
+    if (parsed.protocol !== "https:" || parsed.hostname === "localhost" || parsed.hostname.endsWith(".local")) throw new Error("URL de imagem não HTTPS/pública.");
+    const response = await fetch(parsed.toString(), {
+      headers: { "User-Agent": "VetorBlog-VideoWorker/1.0", Accept: "image/avif,image/webp,image/png,image/jpeg,*/*;q=0.5" },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const type = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    const extension = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" }[type];
+    if (!extension) throw new Error("Content-Type não suportado: " + type);
+    if (Number(response.headers.get("content-length") || 0) > 12 * 1024 * 1024) throw new Error("Imagem acima de 12 MB.");
+    const buffer = await readResponseLimited(response, 12 * 1024 * 1024);
+    if (buffer.length < 1000) throw new Error("Imagem remota vazia.");
+    const filename = "product-" + safeId + "." + extension;
+    fs.writeFileSync(path.join(tempDir, filename), buffer);
+    console.log("[MEDIA] Imagem do produto baixada localmente (" + buffer.length + " bytes).");
+    return "tmp/" + filename;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn("[MEDIA] Imagem remota indisponível; gerado cartão visual local. " + message.slice(0, 180));
+    const filename = "product-" + safeId + ".svg";
+    const title = escapeXml(String(productTitle || "Produto").slice(0, 72));
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d3155"/><stop offset="1" stop-color="#11141c"/></linearGradient></defs><rect width="1200" height="900" fill="url(#g)"/><circle cx="970" cy="120" r="260" fill="#55b9f2" opacity=".12"/><circle cx="120" cy="820" r="300" fill="#ff6848" opacity=".1"/><text x="600" y="410" text-anchor="middle" fill="#55b9f2" font-family="Arial,sans-serif" font-size="34" font-weight="700" letter-spacing="8">VETOR • REVIEW</text><text x="600" y="495" text-anchor="middle" fill="#f3f4f7" font-family="Arial,sans-serif" font-size="48" font-weight="700">' + title + '</text></svg>';
+    fs.writeFileSync(path.join(tempDir, filename), svg, "utf8");
+    return "tmp/" + filename;
+  }
+}
+
 async function fetchPexelsBroll(scenes, category, videoId) {
-  const apiKey = (process.env.PEXELS_API_KEY || process.env.PEXELS_KEY || '').trim();
+  const apiKey = (process.env.PEXELS_API_KEY || process.env.PEXELS_KEY || "").trim();
   if (!apiKey) {
-    console.warn('[BROLL] PEXELS_API_KEY ausente; render seguirá sem footage de apoio.');
+    console.warn("[BROLL] PEXELS_API_KEY ausente; render seguirá sem footage de apoio.");
     return [];
   }
-
   const keywords = [];
   for (const scene of (Array.isArray(scenes) ? scenes : [])) {
     for (const keyword of (Array.isArray(scene.brollKeywords) ? scene.brollKeywords : [])) {
-      const normalized = String(keyword || '').trim();
-      if (normalized.length >= 3 && !keywords.includes(normalized)) keywords.push(normalized);
+      const value = String(keyword || "").trim();
+      if (value.length >= 3 && !keywords.includes(value)) keywords.push(value);
     }
   }
-  const queries = keywords.slice(0, 3);
   const candidates = [];
-  const seenIds = new Set();
-
-  for (const keyword of queries) {
+  const seen = new Set();
+  for (const keyword of keywords.slice(0, 3)) {
     try {
-      const response = await fetch(
-        'https://api.pexels.com/videos/search?query=' + encodeURIComponent(keyword) +
-          '&per_page=8&orientation=portrait',
-        { headers: { Authorization: apiKey }, signal: AbortSignal.timeout(12000) }
-      );
-      if (!response.ok) {
-        console.warn('[BROLL] Pexels HTTP ' + response.status + ' para consulta visual.');
-        continue;
-      }
+      const response = await fetch("https://api.pexels.com/videos/search?query=" + encodeURIComponent(keyword) + "&per_page=8&orientation=portrait", {
+        headers: { Authorization: apiKey }, signal: AbortSignal.timeout(12000),
+      });
+      if (!response.ok) continue;
       const payload = await response.json();
-      for (const video of (Array.isArray(payload.videos) ? payload.videos : [])) {
-        if (!video || seenIds.has(video.id)) continue;
-        const files = (Array.isArray(video.video_files) ? video.video_files : [])
-          .filter((file) => typeof file.link === 'string' && file.link.startsWith('https://'))
+      for (const item of (Array.isArray(payload.videos) ? payload.videos : [])) {
+        if (!item || seen.has(item.id)) continue;
+        const files = (Array.isArray(item.video_files) ? item.video_files : [])
+          .filter(file => typeof file.link === "string" && file.link.startsWith("https://"))
           .sort((a, b) => {
-            const aVertical = Number(Number(a.height) > Number(a.width));
-            const bVertical = Number(Number(b.height) > Number(b.width));
-            if (aVertical !== bVertical) return bVertical - aVertical;
-
-            // OffthreadVideo downloads its sources before extracting frames. Prefer the largest
-            // portrait file at or below 1280px to avoid fetching 1080p/4K stock clips unnecessarily.
-            const resolutionRank = (file) => {
-              const longSide = Math.max(Number(file.height) || 0, Number(file.width) || 0);
-              if (!longSide) return Number.MAX_SAFE_INTEGER;
-              return longSide <= 1280 ? -longSide : 10000 + longSide;
+            const ap = Number(Number(a.height) > Number(a.width));
+            const bp = Number(Number(b.height) > Number(b.width));
+            if (ap !== bp) return bp - ap;
+            const rank = file => {
+              const size = Math.max(Number(file.height) || 0, Number(file.width) || 0);
+              return !size ? Number.MAX_SAFE_INTEGER : size <= 1280 ? -size : 10000 + size;
             };
-            const aRank = resolutionRank(a);
-            const bRank = resolutionRank(b);
-            if (aRank !== bRank) return aRank - bRank;
-
-            const aHd = a.quality === 'hd' ? 1 : 0;
-            const bHd = b.quality === 'hd' ? 1 : 0;
-            if (aHd !== bHd) return bHd - aHd;
-            return (Number(b.width) || 0) - (Number(a.width) || 0);
+            return rank(a) - rank(b) || (Number(b.width) || 0) - (Number(a.width) || 0);
           });
-        if (!files.length) continue;
-        seenIds.add(video.id);
-        candidates.push({ id: String(video.id), url: files[0].link, query: keyword });
+        if (files.length) { seen.add(item.id); candidates.push({ id: String(item.id), url: files[0].link }); }
       }
     } catch (error) {
-      console.warn('[BROLL] Busca de footage falhou: ' + (error instanceof Error ? error.message : String(error)));
+      console.warn("[BROLL] Busca falhou: " + (error instanceof Error ? error.message : String(error)).slice(0, 180));
     }
   }
-
-  // Reordenar deterministicamente por ID do item evita que todos os vídeos escolham sempre os primeiros resultados do Pexels.
-  const seed = String(videoId || category || 'vetor');
-  const hash = (value) => Array.from(String(value)).reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7);
+  const hash = value => Array.from(String(value)).reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7);
+  const seed = String(videoId || category || "vetor");
   candidates.sort((a, b) => hash(seed + a.id) - hash(seed + b.id));
-  // OffthreadVideo extracts frames outside Chromium but needs the source clip downloaded.
-  // Four distinct clips preserve variety while keeping source downloads predictable.
-  const selected = candidates.slice(0, 4).map((item) => item.url);
-  console.log('[BROLL] ' + selected.length + ' clipes exclusivos (preferência até 1280px) selecionados em ' + queries.length + ' buscas de apoio.');
-  return selected;
+  const selected = candidates.slice(0, 3);
+  const tempDir = path.resolve("video/public/tmp");
+  fs.mkdirSync(tempDir, { recursive: true });
+  const safeId = safeVideoAssetId(videoId);
+  const downloads = await Promise.all(selected.map(async (item, index) => {
+    try {
+      const response = await fetch(item.url, {
+        headers: { "User-Agent": "VetorBlog-VideoWorker/1.0", Accept: "video/mp4,*/*;q=0.5" },
+        signal: AbortSignal.timeout(16000),
+      });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const type = (response.headers.get("content-type") || "").toLowerCase();
+      if (!type.includes("video/") && !item.url.toLowerCase().includes(".mp4")) throw new Error("Resposta não é vídeo.");
+      if (Number(response.headers.get("content-length") || 0) > 18 * 1024 * 1024) throw new Error("Clip acima de 18 MB.");
+      const buffer = await readResponseLimited(response, 18 * 1024 * 1024);
+      if (buffer.length < 20000) throw new Error("Clip incompleto.");
+      const filename = "broll-" + safeId + "-" + index + ".mp4";
+      fs.writeFileSync(path.join(tempDir, filename), buffer);
+      return "tmp/" + filename;
+    } catch (error) {
+      console.warn("[BROLL] Clip " + item.id + " indisponível: " + (error instanceof Error ? error.message : String(error)).slice(0, 180));
+      return null;
+    }
+  }));
+  const localPaths = downloads.filter(item => typeof item === "string");
+  console.log("[BROLL] " + localPaths.length + " clips baixados localmente; Remotion receberá apenas fontes locais.");
+  return localPaths;
 }
 
 async function processVideo(video) {
@@ -611,7 +659,10 @@ async function processVideo(video) {
 
   await updateVideoStatus(video.id, { status: 'processing', started_at: new Date().toISOString(), error_message: null });
   const publicAudioPath = path.resolve('video/public/tmp', `video-${video.id}.mp3`);
+  const videoFormat = resolveVideoFormat(video.media_assets);
+  let temporaryVisualAssets = [];
   let processingStage = 'roteiro';
+  console.log("   Formato: " + (videoFormat === "long" ? "vídeo longo 16:9" : "Short vertical"));
 
   try {
     let script = null;
@@ -621,7 +672,8 @@ async function processVideo(video) {
         if (
           candidate &&
           typeof candidate === 'object' &&
-          candidate.generationVersion === 2 &&
+          candidate.generationVersion === 3 &&
+          candidate.videoFormat === videoFormat &&
           typeof candidate.creativeAngle === 'string' &&
           candidate.creativeAngle.trim() &&
           Array.isArray(candidate.scenes) &&
@@ -644,7 +696,7 @@ async function processVideo(video) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ videoId: video.id }),
-        signal: AbortSignal.timeout(60000),
+        signal: AbortSignal.timeout(55000),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.script) {
@@ -701,12 +753,15 @@ async function processVideo(video) {
       const endFrame = Math.max(startFrame + 1, Math.round((timing?.end || 0) * fps));
       return { ...scene, startFrame, endFrame };
     });
+    const productImageSource = await downloadProductImage(video.product_image_url, video.id, video.product_title);
+    temporaryVisualAssets.push(path.resolve("video/public", productImageSource));
     const brollVideos = await fetchPexelsBroll(script.scenes, video.product_category, video.id);
+    temporaryVisualAssets.push(...brollVideos.map(source => path.resolve("video/public", source)));
 
     const videoData = {
-      type: 'review',
+      type: videoFormat === "long" ? "long" : "review",
       title: video.product_title,
-      imageUrl: video.product_image_url,
+      imageUrl: productImageSource,
       score: Number.isFinite(Number(script.score)) && Number(script.score) > 0 && Number(script.score) <= 10 ? Number(script.score) : 0,
       category: video.product_category,
       hook: script.hook,
@@ -719,7 +774,7 @@ async function processVideo(video) {
         end: segment.end,
         text: segment.text,
       })),
-      productImages: [video.product_image_url],
+      productImages: [productImageSource],
       brollVideos,
       totalDuration,
       fps,
@@ -741,22 +796,27 @@ async function processVideo(video) {
       throw new Error('Link de compra/afiliado ausente ou inválido; upload bloqueado.');
     }
 
-    const ytTitle = `${video.product_title} - Review Completo | Vetor Blog`.slice(0, 100);
-    const ytDescription = [
-      `🛒 LINK DE COMPRA: ${purchaseUrl}`,
-      `📝 REVIEW COMPLETO: ${reviewUrl}`,
-      '',
-      'Confira preço, frete, disponibilidade e condições atualizadas antes de comprar.',
-      '',
-      script.hook,
-      '',
-      script.scenes.map(s => s.text).join('\n\n'),
-      '',
-      script.callToAction,
-      '',
-      '#Review #Tecnologia #CustoBeneficio #VetorBlog',
-    ].join('\n').slice(0, 5000);
+    const ytTitle = buildVideoTitle({ format: videoFormat, productTitle: video.product_title, hook: script.hook });
+    const chapters = videoFormat === "long"
+      ? [
+          { time: 0, title: "Introdução e decisão de compra" },
+          ...script.scenes.map((scene, index) => ({
+            time: narrationTimings[index + 1]?.start ?? 0,
+            title: String(scene.visualCue || ("Ponto " + (index + 1))).replace(/[.!?]+$/, ""),
+          })),
+        ]
+      : [];
+    const ytDescription = buildVideoDescription({
+      format: videoFormat,
+      productTitle: video.product_title,
+      purchaseUrl,
+      reviewUrl,
+      hook: script.hook,
+      callToAction: script.callToAction,
+      chapters,
+    });
     const ytCommentText = buildCtaComment({
+      format: videoFormat,
       productTitle: video.product_title,
       purchaseUrl,
       reviewUrl,
@@ -769,7 +829,8 @@ async function processVideo(video) {
       .filter(term => term.length >= 3);
     const ytTags = [...new Set([
       'review', 'análise de produto', 'vale a pena', 'custo-benefício',
-      'tecnologia', 'comprar com desconto', 'Vetor Blog', '2026',
+      'tecnologia', 'Vetor Blog', '2026',
+      ...(videoFormat === "long" ? ["análise completa", "guia de compra"] : ["Shorts", "shorts de tecnologia"]),
       video.product_category,
       ...terms,
     ])].filter(Boolean).slice(0, 30);
@@ -806,6 +867,7 @@ async function processVideo(video) {
 
     if (fs.existsSync(audioDir)) fs.rmSync(audioDir, { recursive: true });
     if (fs.existsSync(publicAudioPath)) fs.unlinkSync(publicAudioPath);
+    for (const assetPath of temporaryVisualAssets) if (fs.existsSync(assetPath)) fs.unlinkSync(assetPath);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error || 'Unknown error');
     const details = error && typeof error === 'object' ? error : {};
@@ -822,6 +884,9 @@ async function processVideo(video) {
       error_message: diagnostic,
     });
     if (fs.existsSync(publicAudioPath)) fs.unlinkSync(publicAudioPath);
+    const failedAudioDir = path.resolve(`/tmp/video-${video.id}`);
+    if (fs.existsSync(failedAudioDir)) fs.rmSync(failedAudioDir, { recursive: true, force: true });
+    for (const assetPath of temporaryVisualAssets) if (fs.existsSync(assetPath)) fs.unlinkSync(assetPath);
     return false;
   }
   return true;
@@ -939,7 +1004,8 @@ async function main() {
     console.error(`[video-worker] ${failures} vídeo(s) falharam. Confira error_message no Supabase.`);
     process.exitCode = 1;
   } else if (processedCount === 0) {
-    console.log('\nℹ️ Nenhum vídeo foi processado nesta execução; nenhum upload novo foi realizado.');
+    console.error('\n[NO_UPLOADS_THIS_RUN] Nenhum vídeo foi processado; encerrando com erro para não sinalizar sucesso sem upload.');
+    process.exitCode = 2;
   } else {
     console.log(`\n✅ Processamento concluído sem falhas: ${processedCount} vídeo(s) processado(s); confira as URLs de upload registradas acima.`);
   }

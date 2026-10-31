@@ -1,11 +1,13 @@
 import { Composition, registerRoot } from 'remotion';
 import { calculateEditorialMetadata, EditorialReview } from './compositions/EditorialReview';
+import { EditorialReviewLandscape } from './compositions/EditorialReviewLandscape';
 import { ComparisonVideo } from './compositions/ComparisonVideo';
 
 // Import Google Fonts via CSS
 import './styles/global.css';
 
 const ReviewVideoAny = EditorialReview as any;
+const LongReviewVideoAny = EditorialReviewLandscape as any;
 const ComparisonVideoAny = ComparisonVideo as any;
 
 export const RemotionRoot = () => {
@@ -53,6 +55,39 @@ export const RemotionRoot = () => {
           productImages: ['/assets/redmi-pad-2-pro-hero.png'],
           brollVideos: [],
           totalDuration: 60,
+          fps: 30,
+        }}
+      />
+      <Composition
+        id="LongReviewVideo"
+        component={LongReviewVideoAny}
+        durationInFrames={10800}
+        fps={30}
+        width={1920}
+        height={1080}
+        calculateMetadata={calculateEditorialMetadata}
+        defaultProps={{
+          title: 'Redmi Pad 2 Pro',
+          imageUrl: '/assets/redmi-pad-2-pro-hero.png',
+          score: 8.7,
+          category: 'Tablets',
+          hook: 'Tela grande: quando esse tablet realmente compensa?',
+          hookDuration: 3,
+          scenes: Array.from({ length: 8 }, (_, index) => ({
+            id: index + 1,
+            text: 'Avalie este critério com base nas especificações confirmadas e no seu perfil de uso antes de decidir.',
+            duration: 30,
+            visualCue: ['Tela e experiência visual', 'Desempenho para sua rotina', 'Autonomia e carregamento', 'Áudio e conectividade', 'Limitações importantes', 'Compatibilidade e acessórios', 'Preço e alternativas', 'Para quem vale a pena'][index],
+            brollKeywords: [],
+            startFrame: 90 + index * 900,
+            endFrame: 90 + (index + 1) * 900,
+          })),
+          callToAction: 'Confira o preço atual e leia o review completo antes de comprar.',
+          audioUrl: '/audio/sample.mp3',
+          subtitleEntries: [],
+          productImages: ['/assets/redmi-pad-2-pro-hero.png'],
+          brollVideos: [],
+          totalDuration: 250,
           fps: 30,
         }}
       />

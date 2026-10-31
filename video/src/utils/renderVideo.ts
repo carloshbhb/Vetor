@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 type InputProps = Record<string, unknown>;
 
 interface ReviewVideoData {
-  type: 'review';
+  type: 'review' | 'long';
   title: string;
   imageUrl: string;
   score: number;
@@ -82,7 +82,7 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
     inputProps: data as unknown as InputProps,
   });
 
-  const compositionId = data.type === 'review' ? 'ReviewVideo' : 'ComparisonVideo';
+  const compositionId = data.type === 'long' ? 'LongReviewVideo' : data.type === 'review' ? 'ReviewVideo' : 'ComparisonVideo';
   const composition = compositions.find((c) => c.id === compositionId);
   
   if (!composition) {
@@ -90,7 +90,7 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
   }
 
   const timestamp = Date.now();
-  const prefix = data.type === 'review' ? 'review' : 'comparison';
+  const prefix = data.type === 'long' ? 'long-review' : data.type === 'review' ? 'review' : 'comparison';
   const outputLocation = path.resolve(outputPath, `${prefix}-${timestamp}.mp4`);
 
   await renderMedia({
@@ -127,10 +127,10 @@ function calculateComparisonFrameTimings(scenes: ComparisonSceneData[], fps: num
 
 async function main() {
   const args = process.argv.slice(2);
-  const type = args[0] as 'review' | 'comparison';
+  const type = args[0] as 'review' | 'long' | 'comparison';
   const dataPath = args[1];
 
-  if (!type || !['review', 'comparison'].includes(type)) {
+  if (!type || !['review', 'long', 'comparison'].includes(type)) {
     console.error('Usage: tsx renderVideo.ts <review|comparison> [data-json-path]');
     process.exit(1);
   }
@@ -148,7 +148,7 @@ async function main() {
   if (dataPath && fs.existsSync(dataPath)) {
     const rawData = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
     
-    if (type === 'review') {
+    if (type === 'review' || type === 'long') {
       const scenesWithFrames = calculateFrameTimings(rawData.scenes, fps, hookFrames);
       const contentFrames = scenesWithFrames.reduce((max, s) => Math.max(max, s.endFrame), hookFrames) - hookFrames;
       const scoreFrames = 4 * fps;
@@ -156,7 +156,7 @@ async function main() {
       const totalDuration = (hookFrames + contentFrames + scoreFrames + ctaFrames) / fps;
 
       videoData = {
-        type: 'review',
+        type,
         title: rawData.title,
         imageUrl: rawData.imageUrl,
         score: rawData.score,
