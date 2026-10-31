@@ -33,6 +33,21 @@ const validPayload = {
 const valid = validateGeneratedViralArticle(validPayload, { source: 'generator', slug: validPayload.slug });
 assert.equal(valid.ok, true, valid.ok ? '' : valid.issues.join('; '));
 
+const mismatchedProducts = validateGeneratedViralArticle({
+  ...validPayload,
+  slug: 'wap-robot-vs-air-fryer',
+  title: 'WAP Robot W400 vs Air Fryer Mondial: qual escolher?',
+  category: 'Eletroportáteis',
+  products: [
+    { name: 'WAP Robot W400', slug: 'wap-robot-w400', imageUrl: 'https://example.com/wap.webp' },
+    { name: 'Air Fryer Mondial Family AFN-40-BI', slug: 'air-fryer-mondial', imageUrl: 'https://example.com/air-fryer.webp' },
+  ],
+  content: articleContent
+    .replaceAll('Galaxy S24', 'WAP Robot W400')
+    .replaceAll('iPhone 15', 'Air Fryer Mondial Family AFN-40-BI'),
+}, { source: 'generator', slug: 'wap-robot-vs-air-fryer' });
+assert.equal(mismatchedProducts.ok, false, 'comparativo entre famílias incompatíveis deve ser reprovado');
+
 const tooShort = validateGeneratedViralArticle({
   ...validPayload,
   content: '<h2>FAQ</h2><p>Galaxy S24 e iPhone 15: qual comprar? Onde ver o preço? Quais são os recursos?</p>',
