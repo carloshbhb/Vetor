@@ -181,110 +181,45 @@ function escapeXml(value) {
 }
 
 async function generateVoiceover(text, outputPath) {
-  const azureVoice = (process.env.AZURE_SPEECH_VOICE || 'pt-BR-AntonioNeural').trim();
-  const azureKey = (process.env.AZURE_SPEECH_KEY || '').trim();
-  const azureRegion = (process.env.AZURE_SPEECH_REGION || '').trim();
-  const edgeVoices = ['pt-BR-AntonioNeural', 'pt-BR-FranciscaNeural'];
-  const tempFile = outputPath.replace(/\.mp3$/i, '-temp.mp3');
-  const textFile = outputPath.replace(/\.mp3$/i, '-text.txt');
-  const wavPath = outputPath.replace(/\.mp3$/i, '-espeak.wav');
+  // Única voz de narração do Vetor: Edge TTS neural pt-BR-FranciscaNeural.
+  const voice = 'pt-BR-FranciscaNeural';
+  const tempFile = outputPath.replace(/\\.mp3$/i, '-temp.mp3');
+  const textFile = outputPath.replace(/\\.mp3$/i, '-text.txt');
   const safeText = String(text || '')
-    .replace(/[\u2014\u2013]/g, '-')
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/\r\n/g, '\n')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[\\u2014\\u2013]/g, '-')
+    .replace(/[\\u2018\\u2019]/g, "'")
+    .replace(/[\\u201C\\u201D]/g, '"')
+    .replace(/\\r\\n/g, '\\n')
+    .replace(/[ \\t]+/g, ' ')
+    .replace(/\\n{3,}/g, '\\n\\n')
     .trim();
 
   if (!safeText) throw new Error('[TTS] Não é possível gerar áudio de um roteiro vazio.');
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(textFile, safeText, 'utf8');
-  for (const stale of [tempFile, wavPath]) if (fs.existsSync(stale)) fs.unlinkSync(stale);
-
-  const finishFromTemp = (provider, voice) => {
-    const duration = getAudioDuration(tempFile, provider);
-    fs.renameSync(tempFile, outputPath);
-    console.log('   [TTS] Provider=' + provider + '; voz=' + voice + '; duração=' + duration.toFixed(2) + 's.');
-    return duration;
-  };
-
-  const strictAzure = process.env.TTS_TEST_REQUIRE_AZURE === 'true';
-  const strictEdge = process.env.TTS_TEST_REQUIRE_EDGE === 'true';
-  const forceFallback = process.env.TTS_FORCE_FALLBACK === 'true';
+  for (const stale of [tempFile, outputPath]) if (fs.existsSync(stale)) fs.unlinkSync(stale);
 
   try {
-    // Azure Speech is the default neural voice; Edge TTS is the free neural fallback.
-
-    if (!strictEdge && !forceFallback && azureKey && azureRegion) {
-      try {
-        const endpoint = 'https://' + encodeURIComponent(azureRegion) + '.tts.speech.microsoft.com/cognitiveservices/v1';
-        const ssmlText = safeText.split(/\n\s*\n/).map(escapeXml).join('<break time="260ms"/>');
-        const ssml = '<?xml version="1.0" encoding="utf-8"?>' +
-          '<speak version="1.0" xml:lang="pt-BR"><voice name="' + escapeXml(azureVoice) + '">' +
-          ssmlText + '</voice></speak>';
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Ocp-Apim-Subscription-Key': azureKey,
-            'Content-Type': 'application/ssml+xml',
-            'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
-            'User-Agent': 'VetorBlog-VideoWorker',
-          },
-          body: ssml,
-          signal: AbortSignal.timeout(40000),
-        });
-        if (!response.ok) {
-          const detail = (await response.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 240);
-          throw new Error('Azure Speech HTTP ' + response.status + (detail ? ': ' + detail : ''));
-        }
-        const audio = Buffer.from(await response.arrayBuffer());
-        if (audio.length < 1000) throw new Error('Azure Speech retornou áudio vazio.');
-        fs.writeFileSync(tempFile, audio);
-        return finishFromTemp('Azure Speech neural', azureVoice);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.warn('   [TTS_FAILOVER] Azure Speech indisponível; tentando Edge TTS. ' + message);
-        if (strictAzure) throw new Error('[TTS_SMOKE_TEST] Azure obrigatório falhou: ' + message);
-        if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-      }
-    } else if (strictAzure && (!azureKey || !azureRegion)) {
-      throw new Error('[TTS_SMOKE_TEST] AZURE_SPEECH_KEY/AZURE_SPEECH_REGION não configurados para o teste estrito.');
-    } else if (!azureKey || !azureRegion) {
-      console.warn('   [TTS_FAILOVER] Azure não configurado; tentando Edge TTS gratuito.');
-    }
-
-    for (const voice of edgeVoices) {
-      try {
-        if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-        execFileSync('edge-tts', ['--voice', voice, '--file', textFile, '--write-media', tempFile], {
-          stdio: 'pipe', timeout: 45000,
-        });
-        return finishFromTemp('Edge TTS neural (fallback gratuito)', voice);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        const stderr = error && typeof error === 'object' && 'stderr' in error
-          ? String(error.stderr || '').replace(/\s+/g, ' ').slice(-250) : '';
-        console.warn('   [TTS_FAILOVER] Edge TTS ' + voice + ' falhou: ' + (stderr || message).slice(0, 360));
-        if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-      }
-    }
-
-    if (strictEdge) throw new Error('[TTS_SMOKE_TEST] As vozes Edge TTS falharam; fallback offline omitido no teste estrito.');
-
-    execFileSync('espeak-ng', ['-v', 'pt-br', '-s', '150', '-f', textFile, '-w', wavPath], {
-      stdio: 'pipe', timeout: 20000,
+    execFileSync('edge-tts', ['--voice', voice, '--file', textFile, '--write-media', tempFile], {
+      stdio: 'pipe',
+      timeout: 120000,
     });
-    if (!fs.existsSync(wavPath) || fs.statSync(wavPath).size < 1000) throw new Error('espeak-ng não produziu WAV utilizável.');
-    execFileSync('ffmpeg', ['-y', '-i', wavPath, '-codec:a', 'libmp3lame', '-q:a', '4', tempFile], {
-      stdio: 'pipe', timeout: 20000,
-    });
-    return finishFromTemp('espeak-ng offline (último recurso)', 'pt-br');
+    if (!fs.existsSync(tempFile) || fs.statSync(tempFile).size < 1000) {
+      throw new Error('Edge TTS não produziu um MP3 utilizável.');
+    }
+    const duration = getAudioDuration(tempFile, 'Edge TTS neural');
+    fs.renameSync(tempFile, outputPath);
+    console.log('   [TTS] Provider=Edge TTS neural; voz=' + voice + '; duração=' + duration.toFixed(2) + 's.');
+    return duration;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const stderr = error && typeof error === 'object' && 'stderr' in error
+      ? String(error.stderr || '').replace(/\\s+/g, ' ').slice(-500) : '';
+    throw new Error('[TTS] A única voz configurada (' + voice + ') falhou: ' + (stderr || message).slice(0, 700));
   } finally {
-    for (const file of [textFile, tempFile, wavPath]) if (fs.existsSync(file)) fs.unlinkSync(file);
+    for (const file of [textFile, tempFile]) if (fs.existsSync(file)) fs.unlinkSync(file);
   }
 }
-
 async function combineAudioFiles(audioFiles, outputPath) {
   const existingFiles = audioFiles.filter(f => fs.existsSync(f));
   if (existingFiles.length === 0) {
@@ -690,7 +625,7 @@ async function processVideo(video) {
 
     processingStage = 'narração';
     console.log('   [1/4] Gerando uma narração contínua para manter ritmo e entonação naturais...');
-    console.log('[TTS] Principal=Azure Speech neural pt-BR; fallback gratuito=Edge TTS neural; último recurso=espeak-ng offline.');
+    console.log('[TTS] Voz única=Edge TTS neural pt-BR-FranciscaNeural.');
     const audioDir = path.resolve(`/tmp/video-${video.id}`);
     fs.mkdirSync(audioDir, { recursive: true });
     const combinedAudioPath = path.join(audioDir, 'combined.mp3');
@@ -872,24 +807,20 @@ async function processVideo(video) {
 async function main() {
   console.log('🎬 Iniciando processamento de vídeos...');
   console.log(`   Timestamp: ${new Date().toISOString()}`);
-  console.log('[TTS] Principal=Azure Speech neural pt-BR; fallback gratuito=Edge TTS neural; último recurso offline=espeak-ng.');
+  console.log('[TTS] Voz única=Edge TTS neural pt-BR-FranciscaNeural.');
 
   // Test mode generates a short local sample and exits before touching the queue, Supabase or YouTube.
   if (process.env.TTS_SMOKE_TEST === 'true') {
-    if (process.env.TTS_TEST_REQUIRE_AZURE === 'true' &&
-        (!(process.env.AZURE_SPEECH_KEY || '').trim() || !(process.env.AZURE_SPEECH_REGION || '').trim())) {
-      throw new Error('[TTS_SMOKE_TEST] AZURE_SPEECH_KEY e AZURE_SPEECH_REGION são necessários para validar o provedor principal.');
-    }
     const smokePath = path.join('/tmp', 'vetor-tts-smoke-' + process.pid + '.mp3');
     try {
       const duration = await generateVoiceover(
-        'Olá! Este é um teste de voz em português brasileiro para os vídeos do Vetor Blog.',
+        'Olá! Este é um teste de voz neural em português brasileiro para os vídeos do Vetor Blog.',
         smokePath
       );
       if (!fs.existsSync(smokePath) || fs.statSync(smokePath).size < 1000) {
-        throw new Error('[TTS_SMOKE_TEST] O provedor não produziu um MP3 válido.');
+        throw new Error('[TTS_SMOKE_TEST] Edge TTS não produziu um MP3 válido.');
       }
-      console.log('[TTS_SMOKE_TEST] Áudio válido gerado; duração=' + duration.toFixed(2) + 's. Nenhum vídeo foi publicado.');
+      console.log('[TTS_SMOKE_TEST] Edge TTS pt-BR-FranciscaNeural validado; duração=' + duration.toFixed(2) + 's. Nenhum vídeo foi publicado.');
     } finally {
       if (fs.existsSync(smokePath)) fs.unlinkSync(smokePath);
     }
