@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Review } from "@/lib/types";
+import type { Review, ReviewAvailability } from "@/lib/types";
 import { isGuideLikeSlug } from "@/lib/buying";
 
 
@@ -11,6 +11,7 @@ export default function AdminReviewsPage() {
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState<string | null>(null);
   const [publishing, setPublishing] = useState<string | null>(null);
+  const [savingAvailability, setSavingAvailability] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -57,6 +58,32 @@ export default function AdminReviewsPage() {
       alert("Erro ao excluir review.");
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleAvailabilityChange = async (
+    slug: string,
+    availability: ReviewAvailability | null,
+  ) => {
+    setSavingAvailability(slug);
+    try {
+      const res = await fetch("/api/admin/reviews", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, availability }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "Erro ao atualizar disponibilidade.");
+        return;
+      }
+      setReviews((prev) =>
+        prev.map((review) => review.slug === slug ? { ...review, availability } : review)
+      );
+    } catch {
+      alert("Erro ao atualizar disponibilidade.");
+    } finally {
+      setSavingAvailability(null);
     }
   };
 
@@ -111,7 +138,7 @@ export default function AdminReviewsPage() {
           <div>
             <span className="inline-flex rounded-full bg-[var(--amber-bg)] px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[var(--amber)]">Conteúdo editorial</span>
             <h1 className="mt-3 font-display text-3xl font-black tracking-tight lg:text-4xl">Reviews</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">Publique rascunhos, confira notas e preços e remova somente reviews que realmente não devem permanecer no site.</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">Publique rascunhos, confira notas e preços e registre a disponibilidade somente depois de confirmar o estoque no vendedor.</p>
           </div>
           <div className="rounded-xl border border-border bg-[var(--surface2)] px-4 py-3 text-right">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--muted)]">Inventário</p>
@@ -130,6 +157,7 @@ export default function AdminReviewsPage() {
                 <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">Status</th>
                 <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">Nota</th>
                 <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">Preço</th>
+                <th className="text-left px-4 py-3 font-heading font-bold text-[var(--text)]">Disponibilidade</th>
                 <th className="text-right px-4 py-3 font-heading font-bold text-[var(--text)]">Ações</th>
               </tr>
             </thead>
@@ -184,6 +212,33 @@ export default function AdminReviewsPage() {
                   </td>
                   <td className="px-4 py-3 text-[var(--text)]">
                     {review.price_new}
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      aria-label={`Disponibilidade de ${review.product}`}
+                      value={review.availability ?? ""}
+                      disabled={savingAvailability === review.slug}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        void handleAvailabilityChange(
+                          review.slug,
+                          value ? value as ReviewAvailability : null,
+                        );
+                      }}
+                      className="max-w-44 rounded-lg border border-border bg-[var(--surface2)] px-2 py-1.5 text-xs text-[var(--text)] disabled:opacity-50"
+                    >
+                      <option value="">Não informada</option>
+                      <option value="https://schema.org/InStock">Em estoque</option>
+                      <option value="https://schema.org/LimitedAvailability">Estoque limitado</option>
+                      <option value="https://schema.org/OutOfStock">Sem estoque</option>
+                      <option value="https://schema.org/SoldOut">Esgotado</option>
+                      <option value="https://schema.org/PreOrder">Pré-venda</option>
+                      <option value="https://schema.org/BackOrder">Sob encomenda</option>
+                      <option value="https://schema.org/Discontinued">Descontinuado</option>
+                    </select>
+                    {savingAvailability === review.slug && (
+                      <span className="ml-2 text-[10px] text-[var(--muted)]">Salvando...</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right space-x-3">
                     {review.status !== "published" && (

@@ -1,3 +1,4 @@
+import { isReviewAvailability } from './types';
 import type { Review, ViralArticle } from './types';
 
 const SITE_URL = 'https://www.vetor.blog';
@@ -146,6 +147,7 @@ export function generateReviewSchema(review: Review): Record<string, unknown> {
       '@type': 'Offer',
       price,
       priceCurrency: 'BRL',
+      ...(isReviewAvailability(review.availability) ? { availability: review.availability } : {}),
       ...(review.affiliate_url ? { url: review.affiliate_url } : {}),
     };
   }

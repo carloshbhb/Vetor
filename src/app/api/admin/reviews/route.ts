@@ -5,10 +5,12 @@ import {
   createReview,
   deleteReview,
   updateReviewStatus,
+  updateReviewAvailability,
 } from '@/lib/supabase';
 import { verifyAdminAuth } from '@/lib/admin-auth';
 import { markProductLinksForReview } from '@/lib/product-links';
 import { buildReviewIndexNowTargets, pingNewContent } from '@/lib/indexnow';
+import { isReviewAvailability } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
   const authError = verifyAdminAuth(request);
@@ -87,6 +89,31 @@ export async function PATCH(request: NextRequest) {
         { error: 'Missing or invalid slug field (id is not accepted; use slug)' },
         { status: 400 }
       );
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, 'availability')) {
+      const availability = body.availability;
+      if (availability !== null && !isReviewAvailability(availability)) {
+        return NextResponse.json(
+          { error: 'availability must be a supported schema.org ItemAvailability value or null' },
+          { status: 400 }
+        );
+      }
+
+      const result = await updateReviewAvailability(slug, availability);
+      if (result.error || !result.data) {
+        return NextResponse.json(
+          { error: result.error || 'Review not found' },
+          { status: result.error === 'Review not found' ? 404 : 500 }
+        );
+      }
+
+      revalidateReviewSurfaces([slug], [result.data.category || '']);
+      return NextResponse.json({
+        success: true,
+        slug,
+        availability: result.data.availability,
+      }, { status: 200 });
     }
 
     if (status !== 'draft' && status !== 'published') {

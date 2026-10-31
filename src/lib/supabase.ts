@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Review, ReviewSummary, ViralArticle, ViralArticleSummary, ViralArticleSearchSummary, Category } from './types';
+import type { Review, ReviewSummary, ViralArticle, ViralArticleSummary, ViralArticleSearchSummary, Category, ReviewAvailability } from './types';
 import { validateGeneratedViralArticle } from './content-quality';
 import { normalizeReviewCompareRows } from './review-compare';
 import { buildReviewUpdatePayload, resolveReviewWriteMode } from './review-persistence';
@@ -32,7 +32,7 @@ export function getSupabaseServiceKeyClient(): SupabaseClient | null {
 }
 
 const REVIEW_COLUMNS =
-  'slug,status,content_type,product,category,marketplace,price_old,price_new,affiliate_url,image_url,ads_enabled,meta_title,meta_description,meta_keywords,meta_reading_time,meta_canonical,meta_og_image,hero_headline_line1,hero_headline_line2,hero_headline_em,hero_lead,hero_overall_score,hero_bars,specs,sections,compare_table,pros,cons,testimonials,verdict_score,verdict_label,verdict_text,verdict_note,schema_rating_value,schema_review_count,google_rank,last_rank_check,created_at,updated_at,faq';
+  'slug,status,content_type,product,category,marketplace,price_old,price_new,affiliate_url,availability,image_url,ads_enabled,meta_title,meta_description,meta_keywords,meta_reading_time,meta_canonical,meta_og_image,hero_headline_line1,hero_headline_line2,hero_headline_em,hero_lead,hero_overall_score,hero_bars,specs,sections,compare_table,pros,cons,testimonials,verdict_score,verdict_label,verdict_text,verdict_note,schema_rating_value,schema_review_count,google_rank,last_rank_check,created_at,updated_at,faq';
 
 const REVIEW_SUMMARY_COLUMNS =
   'slug,status,content_type,product,category,marketplace,price_old,price_new,affiliate_url,image_url,ads_enabled,meta_title,meta_description,meta_keywords,meta_reading_time,meta_canonical,meta_og_image,hero_headline_line1,hero_headline_line2,hero_headline_em,hero_lead,hero_overall_score,verdict_score,verdict_label,verdict_text,verdict_note,created_at,updated_at';
@@ -53,6 +53,7 @@ export async function createReview(data: {
   verdict_score?: number;
   marketplace?: string;
   affiliate_url?: string;
+  availability?: ReviewAvailability | null;
   hero_bars?: Array<{ pct: number; label: string; value: number }>;
   specs?: Array<{ label: string; value: string; highlight: boolean }>;
   sections?: Array<{ id: string; heading: string; tocEmoji: string; tocLabel: string; content: string }>;
@@ -101,6 +102,7 @@ export async function createReview(data: {
     price_old: existing?.price_old ?? '',
     price_new: data.price_new ?? existing?.price_new ?? '',
     affiliate_url: data.affiliate_url ?? existing?.affiliate_url ?? '',
+    availability: data.availability !== undefined ? data.availability : existing?.availability ?? null,
     image_url: data.image_url ?? existing?.image_url ?? '',
     ads_enabled: existing?.ads_enabled ?? false,
     meta_title: data.meta_title ?? existing?.meta_title ?? '',
@@ -336,6 +338,46 @@ export async function getAllReviewsAdmin(): Promise<Review[]> {
   } catch (err) {
     console.error('[Supabase] getAllReviewsAdmin error:', err);
     return [];
+  }
+}
+
+
+export async function updateReviewAvailability(
+  slug: string,
+  availability: ReviewAvailability | null,
+): Promise<{
+  data: { slug: string; category: string | null; availability: ReviewAvailability | null } | null;
+  error: string | null;
+}> {
+  const supabase = getSupabaseServiceKeyClient();
+  if (!supabase) {
+    return { data: null, error: 'Supabase service client not configured' };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .update({ availability, updated_at: new Date().toISOString() })
+      .eq('slug', slug)
+      .select('slug,category,availability')
+      .maybeSingle();
+
+    if (error) return { data: null, error: error.message };
+    if (!data) return { data: null, error: 'Review not found' };
+
+    return {
+      data: {
+        slug: data.slug,
+        category: data.category ?? null,
+        availability: (data.availability as ReviewAvailability | null) ?? null,
+      },
+      error: null,
+    };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 

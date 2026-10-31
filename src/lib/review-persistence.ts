@@ -1,5 +1,5 @@
 export const REVIEW_PATCHABLE_FIELDS = [
-  'content_type', 'product', 'category', 'price_new', 'image_url',
+  'content_type', 'product', 'category', 'price_new', 'image_url', 'availability',
   'meta_title', 'meta_description', 'pros', 'cons', 'hero_overall_score',
   'verdict_score', 'marketplace', 'affiliate_url', 'hero_bars', 'specs',
   'sections', 'compare_table', 'verdict_label', 'verdict_text', 'verdict_note',

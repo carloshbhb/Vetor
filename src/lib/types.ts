@@ -43,6 +43,26 @@ export interface ReviewFaq {
   answer: string;
 }
 
+export const REVIEW_AVAILABILITY_VALUES = [
+  "https://schema.org/BackOrder",
+  "https://schema.org/Discontinued",
+  "https://schema.org/InStock",
+  "https://schema.org/InStoreOnly",
+  "https://schema.org/LimitedAvailability",
+  "https://schema.org/OnlineOnly",
+  "https://schema.org/OutOfStock",
+  "https://schema.org/PreOrder",
+  "https://schema.org/PreSale",
+  "https://schema.org/SoldOut",
+] as const;
+
+export type ReviewAvailability = (typeof REVIEW_AVAILABILITY_VALUES)[number];
+
+export function isReviewAvailability(value: unknown): value is ReviewAvailability {
+  return typeof value === "string" &&
+    REVIEW_AVAILABILITY_VALUES.includes(value as ReviewAvailability);
+}
+
 export interface ReviewTestimonial {
   name?: string;
   quote?: string;
@@ -62,6 +82,7 @@ export interface Review {
   price_old: string;
   price_new: string;
   affiliate_url: string;
+  availability?: ReviewAvailability | null;
   image_url: string;
   ads_enabled: boolean;
   meta_title: string;
