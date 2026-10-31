@@ -104,6 +104,15 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
   } catch { return false; }
 }
 
+export function getVideoScriptGenerationBudget() {
+  return {
+    // Keep two NVIDIA models inside the Vercel route's 60-second execution window.
+    timeoutMs: 27000,
+    deadlineMs: 51000,
+    maxAttemptsPerModel: 1 as const,
+  };
+}
+
 export async function generateVideoScript(product: ProductInfo): Promise<VideoScript> {
   const prompt = buildScriptPrompt(product);
   const isLong = product.videoFormat === "long";
@@ -113,8 +122,7 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     userPrompt: prompt,
     temperature: isLong ? 0.74 : 0.82,
     maxTokens: isLong ? 3000 : 2200,
-    timeoutMs: 42000,
-    deadlineMs: 52000,
+    ...getVideoScriptGenerationBudget(),
     responseFormat: { type: "json_object" },
     validateResponse: (candidate) => isDistinctScriptResponse(candidate, product),
   });

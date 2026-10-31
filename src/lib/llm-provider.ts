@@ -65,6 +65,7 @@ export async function chatCompletion(params: {
   validateResponse?: (content: string) => boolean;
   timeoutMs?: number;
   deadlineMs?: number;
+  maxAttemptsPerModel?: number;
 }): Promise<string> {
   const providers = configuredProviders();
   if (!providers.length) {
@@ -77,7 +78,8 @@ export async function chatCompletion(params: {
   for (let index = 0; index < providers.length; index += 1) {
     const provider = providers[index];
     const model = index === 0 && params.model ? params.model : provider.model;
-    const maxAttempts = params.validateResponse ? 2 : 1;
+    const requestedAttempts = params.maxAttemptsPerModel ?? (params.validateResponse ? 2 : 1);
+    const maxAttempts = Math.min(3, Math.max(1, Math.floor(requestedAttempts)));
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const remainingBeforeRequest = deadline - Date.now();
