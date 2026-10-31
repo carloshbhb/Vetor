@@ -152,9 +152,6 @@ export async function POST(request: NextRequest) {
       creativeAngle,
       recentHooksToAvoid,
       videoFormat,
-      // Leave time for response validation and persistence inside the Hobby 60s function ceiling.
-      deadlineMs: 52000,
-      timeoutMs: 42000,
     });
     const minScenes = videoFormat === "long" ? 8 : 6;
     const maxScenes = videoFormat === "long" ? 10 : 7;
