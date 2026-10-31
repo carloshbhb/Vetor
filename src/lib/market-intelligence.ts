@@ -41,9 +41,11 @@ function intentFor(keyword: string): string {
   return "comercial";
 }
 function clamp(value: number): number { return Math.max(0, Math.min(100, value)); }
-function demandScore(impressions: number, maxImpressions: number): number {
-  if (!impressions || !maxImpressions) return 5;
-  return clamp(10 + (Math.log10(impressions + 1) / Math.log10(maxImpressions + 1)) * 90);
+function demandScore(impressions: number): number {
+  if (!Number.isFinite(impressions) || impressions <= 0) return 5;
+  // Absolute scale: do not let one low-volume keyword become "high demand"
+  // merely because it is the largest row in a small Search Console sample.
+  return clamp(10 + (Math.log10(impressions + 1) / Math.log10(1001)) * 90);
 }
 function commercialScore(keyword: string): number {
   switch (intentFor(keyword)) {
@@ -57,27 +59,31 @@ function commercialScore(keyword: string): number {
 }
 function routeFor(keyword: string, reviews: Awaited<ReturnType<typeof getAllReviews>>): string {
   const q = normalize(keyword);
+
+  // Generic "best X" searches should lead to a category buying guide,
+  // never to whichever individual review happened to appear first.
+  if (/\bmelhores?\b/.test(q)) {
+    const tail = q.replace(/\bmelhores?\b/g, "").trim();
+    const categories = [...new Set(reviews.map((r) => (r.category || "").trim()).filter(Boolean))];
+    const category = categories
+      .map((value) => ({ value, normalized: normalize(value) }))
+      .filter(({ normalized }) => {
+        const tokens = normalized.split(" ").filter((token) => token.length > 2);
+        return tokens.length > 0 && tokens.filter((token) => tail.includes(token)).length >= Math.min(2, tokens.length);
+      })
+      .sort((a, b) => b.normalized.length - a.normalized.length)[0];
+    if (category) {
+      const slug = category.normalized.replace(/\s+/g, "-");
+      return "/melhores/" + slug + "/";
+    }
+  }
+
   const match = reviews.find((r) => {
     const product = normalize(r.product || "");
-    const category = normalize(r.category || "");
     const productTokens = product.split(" ").filter((x) => x.length > 2);
-    const categoryTokens = category.split(" ").filter((x) => x.length > 2);
-    const directProduct = product && (q.includes(product) || (productTokens.length >= 2 && productTokens.every((token) => q.includes(token))));
-    const categoryMatch = category && categoryTokens.length >= 1 && categoryTokens.filter((token) => q.includes(token)).length >= Math.min(2, categoryTokens.length);
-    return Boolean(directProduct || categoryMatch);
+    return Boolean(product && (q.includes(product) || (productTokens.length >= 2 && productTokens.every((token) => q.includes(token))));
   });
-  if (match) return "/reviews/" + match.slug + "/";
-  if (q.includes("melhor")) {
-    const tail = q.replace(/\bmelhores?\b/g, "").trim();
-    const candidate = reviews.some((r) => {
-      const category = normalize(r.category || "");
-      const tokens = category.split(" ").filter((x) => x.length > 2);
-      return tokens.length > 0 && tokens.filter((token) => tail.includes(token)).length >= Math.min(2, tokens.length);
-    });
-    if (!candidate) return "";
-    return tail ? "/melhores/" + tail.replace(/\s+/g, "-") + "/" : "";
-  }
-  return "";
+  return match ? "/reviews/" + match.slug + "/" : "";
 }
 
 async function fetchTrends(): Promise<MarketTrendEvent[]> {
@@ -145,7 +151,6 @@ export async function collectMarketIntelligence() {
     });
   }
 
-  const maxImpressions = Math.max(1, ...Array.from(byKeyword.values()).map(x => x.impressions));
   for (const trend of trends) {
     const normalizedTrend = normalize(trend.term);
     for (const item of byKeyword.values()) {
@@ -159,7 +164,7 @@ export async function collectMarketIntelligence() {
   }
 
   const opportunities: KeywordOpportunity[] = Array.from(byKeyword.values()).map((item) => {
-    const demand = demandScore(item.impressions, maxImpressions);
+    const demand = demandScore(item.impressions);
     const commercial = commercialScore(item.keyword);
     const position = item.impressions ? item.positionWeighted / item.impressions : null;
     const competition = position === null ? 60 : position <= 10 ? 35 : position <= 20 ? 55 : 75;
