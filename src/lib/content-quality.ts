@@ -240,6 +240,46 @@ function normalizeSearchText(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+type ProductFamily = 'robot_vacuum' | 'kitchen_appliance' | 'headphones' | 'smartphone' | 'notebook' | 'wearable' | 'gaming_controller' | 'pro_audio' | 'smart_home';
+
+function inferProductFamily(name: string): ProductFamily | null {
+  const value = normalizeSearchText(name);
+  if (/\b(robo aspirador|robot vacuum|robot w\d|robot w400)\b/.test(value)) return 'robot_vacuum';
+  if (/\b(air fryer|fritadeira|cafeteira|liquidificador|batedeira|forno eletrico|microondas|micro ondas|aspirador vertical)\b/.test(value)) return 'kitchen_appliance';
+  if (/\b(airpods|buds|headphone|fone de ouvido|melobuds|wf-\d|wave buds)\b/.test(value)) return 'headphones';
+  if (/\b(galaxy [aszm]\d|iphone|pixel \d|moto g\d|smartphone|celular)\b/.test(value)) return 'smartphone';
+  if (/\b(macbook|notebook|laptop|thinkpad|vivobook|xps \d|inspiron|nitro v)\b/.test(value)) return 'notebook';
+  if (/\b(apple watch|galaxy watch|smartwatch|smart band|smartband|fit3|fitbit)\b/.test(value)) return 'wearable';
+  if (/\b(dualsense|controle xbox|controle gamer|gamesir|nova lite|g7 se|joystick)\b/.test(value)) return 'gaming_controller';
+  if (/\b(scarlett|umc\d|interface de audio|ssl \d|microfone condensador)\b/.test(value)) return 'pro_audio';
+  if (/\b(lampada inteligente|tomada inteligente|interruptor inteligente|echo dot|echo pop|alexa|smart plug|sensor wifi)\b/.test(value)) return 'smart_home';
+  return null;
+}
+
+function validateComparisonFamilies(category: string, products: Array<{ name: string }>, ctx: z.RefinementCtx): void {
+  const classified = products.map((product) => ({ name: product.name, family: inferProductFamily(product.name) }));
+  const knownFamilies = Array.from(new Set(classified.map((product) => product.family).filter(Boolean)));
+  if (knownFamilies.length > 1) {
+    ctx.addIssue({ code: 'custom', path: ['products'], message: 'comparison products belong to incompatible product families: ' + knownFamilies.join(', ') });
+  }
+
+  const normalizedCategory = normalizeSearchText(category).replace(/[^a-z0-9]+/g, ' ').trim();
+  const expectedFamily: ProductFamily | null =
+    normalizedCategory.includes('robo aspirador') ? 'robot_vacuum' :
+    normalizedCategory.includes('eletroportateis') ? 'kitchen_appliance' :
+    normalizedCategory.includes('fone') ? 'headphones' :
+    normalizedCategory.includes('smartphone') || normalizedCategory.includes('celular') ? 'smartphone' :
+    normalizedCategory.includes('notebook') ? 'notebook' :
+    normalizedCategory.includes('wearable') || normalizedCategory.includes('smartband') ? 'wearable' :
+    normalizedCategory.includes('acessorios para games') ? 'gaming_controller' :
+    normalizedCategory.includes('audio profissional') ? 'pro_audio' :
+    normalizedCategory.includes('casa inteligente') ? 'smart_home' : null;
+
+  if (expectedFamily && classified.some((product) => product.family && product.family !== expectedFamily)) {
+    ctx.addIssue({ code: 'custom', path: ['products'], message: 'one or more products do not match the declared category: ' + category });
+  }
+}
+
 export const generatedViralQualitySchema = z
   .object({
     slug: z.string().trim().min(3, 'slug is required'),
@@ -257,6 +297,7 @@ export const generatedViralQualitySchema = z
     seo_description: z.string().trim().min(40),
   })
   .superRefine((val, ctx) => {
+    validateComparisonFamilies(val.category, val.products, ctx);
     const visibleContent = val.content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
     const visibleLength = visibleTextLength(val.content);
     if (visibleLength < MIN_VIRAL_CONTENT_LENGTH) {
