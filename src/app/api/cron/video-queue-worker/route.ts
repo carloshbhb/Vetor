@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
+import { isPublishedComparativeArticle, resolveComparativeVideoAffiliateTarget } from "@/lib/video-queue-guards";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
@@ -174,9 +175,18 @@ export async function POST(request: NextRequest) {
       const { data: articles, error: articlesError } = await supabase
         .from("viral_articles")
         .select("slug,title,category,products,published_at,updated_at")
+        .not("published_at", "is", null)
         .order("published_at", { ascending: false })
         .limit(200);
       if (articlesError) throw articlesError;
+
+      const { data: managedLinks, error: managedLinksError } = await supabase
+        .from("affiliate_links")
+        .select("slug,name,destination_url,total_clicks")
+        .eq("status", "active")
+        .order("total_clicks", { ascending: false })
+        .limit(1000);
+      if (managedLinksError) throw managedLinksError;
 
       const { data: existing, error: existingError } = await supabase
         .from("video_queue")
@@ -186,23 +196,17 @@ export async function POST(request: NextRequest) {
       const existingUrls = new Set((existing || []).map((item) => item.review_url).filter(Boolean));
 
       const candidates = (articles || []).filter((article) => {
+        if (!isPublishedComparativeArticle(article)) return false;
         if (typeof article.slug !== "string" || !article.slug.trim()) return false;
         if (typeof article.title !== "string" || !article.title.trim()) return false;
+        if (!article.published_at) return false;
         let products: unknown = article.products;
         if (typeof products === "string") {
           try { products = JSON.parse(products); } catch { return false; }
         }
         if (!Array.isArray(products) || products.length < 2) return false;
-        const validProducts = products.slice(0, 2).every((product: any) => {
-          if (!product || typeof product.name !== "string" || !product.name.trim()) return false;
-          try {
-            const image = new URL(String(product.imageUrl || ""));
-            return image.protocol === "https:" || image.protocol === "http:";
-          } catch {
-            return false;
-          }
-        });
-        if (!validProducts) return false;
+        const affiliateTarget = resolveComparativeVideoAffiliateTarget(products, managedLinks || []);
+        if (!affiliateTarget) return false;
         return !existingUrls.has(`https://www.vetor.blog/comparativos/${article.slug}/`);
       }).slice(0, limit);
 
@@ -220,17 +224,9 @@ export async function POST(request: NextRequest) {
           : "Tecnologia";
         const title = `${first.name} vs ${second.name}`;
         const comparisonUrl = `https://www.vetor.blog/comparativos/${article.slug}/`;
-        let purchaseUrl = comparisonUrl;
-        if (typeof first.product_url === "string") {
-          try {
-            const parsedProductUrl = new URL(first.product_url);
-            if (parsedProductUrl.protocol === "https:" || parsedProductUrl.protocol === "http:") {
-              purchaseUrl = parsedProductUrl.toString();
-            }
-          } catch {
-            // Keep the canonical comparison URL when the product URL is invalid.
-          }
-        }
+        const purchaseTarget = resolveComparativeVideoAffiliateTarget(products, managedLinks || []);
+        if (!purchaseTarget) continue;
+        const purchaseUrl = purchaseTarget.trackedUrl;
         const script = {
           type: "comparison",
           hook: `Antes de escolher entre ${first.name} e ${second.name}, compare os recursos documentados e as condições atuais.`,
@@ -240,12 +236,12 @@ export async function POST(request: NextRequest) {
         const { data: inserted, error: insertError } = await supabase
           .from("video_queue")
           .insert({
-            product_url: purchaseUrl,
+            product_url: purchaseTarget.destinationUrl,
             product_title: title,
             product_category: category,
             product_price: "Consulte os preços atuais dos anúncios",
-            product_image_url: first.imageUrl,
-            affiliate_url: purchaseUrl,
+            product_image_url: purchaseTarget.product.imageUrl,
+            affiliate_url: purchaseTarget.destinationUrl,
             shortened_affiliate_url: purchaseUrl,
             script_text: JSON.stringify(script),
             script_hook: script.hook,
