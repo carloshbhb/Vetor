@@ -441,7 +441,8 @@ export async function getAllViralArticleSearchSummaries(): Promise<ViralArticleS
   try {
     const { data, error } = await supabase
       .from('viral_articles')
-      .select('id,slug,title,description,category,products,seo_title,seo_description')
+      .select('id,slug,title,description,category,products,seo_title,seo_description,published_at')
+      .not('published_at', 'is', null)
       .order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) return [];
