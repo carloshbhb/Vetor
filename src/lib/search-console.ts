@@ -20,7 +20,7 @@ function getServiceAccountEmail(): string | undefined {
 
 async function getAccessToken(): Promise<string | null> {
   const email = getServiceAccountEmail();
-  const privateKey = process.env.GSC_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const privateKey = (process.env.GSC_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, "\n");
   if (!email || !privateKey) return null;
 
   const now = Math.floor(Date.now() / 1000);
@@ -116,7 +116,7 @@ export async function fetchSearchConsoleRowsForRange(
 }> {
   const siteUrl = process.env.GSC_SITE_URL;
   const email = getServiceAccountEmail();
-  const configured = Boolean(siteUrl && email && process.env.GSC_PRIVATE_KEY);
+  const configured = Boolean(siteUrl && email && (process.env.GSC_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY));
 
   if (!configured) return { configured: false, rows: [], startDate, endDate };
 
