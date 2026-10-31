@@ -41,7 +41,7 @@ function intentFor(keyword: string): string {
   return "comercial";
 }
 function clamp(value: number): number { return Math.max(0, Math.min(100, value)); }
-function demandScore(impressions: number): number {
+export function demandScore(impressions: number): number {
   if (!Number.isFinite(impressions) || impressions <= 0) return 5;
   // Absolute scale: do not let one low-volume keyword become "high demand"
   // merely because it is the largest row in a small Search Console sample.
@@ -57,7 +57,7 @@ function commercialScore(keyword: string): number {
     default: return 35;
   }
 }
-function routeFor(keyword: string, reviews: Awaited<ReturnType<typeof getAllReviews>>): string {
+export function routeFor(keyword: string, reviews: Awaited<ReturnType<typeof getAllReviews>>): string {
   const q = normalize(keyword);
 
   // Generic "best X" searches should lead to a category buying guide,
