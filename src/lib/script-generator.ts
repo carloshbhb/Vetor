@@ -128,7 +128,6 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     throw new Error("[video-script] JSON inválido: " + (error instanceof Error ? error.message : String(error)));
   }
 
-  const isLong = product.videoFormat === "long";
   const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
   const minScenes = isLong ? 8 : 6;
   const maxScenes = isLong ? 10 : 7;
