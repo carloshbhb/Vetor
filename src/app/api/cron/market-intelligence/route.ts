@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       metadata: {
         sources: item.sources,
         period: intelligence.searchConsole.period,
+        searchConsole: intelligence.searchConsole,
         relevance: {
           score: item.vetorFitScore,
           status: item.vetorFitScore >= 72 ? "relevant" : "low_fit",
@@ -87,6 +88,7 @@ export async function GET(request: Request) {
       lowFit: rows.length - relevant,
       editorialQueue: editorialActions.length,
       trends: intelligence.trends.length,
+      searchConsole: intelligence.searchConsole,
       ranAt: new Date().toISOString()
     });
   } catch (error) { return NextResponse.json({error:error instanceof Error?error.message:"Erro no ciclo de inteligência."},{status:500}); }
