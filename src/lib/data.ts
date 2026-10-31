@@ -277,7 +277,7 @@ export async function fetchReviewBySlug(slug: string): Promise<Review | null> {
 export async function fetchAllViralArticles(): Promise<ViralArticle[]> {
   try {
     const articles = await getAllViralArticles();
-    if (articles && articles.length > 0) return articles;
+    return (articles || []).filter((article) => Boolean(article.published_at));
   } catch {
     // Supabase not available
   }
@@ -286,7 +286,8 @@ export async function fetchAllViralArticles(): Promise<ViralArticle[]> {
 
 export async function fetchAllViralArticleSearchSummaries(): Promise<ViralArticleSearchSummary[]> {
   try {
-    return await getAllViralArticleSearchSummaries();
+    const articles = await getAllViralArticleSearchSummaries();
+    return (articles || []).filter((article) => Boolean(article.published_at));
   } catch (error) {
     console.error("[Data] getAllViralArticleSearchSummaries failed:", error);
     return [];
@@ -296,7 +297,7 @@ export async function fetchAllViralArticleSearchSummaries(): Promise<ViralArticl
 export async function fetchAllViralArticleSummaries(): Promise<ViralArticleSummary[]> {
   try {
     const articles = await getAllViralArticleSummaries();
-    if (articles && articles.length > 0) return articles;
+    return (articles || []).filter((article) => Boolean(article.published_at));
   } catch {
     // Supabase not available
   }
@@ -308,7 +309,7 @@ export async function fetchViralArticleBySlug(
 ): Promise<ViralArticle | null> {
   try {
     const article = await getViralArticleBySlug(slug);
-    if (article) return article;
+    if (article && article.published_at) return article;
   } catch {
     // Supabase not available
   }
