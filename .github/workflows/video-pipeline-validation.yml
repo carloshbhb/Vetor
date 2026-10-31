@@ -1,0 +1,67 @@
+name: Validate Video Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "video/**"
+      - ".github/workflows/video-pipeline-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: video-pipeline-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: video/package-lock.json
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install video dependencies
+        working-directory: video
+        run: npm ci
+
+      - name: Validate format, affiliate-link and chapter contracts
+        run: node video/scripts/video-format.test.mjs
+
+      - name: Validate worker JavaScript syntax
+        run: node --check video/scripts/process-video.mjs && node --check video/scripts/video-format.mjs
+
+      - name: Type-check Remotion project
+        working-directory: video
+        run: npx tsc --noEmit
+
+      - name: Install Remotion browser
+        working-directory: video
+        run: npx remotion browser ensure --log info
+
+      - name: Resolve Remotion compositions
+        working-directory: video
+        shell: bash
+        run: |
+          set -euo pipefail
+          ids="$(npx remotion compositions src/Root.tsx --quiet)"
+          echo "Detected Remotion compositions: $ids"
+          for expected in ReviewVideo LongReviewVideo ComparisonVideo; do
+            if ! grep -qw "$expected" <<< "$ids"; then
+              echo "::error::Missing Remotion composition: $expected"
+              exit 1
+            fi
+          done
