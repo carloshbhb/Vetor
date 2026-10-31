@@ -52,8 +52,6 @@ jobs:
           npm ci
       - name: Validate format, links and chapter contracts
         run: node video/scripts/video-format.test.mjs
-      - name: Validate TTS provider policy
-        run: node video/scripts/tts-provider-policy.test.mjs
       - name: Preinstall Remotion Chrome Headless Shell
         working-directory: video
         timeout-minutes: 15

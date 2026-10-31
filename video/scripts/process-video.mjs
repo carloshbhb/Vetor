@@ -2,7 +2,6 @@ import { execFileSync, execSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { buildCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
-import { shouldUsePaidElevenLabsFallback } from './tts-provider-policy.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -182,8 +181,6 @@ function escapeXml(value) {
 }
 
 async function generateVoiceover(text, outputPath) {
-  const elevenKey = (process.env.ELEVENLABS_API_KEY || '').trim();
-  const elevenVoiceId = (process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL').trim();
   const azureVoice = (process.env.AZURE_SPEECH_VOICE || 'pt-BR-AntonioNeural').trim();
   const azureKey = (process.env.AZURE_SPEECH_KEY || '').trim();
   const azureRegion = (process.env.AZURE_SPEECH_REGION || '').trim();
@@ -269,39 +266,6 @@ async function generateVoiceover(text, outputPath) {
         const stderr = error && typeof error === 'object' && 'stderr' in error
           ? String(error.stderr || '').replace(/\s+/g, ' ').slice(-250) : '';
         console.warn('   [TTS_FAILOVER] Edge TTS ' + voice + ' falhou: ' + (stderr || message).slice(0, 360));
-        if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-      }
-    }
-
-    if (!strictAzure && !strictEdge && !forceFallback && shouldUsePaidElevenLabsFallback({
-      apiKey: elevenKey,
-      allowPaidFallback: process.env.TTS_ALLOW_PAID_ELEVENLABS === 'true',
-    })) {
-      try {
-        const response = await fetch(
-          'https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(elevenVoiceId) + '?output_format=mp3_44100_128',
-          {
-            method: 'POST',
-            headers: { 'xi-api-key': elevenKey, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
-            body: JSON.stringify({
-              text: safeText,
-              model_id: 'eleven_multilingual_v2',
-              voice_settings: { stability: 0.38, similarity_boost: 0.78, style: 0.32, use_speaker_boost: true },
-            }),
-            signal: AbortSignal.timeout(55000),
-          }
-        );
-        if (!response.ok) {
-          const detail = (await response.text().catch(() => '')).replace(/\\s+/g, ' ').slice(0, 260);
-          throw new Error('ElevenLabs HTTP ' + response.status + (detail ? ': ' + detail : ''));
-        }
-        const audio = Buffer.from(await response.arrayBuffer());
-        if (audio.length < 1000) throw new Error('ElevenLabs retornou áudio vazio.');
-        fs.writeFileSync(tempFile, audio);
-        return finishFromTemp('ElevenLabs / eleven_multilingual_v2 (fallback pago habilitado)', elevenVoiceId);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.warn('   [TTS_FAILOVER] Fallback pago ElevenLabs falhou: ' + message);
         if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
       }
     }
@@ -908,7 +872,7 @@ async function processVideo(video) {
 async function main() {
   console.log('🎬 Iniciando processamento de vídeos...');
   console.log(`   Timestamp: ${new Date().toISOString()}`);
-  console.log('[TTS] Principal=Azure Speech neural pt-BR; fallback gratuito=Edge TTS neural; fallback pago ElevenLabs somente com opt-in explícito.');
+  console.log('[TTS] Principal=Azure Speech neural pt-BR; fallback gratuito=Edge TTS neural; último recurso offline=espeak-ng.');
 
   // Test mode generates a short local sample and exits before touching the queue, Supabase or YouTube.
   if (process.env.TTS_SMOKE_TEST === 'true') {

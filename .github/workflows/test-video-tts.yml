@@ -1,12 +1,10 @@
-name: Test Video TTS Providers
+name: Test Azure Speech and Edge TTS
 
 on:
   push:
     branches: [main]
     paths:
       - 'video/scripts/process-video.mjs'
-      - 'video/scripts/tts-provider-policy.mjs'
-      - 'video/scripts/tts-provider-policy.test.mjs'
       - '.github/workflows/process-video-queue.yml'
       - '.github/workflows/test-video-tts.yml'
   workflow_dispatch:
@@ -16,7 +14,7 @@ permissions:
 
 jobs:
   smoke-test:
-    name: Validate Azure Speech and neural failover (no publishing)
+    name: Validate Azure Speech primary and Edge neural fallback (no publishing)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -26,9 +24,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Validate paid TTS fallback opt-in policy
-        run: node video/scripts/tts-provider-policy.test.mjs
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
