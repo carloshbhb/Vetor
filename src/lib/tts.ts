@@ -110,12 +110,12 @@ export async function generateVoiceoverFromScript(
     const scene = script.scenes[i];
     const scenePath = path.join(outputDir, `scene-${i + 1}.mp3`);
     await generateVoiceover(scene.text, scenePath, options);
-    results.push({ audioPath: scenePath, duration: scene.duration, voice: options.voice || DEFAULT_VOICE });
+    results.push({ audioPath: scenePath, duration: scene.duration, voice: DEFAULT_VOICE });
   }
 
   const ctaPath = path.join(outputDir, 'cta.mp3');
   await generateVoiceover(script.callToAction, ctaPath, options);
-  results.push({ audioPath: ctaPath, duration: estimateDuration(script.callToAction), voice: options.voice || DEFAULT_VOICE });
+  results.push({ audioPath: ctaPath, duration: estimateDuration(script.callToAction), voice: DEFAULT_VOICE });
 
   return results;
 }
