@@ -226,6 +226,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, authorized: true, credentialSource: "vercel-production" });
     }
 
+    if (action === "youtubeAccessToken") {
+      const accessToken = await getProductionYouTubeAccessToken();
+      return NextResponse.json({ success: true, accessToken, credentialSource: "vercel-production" });
+    }
+
     if (action === "refreshYouTubeMetadata") {
       const offset = Math.max(0, Math.floor(Number(body.offset || 0)));
       const limit = Math.min(Math.max(Math.floor(Number(body.limit || 5)), 1), 5);

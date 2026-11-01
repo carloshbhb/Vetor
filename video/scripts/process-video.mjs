@@ -7,43 +7,22 @@ const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replac
 const CRON_SECRET = process.env.CRON_SECRET;
 
 async function verifyYouTubeOAuth() {
-  const clientId = process.env.YOUTUBE_CLIENT_ID;
-  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-  const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error('YouTube OAuth preflight failed: required client ID, client secret or refresh token is missing.');
+  const result = await queueApi("youtubeOAuthCheck");
+  if (result.authorized !== true || result.credentialSource !== "vercel-production") {
+    throw new Error("YouTube OAuth Production não foi confirmado; nenhum item da fila foi reivindicado.");
   }
-
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-    }),
-    signal: AbortSignal.timeout(12000),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || typeof result.access_token !== 'string' || !result.access_token) {
-    const reason = typeof result.error === 'string' ? result.error : `HTTP ${response.status}`;
-    throw new Error(`YouTube OAuth preflight failed (${reason}). No queue item was claimed or changed.`);
-  }
-  console.log('YouTube OAuth preflight passed.');
+  console.log("[YOUTUBE_OAUTH] Credenciais Production confirmadas no Vercel.");
 }
 
 async function createYouTubeClient() {
-  const clientId = process.env.YOUTUBE_CLIENT_ID;
-  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-  const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error('Credenciais YouTube incompletas para comentários/upload.');
+  const result = await queueApi("youtubeAccessToken");
+  if (typeof result.accessToken !== "string" || !result.accessToken) {
+    throw new Error("API Production não retornou access token válido do YouTube.");
   }
-  const { google } = await import('googleapis');
-  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
-  return google.youtube({ version: 'v3', auth: oauth2Client });
+  const { google } = await import("googleapis");
+  const oauth2Client = new google.auth.OAuth2();
+  oauth2Client.setCredentials({ access_token: result.accessToken });
+  return google.youtube({ version: "v3", auth: oauth2Client });
 }
 
 function extractYouTubeVideoId(video) {
@@ -358,13 +337,6 @@ async function renderWithRemotion(videoData, outputPath) {
   }
 }
 async function uploadToYouTube(videoPath, title, description, tags, commentText) {
-  const clientId = process.env.YOUTUBE_CLIENT_ID;
-  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-  const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
-
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error('Credenciais de upload do YouTube incompletas (YOUTUBE_CLIENT_ID/SECRET/REFRESH_TOKEN).');
-  }
 
   try {
     const youtube = await createYouTubeClient();
