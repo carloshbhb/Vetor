@@ -160,11 +160,26 @@ jobs:
           assert.ok(video.snippet?.description?.includes(process.env.EXPECTED_REVIEW_URL), "Description is missing the review URL");
           assert.ok(!String(video.snippet?.title || "").includes("#Shorts"), "Long-form title is incorrectly marked as a Short");
 
-          const duration = String(video.contentDetails?.duration || "");
-          const parsed = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/.exec(duration);
-          assert.ok(parsed, "YouTube did not return a valid duration");
-          const seconds = Number(parsed[1] || 0) * 3600 + Number(parsed[2] || 0) * 60 + Number(parsed[3] || 0);
-          assert.ok(seconds >= 180, "Uploaded video is too short to qualify as long-form: " + seconds + "s");
+          // YouTube may expose snippet/status before contentDetails.duration is ready.
+          let duration = "";
+          let seconds = 0;
+          for (let attempt = 1; attempt <= 12; attempt += 1) {
+            const refreshed = await youtube.videos.list({
+              part: ["contentDetails"],
+              id: [record.youtube_video_id],
+            });
+            duration = String(refreshed.data.items?.[0]?.contentDetails?.duration || "");
+            const parsed = /^P(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/.exec(duration);
+            if (parsed && parsed.slice(1).some((part) => part !== undefined)) {
+              seconds = Number(parsed[1] || 0) * 86400
+                + Number(parsed[2] || 0) * 3600
+                + Number(parsed[3] || 0) * 60
+                + Number(parsed[4] || 0);
+              break;
+            }
+            if (attempt < 12) await new Promise((resolve) => setTimeout(resolve, 15000));
+          }
+          assert.ok(seconds >= 180, "YouTube long-form duration is missing or below 180s after processing; raw duration=" + duration);
 
           let commentFound = false;
           for (let attempt = 1; attempt <= 3 && !commentFound; attempt += 1) {
