@@ -6,6 +6,7 @@ import {
   updateSeoActionStatus,
   updateSeoActionImpact,
   markMissingSeoActionsResolved,
+  canResolveMissingSeoActions,
   type SeoActionInput,
   type SeoActionStatus,
   type SeoActionRecord,
@@ -209,9 +210,25 @@ export async function POST(request: NextRequest) {
     })).filter((item: SeoActionInput) => item.type && item.title && item.detail);
 
     const synced = await syncSeoActions(actions);
-    const resolved = await markMissingSeoActionsResolved(actions.map((action) => action.fingerprint || ""));
+    const searchConsole = body.searchConsole && typeof body.searchConsole === "object"
+      ? body.searchConsole as Record<string, unknown>
+      : {};
+    const canResolve = canResolveMissingSeoActions({
+      configured: searchConsole.configured === true,
+      error: typeof searchConsole.error === "string" ? searchConsole.error : null,
+      rows: Number(searchConsole.rows || 0),
+      fallbackUsed: searchConsole.fallbackUsed === true,
+    });
+    const resolved = canResolve
+      ? await markMissingSeoActionsResolved(actions.map((action) => action.fingerprint || ""))
+      : 0;
     const history = await listSeoActions();
-    return NextResponse.json({ synced: synced.length, resolved, history });
+    return NextResponse.json({
+      synced: synced.length,
+      resolved,
+      resolutionSkipped: !canResolve,
+      history,
+    });
   } catch (error) {
     console.error("[admin/seo-actions] POST failed:", describeError(error));
     return NextResponse.json(

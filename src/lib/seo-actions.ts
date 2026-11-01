@@ -264,9 +264,23 @@ export async function updateSeoActionImpact(
 }
 
 
+export function canResolveMissingSeoActions(input: {
+  configured: boolean;
+  error?: string | null;
+  rows: number;
+  fallbackUsed?: boolean;
+}): boolean {
+  return input.configured === true &&
+    !input.error &&
+    Number.isFinite(input.rows) &&
+    input.rows > 0 &&
+    input.fallbackUsed !== true;
+}
+
 export async function markMissingSeoActionsResolved(
   activeFingerprints: string[]
 ): Promise<number> {
+  if (activeFingerprints.length === 0) return 0;
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return 0;
   const { data, error } = await supabase

@@ -39,7 +39,15 @@ export async function GET(request: NextRequest) {
         cookie: cookieHeader,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ actions }),
+      body: JSON.stringify({
+        actions,
+        searchConsole: {
+          configured: dashboard.searchConsole?.configured === true,
+          error: dashboard.searchConsole?.error || null,
+          rows: Number(dashboard.searchConsole?.rows || 0),
+          fallbackUsed: dashboard.searchConsole?.fallbackUsed === true,
+        },
+      }),
       cache: "no-store",
     });
     if (!syncResponse.ok) {
@@ -74,7 +82,9 @@ export async function GET(request: NextRequest) {
       noData: impact.noData || 0,
       searchConsole: {
         configured: dashboard.searchConsole?.configured === true,
+        siteUrl: dashboard.searchConsole?.siteUrl || null,
         error: typeof dashboard.searchConsole?.error === "string" ? dashboard.searchConsole.error : null,
+        fallbackUsed: dashboard.searchConsole?.fallbackUsed === true,
         rows: Number(dashboard.searchConsole?.rows || 0),
         clicks: Number(dashboard.searchConsole?.totalClicks || 0),
         impressions: Number(dashboard.searchConsole?.totalImpressions || 0),

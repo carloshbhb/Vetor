@@ -627,7 +627,9 @@ export async function GET(request: Request) {
     period: { startDate: searchConsole.startDate, endDate: searchConsole.endDate },
     searchConsole: {
       configured: searchConsole.configured,
+      siteUrl: process.env.GSC_SITE_URL || null,
       error: searchConsole.error || null,
+      fallbackUsed: searchConsole.fallbackUsed === true,
       rows: searchConsole.rows.length,
       uniqueQueries: querySummary.size,
       totalClicks: Math.round(totalClicks),

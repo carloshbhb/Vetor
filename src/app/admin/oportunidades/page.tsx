@@ -23,6 +23,8 @@ type DashboardData = {
   searchConsole: {
     configured: boolean;
     error: string | null;
+    siteUrl: string | null;
+    fallbackUsed: boolean;
     rows: number;
     uniqueQueries: number;
     totalClicks: number;
@@ -235,7 +237,15 @@ export default function OpportunitiesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
-        body: JSON.stringify({ actions: dashboard.actionQueue }),
+        body: JSON.stringify({
+          actions: dashboard.actionQueue,
+          searchConsole: {
+            configured: dashboard.searchConsole.configured,
+            error: dashboard.searchConsole.error,
+            rows: dashboard.searchConsole.rows,
+            fallbackUsed: dashboard.searchConsole.fallbackUsed,
+          },
+        }),
       });
       const syncData = await syncResponse.json().catch(() => ({}));
       if (!syncResponse.ok) {
