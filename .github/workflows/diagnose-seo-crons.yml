@@ -1,0 +1,58 @@
+name: Diagnose SEO production crons
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".run-seo-cron-diagnostics"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'ops(seo): run production cron diagnostics'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Call production market intelligence cron
+        id: market
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: https://www.vetor.blog
+        run: |
+          set -euo pipefail
+          : "${CRON_SECRET:?CRON_SECRET secret is required}"
+          code="$(curl -sS --max-time 180 -o market-intelligence.json -w '%{http_code}' \
+            "$SITE_URL/api/cron/market-intelligence" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "HTTP=$code"
+          cat market-intelligence.json
+          test "$code" = "200"
+          jq -e '.ok == true' market-intelligence.json
+
+      - name: Call production SEO cycle cron
+        id: seo
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: https://www.vetor.blog
+        run: |
+          set -euo pipefail
+          : "${CRON_SECRET:?CRON_SECRET secret is required}"
+          code="$(curl -sS --max-time 120 -o seo-cycle.json -w '%{http_code}' \
+            "$SITE_URL/api/cron/seo-cycle" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "HTTP=$code"
+          cat seo-cycle.json
+          test "$code" = "200"
+          jq -e '.ok == true' seo-cycle.json
+
+      - name: Summarize
+        if: always()
+        run: |
+          echo "=== market-intelligence ==="
+          cat market-intelligence.json 2>/dev/null || true
+          echo
+          echo "=== seo-cycle ==="
+          cat seo-cycle.json 2>/dev/null || true
