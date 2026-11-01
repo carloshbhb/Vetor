@@ -1,23 +1,23 @@
 {
   "crons": [
     {
-      "path": "/api/cron/viral-content",
+      "path": "/api/cron/viral-content/",
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/seo-cycle",
+      "path": "/api/cron/seo-cycle/",
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/cron/mercadolivre-sync",
+      "path": "/api/cron/mercadolivre-sync/",
       "schedule": "0 8 * * *"
     },
     {
-      "path": "/api/cron/market-intelligence",
+      "path": "/api/cron/market-intelligence/",
       "schedule": "30 7 * * *"
     },
     {
-      "path": "/api/cron/pinterest",
+      "path": "/api/cron/pinterest/",
       "schedule": "0 12 * * *"
     }
   ],
