@@ -54,6 +54,7 @@ export default function MercadoLivreSocialListPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -94,6 +95,22 @@ export default function MercadoLivreSocialListPage() {
     }
   };
 
+  const importToQueue = async () => {
+    setImporting(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/mercadolivre/social-list/import", { method: "POST" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Não foi possível enviar os produtos à fila.");
+      setNotice(payload.message || "Produtos enviados à fila de pesquisa.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao enviar produtos à fila.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const syncStatus = data?.sync?.status;
   const expected = data?.sync?.expected_total ?? 287;
   const imported = data?.sync?.unique_total ?? data?.total ?? 0;
@@ -114,9 +131,14 @@ export default function MercadoLivreSocialListPage() {
               Abrir lista pública no Mercado Livre ↗
             </a>
           </div>
-          <button onClick={sync} disabled={syncing} className="rounded-xl bg-[var(--amber)] px-5 py-3 text-sm font-extrabold text-black disabled:opacity-50">
-            {syncing ? "Sincronizando lista..." : "Sincronizar produtos"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={sync} disabled={syncing || importing} className="rounded-xl bg-[var(--amber)] px-5 py-3 text-sm font-extrabold text-black disabled:opacity-50">
+              {syncing ? "Sincronizando lista..." : "Sincronizar produtos"}
+            </button>
+            <button onClick={importToQueue} disabled={importing || syncing || !data?.total} className="rounded-xl border border-border bg-[var(--surface2)] px-5 py-3 text-sm font-bold disabled:opacity-50">
+              {importing ? "Enviando à fila..." : "Enviar à fila de pesquisa"}
+            </button>
+          </div>
         </div>
       </header>
 
