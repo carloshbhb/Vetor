@@ -25,7 +25,7 @@ jobs:
           : "${CRON_SECRET:?CRON_SECRET secret is required}"
           code="$(curl -sS --max-time 180 -o market-intelligence.json -w '%{http_code}' \
             "$SITE_URL/api/cron/market-intelligence" \
-            -H "Authorization: Bearer $CRON_SECRET")
+            -H "Authorization: Bearer $CRON_SECRET")"
           echo "HTTP=$code"
           cat market-intelligence.json
           test "$code" = "200"
@@ -41,7 +41,7 @@ jobs:
           : "${CRON_SECRET:?CRON_SECRET secret is required}"
           code="$(curl -sS --max-time 120 -o seo-cycle.json -w '%{http_code}' \
             "$SITE_URL/api/cron/seo-cycle" \
-            -H "Authorization: Bearer $CRON_SECRET")
+            -H "Authorization: Bearer $CRON_SECRET")"
           echo "HTTP=$code"
           cat seo-cycle.json
           test "$code" = "200"
