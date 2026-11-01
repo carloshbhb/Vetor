@@ -8,25 +8,23 @@ import os
 
 VOICE = "pt-BR-FranciscaNeural"
 
-async def generate_tts(text: str, output_path: str, voice: str = VOICE):
+async def generate_tts(text: str, output_path: str):
     """Generate TTS audio file"""
-    communicate = edge_tts.Communicate(text, voice)
+    communicate = edge_tts.Communicate(text, VOICE)
     await communicate.save(output_path)
     
     # Get file size
     size = os.path.getsize(output_path)
-    return {"path": output_path, "size": size, "voice": voice}
+    return {"path": output_path, "size": size, "voice": VOICE}
 
 async def main():
     if len(sys.argv) < 3:
-        print("Usage: python tts.py <text> <output_path> [voice]")
+        print("Usage: python tts.py <text> <output_path>")
         sys.exit(1)
     
     text = sys.argv[1]
     output_path = sys.argv[2]
-    voice = sys.argv[3] if len(sys.argv) > 3 else VOICE
-    
-    result = await generate_tts(text, output_path, voice)
+    result = await generate_tts(text, output_path)
     print(json.dumps(result))
 
 if __name__ == "__main__":
