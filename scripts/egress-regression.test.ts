@@ -102,7 +102,7 @@ assert.doesNotMatch(socialVideoWorkflow, /\n  push:/, 'code pushes must not star
 assert.match(socialVideoWorkflow, /edge-tts/);
 assert.match(socialVideoWorkflow, /pt-BR-FranciscaNeural/);
 assert.doesNotMatch(socialVideoWorkflow, /ELEVENLABS|elevenlabs|api\.elevenlabs/i, 'manual social-video rendering uses Edge TTS only');
-assert.match(edgeTtsWorkflow, /pt-BR-FranciscaNeural/);
+assert.match(processVideo, /pt-BR-FranciscaNeural/);
 assert.match(appTts, /DEFAULT_VOICE = 'pt-BR-FranciscaNeural'/);
 assert.match(appTts, /const BRAZILIAN_VOICES = \[DEFAULT_VOICE\]/);
 assert.match(pythonTts, /VOICE = "pt-BR-FranciscaNeural"/);
