@@ -40,9 +40,11 @@ jobs:
         working-directory: video
         run: npm ci
 
-      - name: Validate description rules
+      - name: Validate description rules and updater syntax
         working-directory: video
-        run: node scripts/video-format.test.mjs
+        run: |
+          node scripts/video-format.test.mjs
+          node --check scripts/update-youtube-metadata.mjs
 
       - name: Confirm authenticated production queue API
         env:

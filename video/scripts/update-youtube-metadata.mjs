@@ -79,7 +79,8 @@ function makeTrackedUrl(record, affiliate, format) {
   url.searchParams.set("utm_source", "youtube");
   url.searchParams.set("utm_medium", "video");
   url.searchParams.set("utm_campaign", (content?.type === "comparison" ? "comparison-" : "review-") + (content?.slug || "product"));
-  url.searchParams.set("utm_content", String(record.youtube_video_id || record.id).slice(0, 160));
+  url.searchParams.set("utm_content", String(record.id || record.youtube_video_id).slice(0, 160));
+  url.searchParams.set("video_id", String(record.youtube_video_id || "").slice(0, 80));
   url.searchParams.set("utm_term", format);
   url.searchParams.set("placement", "description");
   return url.toString();
@@ -246,6 +247,7 @@ async function main() {
   }
 
   const results = [];
+  let permissionBlocked = false;
   for (const item of todo) {
     const videoId = item.record.youtube_video_id;
     try {
@@ -284,6 +286,12 @@ async function main() {
       const message = String(error?.response?.data?.error?.message || error?.message || error).slice(0, 600);
       results.push({ videoId, status: "failed", error: message });
       console.error("[youtube-metadata] failed=" + videoId + " reason=" + message);
+      const reason = error?.response?.data?.error?.errors?.[0]?.reason;
+      if (Number(error?.response?.status) === 403 && (reason === "insufficientPermissions" || /insufficient.*permission|insufficient.*scope|authorization/i.test(message))) {
+        permissionBlocked = true;
+        console.error("[youtube-metadata] stopping immediately: OAuth token lacks YouTube metadata-edit permission; remaining videos were not attempted.");
+        break;
+      }
     }
   }
 
@@ -298,6 +306,7 @@ async function main() {
     planned: todo.length,
     updated,
     failed,
+    permissionBlocked,
     skipped,
     results,
   };
