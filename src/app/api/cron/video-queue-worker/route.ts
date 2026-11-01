@@ -154,12 +154,21 @@ function makeYouTubeTrackedUrl(record: Record<string, any>, affiliate: VideoAffi
   return url.toString();
 }
 
-async function getProductionYouTubeAccessToken(): Promise<string> {
+async function getProductionYouTubeAccessToken(supabase: SupabaseServiceClient): Promise<string> {
+  const { data: savedCredential, error: credentialError } = await supabase
+    .from("youtube_oauth_credentials")
+    .select("refresh_token")
+    .eq("provider", "youtube")
+    .maybeSingle();
+  if (credentialError) throw credentialError;
+
+  // Use the latest consented token saved by the admin OAuth callback. Keep the
+  // Vercel environment variable as a one-time migration fallback only.
+  const refreshToken = String(savedCredential?.refresh_token || process.env.YOUTUBE_REFRESH_TOKEN || "").trim();
   const clientId = process.env.YOUTUBE_CLIENT_ID;
   const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-  const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
   if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error("YouTube OAuth Production credentials are incomplete.");
+    throw new Error("YouTube OAuth Production credentials are incomplete. Reconnect the channel in /admin/videos.");
   }
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -175,7 +184,7 @@ async function getProductionYouTubeAccessToken(): Promise<string> {
   const data = await response.json().catch(() => ({})) as Record<string, any>;
   if (!response.ok || typeof data.access_token !== "string" || !data.access_token) {
     const reason = typeof data.error === "string" ? data.error : "HTTP " + response.status;
-    throw new Error("YouTube OAuth Production failed (" + reason + ").");
+    throw new Error("YouTube OAuth Production failed (" + reason + "). Reconnect the channel in /admin/videos.");
   }
   return data.access_token;
 }
@@ -222,12 +231,12 @@ export async function POST(request: NextRequest) {
 
 
     if (action === "youtubeOAuthCheck") {
-      await getProductionYouTubeAccessToken();
+      await getProductionYouTubeAccessToken(supabase);
       return NextResponse.json({ success: true, authorized: true, credentialSource: "vercel-production" });
     }
 
     if (action === "youtubeAccessToken") {
-      const accessToken = await getProductionYouTubeAccessToken();
+      const accessToken = await getProductionYouTubeAccessToken(supabase);
       return NextResponse.json({ success: true, accessToken, credentialSource: "vercel-production" });
     }
 
@@ -254,7 +263,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, offset, total, updated: 0, failed: 0, skipped: 0, done: true });
       }
 
-      const accessToken = await getProductionYouTubeAccessToken();
+      const accessToken = await getProductionYouTubeAccessToken(supabase);
       const ids = batch.map((record) => String(record.youtube_video_id || "")).filter(Boolean);
       const listParams = new URLSearchParams({ part: "snippet", id: ids.join(",") });
       const videoData = await youtubeApiRequest("videos?" + listParams.toString(), accessToken);

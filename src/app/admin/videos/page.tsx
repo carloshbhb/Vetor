@@ -85,6 +85,20 @@ export default function AdminVideosPage() {
 
   useEffect(() => {
     void loadVideos(0);
+    const params = new URLSearchParams(window.location.search);
+    const oauthStatus = params.get("youtube_oauth");
+    const oauthReason = params.get("reason");
+    if (oauthStatus === "connected") {
+      setNotice("Canal do YouTube conectado. O novo token foi salvo com segurança no ambiente do Vetor.");
+    } else if (oauthStatus === "error") {
+      setError("Não foi possível conectar o YouTube (" + String(oauthReason || "erro_oauth") + "). Confira o redirect URI e as permissões OAuth.");
+    }
+    if (oauthStatus) {
+      params.delete("youtube_oauth");
+      params.delete("reason");
+      const next = params.toString() ? window.location.pathname + "?" + params.toString() : window.location.pathname;
+      window.history.replaceState({}, "", next);
+    }
   }, [loadVideos]);
 
   const createVideoJobs = async (body: Record<string, unknown>, successMessage: (payload: Record<string, unknown>) => string) => {
@@ -178,12 +192,18 @@ export default function AdminVideosPage() {
             <h1 className="mt-3 font-display text-3xl font-black tracking-tight lg:text-4xl">Fila de vídeos</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">Acompanhe o que está pendente, em processamento, concluído ou com falha e aja somente nos itens que precisam de intervenção.</p>
           </div>
-          <button
-          type="button"
-          onClick={() => void loadVideos(page)}
-          disabled={loading}
-          className="rounded-xl border border-border px-4 py-2.5 text-sm hover:bg-[var(--surface2)] disabled:opacity-50"
-        >Atualizar fila</button>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="/api/admin/youtube-oauth/start"
+              className="rounded-xl border border-[var(--amber)]/40 px-4 py-2.5 text-sm font-semibold text-[var(--amber)] hover:bg-[var(--amber)]/10"
+            >Conectar / renovar YouTube</a>
+            <button
+              type="button"
+              onClick={() => void loadVideos(page)}
+              disabled={loading}
+              className="rounded-xl border border-border px-4 py-2.5 text-sm hover:bg-[var(--surface2)] disabled:opacity-50"
+            >Atualizar fila</button>
+          </div>
         </div>
       </header>
 
