@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'video/scripts/process-video.mjs'
+      - 'scripts/tts.py'
+      - 'src/lib/tts.ts'
+      - '.github/workflows/create-remotion-edge-video.yml'
       - '.github/workflows/process-video-queue.yml'
       - '.github/workflows/test-video-tts.yml'
   workflow_dispatch:
@@ -39,6 +42,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           python -m pip install --disable-pip-version-check edge-tts
+
+      - name: Test the application Edge TTS wrapper
+        run: |
+          set -euo pipefail
+          python scripts/tts.py "Teste de voz neural do Vetor." /tmp/vetor-edge-wrapper.mp3 > /tmp/vetor-edge-wrapper.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path("/tmp/vetor-edge-wrapper.json").read_text())
+          audio = Path("/tmp/vetor-edge-wrapper.mp3")
+          assert result.get("voice") == "pt-BR-FranciscaNeural", result
+          assert audio.exists() and audio.stat().st_size > 1000, "Edge TTS wrapper did not create a valid MP3"
+          print("PASS: Python wrapper generated Edge TTS pt-BR-FranciscaNeural.")
+          PY
+          ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 /tmp/vetor-edge-wrapper.mp3
 
       - name: Test the only configured neural voice
         run: TTS_SMOKE_TEST=true node video/scripts/process-video.mjs
