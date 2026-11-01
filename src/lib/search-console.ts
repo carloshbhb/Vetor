@@ -18,10 +18,41 @@ function getServiceAccountEmail(): string | undefined {
   return process.env.GSC_CLIENT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
 }
 
-async function getAccessToken(): Promise<string | null> {
+function describeGoogleOAuthError(status: number, raw: string): string {
+  let code = "";
+  let description = "";
+  try {
+    const payload = JSON.parse(raw) as {
+      error?: string | { status?: string; message?: string };
+      error_description?: string;
+    };
+    code = typeof payload.error === "string"
+      ? payload.error
+      : typeof payload.error?.status === "string"
+        ? payload.error.status
+        : "";
+    description = payload.error_description ||
+      (typeof payload.error === "object" ? payload.error.message || "" : "");
+  } catch {
+    description = raw;
+  }
+
+  const detail = [code, description]
+    .filter(Boolean)
+    .join(": ")
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]")
+    .slice(0, 180);
+
+  return `OAuth Google respondeu HTTP ${status}${detail ? `: ${detail}` : ""}.`;
+}
+
+async function getAccessToken(): Promise<{ token: string | null; error?: string }> {
   const email = getServiceAccountEmail();
   const privateKey = (process.env.GSC_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, "\n");
-  if (!email || !privateKey) return null;
+  if (!email || !privateKey) {
+    return { token: null, error: "Credenciais do service account ausentes no ambiente Production." };
+  }
 
   const now = Math.floor(Date.now() / 1000);
   const header = base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
@@ -50,9 +81,14 @@ async function getAccessToken(): Promise<string | null> {
     cache: "no-store",
   });
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    const raw = await response.text().catch(() => "");
+    return { token: null, error: describeGoogleOAuthError(response.status, raw) };
+  }
   const data = (await response.json()) as { access_token?: string };
-  return data.access_token || null;
+  return data.access_token
+    ? { token: data.access_token }
+    : { token: null, error: "OAuth Google respondeu sem access_token." };
 }
 
 function shiftDate(date: Date, days: number): Date {
@@ -121,18 +157,18 @@ export async function fetchSearchConsoleRowsForRange(
   if (!configured) return { configured: false, rows: [], startDate, endDate };
 
   try {
-    const token = await getAccessToken();
-    if (!token) {
+    const auth = await getAccessToken();
+    if (!auth.token) {
       return {
         configured: true,
         rows: [],
         startDate,
         endDate,
-        error: "Não foi possível obter o token do Google.",
+        error: auth.error || "Não foi possível obter o token do Google.",
       };
     }
 
-    const result = await querySearchConsole(siteUrl!, token, startDate, endDate);
+    const result = await querySearchConsole(siteUrl!, auth.token, startDate, endDate);
     return {
       configured: true,
       rows: result.rows,

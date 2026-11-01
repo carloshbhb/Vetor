@@ -72,6 +72,14 @@ export async function GET(request: NextRequest) {
       measured: impact.measured || 0,
       waiting: impact.waiting || 0,
       noData: impact.noData || 0,
+      searchConsole: {
+        configured: dashboard.searchConsole?.configured === true,
+        error: typeof dashboard.searchConsole?.error === "string" ? dashboard.searchConsole.error : null,
+        rows: Number(dashboard.searchConsole?.rows || 0),
+        clicks: Number(dashboard.searchConsole?.totalClicks || 0),
+        impressions: Number(dashboard.searchConsole?.totalImpressions || 0),
+        period: dashboard.period || null,
+      },
       ranAt: new Date().toISOString(),
     });
   } catch (error) {
