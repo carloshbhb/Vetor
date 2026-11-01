@@ -12,7 +12,6 @@ permissions:
 
 jobs:
   diagnose:
-    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'ops(seo): run production cron diagnostics'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
