@@ -21,7 +21,7 @@ const videoQueueWorker = read('src/app/api/cron/video-queue-worker/route.ts');
 const processVideo = read('video/scripts/process-video.mjs');
 const dailyReviewWorkflow = read('.github/workflows/generate-daily-review.yml');
 const remotionRenderWorkflow = read('.github/workflows/remotion-render.yml');
-const socialVideoWorkflow = read('.github/workflows/create-remotion-elevenlabs-video.yml');
+const socialVideoWorkflow = read('.github/workflows/create-remotion-edge-video.yml');
 const processVideoQueueWorkflow = read('.github/workflows/process-video-queue.yml');
 const slugReader = data.match(/export async function fetchReviewBySlug[\s\S]*?\n}\n/);
 
@@ -94,8 +94,8 @@ assert.match(dailyReviewWorkflow, /\n  workflow_dispatch:/, 'daily review remain
 assert.doesNotMatch(dailyReviewWorkflow, /\n  push:/, 'code pushes must not run extra Supabase reads');
 assert.match(remotionRenderWorkflow, /\n  workflow_dispatch:/, 'manual Remotion renders remain available');
 assert.doesNotMatch(remotionRenderWorkflow, /\n  push:/, 'code pushes must not start extra video renders');
-assert.match(socialVideoWorkflow, /\n  workflow_dispatch:/, 'manual Remotion/ElevenLabs social-video renders remain available');
-assert.doesNotMatch(socialVideoWorkflow, /\n  push:/, 'code pushes must not start one-off Remotion/ElevenLabs renders');
+assert.match(socialVideoWorkflow, /\n  workflow_dispatch:/, 'manual Remotion/Edge TTS social-video renders remain available');
+assert.doesNotMatch(socialVideoWorkflow, /\n  push:/, 'code pushes must not start one-off Remotion/Edge TTS renders');
 assert.match(dailyReviewWorkflow, /github\.event_name == 'workflow_dispatch' && inputs\.dry_run/, 'manual review dispatch controls dry-run behavior');
 assert.match(processVideoQueueWorkflow, /\n  schedule:/, 'video queue remains scheduled');
 assert.match(processVideoQueueWorkflow, /\n  workflow_dispatch:/, 'video queue remains manually triggerable');
