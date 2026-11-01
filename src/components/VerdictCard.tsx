@@ -1,5 +1,6 @@
 import SafeImage from './SafeImage';
 import { safeImageSrc } from '@/lib/images';
+import { buildSiteTrackedAffiliateUrl } from '@/lib/affiliate-attribution';
 
 type VerdictCardProps = {
   product: string;
@@ -124,7 +125,7 @@ export default function VerdictCard({
       {affiliateSlug && (
         <a
           className="cta cta--primary-buy"
-          href={`/go/${affiliateSlug}/`}
+          href={buildSiteTrackedAffiliateUrl(`/go/${affiliateSlug}/`, { pageSlug: affiliateSlug, placement: 'hero', contentId: `${affiliateSlug}:hero` })}
           data-aff-pos="hero"
           data-aff-variant="hero-primary"
           target="_blank"

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ProductLink } from '@/lib/product-links';
 import type { ReviewSummary } from '@/lib/types';
 import { marketplaceLabel } from '@/lib/buying';
+import { buildSiteTrackedAffiliateUrl } from '@/lib/affiliate-attribution';
 
 type RelatedCommercialItem = {
   link: ProductLink;
@@ -15,8 +16,10 @@ function formatPrice(value: number | null): string | null {
 
 export default function RelatedCommercialProducts({
   items,
+  sourceReviewSlug,
 }: {
   items: RelatedCommercialItem[];
+  sourceReviewSlug?: string;
 }) {
   if (items.length === 0) return null;
 
@@ -57,7 +60,9 @@ export default function RelatedCommercialProducts({
                 </Link>
                 <a
                   className="cta cta--primary-buy"
-                  href={'/go/' + link.slug + '/'}
+                  href={sourceReviewSlug
+                    ? buildSiteTrackedAffiliateUrl('/go/' + link.slug + '/', { pageSlug: sourceReviewSlug, placement: 'related-' + link.slug, contentId: sourceReviewSlug + ':related:' + link.slug, term: link.slug })
+                    : '/go/' + link.slug + '/'}
                   data-aff-pos={'related-' + link.slug}
                   target="_blank"
                   rel="sponsored nofollow noopener"

@@ -13,6 +13,7 @@ import AdPlacement from "@/components/AdPlacement";
 import { ReviewSchema, FAQSchema, BreadcrumbSchema } from "@/components/SchemaMarkup";
 import { fetchReviewBySlug, fetchAllReviewSummaries, fetchAllLandingPageSummaries, fetchAllViralArticleSummaries, normalizeCategoryName, fetchProductLinksByReviewSlug, fetchReviewedProductLinksByCategory, fetchAffiliateLinksBySlugs, fetchAffiliateLinksForReview, fetchAffiliateLinksForProductNames } from "@/lib/public-data";
 import { resolveOgImage, serializeJsonLd } from "@/lib/seo";
+import { buildSiteTrackedAffiliateUrl } from "@/lib/affiliate-attribution";
 import type { Review, ReviewSummary } from "@/lib/types";
 import AuthorBox from "@/components/AuthorBox";
 import { primaryAuthor } from "@/data/authors";
@@ -577,7 +578,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 <section id="produto-analisado" className="review-featured-product" aria-labelledby="produto-analisado-heading">
                   <div className="section-kicker">Decisão de compra</div>
                   <h2 id="produto-analisado-heading">Produto analisado</h2>
-                  <BuyingChoiceCard review={review} rank={1} context="review" />
+                  <BuyingChoiceCard review={review} rank={1} context="review" trackingPageSlug={review.slug} />
                 </section>
               )}
 
@@ -778,7 +779,7 @@ export default async function ReviewPage({ params }: PageProps) {
               )}
 
               {!isGuia && relatedCommercial.length > 0 && (
-                <RelatedCommercialProducts items={relatedCommercial} />
+                <RelatedCommercialProducts items={relatedCommercial} sourceReviewSlug={review.slug} />
               )}
 
               {!isGuia && compareRows.length > 0 && (
@@ -820,7 +821,7 @@ export default async function ReviewPage({ params }: PageProps) {
                                   {compareAffiliateForColumn[i]?.status === "active" && compareAffiliateForColumn[i]?.destination_url.trim() && (
                                     <Link
                                       className="compare-product-buy"
-                                      href={"/go/" + compareAffiliateForColumn[i]!.slug + "/"}
+                                      href={buildSiteTrackedAffiliateUrl("/go/" + compareAffiliateForColumn[i]!.slug + "/", { pageSlug: review.slug, placement: "review-compare-" + review.slug + "-" + i, contentId: review.slug + ":compare:" + i, term: compareAffiliateForColumn[i]!.slug })}
                                       data-aff-pos={"review-compare-" + review.slug + "-" + i}
                                     >
                                       Ver preço →
@@ -986,7 +987,7 @@ export default async function ReviewPage({ params }: PageProps) {
                 {review.affiliate_url && (
                   <a
                     className="cta"
-                    href={`/go/${review.slug}/`}
+                    href={buildSiteTrackedAffiliateUrl(`/go/${review.slug}/`, { pageSlug: review.slug, placement: "sidebar", contentId: review.slug + ":sidebar" })}
                     data-aff-pos="sidebar"
                     target="_blank"
                     rel="sponsored nofollow noopener"
@@ -1017,7 +1018,7 @@ export default async function ReviewPage({ params }: PageProps) {
         </section>
       </main>
 
-      {review.affiliate_url && <StickyBuyBar affiliateSlug={review.slug} price={review.price_new} />}
+      {review.affiliate_url && <StickyBuyBar affiliateSlug={review.slug} trackingPageSlug={review.slug} price={review.price_new} />}
     </>
   );
 }

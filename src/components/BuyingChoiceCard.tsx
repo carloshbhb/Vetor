@@ -3,6 +3,7 @@ import SafeImage from './SafeImage';
 import { safeImageSrc } from '@/lib/images';
 import type { ReviewSummary } from '@/lib/types';
 import { getBuyingIntentLabel, marketplaceLabel, reviewScore, type BuyingIntent } from '@/lib/buying';
+import { buildSiteTrackedAffiliateUrl } from '@/lib/affiliate-attribution';
 
 const br = (n: number) => String(n).replace('.', ',');
 
@@ -15,6 +16,7 @@ export default function BuyingChoiceCard({
   ctaHref,
   ctaLabel,
   ctaPos,
+  trackingPageSlug,
 }: {
   review: ReviewSummary;
   rank: number;
@@ -24,6 +26,7 @@ export default function BuyingChoiceCard({
   ctaHref?: string;
   ctaLabel?: string;
   ctaPos?: string;
+  trackingPageSlug?: string;
 }) {
   const score = reviewScore(review);
   const label = context === 'review'
@@ -38,6 +41,9 @@ export default function BuyingChoiceCard({
   const finalCtaHref = ctaHref || `/go/${review.slug}/`;
   const finalCtaLabel = ctaLabel || (review.price_new ? 'Conferir preço' : 'Ver preço');
   const finalCtaPos = ctaPos || 'melhores-' + (intent || 'geral') + '-' + rank;
+  const trackedCtaHref = trackingPageSlug
+    ? buildSiteTrackedAffiliateUrl(finalCtaHref, { pageSlug: trackingPageSlug, placement: finalCtaPos, contentId: `${trackingPageSlug}:${finalCtaPos}` })
+    : finalCtaHref;
 
   return (
     <article className={'buying-choice' + (rank === 1 ? ' buying-choice--featured' : '')}>
@@ -70,7 +76,7 @@ export default function BuyingChoiceCard({
           {canBuy ? (
             <a
               className="cta cta--primary-buy"
-              href={finalCtaHref}
+              href={trackedCtaHref}
               data-aff-pos={finalCtaPos}
               target="_blank"
               rel="sponsored nofollow noopener"

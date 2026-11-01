@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { buildSiteTrackedAffiliateUrl } from '@/lib/affiliate-attribution';
 import { parseReviewPrice } from '@/lib/buying';
 import type { Review } from '@/lib/types';
 import type { MarketplaceOffer } from '@/lib/buying';
@@ -56,6 +57,7 @@ export default function BuyingEngine({
           const isValidHref = /^\/|^https:\/\//i.test(offer.href);
           const price = parseReviewPrice(offer.price);
           const isLowestPrice = price !== null && lowestPrice !== null && price === lowestPrice;
+          const trackedHref = buildSiteTrackedAffiliateUrl(offer.href, { pageSlug: review.slug, placement: 'buying-' + offer.marketplace, contentId: `${review.slug}:buying:${offer.marketplace}`, term: offer.marketplace });
 
           return (
             <article className={`buying-offer${isLowestPrice ? ' buying-offer--best' : ''}`} key={offer.marketplace + '-' + offer.href}>
@@ -71,7 +73,7 @@ export default function BuyingEngine({
               {isValidHref ? (
                 <a
                   className="cta cta--primary-buy"
-                  href={offer.href}
+                  href={trackedHref}
                   data-aff-pos={'buying-' + offer.marketplace}
                   target="_blank"
                   rel={offer.isAffiliate ? 'sponsored nofollow noopener' : 'nofollow noopener'}

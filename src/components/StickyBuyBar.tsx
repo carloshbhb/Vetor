@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect } from 'react';
+import { buildSiteTrackedAffiliateUrl } from '@/lib/affiliate-attribution';
 
 type StickyBuyBarProps = {
   affiliateSlug: string;
   label?: string;
   price?: string;
+  trackingPageSlug?: string;
 };
 
-export default function StickyBuyBar({ affiliateSlug, label, price }: StickyBuyBarProps) {
+export default function StickyBuyBar({ affiliateSlug, label, price, trackingPageSlug }: StickyBuyBarProps) {
   const ctaLabel = label || (price ? 'Ver oferta e preço' : 'Ver preço e disponibilidade');
   useEffect(() => {
     const bar = document.querySelector('.mobile-cta');
@@ -48,7 +50,7 @@ export default function StickyBuyBar({ affiliateSlug, label, price }: StickyBuyB
       </div>
       <a
         className="cta cta--primary-buy"
-        href={`/go/${affiliateSlug}/`}
+        href={buildSiteTrackedAffiliateUrl(`/go/${affiliateSlug}/`, { pageSlug: trackingPageSlug || affiliateSlug, placement: 'sticky-mobile', contentId: `${trackingPageSlug || affiliateSlug}:sticky-mobile` })}
         data-aff-pos="sticky-mobile"
         target="_blank"
         rel="sponsored nofollow noopener"
