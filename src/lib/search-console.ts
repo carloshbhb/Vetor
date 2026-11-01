@@ -157,8 +157,15 @@ export async function fetchSearchConsoleRows(): Promise<{
   startDate: string;
   endDate: string;
   error?: string;
+  fallbackUsed?: boolean;
 }> {
   const endDate = dateDaysAgo(2);
-  const startDate = dateDaysAgo(29);
-  return fetchSearchConsoleRowsForRange(startDate, endDate);
+  const recentStartDate = dateDaysAgo(29);
+  const recent = await fetchSearchConsoleRowsForRange(recentStartDate, endDate);
+  if (!recent.configured || recent.error || recent.rows.length > 0) return recent;
+
+  // When the newest 28 settled days have no impressions, use a 90-day
+  // recovery window so the opportunity engine can still work from recent history.
+  const extended = await fetchSearchConsoleRowsForRange(dateDaysAgo(90), endDate);
+  return { ...extended, fallbackUsed: true };
 }
