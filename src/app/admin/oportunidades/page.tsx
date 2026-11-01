@@ -25,7 +25,12 @@ type DashboardData = {
     error: string | null;
     siteUrl: string | null;
     fallbackUsed: boolean;
+    totalsError: string | null;
+    totalsSource: "property_aggregate" | "page_rows_fallback" | "query_page_fallback";
     rows: number;
+    pageRows: number;
+    queryVisibleImpressions: number;
+    unlistedImpressions: number;
     uniqueQueries: number;
     totalClicks: number;
     totalImpressions: number;
@@ -242,7 +247,7 @@ export default function OpportunitiesPage() {
           searchConsole: {
             configured: dashboard.searchConsole.configured,
             error: dashboard.searchConsole.error,
-            rows: dashboard.searchConsole.rows,
+            rows: dashboard.searchConsole.rows + dashboard.searchConsole.pageRows,
             fallbackUsed: dashboard.searchConsole.fallbackUsed,
           },
         }),
@@ -920,10 +925,20 @@ export default function OpportunitiesPage() {
               </p>
             </div>
             <div className="text-xs text-[var(--muted)]">
-              {numberFormatter.format(data.searchConsole.rows)} combinações query + página
+              {numberFormatter.format(data.searchConsole.rows)} combinações query + página · {numberFormatter.format(data.searchConsole.pageRows)} páginas agregadas
             </div>
           </div>
 
+          {data.searchConsole.unlistedImpressions > 0 && (
+            <p className="mb-4 rounded-lg border border-border bg-[var(--surface2)] px-3 py-2 text-xs text-[var(--muted)]">
+              {numberFormatter.format(data.searchConsole.unlistedImpressions)} impressões do total agregado da propriedade não aparecem nas combinações query + página retornadas. O total usa a consulta agregada do Google; as oportunidades por palavra-chave usam as linhas detalhadas disponíveis.
+            </p>
+          )}
+          {data.searchConsole.totalsError && (
+            <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-[var(--muted)]">
+              Não foi possível obter o total agregado da propriedade; os totais apresentados usam as linhas por página/consulta.
+            </p>
+          )}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             {[
               ["Impressões", numberFormatter.format(data.searchConsole.totalImpressions)],

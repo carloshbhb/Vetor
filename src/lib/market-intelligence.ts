@@ -1,4 +1,4 @@
-import { fetchSearchConsoleRows } from "@/lib/search-console";
+import { fetchSearchConsoleRows, resolveSearchConsoleMetrics } from "@/lib/search-console";
 import { getAllReviews } from "@/lib/supabase";
 
 export type MarketTrendEvent = {
@@ -119,6 +119,7 @@ async function fetchSuggestions(seed: string): Promise<string[]> {
 
 export async function collectMarketIntelligence() {
   const [gsc, reviews, trends] = await Promise.all([fetchSearchConsoleRows(), getAllReviews(), fetchTrends()]);
+  const gscMetrics = resolveSearchConsoleMetrics(gsc.totals, gsc.pageRows, gsc.rows);
   const byKeyword = new Map<string, { keyword: string; impressions: number; clicks: number; positionWeighted: number; sources: Set<string>; trendScore: number }>();
 
   for (const row of gsc.rows) {
@@ -187,5 +188,17 @@ export async function collectMarketIntelligence() {
     };
   }).sort((a,b)=>b.opportunityScore-a.opportunityScore).slice(0, 250);
 
-  return { opportunities, trends: trends.slice(0, 50), searchConsole: { configured: gsc.configured, rowCount: gsc.rows.length, error: gsc.error || null, fallbackUsed: Boolean(gsc.fallbackUsed), period: { startDate: gsc.startDate, endDate: gsc.endDate } } };
+  return {
+    opportunities, trends: trends.slice(0, 50),
+    searchConsole: {
+      configured: gsc.configured, siteUrl: process.env.GSC_SITE_URL || null,
+      rowCount: gsc.rows.length, pageRowCount: gsc.pageRows.length,
+      totalClicks: gscMetrics.totalClicks, totalImpressions: gscMetrics.totalImpressions,
+      queryVisibleClicks: gscMetrics.queryVisibleClicks, queryVisibleImpressions: gscMetrics.queryVisibleImpressions,
+      unlistedClicks: gscMetrics.unlistedClicks, unlistedImpressions: gscMetrics.unlistedImpressions,
+      totalsSource: gscMetrics.totalsSource, totalsError: gsc.totalsError || null, pageRowsError: gsc.pageRowsError || null,
+      error: gsc.error || null, fallbackUsed: Boolean(gsc.fallbackUsed),
+      period: { startDate: gsc.startDate, endDate: gsc.endDate },
+    },
+  };
 }

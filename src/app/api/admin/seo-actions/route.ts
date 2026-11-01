@@ -131,8 +131,8 @@ async function measureActionImpact(item: SeoActionRecord) {
   const beforeStart = shiftDate(beforeEnd, -(periodDays - 1));
 
   const ranges = await Promise.all([
-    fetchSearchConsoleRowsForRange(formatDate(beforeStart), formatDate(beforeEnd)),
-    fetchSearchConsoleRowsForRange(formatDate(afterStart), formatDate(afterEnd)),
+    fetchSearchConsoleRowsForRange(formatDate(beforeStart), formatDate(beforeEnd), { includeAggregates: false }),
+    fetchSearchConsoleRowsForRange(formatDate(afterStart), formatDate(afterEnd), { includeAggregates: false }),
   ]);
 
   if (ranges.some((range) => !range.configured || range.error)) {

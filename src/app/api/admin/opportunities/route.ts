@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { fetchAllReviews, fetchAllViralArticles } from "@/lib/data";
 import { buildBuyingGuideCategories, buildBuyingIntentPages } from "@/lib/buying";
-import { fetchSearchConsoleRows } from "@/lib/search-console";
+import { fetchSearchConsoleRows, resolveSearchConsoleMetrics } from "@/lib/search-console";
 import { createSeoActionFingerprint } from "@/lib/seo-actions";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 
@@ -162,57 +162,33 @@ export async function GET(request: Request) {
     const impressions = row.impressions || 0;
     const clicks = row.clicks || 0;
     const position = row.position || 0;
-
-    if (query) {
-      const current = querySummary.get(query) || {
-        impressions: 0,
-        clicks: 0,
-        positionWeighted: 0,
-      };
-      current.impressions += impressions;
-      current.clicks += clicks;
-      current.positionWeighted += position * impressions;
-      querySummary.set(query, current);
-
-      if (page) {
-        const byPage = queryPages.get(query) || new Map<string, SummaryItem>();
-        const currentPage = byPage.get(page) || {
-          impressions: 0,
-          clicks: 0,
-          positionWeighted: 0,
-        };
-        currentPage.impressions += impressions;
-        currentPage.clicks += clicks;
-        currentPage.positionWeighted += position * impressions;
-        byPage.set(page, currentPage);
-        queryPages.set(query, byPage);
-      }
-    }
-
+    if (!query) continue;
+    const current = querySummary.get(query) || { impressions: 0, clicks: 0, positionWeighted: 0 };
+    current.impressions += impressions; current.clicks += clicks;
+    current.positionWeighted += position * impressions;
+    querySummary.set(query, current);
     if (page) {
-      const current = pageSummary.get(page) || {
-        impressions: 0,
-        clicks: 0,
-        positionWeighted: 0,
-      };
-      current.impressions += impressions;
-      current.clicks += clicks;
-      current.positionWeighted += position * impressions;
-      pageSummary.set(page, current);
+      const byPage = queryPages.get(query) || new Map<string, SummaryItem>();
+      const currentPage = byPage.get(page) || { impressions: 0, clicks: 0, positionWeighted: 0 };
+      currentPage.impressions += impressions; currentPage.clicks += clicks;
+      currentPage.positionWeighted += position * impressions;
+      byPage.set(page, currentPage); queryPages.set(query, byPage);
     }
   }
-  const totalImpressions = searchConsole.rows.reduce(
-    (sum, row) => sum + (row.impressions || 0),
-    0
-  );
-  const totalClicks = searchConsole.rows.reduce(
-    (sum, row) => sum + (row.clicks || 0),
-    0
-  );
-  const weightedPosition = searchConsole.rows.reduce(
-    (sum, row) => sum + (row.position || 0) * (row.impressions || 0),
-    0
-  );
+  const effectivePageRows = searchConsole.pageRows.length ? searchConsole.pageRows :
+    searchConsole.rows.map((row) => ({ ...row, keys: [row.keys?.[1] || ""] }));
+  for (const row of effectivePageRows) {
+    const page = row.keys?.[0] || "";
+    if (!page) continue;
+    const current = pageSummary.get(page) || { impressions: 0, clicks: 0, positionWeighted: 0 };
+    current.impressions += row.impressions || 0; current.clicks += row.clicks || 0;
+    current.positionWeighted += (row.position || 0) * (row.impressions || 0);
+    pageSummary.set(page, current);
+  }
+  const gscMetrics = resolveSearchConsoleMetrics(searchConsole.totals, searchConsole.pageRows, searchConsole.rows);
+  const totalImpressions = gscMetrics.totalImpressions;
+  const totalClicks = gscMetrics.totalClicks;
+  const weightedPosition = gscMetrics.averagePosition * totalImpressions;
 
   const topQueries = Array.from(querySummary.entries())
     .map(([query, item]) => ({
@@ -559,32 +535,16 @@ export async function GET(request: Request) {
       action: (row.position || 0) <= 10 ? "Melhorar CTR" : "Reforçar relevância",
     }));
 
-  const pageOpportunities = searchConsole.rows
-    .filter((row) => {
-      const impressions = row.impressions || 0;
-      const position = row.position || 0;
-      return impressions >= 30 && position >= 8 && position <= 25;
+  const pageOpportunities = Array.from(pageSummary.entries())
+    .map(([page, item]) => ({ page, impressions: item.impressions, clicks: item.clicks, positionWeighted: item.positionWeighted }))
+    .filter((item) => {
+      const avgPosition = item.impressions ? item.positionWeighted / item.impressions : 0;
+      return item.impressions >= 30 && avgPosition >= 8 && avgPosition <= 25;
     })
-    .reduce<
-      Map<
-        string,
-        { page: string; impressions: number; clicks: number; positionWeighted: number }
-      >
-    >((map, row) => {
-      const page = row.keys?.[1] || "";
-      if (!page) return map;
-      const current = map.get(page) || {
-        page,
-        impressions: 0,
-        clicks: 0,
-        positionWeighted: 0,
-      };
-      current.impressions += row.impressions || 0;
-      current.clicks += row.clicks || 0;
-      current.positionWeighted += (row.position || 0) * (row.impressions || 0);
-      map.set(page, current);
-      return map;
-    }, new Map());
+    .reduce(
+      (map, item) => map.set(item.page, item),
+      new Map<string, { page: string; impressions: number; clicks: number; positionWeighted: number }>()
+    );
 
   const pages = Array.from(pageOpportunities.values())
     .map((item) => ({
@@ -630,10 +590,14 @@ export async function GET(request: Request) {
       siteUrl: process.env.GSC_SITE_URL || null,
       error: searchConsole.error || null,
       fallbackUsed: searchConsole.fallbackUsed === true,
-      rows: searchConsole.rows.length,
+      totalsError: searchConsole.totalsError || null, pageRowsError: searchConsole.pageRowsError || null,
+      totalsSource: gscMetrics.totalsSource,
+      rows: searchConsole.rows.length, pageRows: searchConsole.pageRows.length,
+      queryVisibleImpressions: gscMetrics.queryVisibleImpressions,
+      queryVisibleClicks: gscMetrics.queryVisibleClicks,
+      unlistedImpressions: gscMetrics.unlistedImpressions, unlistedClicks: gscMetrics.unlistedClicks,
       uniqueQueries: querySummary.size,
-      totalClicks: Math.round(totalClicks),
-      totalImpressions: Math.round(totalImpressions),
+      totalClicks: Math.round(totalClicks), totalImpressions: Math.round(totalImpressions),
       averageCtr: totalImpressions
         ? Number(((totalClicks / totalImpressions) * 100).toFixed(2))
         : 0,

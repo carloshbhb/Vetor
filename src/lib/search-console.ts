@@ -8,7 +8,7 @@ export type SearchConsoleRow = {
   position?: number;
 };
 
-type SearchConsoleResponse = { rows?: SearchConsoleRow[] };
+type SearchConsoleResponse = { rows?: SearchConsoleRow[]; responseAggregationType?: string };
 
 function base64Url(value: string | Buffer): string {
   return Buffer.from(value).toString("base64url");
@@ -105,103 +105,98 @@ function dateDaysAgo(days: number): string {
   return formatDate(shiftDate(new Date(), -days));
 }
 
-async function querySearchConsole(
-  siteUrl: string,
-  token: string,
-  startDate: string,
-  endDate: string
-): Promise<{ rows: SearchConsoleRow[]; error?: string }> {
+async function querySearchConsole(siteUrl: string, token: string, startDate: string, endDate: string,
+  dimensions: Array<"query" | "page"> | null = ["query", "page"], rowLimit = 5000
+): Promise<{ rows: SearchConsoleRow[]; error?: string; aggregationType?: string }> {
   const endpoint = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`;
+  const body = { startDate, endDate, rowLimit, dataState: "final", type: "web",
+    ...(dimensions?.length ? { dimensions } : {}) };
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: {
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      startDate,
-      endDate,
-      dimensions: ["query", "page"],
-      rowLimit: 5000,
-      dataState: "final",
-    }),
-    cache: "no-store",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify(body), cache: "no-store",
   });
-
   if (!response.ok) {
     const message = await response.text();
-    return {
-      rows: [],
-      error: `Search Console respondeu ${response.status}: ${message.slice(0, 180)}`,
-    };
+    return { rows: [], error: `Search Console respondeu ${response.status}: ${message.slice(0, 180)}` };
   }
-
   const data = (await response.json()) as SearchConsoleResponse;
-  return { rows: data.rows || [] };
+  return { rows: data.rows || [], aggregationType: data.responseAggregationType };
 }
 
-export async function fetchSearchConsoleRowsForRange(
-  startDate: string,
-  endDate: string
+export function resolveSearchConsoleMetrics(aggregate: SearchConsoleRow | null | undefined,
+  pageRows: SearchConsoleRow[], queryPageRows: SearchConsoleRow[]) {
+  const sum = (rows: SearchConsoleRow[], field: "clicks" | "impressions") =>
+    rows.reduce((total, row) => total + (Number.isFinite(row[field]) ? Number(row[field]) : 0), 0);
+  const fallbackRows = pageRows.length ? pageRows : queryPageRows;
+  const fallbackImpressions = sum(fallbackRows, "impressions");
+  const fallbackClicks = sum(fallbackRows, "clicks");
+  const weightedPosition = fallbackRows.reduce(
+    (total, row) => total + (Number(row.position) || 0) * (Number(row.impressions) || 0), 0);
+  const hasAggregate = Boolean(aggregate && Number.isFinite(aggregate.impressions) && Number.isFinite(aggregate.clicks));
+  const totalImpressions = hasAggregate ? Number(aggregate!.impressions) : fallbackImpressions;
+  const totalClicks = hasAggregate ? Number(aggregate!.clicks) : fallbackClicks;
+  const averagePosition = hasAggregate && Number.isFinite(aggregate!.position)
+    ? Number(aggregate!.position) : fallbackImpressions > 0 ? weightedPosition / fallbackImpressions : 0;
+  const queryVisibleImpressions = sum(queryPageRows, "impressions");
+  const queryVisibleClicks = sum(queryPageRows, "clicks");
+  return {
+    totalClicks: Math.round(totalClicks), totalImpressions: Math.round(totalImpressions),
+    averageCtr: totalImpressions > 0 ? Number(((totalClicks / totalImpressions) * 100).toFixed(2)) : 0,
+    averagePosition: Number(averagePosition.toFixed(1)),
+    queryVisibleClicks: Math.round(queryVisibleClicks), queryVisibleImpressions: Math.round(queryVisibleImpressions),
+    unlistedClicks: Math.max(0, Math.round(totalClicks - queryVisibleClicks)),
+    unlistedImpressions: Math.max(0, Math.round(totalImpressions - queryVisibleImpressions)),
+    totalsSource: hasAggregate ? "property_aggregate" as const : pageRows.length ? "page_rows_fallback" as const : "query_page_fallback" as const,
+  };
+}
+
+export async function fetchSearchConsoleRowsForRange(startDate: string, endDate: string,
+  options: { includeAggregates?: boolean } = {}
 ): Promise<{
-  configured: boolean;
-  rows: SearchConsoleRow[];
-  startDate: string;
-  endDate: string;
-  error?: string;
+  configured: boolean; rows: SearchConsoleRow[]; pageRows: SearchConsoleRow[];
+  totals: SearchConsoleRow | null; pageRowsError?: string; totalsError?: string;
+  startDate: string; endDate: string; error?: string;
 }> {
   const siteUrl = process.env.GSC_SITE_URL;
   const email = getServiceAccountEmail();
   const configured = Boolean(siteUrl && email && (process.env.GSC_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY));
-
-  if (!configured) return { configured: false, rows: [], startDate, endDate };
-
+  if (!configured) return { configured: false, rows: [], pageRows: [], totals: null, startDate, endDate };
   try {
     const auth = await getAccessToken();
-    if (!auth.token) {
-      return {
-        configured: true,
-        rows: [],
-        startDate,
-        endDate,
-        error: auth.error || "Não foi possível obter o token do Google.",
-      };
-    }
-
+    if (!auth.token) return { configured: true, rows: [], pageRows: [], totals: null, startDate, endDate,
+      error: auth.error || "Não foi possível obter o token do Google." };
     const result = await querySearchConsole(siteUrl!, auth.token, startDate, endDate);
-    return {
-      configured: true,
-      rows: result.rows,
-      startDate,
-      endDate,
+    if (result.error || options.includeAggregates === false) return {
+      configured: true, rows: result.rows, pageRows: [], totals: null, startDate, endDate,
       ...(result.error ? { error: result.error } : {}),
     };
-  } catch (error) {
+    const [pages, aggregate] = await Promise.all([
+      querySearchConsole(siteUrl!, auth.token, startDate, endDate, ["page"], 5000),
+      querySearchConsole(siteUrl!, auth.token, startDate, endDate, null, 1),
+    ]);
     return {
-      configured: true,
-      rows: [],
-      startDate,
-      endDate,
-      error: error instanceof Error ? error.message : "Erro desconhecido no Search Console.",
+      configured: true, rows: result.rows, pageRows: pages.rows, totals: aggregate.rows[0] || null, startDate, endDate,
+      ...(pages.error ? { pageRowsError: pages.error } : {}),
+      ...(aggregate.error ? { totalsError: aggregate.error } : {}),
     };
+  } catch (error) {
+    return { configured: true, rows: [], pageRows: [], totals: null, startDate, endDate,
+      error: error instanceof Error ? error.message : "Erro desconhecido no Search Console." };
   }
 }
 
 export async function fetchSearchConsoleRows(): Promise<{
-  configured: boolean;
-  rows: SearchConsoleRow[];
-  startDate: string;
-  endDate: string;
-  error?: string;
-  fallbackUsed?: boolean;
+  configured: boolean; rows: SearchConsoleRow[]; pageRows: SearchConsoleRow[];
+  totals: SearchConsoleRow | null; pageRowsError?: string; totalsError?: string;
+  startDate: string; endDate: string; error?: string; fallbackUsed?: boolean;
 }> {
   const endDate = dateDaysAgo(2);
-  const recentStartDate = dateDaysAgo(29);
-  const recent = await fetchSearchConsoleRowsForRange(recentStartDate, endDate);
-  if (!recent.configured || recent.error || recent.rows.length > 0) return recent;
-
-  // When the newest 28 settled days have no impressions, use a 90-day
-  // recovery window so the opportunity engine can still work from recent history.
+  const recent = await fetchSearchConsoleRowsForRange(dateDaysAgo(29), endDate);
+  const metrics = resolveSearchConsoleMetrics(recent.totals, recent.pageRows, recent.rows);
+  const recentHasData = recent.rows.length > 0 || recent.pageRows.length > 0 ||
+    metrics.totalImpressions > 0 || metrics.totalClicks > 0;
+  if (!recent.configured || recent.error || recentHasData) return recent;
   const extended = await fetchSearchConsoleRowsForRange(dateDaysAgo(90), endDate);
   return { ...extended, fallbackUsed: true };
 }
