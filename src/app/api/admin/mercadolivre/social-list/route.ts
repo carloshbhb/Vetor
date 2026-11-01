@@ -79,9 +79,9 @@ export async function POST(request: NextRequest) {
     }
 
     const missing = result.expectedTotal == null
-      ? 0
+      ? null
       : Math.max(0, result.expectedTotal - result.items.length);
-    const status = result.expectedTotal == null || missing > 0 ? "partial" : "complete";
+    const status = missing == null || missing > 0 ? "partial" : "complete";
     const summary = {
       expected_total: result.expectedTotal,
       fetched_total: result.items.length,
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       missing_total: missing,
       pages_scanned: result.pagesScanned,
       status,
-      error_message: result.expectedTotal == null ? "O contador total não foi localizado na página pública." : (missing > 0 ? "A página pública não expôs todos os produtos declarados no contador." : null),
+      error_message: missing == null ? "O contador total não foi localizado na página pública." : (missing > 0 ? "A página pública não expôs todos os produtos declarados no contador." : null),
       finished_at: new Date().toISOString(),
     };
 
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       ...summary,
       message: result.expectedTotal == null
         ? "Sincronização parcial: produtos importados, mas o contador total da página não pôde ser validado."
-        : missing > 0
+        : (missing || 0) > 0
           ? "Sincronização parcial: o Mercado Livre informa " + result.expectedTotal + " resultados, mas a página pública expôs " + result.items.length + " produtos únicos."
           : "Lista pública sincronizada.",
     });
