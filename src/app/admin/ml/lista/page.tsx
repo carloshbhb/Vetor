@@ -20,7 +20,7 @@ type SyncSummary = {
   expected_total: number | null;
   fetched_total: number;
   unique_total: number;
-  missing_total: number;
+  missing_total: number | null;
   pages_scanned: number;
   status: "running" | "complete" | "partial" | "error";
   error_message?: string | null;
@@ -112,9 +112,10 @@ export default function MercadoLivreSocialListPage() {
   };
 
   const syncStatus = data?.sync?.status;
-  const expected = data?.sync?.expected_total ?? 287;
+  const hasSync = Boolean(data?.sync);
+  const expected = data?.sync?.expected_total ?? null;
   const imported = data?.sync?.unique_total ?? data?.total ?? 0;
-  const missing = data?.sync?.missing_total ?? Math.max(0, expected - imported);
+  const missing = data?.sync?.missing_total ?? (expected == null ? null : Math.max(0, expected - imported));
   const pages = Math.max(1, Math.ceil((data?.total || 0) / 50));
 
   return (
@@ -152,17 +153,26 @@ export default function MercadoLivreSocialListPage() {
         </div>
         <div className="rounded-2xl border border-border bg-[var(--surface)] p-5">
           <p className="text-xs text-[var(--muted)]">Total informado pelo ML</p>
-          <strong className="mt-1 block text-2xl font-display">{expected}</strong>
+          <strong className="mt-1 block text-2xl font-display">{expected ?? "—"}</strong>
         </div>
         <div className="rounded-2xl border border-border bg-[var(--surface)] p-5">
           <p className="text-xs text-[var(--muted)]">Não retornados pela página</p>
-          <strong className="mt-1 block text-2xl font-display text-[var(--amber)]">{missing}</strong>
+          <strong className="mt-1 block text-2xl font-display text-[var(--amber)]">{missing ?? "—"}</strong>
         </div>
         <div className="rounded-2xl border border-border bg-[var(--surface)] p-5">
           <p className="text-xs text-[var(--muted)]">Páginas lidas</p>
-          <strong className="mt-1 block text-2xl font-display">{data?.sync?.pages_scanned ?? 0}</strong>
+          <strong className="mt-1 block text-2xl font-display">{data?.sync?.pages_scanned ?? "—"}</strong>
         </div>
       </section>
+
+      {!hasSync && (
+        <section className="rounded-xl border border-border bg-[var(--surface2)] p-4">
+          <p className="text-sm font-bold">Aguardando a primeira sincronização</p>
+          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+            O Mercado Livre informa 287 produtos na lista pública, mas o catálogo ainda não foi lido nesta instalação. Clique em “Sincronizar produtos” para medir quantos registros a página realmente disponibiliza.
+          </p>
+        </section>
+      )}
 
       {syncStatus === "partial" && (
         <section className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber)]/5 p-4">
