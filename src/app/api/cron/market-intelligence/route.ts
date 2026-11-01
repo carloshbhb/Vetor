@@ -88,7 +88,7 @@ export async function GET(request: Request) {
       lowFit: rows.length - relevant,
       editorialQueue: editorialActions.length,
       trends: intelligence.trends.length,
-      searchConsole: intelligence.searchConsole,
+      searchConsole: { ...intelligence.searchConsole, fallbackUsed: Boolean((intelligence.searchConsole as { fallbackUsed?: boolean }).fallbackUsed) },
       ranAt: new Date().toISOString()
     });
   } catch (error) { return NextResponse.json({error:error instanceof Error?error.message:"Erro no ciclo de inteligência."},{status:500}); }
