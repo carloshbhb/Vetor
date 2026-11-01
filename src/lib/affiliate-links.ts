@@ -1,4 +1,5 @@
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
+import { parseAffiliateClickMetadata, type AffiliateClickContext } from "@/lib/affiliate-attribution";
 import { summarizeAffiliateLinkStats, type AffiliateStatRow } from "./affiliate-stats";
 import { isGuideLikeSlug } from "@/lib/buying";
 
@@ -834,44 +835,19 @@ export async function updateAffiliateHealth(id: string, input: {
   return normalizeRow(data as Record<string, unknown>);
 }
 
-export async function recordAffiliateClick(id: string, referrerUrl: string | null) {
+export async function recordAffiliateClick(id: string | null, context: AffiliateClickContext) {
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return;
-
   try {
-    let referrerPath: string | null = referrerUrl;
-    let utmSource: string | null = null;
-    let utmMedium: string | null = null;
-    let utmCampaign: string | null = null;
-    let utmContent: string | null = null;
-    let utmTerm: string | null = null;
-
-    if (referrerUrl) {
-      try {
-        const parsed = new URL(referrerUrl);
-        referrerPath = parsed.pathname || "/";
-        utmSource = parsed.searchParams.get("utm_source");
-        utmMedium = parsed.searchParams.get("utm_medium");
-        utmCampaign = parsed.searchParams.get("utm_campaign");
-        utmContent = parsed.searchParams.get("utm_content");
-        utmTerm = parsed.searchParams.get("utm_term");
-      } catch {
-        // O referer pode ser apenas um path.
-      }
+    const metadata = parseAffiliateClickMetadata(context);
+    const { error } = await supabase.from("affiliate_clicks").insert({ link_id: id, ...metadata });
+    if (error) {
+      console.warn("[affiliate-click] event insert failed:", error.message);
+      return;
     }
-
-    await supabase.from("affiliate_clicks").insert({
-      link_id: id,
-      referrer_path: referrerPath,
-      utm_source: utmSource,
-      utm_medium: utmMedium,
-      utm_campaign: utmCampaign,
-      utm_content: utmContent,
-      utm_term: utmTerm,
-    });
-    await supabase.rpc("increment_affiliate_link_click", { p_link_id: id });
-  } catch {
-    // Métricas nunca devem bloquear o redirecionamento.
+    if (id) await supabase.rpc("increment_affiliate_link_click", { p_link_id: id });
+  } catch (error) {
+    console.warn("[affiliate-click] tracking failed:", error instanceof Error ? error.message : String(error));
   }
 }
 
@@ -894,6 +870,7 @@ export async function getAffiliatePerformance(days = 30) {
     bySourceType: [] as Array<{ sourceType: AffiliateSourceType; clicks: number }>,
     byPage: [] as Array<{ path: string; clicks: number }>,
     byCampaign: [] as Array<{ campaign: string; source: string; medium: string; clicks: number }>,
+    byClickSource: [] as Array<{ source: string; medium: string; clicks: number }>,
     analyticsConfigured: Boolean(process.env.NEXT_PUBLIC_GA_ID),
   };
   if (!supabase) return empty;
@@ -904,7 +881,7 @@ export async function getAffiliatePerformance(days = 30) {
       .select("id,name,slug,source_type,category,status,total_clicks"),
     supabase
       .from("affiliate_clicks")
-      .select("link_id,referrer_path,utm_source,utm_medium,utm_campaign,utm_content,utm_term,clicked_at")
+      .select("link_id,referrer_path,utm_source,utm_medium,utm_campaign,utm_content,utm_term,click_source,click_medium,click_campaign,content_id,video_id,product_slug,clicked_at")
       .gte("clicked_at", new Date(Date.now() - Math.max(days, 1) * 86400000).toISOString())
       .order("clicked_at", { ascending: false })
       .limit(5000),
@@ -933,20 +910,26 @@ export async function getAffiliatePerformance(days = 30) {
   const sourceCounts = new Map<AffiliateSourceType, number>();
   const pageCounts = new Map<string, number>();
   const campaignCounts = new Map<string, { campaign: string; source: string; medium: string; clicks: number }>();
+  const clickSourceCounts = new Map<string, { source: string; medium: string; clicks: number }>();
 
   for (const click of recentClicks) {
     const linkId = String(click.link_id || "");
-    periodByLink.set(linkId, (periodByLink.get(linkId) || 0) + 1);
+    if (linkId) periodByLink.set(linkId, (periodByLink.get(linkId) || 0) + 1);
     const link = linkById.get(linkId);
     if (link) sourceCounts.set(link.sourceType, (sourceCounts.get(link.sourceType) || 0) + 1);
 
     const page = String(click.referrer_path || "Direto");
     pageCounts.set(page, (pageCounts.get(page) || 0) + 1);
 
-    const campaign = String(click.utm_campaign || "").trim();
+    const source = String(click.utm_source || click.click_source || "direct_or_unknown").trim();
+    const medium = String(click.utm_medium || click.click_medium || "unknown").trim();
+    const sourceKey = source + "|" + medium;
+    const sourceCurrent = clickSourceCounts.get(sourceKey);
+    if (sourceCurrent) sourceCurrent.clicks += 1;
+    else clickSourceCounts.set(sourceKey, { source, medium, clicks: 1 });
+
+    const campaign = String(click.utm_campaign || click.click_campaign || "").trim();
     if (campaign) {
-      const source = String(click.utm_source || "").trim();
-      const medium = String(click.utm_medium || "").trim();
       const key = source + "|" + medium + "|" + campaign;
       const current = campaignCounts.get(key);
       if (current) current.clicks += 1;
@@ -982,6 +965,9 @@ export async function getAffiliatePerformance(days = 30) {
   const byCampaign = Array.from(campaignCounts.values())
     .sort((a, b) => b.clicks - a.clicks)
     .slice(0, 12);
+  const byClickSource = Array.from(clickSourceCounts.values())
+    .sort((a, b) => b.clicks - a.clicks)
+    .slice(0, 15);
 
   return {
     ...empty,
@@ -993,6 +979,7 @@ export async function getAffiliatePerformance(days = 30) {
     bySourceType,
     byPage,
     byCampaign,
+    byClickSource,
   };
 }
 

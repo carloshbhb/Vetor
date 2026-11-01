@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsx scripts/content-quality.test.ts && tsx scripts/viral-quality.test.ts && tsx scripts/market-intelligence.test.ts && tsx scripts/affiliate-health-stats.test.ts && tsx scripts/script-generator-budget.test.ts && tsx scripts/video-queue-publication.test.ts && tsx scripts/lp-template-contract.test.ts && next build",
+    "build": "tsx scripts/content-quality.test.ts && tsx scripts/viral-quality.test.ts && tsx scripts/market-intelligence.test.ts && tsx scripts/affiliate-health-stats.test.ts && tsx scripts/script-generator-budget.test.ts && tsx scripts/video-queue-publication.test.ts && tsx scripts/affiliate-attribution.test.ts && tsx scripts/lp-template-contract.test.ts && next build",
     "start": "next start",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"scripts/**/*.ts\" \"tmp/**/*.ts\"",
     "generate": "tsx tmp/generate-8-articles.ts",

@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
+import { buildTrackedAffiliateUrl } from "@/lib/affiliate-attribution";
 import { isPublishedComparativeArticle, resolveComparativeVideoAffiliateTarget } from "@/lib/video-queue-guards";
 
 export const runtime = "nodejs";
@@ -137,14 +139,20 @@ export async function POST(request: NextRequest) {
         const position = slotCursor % 5;
         const videoFormat = position < (batch >= 2 ? 1 : 2) ? "long" : "short";
         slotCursor += 1;
-        const managedSlug = managedSlugByReview.get(item.slug);
-        const trackedPurchaseUrl = managedSlug
-          ? `https://www.vetor.blog/go/${encodeURIComponent(managedSlug)}/`
-          : item.affiliate_url;
+        const queueId = randomUUID();
+        const managedSlug = managedSlugByReview.get(item.slug) || item.slug;
+        const trackedPurchaseUrl = buildTrackedAffiliateUrl(
+          `https://www.vetor.blog/go/${encodeURIComponent(managedSlug)}/`,
+          {
+            source: "youtube", medium: "video", campaign: `review-${item.slug}`,
+            contentId: queueId, term: videoFormat, placement: "description",
+          }
+        );
 
         const { data: inserted, error: insertError } = await supabase
           .from("video_queue")
           .insert({
+            id: queueId,
             product_url: item.affiliate_url,
             product_title: title,
             product_category: category,
@@ -226,7 +234,15 @@ export async function POST(request: NextRequest) {
         const comparisonUrl = `https://www.vetor.blog/comparativos/${article.slug}/`;
         const purchaseTarget = resolveComparativeVideoAffiliateTarget(products, managedLinks || []);
         if (!purchaseTarget) continue;
-        const purchaseUrl = purchaseTarget.trackedUrl;
+        const queueId = randomUUID();
+        const productIndex = Math.max(0, products.indexOf(purchaseTarget.product));
+        const purchaseBaseUrl = purchaseTarget.trackingMode === "managed"
+          ? purchaseTarget.trackedUrl
+          : `https://www.vetor.blog/go/${article.slug}-p${productIndex + 1}/`;
+        const purchaseUrl = buildTrackedAffiliateUrl(purchaseBaseUrl, {
+          source: "youtube", medium: "video", campaign: `comparison-${article.slug}`,
+          contentId: queueId, term: "short", placement: "description",
+        });
         const script = {
           type: "comparison",
           hook: `Antes de escolher entre ${first.name} e ${second.name}, compare os recursos documentados e as condições atuais.`,
@@ -236,6 +252,7 @@ export async function POST(request: NextRequest) {
         const { data: inserted, error: insertError } = await supabase
           .from("video_queue")
           .insert({
+            id: queueId,
             product_url: purchaseTarget.destinationUrl,
             product_title: title,
             product_category: category,
@@ -377,11 +394,50 @@ export async function POST(request: NextRequest) {
         .from("video_queue")
         .update(safeUpdates)
         .eq("id", id)
-        .select("id,status,updated_at")
+        .select("id,status,updated_at,review_url,youtube_video_id,youtube_url,media_assets,completed_at")
         .maybeSingle();
       if (error) throw error;
       if (!data) return NextResponse.json({ success: false, error: "Vídeo não encontrado na fila." }, { status: 404 });
-      return NextResponse.json({ success: true, video: data });
+
+      let linkedProducts = 0;
+      let assetSyncWarning: string | null = null;
+      if (data.status === "completed" && data.youtube_video_id && data.youtube_url && data.review_url) {
+        let reviewSlug: string | null = null;
+        try {
+          const reviewPath = new URL(data.review_url).pathname;
+          reviewSlug = reviewPath.match(/^\/reviews\/([^/]+)\/?$/)?.[1] || null;
+        } catch {}
+        if (reviewSlug) {
+          const { data: product, error: productError } = await supabase
+            .from("product_links").select("id").eq("review_slug", reviewSlug)
+            .neq("status", "archived").order("updated_at", { ascending: false })
+            .limit(1).maybeSingle();
+          if (productError) assetSyncWarning = productError.message;
+          else if (product) {
+            const assets = Array.isArray(data.media_assets) ? data.media_assets : [];
+            const format = assets.find((asset: any) => asset?.type === "publication_format")?.format;
+            const videoType = format === "long" || format === "short" ? format : "unknown";
+            const { error: assetError } = await supabase.from("product_video_assets").upsert({
+              product_link_id: product.id, review_slug: reviewSlug,
+              youtube_video_id: data.youtube_video_id, youtube_url: data.youtube_url,
+              video_type: videoType, source_table: "video_queue", source_record_id: data.id,
+              published_at: data.completed_at || new Date().toISOString(),
+            }, { onConflict: "youtube_video_id" });
+            if (assetError) assetSyncWarning = assetError.message;
+            else {
+              const { error: productUpdateError } = await supabase.from("product_links")
+                .update({ has_video: true, video_id: data.youtube_video_id, updated_at: new Date().toISOString() })
+                .eq("id", product.id);
+              if (productUpdateError) assetSyncWarning = productUpdateError.message;
+              else linkedProducts = 1;
+            }
+          }
+        }
+      }
+      return NextResponse.json({
+        success: true, video: data, linkedProducts,
+        ...(assetSyncWarning ? { assetSyncWarning } : {}),
+      });
     }
 
     if (action === "pendingComments") {

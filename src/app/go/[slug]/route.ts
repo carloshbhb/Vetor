@@ -31,8 +31,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   if (managed) {
     const managedTarget = safeTarget(managed.destination_url);
     if (managed.status === "active" && managedTarget) {
-      const referer = _request.headers.get("referer");
-      await recordAffiliateClick(managed.id, referer);
+      await recordAffiliateClick(managed.id, {
+        requestUrl: _request.url,
+        referrerUrl: _request.headers.get("referer"),
+        productSlug: managed.source_ref || slug,
+        sourceType: managed.source_type,
+        destinationUrl: managedTarget,
+      });
       return redirectTo(managedTarget);
     }
 
@@ -45,12 +50,24 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   // 2) fallback para review legado: /go/<review-slug>/
   const review = await fetchReviewBySlug(slug);
   const reviewTarget = safeTarget(review?.affiliate_url);
-  if (reviewTarget) return redirectTo(reviewTarget);
+  if (reviewTarget) {
+    await recordAffiliateClick(null, {
+      requestUrl: _request.url, referrerUrl: _request.headers.get("referer"),
+      productSlug: review?.slug || slug, sourceType: "review", destinationUrl: reviewTarget,
+    });
+    return redirectTo(reviewTarget);
+  }
 
   // 3) fallback para product_link legado: /go/<product-link-slug>/
   const productLink = await getProductLinkBySlug(slug);
   const linkTarget = safeTarget(productLink?.affiliate_url);
-  if (linkTarget) return redirectTo(linkTarget);
+  if (linkTarget) {
+    await recordAffiliateClick(null, {
+      requestUrl: _request.url, referrerUrl: _request.headers.get("referer"),
+      productSlug: productLink?.slug || slug, sourceType: "product_link", destinationUrl: linkTarget,
+    });
+    return redirectTo(linkTarget);
+  }
 
   // 4) produto de comparativo legado: /go/<article-slug>-p<N>/
   const productMatch = slug.match(/^(.+)-p(\d+)$/);
@@ -58,7 +75,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     const article = await fetchViralArticleBySlug(productMatch[1]);
     const product = article?.products?.[Number(productMatch[2]) - 1];
     const productTarget = safeTarget(product?.product_url);
-    if (productTarget) return redirectTo(productTarget);
+    if (productTarget) {
+      await recordAffiliateClick(null, {
+        requestUrl: _request.url, referrerUrl: _request.headers.get("referer"),
+        productSlug: `${productMatch[1]}-p${productMatch[2]}`,
+        sourceType: "comparison_product", destinationUrl: productTarget,
+      });
+      return redirectTo(productTarget);
+    }
   }
 
   return new NextResponse("Link não encontrado", {

@@ -3,6 +3,8 @@ import {
   getAffiliatePerformance,
   type AffiliateSourceType,
 } from "@/lib/affiliate-links";
+import SalesPanel from "./SalesPanel";
+import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +16,15 @@ const SOURCE_LABEL: Record<AffiliateSourceType, string> = {
 };
 
 export default async function MonetizationPage() {
-  const [data, freshness] = await Promise.all([
+  const supabase = getSupabaseServiceKeyClient();
+  const [data, freshness, salesResult] = await Promise.all([
     getAffiliatePerformance(30),
     getAffiliateFreshnessSummary(),
+    supabase
+      ? supabase.from("affiliate_sales")
+          .select("id,marketplace,external_order_id,source_reference,product_title,quantity,sold_at,reported_at,sale_amount,commission_amount,currency,order_status,attribution_status,attribution_source,attribution_confidence,video_id,review_slug,source_system,notes")
+          .order("reported_at", { ascending: false }).limit(50)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const formatSource = (value: AffiliateSourceType) => SOURCE_LABEL[value] || "Manual";
@@ -32,6 +40,8 @@ export default async function MonetizationPage() {
           <span className="inline-flex items-center rounded-full border border-border bg-[var(--surface2)] px-3 py-1.5 text-xs font-semibold">{freshness.neverChecked} nunca conferidos · {freshness.stale} vencidos</span>
         </div>
       </header>
+
+      <SalesPanel initialSales={(salesResult.data || []) as any[]} />
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-7">
         {[
@@ -107,6 +117,14 @@ export default async function MonetizationPage() {
           </div>
         </section>
       </div>
+
+      <section className="mb-4 overflow-hidden rounded-xl border border-border bg-[var(--surface)]">
+        <div className="border-b border-border px-5 py-4"><h2 className="font-heading font-bold">Canais que geram cliques</h2><p className="mt-1 text-xs text-[var(--muted)]">Origem identificada nos novos redirecionamentos de compra.</p></div>
+        <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
+          {data.byClickSource.map((item) => <div key={item.source + item.medium} className="flex items-center justify-between gap-3 text-sm"><span>{item.source} · {item.medium}</span><strong className="text-[var(--amber)]">{item.clicks}</strong></div>)}
+          {!data.byClickSource.length && <p className="text-sm text-[var(--muted)]">Os canais aparecerão após os próximos cliques rastreados.</p>}
+        </div>
+      </section>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <section className="bg-[var(--surface)] border border-border rounded-xl overflow-hidden">
