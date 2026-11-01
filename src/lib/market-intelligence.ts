@@ -187,5 +187,5 @@ export async function collectMarketIntelligence() {
     };
   }).sort((a,b)=>b.opportunityScore-a.opportunityScore).slice(0, 250);
 
-  return { opportunities, trends: trends.slice(0, 50), searchConsole: { configured: gsc.configured, rowCount: gsc.rows.length, error: gsc.error || null, period: { startDate: gsc.startDate, endDate: gsc.endDate } } };
+  return { opportunities, trends: trends.slice(0, 50), searchConsole: { configured: gsc.configured, rowCount: gsc.rows.length, error: gsc.error || null, fallbackUsed: Boolean(gsc.fallbackUsed), period: { startDate: gsc.startDate, endDate: gsc.endDate } } };
 }
