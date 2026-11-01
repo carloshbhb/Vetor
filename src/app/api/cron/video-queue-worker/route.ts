@@ -361,7 +361,7 @@ export async function POST(request: NextRequest) {
       const skipped = results.filter((item) => item.status === "skipped").length;
       const stopped = results.some((item) => item.status === "failed" && /403|insufficientPermissions|quotaExceeded/i.test(String(item.error || "")));
       return NextResponse.json({
-        success: failed === 0,
+        success: true,
         offset,
         limit,
         total,
@@ -373,7 +373,7 @@ export async function POST(request: NextRequest) {
         nextOffset: offset + batch.length,
         done: offset + batch.length >= total || stopped,
         stopped,
-      }, { status: failed > 0 ? 207 : 200 });
+      });
     }
 
     if (action === "metadataBatch") {
