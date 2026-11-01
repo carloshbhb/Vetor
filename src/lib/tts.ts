@@ -7,7 +7,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export interface TTSOptions {
-  voice?: string;
   rate?: string;
   volume?: string;
   pitch?: string;
@@ -19,14 +18,8 @@ export interface TTSResult {
   voice: string;
 }
 
-const BRAZILIAN_VOICES = [
-  'pt-BR-AntonioNeural',
-  'pt-BR-FranciscaNeural',
-  'pt-BR-ThiagoNeural',
-  'pt-BR-IsabelaNeural',
-];
-
 const DEFAULT_VOICE = 'pt-BR-FranciscaNeural';
+const BRAZILIAN_VOICES = [DEFAULT_VOICE];
 
 function getPythonScriptPath(): string {
   const possiblePaths = [
@@ -46,10 +39,10 @@ export async function generateVoiceover(
   outputPath: string,
   options: TTSOptions = {}
 ): Promise<TTSResult> {
-  const voice = options.voice || DEFAULT_VOICE;
+  const voice = DEFAULT_VOICE;
   const scriptPath = getPythonScriptPath();
 
-  const args = [scriptPath, text, outputPath, voice];
+  const args = [scriptPath, text, outputPath];
 
   return new Promise((resolve, reject) => {
     const child = spawn('python', args, {
@@ -111,7 +104,7 @@ export async function generateVoiceoverFromScript(
 
   const hookPath = path.join(outputDir, 'hook.mp3');
   await generateVoiceover(script.hook, hookPath, options);
-  results.push({ audioPath: hookPath, duration: estimateDuration(script.hook), voice: options.voice || DEFAULT_VOICE });
+  results.push({ audioPath: hookPath, duration: estimateDuration(script.hook), voice: DEFAULT_VOICE });
 
   for (let i = 0; i < script.scenes.length; i++) {
     const scene = script.scenes[i];
