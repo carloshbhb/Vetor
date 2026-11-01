@@ -84,7 +84,66 @@ jobs:
             echo "::error::Production queue API did not become ready; refusing to use stale/incorrect database credentials."
             exit 1
           fi
-      - name: Render, describe, and upload videos
+      - name: Fill this batch from new published reviews and comparatives
+  if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.video_id == '' }}
+  env:
+    CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    VETOR_SITE_URL: https://www.vetor.blog
+    VIDEO_ID: ${{ github.event.inputs.video_id || '' }}
+  shell: bash
+  run: |
+    set -euo pipefail
+    if [ -n "${VIDEO_ID:-}" ]; then
+      echo "A specific video ID was requested; queue generation is skipped."
+      exit 0
+    fi
+
+    call_api() {
+      local action="$1"
+      local limit="${2:-0}"
+      local output="$3"
+      local payload
+      if [ "$limit" -gt 0 ]; then
+        payload="$(jq -cn --arg action "$action" --argjson limit "$limit" '{action:$action,limit:$limit}')"
+      else
+        payload="$(jq -cn --arg action "$action" '{action:$action,limit:5}')"
+      fi
+
+      local code
+      code="$(curl -sS --max-time 60 -o "$output" -w '%{http_code}' \
+        -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+        -H "Authorization: Bearer $CRON_SECRET" \
+        -H "Content-Type: application/json" \
+        -d "$payload")"
+      if [ "$code" != "200" ] || ! jq -e '.success == true' "$output" >/dev/null; then
+        echo "::error::Queue feeder failed for action=$action (HTTP=$code)."
+        jq -r '.error // .message // "No safe diagnostic returned."' "$output" || true
+        exit 1
+      fi
+    }
+
+    # Peek without changing status. Existing due items consume the five-slot batch first.
+    call_api "next" 5 batch-peek.json
+    remaining="$(jq -r 'if (.remaining // 0) > 0 then ([5, (.remaining|tonumber)] | min) else 0 end' batch-peek.json)"
+    pending="$(jq -r '(.videos // []) | length' batch-peek.json)"
+    slots=$((remaining - pending))
+    if [ "$slots" -le 0 ]; then
+      echo "Batch already full or daily 15-video quota reached; no new queue entries created."
+      exit 0
+    fi
+
+    call_api "queueFromReviews" "$slots" queue-reviews.json
+    queued_reviews="$(jq -r '.queued // 0' queue-reviews.json)"
+    slots=$((slots - queued_reviews))
+
+    queued_comparatives=0
+    if [ "$slots" -gt 0 ]; then
+      call_api "queueFromComparatives" "$slots" queue-comparatives.json
+      queued_comparatives="$(jq -r '.queued // 0' queue-comparatives.json)"
+    fi
+
+    echo "Queue feeder: reviews=$queued_reviews comparatives=$queued_comparatives; total=$((queued_reviews + queued_comparatives)); batch cap=5; daily cap=15."
+- name: Render, describe, and upload videos
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
