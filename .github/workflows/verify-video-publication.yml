@@ -18,7 +18,6 @@ permissions:
 jobs:
   verify:
     name: Verify existing video without rendering or uploading
-    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'test(video): verify existing YouTube publication'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
