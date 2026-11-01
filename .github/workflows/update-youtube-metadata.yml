@@ -48,7 +48,7 @@ jobs:
 
       - name: Confirm authenticated production queue API
         env:
-          CRON_SECRET: \${{ secrets.CRON_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
         run: |
           set -euo pipefail
@@ -64,12 +64,12 @@ jobs:
       - name: Refresh SEO descriptions and tracked purchase links
         working-directory: video
         env:
-          CRON_SECRET: \${{ secrets.CRON_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
-          YOUTUBE_CLIENT_ID: \${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: \${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: \${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          APPLY_UPDATES: \${{ github.event_name == 'push' || inputs.apply == true }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          APPLY_UPDATES: ${{ github.event_name == 'push' || inputs.apply == true }}
         run: node scripts/update-youtube-metadata.mjs
 
       - name: Upload update report
