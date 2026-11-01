@@ -1,5 +1,3 @@
 Trigger one-time refresh of published YouTube descriptions and Mercado Livre tracked links.
 
-Retry after fixing escaped GitHub Actions secret expressions.
-
-Execute using the Vercel Production OAuth credentials.
+OAuth reconnection completed and confirmed in Supabase for channel Quick Review Brasil.
