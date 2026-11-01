@@ -23,6 +23,9 @@ const dailyReviewWorkflow = read('.github/workflows/generate-daily-review.yml');
 const remotionRenderWorkflow = read('.github/workflows/remotion-render.yml');
 const socialVideoWorkflow = read('.github/workflows/create-remotion-edge-video.yml');
 const processVideoQueueWorkflow = read('.github/workflows/process-video-queue.yml');
+const edgeTtsWorkflow = read('.github/workflows/test-video-tts.yml');
+const appTts = read('src/lib/tts.ts');
+const pythonTts = read('scripts/tts.py');
 const slugReader = data.match(/export async function fetchReviewBySlug[\s\S]*?\n}\n/);
 
 const match = supabase.match(/const REVIEW_SUMMARY_COLUMNS\s*=\s*'([^']+)'/);
@@ -96,6 +99,14 @@ assert.match(remotionRenderWorkflow, /\n  workflow_dispatch:/, 'manual Remotion 
 assert.doesNotMatch(remotionRenderWorkflow, /\n  push:/, 'code pushes must not start extra video renders');
 assert.match(socialVideoWorkflow, /\n  workflow_dispatch:/, 'manual Remotion/Edge TTS social-video renders remain available');
 assert.doesNotMatch(socialVideoWorkflow, /\n  push:/, 'code pushes must not start one-off Remotion/Edge TTS renders');
+assert.match(socialVideoWorkflow, /edge-tts/);
+assert.match(socialVideoWorkflow, /pt-BR-FranciscaNeural/);
+assert.doesNotMatch(socialVideoWorkflow, /ELEVENLABS|elevenlabs|api\.elevenlabs/i, 'manual social-video rendering uses Edge TTS only');
+assert.match(edgeTtsWorkflow, /pt-BR-FranciscaNeural/);
+assert.match(appTts, /DEFAULT_VOICE = 'pt-BR-FranciscaNeural'/);
+assert.match(appTts, /const BRAZILIAN_VOICES = \[DEFAULT_VOICE\]/);
+assert.match(pythonTts, /VOICE = "pt-BR-FranciscaNeural"/);
+assert.doesNotMatch(pythonTts, /sys\.argv\[3\]/, 'Python TTS does not accept alternate voices');
 assert.match(dailyReviewWorkflow, /github\.event_name == 'workflow_dispatch' && inputs\.dry_run/, 'manual review dispatch controls dry-run behavior');
 assert.match(processVideoQueueWorkflow, /\n  schedule:/, 'video queue remains scheduled');
 assert.match(processVideoQueueWorkflow, /\n  workflow_dispatch:/, 'video queue remains manually triggerable');
