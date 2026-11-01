@@ -221,7 +221,7 @@ export default function MercadoLivreAdminPage() {
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
           <span className="rounded-full border border-border bg-[var(--surface2)] px-3 py-1.5">1. Pesquisar</span>
           <span className="rounded-full border border-border bg-[var(--surface2)] px-3 py-1.5">2. Revisar match</span>
-          <a href="/admin/ml/fila" className="rounded-full border border-[var(--amber)]/30 bg-[var(--amber-bg)] px-3 py-1.5 font-bold text-[var(--amber)]">3. Gerar link oficial →</a>
+          <a href="/admin/ml/fila" className="rounded-full border border-[var(--amber)]/30 bg-[var(--amber-bg)] px-3 py-1.5 font-bold text-[var(--amber)]">3. Gerar link oficial →</a>\n          <a href="/admin/ml/lista" className="rounded-full border border-border bg-[var(--surface2)] px-3 py-1.5 font-bold">Lista pública · 287 produtos →</a>
         </div>
       </header>
 
