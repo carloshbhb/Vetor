@@ -720,9 +720,11 @@ async function processVideo(video) {
     const ytDescription = buildVideoDescription({
       format: videoFormat,
       productTitle: video.product_title,
+      category: video.product_category,
       purchaseUrl,
       reviewUrl,
       hook: script.hook,
+      highlights: (script.scenes || []).map((scene) => scene.text),
       callToAction: script.callToAction,
       chapters,
     });

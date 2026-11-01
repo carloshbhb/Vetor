@@ -46,11 +46,15 @@ const shortDescription = buildVideoDescription({
   purchaseUrl,
   reviewUrl,
   hook: "Esse detalhe muda a compra?",
+  category: "Fones de Ouvido",
+  highlights: ["Cancelamento de ruído", "Bateria e autonomia"],
   callToAction: "Veja o review.",
 });
-assert.ok(!shortDescription.includes(purchaseUrl));
-assert.ok(!shortDescription.includes(reviewUrl));
-assert.ok(shortDescription.includes("link do perfil"));
+assert.ok(shortDescription.includes(purchaseUrl));
+assert.ok(shortDescription.includes(reviewUrl));
+assert.ok(shortDescription.includes("Fones de Ouvido"));
+assert.ok(shortDescription.includes("Cancelamento de ruído"));
+assert.ok(shortDescription.includes("links externos na descrição"));
 
 const longComment = buildCtaComment({ format: longFormat, productTitle: "Produto X", purchaseUrl, reviewUrl });
 const shortComment = buildCtaComment({ format: shortFormat, productTitle: "Produto X", purchaseUrl, reviewUrl });

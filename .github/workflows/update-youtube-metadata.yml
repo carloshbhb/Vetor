@@ -1,0 +1,80 @@
+name: Update published YouTube metadata
+run-name: SEO and affiliate links refresh — published videos
+
+on:
+  push:
+    paths:
+      - ".run-youtube-metadata"
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Apply YouTube description and link updates"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vetor-youtube-metadata-refresh
+  cancel-in-progress: false
+
+jobs:
+  update-metadata:
+    name: Update published video descriptions and tracked links
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: video/package-lock.json
+
+      - name: Install video dependencies
+        working-directory: video
+        run: npm ci
+
+      - name: Validate description rules
+        working-directory: video
+        run: node scripts/video-format.test.mjs
+
+      - name: Confirm authenticated production queue API
+        env:
+          CRON_SECRET: \${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+        run: |
+          set -euo pipefail
+          : "\${CRON_SECRET:?CRON_SECRET secret is required}"
+          response="$(curl -fsS --max-time 20 \
+            -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"metadataBatch","limit":1}')"
+          echo "$response" | jq -e '.success == true and (.videos | length > 0)' >/dev/null
+          echo "Production API authenticated and returned published video records."
+
+      - name: Refresh SEO descriptions and tracked purchase links
+        working-directory: video
+        env:
+          CRON_SECRET: \${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          YOUTUBE_CLIENT_ID: \${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: \${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: \${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          APPLY_UPDATES: \${{ github.event_name == 'push' || inputs.apply == true }}
+        run: node scripts/update-youtube-metadata.mjs
+
+      - name: Upload update report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-metadata-update-report
+          path: video/youtube-metadata-report.json
+          if-no-files-found: ignore
+          retention-days: 30

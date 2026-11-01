@@ -56,6 +56,8 @@ const UPDATABLE_FIELDS = new Set([
   "youtube_video_id",
   "youtube_url",
   "publication_mode",
+  "affiliate_url",
+  "shortened_affiliate_url",
 ]);
 
 export async function POST(request: NextRequest) {
@@ -71,6 +73,29 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     action = typeof body.action === "string" ? body.action : "";
+
+
+    if (action === "metadataBatch") {
+      const [{ data: videos, error: videosError }, { data: affiliateLinks, error: linksError }] = await Promise.all([
+        supabase.from("video_queue")
+          .select("id,product_title,product_category,affiliate_url,shortened_affiliate_url,script_text,script_hook,media_assets,review_url,youtube_video_id,youtube_url,completed_at")
+          .eq("status", "completed")
+          .not("youtube_video_id", "is", null)
+          .order("completed_at", { ascending: true })
+          .limit(500),
+        supabase.from("affiliate_links")
+          .select("slug,name,source_type,source_ref,destination_url,marketplace,status")
+          .eq("status", "active")
+          .limit(2000),
+      ]);
+      if (videosError) throw videosError;
+      if (linksError) throw linksError;
+      return NextResponse.json({
+        success: true,
+        videos: videos || [],
+        affiliateLinks: affiliateLinks || [],
+      });
+    }
 
     if (action === "quota") {
       const quota = await getDailyPublicationQuota(supabase);

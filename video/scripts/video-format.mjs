@@ -44,16 +44,16 @@ export function buildVideoTitle(input) {
 }
 
 export function buildVideoDescription(input) {
-  if (input.format === "short") {
-    return [
-      String(input.hook || "").trim(),
-      "",
-      "A análise completa e as ofertas atualizadas estão no link do perfil do Quick Review Brasil.",
-      "Qual ponto pesa mais na sua decisão? Conte nos comentários.",
-      "",
-      "#Shorts #Tecnologia #Review #VetorBlog",
-    ].filter(Boolean).join("\n").slice(0, 5000);
-  }
+  const productTitle = String(input.productTitle || "Produto").trim();
+  const category = String(input.category || "Tecnologia").trim();
+  const hook = String(input.hook || "").trim();
+  const purchaseUrl = String(input.purchaseUrl || "").trim();
+  const reviewUrl = String(input.reviewUrl || "").trim();
+  const highlights = [...new Set((Array.isArray(input.highlights) ? input.highlights : [])
+    .map((item) => String(item || "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim())
+    .filter(Boolean))]
+    .slice(0, 5)
+    .map((item) => "• " + item.slice(0, 190));
 
   const chapters = (input.chapters || [])
     .filter((chapter) => Number.isFinite(chapter.time) && chapter.time >= 0 && String(chapter.title || "").trim())
@@ -62,21 +62,45 @@ export function buildVideoDescription(input) {
     .map((chapter) => formatYouTubeTimestamp(chapter.time) + " " + String(chapter.title).replace(/[\r\n]+/g, " ").slice(0, 70));
   if (chapters.length && !chapters[0].startsWith("0:00 ")) chapters.unshift("0:00 Introdução e decisão de compra");
 
-  return [
-    "🛒 PREÇO E LINK DE COMPRA: " + input.purchaseUrl,
-    "📝 REVIEW COMPLETO NO VETOR.BLOG: " + input.reviewUrl,
+  const opening = input.format === "short"
+    ? productTitle + ": vale a pena comprar? Veja os pontos importantes antes de escolher."
+    : productTitle + ": análise, review e orientação de compra.";
+  const lines = [
+    opening,
+    hook,
     "",
-    "Vale a pena comprar " + input.productTitle + "? Nesta análise, organizamos recursos documentados, limitações e critérios para decidir se o produto combina com seu uso.",
+    "🛒 LINK PARA CONFERIR PREÇO E OFERTA: " + purchaseUrl,
+    "📝 " + (reviewUrl.includes("/comparativos/") ? "COMPARATIVO COMPLETO" : "REVIEW COMPLETO") + ": " + reviewUrl,
     "",
-    "CAPÍTULOS",
-    ...chapters,
+    "Esta análise de " + productTitle + " (" + category + ") reúne os critérios que mais pesam na decisão de compra: recursos, limitações, compatibilidade e custo-benefício. Consulte o conteúdo completo e confira as condições atuais do anúncio antes de fechar o pedido.",
+  ];
+
+  if (highlights.length) {
+    lines.push("", "🔎 PRINCIPAIS PONTOS ABORDADOS NO VÍDEO:", ...highlights);
+  }
+  if (chapters.length) {
+    lines.push("", "CAPÍTULOS:", ...chapters);
+  }
+
+  lines.push(
     "",
-    String(input.callToAction || "Confira o review completo e as condições atuais no anúncio.").trim(),
+    String(input.callToAction || ("Acesse o link acima para consultar a oferta de " + productTitle + " e leia a análise completa antes de comprar.")).trim(),
+    "Antes de finalizar, confira a versão exata, preço final, frete, prazo de entrega, disponibilidade, garantia e política de devolução do anúncio.",
+  );
+
+  if (input.format === "short") {
+    lines.push(
+      "Em Shorts, links externos na descrição podem não ser clicáveis. Se o endereço não abrir ao tocar, copie o link ou acesse os links disponíveis no perfil do canal.",
+    );
+  }
+  lines.push(
     "",
-    "Confira preço final, frete, disponibilidade, compatibilidade, garantia e condições diretamente no anúncio. Links podem ser afiliados; isso não altera os critérios editoriais.",
+    "Aviso: alguns links podem ser afiliados. Isso não altera os critérios editoriais nem o teor da análise.",
     "",
-    "#Review #Tecnologia #CustoBeneficio #VetorBlog",
-  ].filter(Boolean).join("\n").slice(0, 5000);
+    "#Review #ValeAPena #CompraInteligente #MercadoLivre #VetorBlog",
+  );
+
+  return lines.filter((line, index) => line || (index > 0 && lines[index - 1] !== "")).join("\n").slice(0, 4800);
 }
 
 export function buildCtaComment(input) {
