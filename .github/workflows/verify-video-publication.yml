@@ -1,0 +1,146 @@
+name: Verify existing YouTube publication
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".verify-video-publication-trigger"
+  workflow_dispatch:
+    inputs:
+      video_id:
+        description: "Existing Vetor video_queue UUID (verification only; never uploads)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify existing video without rendering or uploading
+    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'test(video): verify existing YouTube publication'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd video
+          npm ci
+
+      - name: Verify queue, public video, links, duration and CTA comment
+        working-directory: video
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          VIDEO_ID: ${{ github.event.inputs.video_id || '' }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          EXPECTED_PURCHASE_URL: https://www.vetor.blog/go/logitech-g305-lightspeed-mouse-gamer/
+          EXPECTED_REVIEW_URL: https://www.vetor.blog/reviews/logitech-g305-lightspeed-mouse-gamer/
+        run: |
+          set -euo pipefail
+          if [ -z "$VIDEO_ID" ]; then
+            VIDEO_ID="$(cat ../.verify-video-publication-trigger)"
+            export VIDEO_ID
+          fi
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { google } from "googleapis";
+
+          const required = ["CRON_SECRET", "VETOR_SITE_URL", "VIDEO_ID", "YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN"];
+          for (const key of required) assert.ok(process.env[key], key + " is missing");
+
+          const response = await fetch(process.env.VETOR_SITE_URL + "/api/cron/video-queue-worker/", {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + process.env.CRON_SECRET,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ action: "get", id: process.env.VIDEO_ID }),
+          });
+          assert.equal(response.status, 200, "Vetor queue API did not return HTTP 200");
+          const payload = await response.json();
+          assert.equal(payload.success, true);
+          const record = payload.video;
+          assert.ok(record, "Queue record was not returned");
+          assert.equal(record.status, "completed", "Queue item is not completed");
+          assert.ok(record.youtube_video_id, "youtube_video_id is missing");
+          assert.ok(record.youtube_url, "youtube_url is missing");
+          assert.equal(record.error_message, null, "Queue has a publication/comment error");
+
+          const oauth = new google.auth.OAuth2(process.env.YOUTUBE_CLIENT_ID, process.env.YOUTUBE_CLIENT_SECRET);
+          oauth.setCredentials({ refresh_token: process.env.YOUTUBE_REFRESH_TOKEN });
+          const youtube = google.youtube({ version: "v3", auth: oauth });
+
+          const listing = await youtube.videos.list({
+            part: ["snippet", "status", "contentDetails"],
+            id: [record.youtube_video_id],
+          });
+          const video = listing.data.items?.[0];
+          assert.ok(video, "Published video was not found by YouTube API");
+          assert.equal(video.status?.privacyStatus, "public", "YouTube video is not public");
+          assert.ok(video.snippet?.description?.includes(process.env.EXPECTED_PURCHASE_URL), "Description is missing the tracked purchase URL");
+          assert.ok(video.snippet?.description?.includes(process.env.EXPECTED_REVIEW_URL), "Description is missing the review URL");
+          assert.ok(!String(video.snippet?.title || "").includes("#Shorts"), "Long-form title is incorrectly marked as a Short");
+
+          let duration = "";
+          let seconds = 0;
+          for (let attempt = 1; attempt <= 12; attempt += 1) {
+            const refreshed = await youtube.videos.list({
+              part: ["contentDetails"],
+              id: [record.youtube_video_id],
+            });
+            duration = String(refreshed.data.items?.[0]?.contentDetails?.duration || "");
+            const parsed = /^P(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/.exec(duration);
+            if (parsed && parsed.slice(1).some((part) => part !== undefined)) {
+              seconds = Number(parsed[1] || 0) * 86400
+                + Number(parsed[2] || 0) * 3600
+                + Number(parsed[3] || 0) * 60
+                + Number(parsed[4] || 0);
+              break;
+            }
+            if (attempt < 12) await new Promise((resolve) => setTimeout(resolve, 15000));
+          }
+          assert.ok(seconds >= 180, "YouTube long-form duration is missing or below 180s after processing; raw duration=" + duration);
+
+          let commentFound = false;
+          for (let attempt = 1; attempt <= 5 && !commentFound; attempt += 1) {
+            const threads = await youtube.commentThreads.list({
+              part: ["snippet"],
+              videoId: record.youtube_video_id,
+              maxResults: 100,
+              order: "time",
+            });
+            const comments = (threads.data.items || []).map((item) =>
+              item.snippet?.topLevelComment?.snippet?.textOriginal ||
+              item.snippet?.topLevelComment?.snippet?.textDisplay || ""
+            );
+            commentFound = comments.some((comment) =>
+              comment.includes(process.env.EXPECTED_PURCHASE_URL) &&
+              comment.includes(process.env.EXPECTED_REVIEW_URL)
+            );
+            if (!commentFound && attempt < 5) await new Promise((resolve) => setTimeout(resolve, 5000));
+          }
+          assert.ok(commentFound, "CTA comment with both tracked links was not found via YouTube API");
+
+          console.log(JSON.stringify({
+            verification: "PASS",
+            queueId: record.id,
+            youtubeUrl: record.youtube_url,
+            privacyStatus: video.status?.privacyStatus,
+            durationSeconds: seconds,
+            descriptionHasPurchaseLink: true,
+            descriptionHasReviewLink: true,
+            ctaCommentHasBothLinks: true,
+          }, null, 2));
+          NODE
