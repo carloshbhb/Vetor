@@ -54,9 +54,10 @@ export function parseSocialListPage(html: string, pageNumber: number): MLSocialL
       continue;
     }
 
-    const itemId = url.searchParams.get("wid") || href.match(/\bMLB\d{6,}\b/i)?.[0] || "";
-    if (!/^MLB\d+$/i.test(itemId)) continue;
-    const productId = url.pathname.match(/\/p\/(MLB\d+)/i)?.[1] || null;
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+    const productId = url.pathname.match(/\\/p\\/(MLB\\d+)/i)?.[1] || null;
+    const itemId = url.searchParams.get("wid") || hashParams.get("wid") || productId || href.match(/\\bMLB\\d{6,}\\b/i)?.[0] || "";
+    if (!/^MLB\\d+$/i.test(itemId)) continue;
     const image = card.querySelector<HTMLImageElement>(".poly-component__picture");
     const currentPrice = card.querySelector(".poly-price__current");
     const previousPrice = card.querySelector(".poly-price__previous");
