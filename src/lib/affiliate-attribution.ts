@@ -51,6 +51,40 @@ export function buildTrackedAffiliateUrl(base: string, params: {
   if (params.placement) url.searchParams.set("placement", clean(params.placement, 80) || "");
   return url.toString();
 }
+export function buildSiteTrackedAffiliateUrl(base: string, params: {
+  pageSlug: string;
+  placement: string;
+  contentId?: string;
+  term?: string;
+}): string {
+  let url: URL;
+  try {
+    url = new URL(base, "https://www.vetor.blog");
+  } catch {
+    return base;
+  }
+
+  if (
+    url.protocol !== "https:" ||
+    !["www.vetor.blog", "vetor.blog"].includes(url.hostname) ||
+    !url.pathname.startsWith("/go/")
+  ) {
+    return base;
+  }
+
+  const pageSlug = clean(params.pageSlug, 120) || "page";
+  const placement = clean(params.placement, 80) || "inline";
+
+  return buildTrackedAffiliateUrl(url.toString(), {
+    source: "vetor.blog",
+    medium: "site",
+    campaign: `review-${pageSlug}`,
+    contentId: clean(params.contentId, 160) || `${pageSlug}:${placement}`,
+    ...(params.term ? { term: params.term } : {}),
+    placement,
+  });
+}
+
 export function parseAffiliateClickMetadata(context: AffiliateClickContext): AffiliateClickMetadata {
   const request = parseUrl(context.requestUrl);
   const referrer = parseUrl(context.referrerUrl);
