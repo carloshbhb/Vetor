@@ -57,7 +57,7 @@ export default function MercadoLivreSocialListPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const load = useCallback(async (nextPage = page, q = search) => {
+  const load = useCallback(async (nextPage = 1, q = "") => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: String(nextPage), limit: "50" });
@@ -72,9 +72,9 @@ export default function MercadoLivreSocialListPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, []);
 
-  useEffect(() => { void load(1, ""); }, []);
+  useEffect(() => { void load(1, ""); }, [load]);
 
   const sync = async () => {
     setSyncing(true);
