@@ -4,6 +4,7 @@ import { verifyCronAuth } from "@/lib/cron-auth";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 import { buildTrackedAffiliateUrl } from "@/lib/affiliate-attribution";
 import { isPublishedComparativeArticle, resolveComparativeVideoAffiliateTarget } from "@/lib/video-queue-guards";
+import { buildVideoDescription, resolveVideoFormat } from "../../../../../video/scripts/video-format.mjs";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
@@ -60,6 +61,150 @@ const UPDATABLE_FIELDS = new Set([
   "shortened_affiliate_url",
 ]);
 
+
+type VideoAffiliateLink = {
+  slug: string;
+  name: string;
+  source_type: string;
+  source_ref: string;
+  destination_url: string;
+  marketplace?: string | null;
+  status: string;
+};
+
+function parseVideoScript(value: unknown): Record<string, any> {
+  if (!value) return {};
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    return parsed && typeof parsed === "object" ? parsed as Record<string, any> : {};
+  } catch {
+    return {};
+  }
+}
+
+function getVideoContentRef(value: unknown): { type: "review" | "comparison"; slug: string } | null {
+  if (typeof value !== "string") return null;
+  try {
+    const pathname = new URL(value).pathname;
+    const match = pathname.match(/^\/(reviews|comparativos)\/([^/]+)\/?$/);
+    if (!match) return null;
+    return { type: match[1] === "comparativos" ? "comparison" : "review", slug: match[2] };
+  } catch {
+    return null;
+  }
+}
+
+function normalizeAffiliateDestination(value: unknown): string {
+  if (typeof value !== "string") return "";
+  try {
+    const url = new URL(value);
+    url.search = "";
+    url.hash = "";
+    return url.toString().replace(/\/$/, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function resolveVideoAffiliate(
+  record: Record<string, any>,
+  affiliateLinks: VideoAffiliateLink[]
+): VideoAffiliateLink | null {
+  const content = getVideoContentRef(record.review_url);
+  if (!content) return null;
+  const existingDestinations = new Set([
+    normalizeAffiliateDestination(record.affiliate_url),
+    normalizeAffiliateDestination(record.shortened_affiliate_url),
+  ].filter(Boolean));
+  let matches: VideoAffiliateLink[] = [];
+  if (content.type === "review") {
+    matches = affiliateLinks.filter((link) =>
+      link.source_type === "review" && link.source_ref === content.slug
+    );
+  } else {
+    matches = affiliateLinks.filter((link) =>
+      link.source_type === "comparison_product" &&
+      link.source_ref.startsWith("comparativo:" + content.slug + "#")
+    );
+  }
+  const exact = matches.find((link) => existingDestinations.has(normalizeAffiliateDestination(link.destination_url)));
+  if (exact) return exact;
+  if (matches.length === 1) return matches[0];
+  if (matches.length > 1 && content.type === "comparison") {
+    const firstProduct = matches.find((link) => link.source_ref.endsWith("#1"));
+    return firstProduct || matches[0];
+  }
+  return matches[0] || null;
+}
+
+function makeYouTubeTrackedUrl(record: Record<string, any>, affiliate: VideoAffiliateLink, format: string): string {
+  const slug = String(affiliate.slug || "").trim();
+  if (!slug) return "";
+  const content = getVideoContentRef(record.review_url);
+  const base = "https://www.vetor.blog/go/" + encodeURIComponent(slug) + "/";
+  const url = new URL(buildTrackedAffiliateUrl(base, {
+    source: "youtube",
+    medium: "video",
+    campaign: (content && content.type === "comparison" ? "comparison-" : "review-") + (content?.slug || "product"),
+    contentId: String(record.id || record.youtube_video_id || ""),
+    term: format,
+    placement: "description",
+  }));
+  url.searchParams.set("video_id", String(record.youtube_video_id || ""));
+  return url.toString();
+}
+
+async function getProductionYouTubeAccessToken(): Promise<string> {
+  const clientId = process.env.YOUTUBE_CLIENT_ID;
+  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
+  const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("YouTube OAuth Production credentials are incomplete.");
+  }
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+    signal: AbortSignal.timeout(12000),
+  });
+  const data = await response.json().catch(() => ({})) as Record<string, any>;
+  if (!response.ok || typeof data.access_token !== "string" || !data.access_token) {
+    const reason = typeof data.error === "string" ? data.error : "HTTP " + response.status;
+    throw new Error("YouTube OAuth Production failed (" + reason + ").");
+  }
+  return data.access_token;
+}
+
+async function youtubeApiRequest(
+  path: string,
+  accessToken: string,
+  init?: RequestInit
+): Promise<Record<string, any>> {
+  const response = await fetch("https://www.googleapis.com/youtube/v3/" + path, {
+    ...init,
+    headers: {
+      Authorization: "Bearer " + accessToken,
+      ...(init?.headers || {}),
+      ...(init?.method === "PUT" ? { "Content-Type": "application/json" } : {}),
+    },
+    signal: AbortSignal.timeout(12000),
+  });
+  const data = await response.json().catch(() => ({})) as Record<string, any>;
+  if (!response.ok) {
+    const reason = data?.error?.errors?.[0]?.reason || data?.error?.status || data?.error?.message || "HTTP " + response.status;
+    throw Object.assign(new Error("YouTube API " + response.status + ": " + String(reason).slice(0, 240)), {
+      status: response.status,
+      reason,
+    });
+  }
+  return data;
+}
+
 export async function POST(request: NextRequest) {
   const authError = verifyCronAuth(request);
   if (authError) return authError;
@@ -74,6 +219,162 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     action = typeof body.action === "string" ? body.action : "";
 
+
+
+    if (action === "youtubeOAuthCheck") {
+      await getProductionYouTubeAccessToken();
+      return NextResponse.json({ success: true, authorized: true, credentialSource: "vercel-production" });
+    }
+
+    if (action === "refreshYouTubeMetadata") {
+      const offset = Math.max(0, Math.floor(Number(body.offset || 0)));
+      const limit = Math.min(Math.max(Math.floor(Number(body.limit || 5)), 1), 5);
+      const [{ data: records, error: recordsError, count }, { data: affiliateLinks, error: linksError }] = await Promise.all([
+        supabase.from("video_queue")
+          .select("id,product_title,product_category,affiliate_url,shortened_affiliate_url,script_text,script_hook,media_assets,review_url,youtube_video_id,youtube_url,completed_at", { count: "exact" })
+          .eq("status", "completed")
+          .not("youtube_video_id", "is", null)
+          .order("completed_at", { ascending: true })
+          .range(offset, offset + limit - 1),
+        supabase.from("affiliate_links")
+          .select("slug,name,source_type,source_ref,destination_url,marketplace,status")
+          .eq("status", "active")
+          .limit(2000),
+      ]);
+      if (recordsError) throw recordsError;
+      if (linksError) throw linksError;
+      const total = count || 0;
+      const batch = records || [];
+      if (!batch.length) {
+        return NextResponse.json({ success: true, offset, total, updated: 0, failed: 0, skipped: 0, done: true });
+      }
+
+      const accessToken = await getProductionYouTubeAccessToken();
+      const ids = batch.map((record) => String(record.youtube_video_id || "")).filter(Boolean);
+      const listParams = new URLSearchParams({ part: "snippet", id: ids.join(",") });
+      const videoData = await youtubeApiRequest("videos?" + listParams.toString(), accessToken);
+      const snippets = new Map<string, Record<string, any>>();
+      for (const video of videoData.items || []) {
+        if (video.id && video.snippet) snippets.set(String(video.id), video.snippet);
+      }
+
+      const results: Array<Record<string, any>> = [];
+      for (const record of batch) {
+        const videoId = String(record.youtube_video_id || "");
+        const snippet = snippets.get(videoId);
+        if (!videoId || !snippet || !snippet.title || !snippet.categoryId) {
+          results.push({ videoId, status: "skipped", reason: "YouTube snippet/title/categoryId not found" });
+          continue;
+        }
+
+        const format = resolveVideoFormat(record.media_assets);
+        const affiliate = resolveVideoAffiliate(record, (affiliateLinks || []) as VideoAffiliateLink[]);
+        let purchaseUrl = "";
+        let nextAffiliateUrl = String(record.affiliate_url || "");
+        let nextShortenedUrl = String(record.shortened_affiliate_url || "");
+        let managed = false;
+        let searchListing = false;
+        if (affiliate && /^https:\/\//i.test(affiliate.destination_url || "")) {
+          purchaseUrl = makeYouTubeTrackedUrl(record, affiliate, format);
+          nextAffiliateUrl = affiliate.destination_url;
+          nextShortenedUrl = purchaseUrl;
+          managed = true;
+          searchListing = /(^|\.)lista\.mercadolivre\.com\.br$/i.test(new URL(affiliate.destination_url).hostname);
+        } else {
+          const existing = String(record.shortened_affiliate_url || record.affiliate_url || "").trim();
+          if (/^https:\/\/meli\.la\//i.test(existing) || /^https:\/\/www\.vetor\.blog\/go\//i.test(existing)) {
+            purchaseUrl = existing;
+            nextShortenedUrl = existing;
+            if (!/^https:\/\//i.test(nextAffiliateUrl)) nextAffiliateUrl = existing;
+          }
+        }
+
+        if (!purchaseUrl) {
+          results.push({ videoId, status: "skipped", reason: "No safe product purchase link" });
+          continue;
+        }
+
+        const parsed = parseVideoScript(record.script_text);
+        const description = buildVideoDescription({
+          format,
+          productTitle: String(record.product_title || "Produto"),
+          category: String(record.product_category || "Tecnologia"),
+          purchaseUrl,
+          reviewUrl: String(record.review_url || ""),
+          hook: String(parsed.hook || record.script_hook || snippet.title),
+          highlights: Array.isArray(parsed.scenes)
+            ? parsed.scenes.map((scene: any) => String(scene?.text || "")).filter(Boolean)
+            : [],
+          callToAction: String(parsed.callToAction || ""),
+          chapters: [],
+        });
+        if (Buffer.byteLength(description, "utf8") > 5000) {
+          results.push({ videoId, status: "skipped", reason: "Description exceeds YouTube 5,000-byte limit" });
+          continue;
+        }
+
+        const updatedSnippet: Record<string, any> = {
+          title: snippet.title,
+          categoryId: snippet.categoryId,
+          description,
+          tags: Array.isArray(snippet.tags) ? snippet.tags : [],
+        };
+        if (snippet.defaultLanguage) updatedSnippet.defaultLanguage = snippet.defaultLanguage;
+        if (snippet.defaultAudioLanguage) updatedSnippet.defaultAudioLanguage = snippet.defaultAudioLanguage;
+        try {
+          await youtubeApiRequest("videos?part=snippet", accessToken, {
+            method: "PUT",
+            body: JSON.stringify({ id: videoId, snippet: updatedSnippet }),
+          });
+        } catch (error: any) {
+          const message = error instanceof Error ? error.message : String(error);
+          results.push({ videoId, status: "failed", error: message.slice(0, 500) });
+          if (Number(error?.status) === 403 || /insufficientPermissions|quotaExceeded/i.test(message)) {
+            break;
+          }
+          continue;
+        }
+
+        let linkWarning: string | null = null;
+        if (nextAffiliateUrl !== record.affiliate_url || nextShortenedUrl !== record.shortened_affiliate_url) {
+          const { error: updateError } = await supabase.from("video_queue")
+            .update({
+              affiliate_url: nextAffiliateUrl,
+              shortened_affiliate_url: nextShortenedUrl,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", record.id);
+          if (updateError) linkWarning = updateError.message;
+        }
+        results.push({
+          videoId,
+          status: "updated",
+          tracked: managed,
+          searchListing,
+          linkWarning,
+          descriptionBytes: Buffer.byteLength(description, "utf8"),
+        });
+      }
+
+      const updated = results.filter((item) => item.status === "updated").length;
+      const failed = results.filter((item) => item.status === "failed").length;
+      const skipped = results.filter((item) => item.status === "skipped").length;
+      const stopped = results.some((item) => item.status === "failed" && /403|insufficientPermissions|quotaExceeded/i.test(String(item.error || "")));
+      return NextResponse.json({
+        success: failed === 0,
+        offset,
+        limit,
+        total,
+        updated,
+        failed,
+        skipped,
+        searchListingLinks: results.filter((item) => item.searchListing).length,
+        results,
+        nextOffset: offset + batch.length,
+        done: offset + batch.length >= total || stopped,
+        stopped,
+      }, { status: failed > 0 ? 207 : 200 });
+    }
 
     if (action === "metadataBatch") {
       const [{ data: videos, error: videosError }, { data: affiliateLinks, error: linksError }] = await Promise.all([
