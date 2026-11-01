@@ -294,6 +294,15 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        if (searchListing) {
+          results.push({
+            videoId,
+            status: "skipped",
+            reason: "Affiliate destination is a Mercado Livre search listing; an item-specific meli.la link is required.",
+          });
+          continue;
+        }
+
         if (!purchaseUrl) {
           results.push({ videoId, status: "skipped", reason: "No safe product purchase link" });
           continue;
