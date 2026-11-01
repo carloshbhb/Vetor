@@ -113,6 +113,8 @@ assert.doesNotMatch(queueFromReviews[0], /script_text: null/);
 assert.match(videoQueueWorker, /function formatVideoQueueError\(error: unknown\)/);
 assert.match(videoQueueWorker, /failed: action=\$\{action\}/);
 
-// Remotion's CLI contract requires the composition type before the JSON input path.
-assert.match(processVideo, /\[tsxEntrypoint, 'video\/src\/utils\/renderVideo\.ts', String\(videoData\.type \|\| 'review'\), dataPath\]/);
+// Remotion runs from the video project root so the cached local Chrome is reused.
+// Its CLI contract requires the composition type before the absolute JSON input path.
+assert.match(processVideo, /\[tsxEntrypoint, 'src\/utils\/renderVideo\.ts', String\(videoData\.type \|\| 'review'\), path\.resolve\(dataPath\)\]/);
+assert.match(processVideo, /cwd: videoProjectRoot/);
 console.log('Supabase egress/cache regression tests passed.');
