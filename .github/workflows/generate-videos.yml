@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Explain the active production pipeline
         run: |
-          echo "::notice::This legacy workflow is retired. Use 'Process Video Queue', which runs a daily batch of up to 15 videos with Remotion and ElevenLabs."
+          echo "::notice::This legacy workflow is retired. Use 'Process Video Queue', which runs a daily batch of up to 15 videos with Remotion and Edge TTS."
           echo "No content was queued, rendered, or published by this retired workflow."
