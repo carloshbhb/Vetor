@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { getVideoById, updateVideoStatus } from "@/lib/video-orchestrator";
-import { generateVideoScript } from "@/lib/script-generator";
+import { generateComparisonVideoScript, generateVideoScript } from "@/lib/script-generator";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 
 export const runtime = "nodejs";
@@ -41,14 +41,74 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getSupabaseServiceKeyClient();
-    const reviewSlug = (() => {
-      try {
-        const pathname = new URL(String(video.review_url || "")).pathname;
-        return pathname.match(/^\/reviews\/([^/]+)\/?$/)?.[1] || null;
-      } catch {
-        return null;
+    const parseArray = (value: unknown): any[] => {
+      if (Array.isArray(value)) return value;
+      if (typeof value === "string") {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch { return []; }
       }
+      return [];
+    };
+    const contentPath = (() => {
+      try { return new URL(String(video.review_url || "")).pathname; }
+      catch { return ""; }
     })();
+    const comparisonSlug = contentPath.match(/^\/comparativos\/([^/]+)\/?$/)?.[1] || null;
+
+    if (comparisonSlug) {
+      if (!supabase) {
+        return NextResponse.json({ error: "Supabase Service Role indisponível para ler o comparativo publicado." }, { status: 503 });
+      }
+      const { data: article, error: articleError } = await supabase
+        .from("viral_articles")
+        .select("slug,title,category,products,published_at")
+        .eq("slug", comparisonSlug)
+        .maybeSingle();
+      if (articleError) throw articleError;
+      if (!article || !article.published_at) {
+        return NextResponse.json({ error: "Comparativo publicado não encontrado para gerar o roteiro." }, { status: 404 });
+      }
+      const products = parseArray(article.products).slice(0, 2)
+        .filter((product) => product && typeof product.name === "string" && product.name.trim());
+      if (products.length !== 2 || products[0].name.trim() === products[1].name.trim()) {
+        return NextResponse.json({ error: "Comparativo precisa conter exatamente dois produtos distintos com nomes válidos." }, { status: 422 });
+      }
+
+      const comparisonScript = await generateComparisonVideoScript({
+        title: String(article.title || video.product_title || "Comparativo de produtos"),
+        category: String(article.category || video.product_category || "Tecnologia"),
+        product1: { name: products[0].name.trim() },
+        product2: { name: products[1].name.trim() },
+        comparisonUrl: "https://www.vetor.blog/comparativos/" + comparisonSlug + "/",
+      });
+      const finalComparisonScript = {
+        ...comparisonScript,
+        generationVersion: 3 as const,
+        videoFormat: "short" as const,
+        creativeAngle: comparisonScript.creativeAngle || "Comparação factual baseada somente nos nomes e na categoria fornecidos.",
+      };
+      await updateVideoStatus(videoId, {
+        script_text: JSON.stringify(finalComparisonScript),
+        script_hook: finalComparisonScript.hook,
+        error_message: null,
+      });
+      return NextResponse.json({
+        success: true,
+        reused: false,
+        videoId,
+        contentType: "comparison",
+        scenes: finalComparisonScript.scenes.length,
+        factsUsed: 2,
+        script: finalComparisonScript,
+      });
+    }
+
+    const reviewSlug = contentPath.match(/^\/reviews\/([^/]+)\/?$/)?.[1] || null;
+    if (!reviewSlug) {
+      return NextResponse.json({ error: "A URL da fila não corresponde a um review ou comparativo publicado." }, { status: 422 });
+    }
 
     let reviewFacts: any = null;
     if (supabase && reviewSlug) {
@@ -65,16 +125,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const parseArray = (value: unknown): any[] => {
-      if (Array.isArray(value)) return value;
-      if (typeof value === "string") {
-        try {
-          const parsed = JSON.parse(value);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch { return []; }
-      }
-      return [];
-    };
     const specs = parseArray(reviewFacts?.specs)
       .filter((item) => item && typeof item.label === "string" && typeof item.value === "string")
       .slice(0, 16);

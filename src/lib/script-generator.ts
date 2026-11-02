@@ -190,6 +190,52 @@ export interface ComparisonVideoScript {
   scenes: ComparisonVideoScene[];
   totalDuration: number;
   callToAction: string;
+  generationVersion?: 3;
+  videoFormat?: "short";
+  creativeAngle?: string;
+}
+
+export function isValidComparisonVideoScriptResponse(
+  response: string,
+  product1Name: string,
+  product2Name: string
+): boolean {
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return false;
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (typeof parsed.hook !== "string" || !parsed.hook.trim()) return false;
+    if (typeof parsed.callToAction !== "string" || !parsed.callToAction.trim()) return false;
+    if (!Array.isArray(parsed.scenes) || parsed.scenes.length < 6 || parsed.scenes.length > 7) return false;
+
+    const validTypes = new Set(["product1", "product2", "comparison"]);
+    if (parsed.scenes.some((scene: any) =>
+      !scene || typeof scene !== "object" ||
+      typeof scene.text !== "string" || scene.text.trim().split(/\s+/).length < 8 ||
+      !Number.isFinite(scene.duration) || scene.duration < 9 || scene.duration > 10 ||
+      !validTypes.has(scene.type) ||
+      typeof scene.visualCue !== "string" || !scene.visualCue.trim() ||
+      !Array.isArray(scene.brollKeywords) ||
+      scene.brollKeywords.some((keyword: unknown) => typeof keyword !== "string" || !keyword.trim())
+    )) return false;
+
+    const cues = parsed.scenes.map((scene: any) => scene.visualCue.trim().toLowerCase());
+    if (new Set(cues).size < 6) return false;
+    const transcript = [parsed.hook, ...parsed.scenes.map((scene: any) => scene.text), parsed.callToAction].join(" ");
+    const unsupportedClaims =
+      /\b(?:exynos|snapdragon|dimensity|bluetooth|wi-?fi|amoled|oled|ips|anc|cancelamento de ru[ií]do|driver|mAh|mah|megapixels?|nits|usb-?c|ipx\d?)\b|\b\d+(?:[.,]\d+)?\s*(?:mm|mah|gb|tb|hz|mp|w|wh|db|horas?|dias?|anos?|%)\b/i;
+    const unsupportedOpinion = /\b(?:vencedor|ganhador|superior|melhor que|melhor do que|nota final)\b/i;
+    if (unsupportedClaims.test(transcript) || unsupportedOpinion.test(transcript)) return false;
+
+    const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const normalizedTranscript = normalize(transcript);
+    if (!normalizedTranscript.includes(normalize(product1Name)) || !normalizedTranscript.includes(normalize(product2Name))) return false;
+
+    const duration = parsed.scenes.reduce((sum: number, scene: any) => sum + Number(scene.duration), 8);
+    return duration >= 60 && duration <= 90;
+  } catch {
+    return false;
+  }
 }
 
 export async function generateComparisonVideoScript(input: {
@@ -199,98 +245,70 @@ export async function generateComparisonVideoScript(input: {
   product2: { name: string };
   comparisonUrl: string;
 }): Promise<ComparisonVideoScript> {
-  if (!input.product1.name.trim() || !input.product2.name.trim()) {
-    throw new Error('[comparison-video-script] Dois nomes de produtos são obrigatórios.');
+  const product1Name = input.product1.name.trim();
+  const product2Name = input.product2.name.trim();
+  if (!product1Name || !product2Name || product1Name === product2Name) {
+    throw new Error("[comparison-video-script] Dois nomes distintos de produtos são obrigatórios.");
   }
   const prompt = [
-    'Crie um roteiro editorial para YouTube Shorts de 60 a 90 segundos comparando "' + input.product1.name + '" e "' + input.product2.name + '".',
-    'Categoria: ' + input.category,
-    'Título do comparativo: ' + input.title,
-    'URL canônica do comparativo: ' + input.comparisonUrl,
-    '',
-    'DADOS CONFIRMADOS: os nomes dos produtos e a categoria acima. Não foram fornecidas fichas técnicas, medições, preços atuais nem avaliações verificadas.',
-    '',
-    'Retorne somente JSON:',
-    '{',
-    '  "hook": "abertura curta e curiosa, até 20 palavras",',
-    '  "scenes": [',
-    '    { "id": 1, "type": "product1", "text": "narração útil até 24 palavras", "duration": 9, "visualCue": "descrição visual neutra", "brollKeywords": ["product close up", "shopping comparison"] }',
-    '  ],',
-    '  "callToAction": "Veja o comparativo completo e confira os anúncios atualizados."',
-    '}',
-    '',
-    'REGRAS:',
-    '- Use 6 ou 7 cenas, cada uma com duração de 9 a 10 segundos.',
-    '- Cada cena deve usar type "product1", "product2" ou "comparison".',
-    '- Alterne os tipos para manter a edição visual, sem inventar medições, especificações, preços, autonomia, desempenho ou defeitos.',
-    '- Não diga que testamos ou medimos os produtos; não declare vencedor, notas ou superioridade sem dados verificados.',
-    '- Oriente o público a conferir fichas oficiais, compatibilidade, conteúdo da embalagem, garantia, preço total e necessidades pessoais.',
-    '- Enquadre características não fornecidas como pontos a verificar, nunca como fatos.',
-    '- O total renderizado inclui 3 segundos de abertura e 5 segundos de veredito/CTA, além da soma das cenas; deve ficar entre 60 e 90 segundos.',
-    '- CTA sem desconto, estoque ou preço não confirmado. Use a URL canônica apenas no texto de descrição/CTA.',
-    '- Não invente URLs nem citações.',
-    '- Responda em português brasileiro e apenas com JSON válido.',
-  ].join('\n');
+    "Crie um roteiro editorial para YouTube Shorts de 60 a 90 segundos comparando \"" + product1Name + "\" e \"" + product2Name + "\".",
+    "Categoria: " + input.category,
+    "Título do comparativo: " + input.title,
+    "URL canônica do comparativo: " + input.comparisonUrl,
+    "",
+    "DADOS CONFIRMADOS: somente os nomes dos produtos, a categoria e o título acima.",
+    "Não foram fornecidas fichas técnicas verificadas, medições, preços atuais, recursos confirmados ou avaliações.",
+    "",
+    "Retorne apenas JSON com hook, scenes e callToAction. Cada cena deve conter id, type, text, duration, visualCue e brollKeywords.",
+    "Use 6 ou 7 cenas, cada uma com 9 ou 10 segundos. Cada type deve ser product1, product2 ou comparison.",
+    "",
+    "REGRAS FACTUAIS OBRIGATÓRIAS:",
+    "- Não invente nem mencione processadores, chipsets, câmera, tela, conectividade, Bluetooth, ANC, drivers, autonomia, bateria, potência, dimensões, materiais, certificações, preços ou resultados.",
+    "- Não use dados presentes em outros artigos, páginas ou conhecimento de memória; neste roteiro só os nomes e a categoria foram confirmados pelo sistema.",
+    "- Não declare vencedor, superioridade, notas, medições, testes ou experiência pessoal.",
+    "- Oriente o público a comparar a ficha oficial da versão exata, compatibilidade, garantia, conteúdo da embalagem, preço total e necessidades de uso.",
+    "- Quando faltar informação, apresente como pergunta ou critério a conferir, nunca como fato.",
+    "- Use os nomes completos de ambos os produtos ao menos uma vez na narração.",
+    "- As cenas devem ter visualCue distintos e brollKeywords concretos, sem sugerir teste que não ocorreu.",
+    "- O total, somando 8 segundos de abertura/encerramento à duração das cenas, deve ficar entre 60 e 90 segundos.",
+    "- CTA sem preço, desconto ou estoque não confirmado. Peça para consultar o comparativo e verificar as condições atuais.",
+    "- Responda em português brasileiro natural e somente em JSON válido.",
+  ].join("\n");
 
   try {
     getLLMProvider();
     const response = await chatCompletion({
-      systemPrompt: 'Você é roteirista editorial do Vetor.blog. Priorize precisão factual, comparação útil e JSON válido.',
+      systemPrompt: "Você é roteirista editorial de tecnologia do Vetor.blog. Fatos inventados são proibidos. Responda somente JSON válido.",
       userPrompt: prompt,
       temperature: 0.35,
-      maxTokens: 2200,
-      responseFormat: { type: 'json_object' },
+      maxTokens: 1800,
+      ...getVideoScriptGenerationBudget(),
+      responseFormat: { type: "json_object" },
+      validateResponse: (candidate) => isValidComparisonVideoScriptResponse(candidate, product1Name, product2Name),
     });
     const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Modelo não retornou JSON.');
+    if (!jsonMatch) throw new Error("Modelo não retornou JSON.");
     const parsed = JSON.parse(jsonMatch[0]);
-    const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
-    const validTypes = new Set<ComparisonSceneType>(['product1', 'product2', 'comparison']);
-    if (
-      typeof parsed.hook !== 'string' ||
-      !parsed.hook.trim() ||
-      scenes.length < 6 ||
-      scenes.length > 7 ||
-      scenes.some((scene: unknown) => {
-        if (!scene || typeof scene !== 'object') return true;
-        const item = scene as Partial<ComparisonVideoScene>;
-        return typeof item.text !== 'string' ||
-          !item.text.trim() ||
-          !Number.isFinite(item.duration) ||
-          (item.duration as number) < 9 ||
-          (item.duration as number) > 10 ||
-          !validTypes.has(item.type as ComparisonSceneType) ||
-          !Array.isArray(item.brollKeywords);
-      })
-    ) {
-      throw new Error('Roteiro comparativo inválido: são necessárias 6–7 cenas tipadas com 9–10 segundos cada.');
+    if (!isValidComparisonVideoScriptResponse(response, product1Name, product2Name)) {
+      throw new Error("Roteiro reprovado: estrutura incompleta ou afirmação técnica sem evidência.");
     }
 
-    const sceneSeconds = scenes.reduce((sum: number, scene: ComparisonVideoScene) => sum + scene.duration, 0);
-    const totalDuration = sceneSeconds + 8;
-    if (totalDuration < 60 || totalDuration > 90) {
-      throw new Error('Duração comparativa inconsistente: ' + totalDuration + 's; esperado 60–90s.');
-    }
-    const transcript = [parsed.hook, ...scenes.map((scene: ComparisonVideoScene) => scene.text), parsed.callToAction || ''].join(' ');
-    if (/\b(testamos|em nossos testes|nos nossos testes|medimos|garantimos|vencedor|ganhador|superior|rodo tudo liso|sem engasgos)\b/i.test(transcript) ||
-      /\bnota\s*(?:final)?\s*[:=]?\s*\d|\b\d(?:[.,]\d)?\/10\b/i.test(transcript)) {
-      throw new Error('Roteiro comparativo reprovado: alegação ou nota sem evidência.');
-    }
-
+    const scenes = parsed.scenes as ComparisonVideoScene[];
+    const totalDuration = scenes.reduce((sum, scene) => sum + scene.duration, 8);
     return {
       hook: parsed.hook.trim(),
-      scenes: scenes as ComparisonVideoScene[],
+      scenes,
       totalDuration,
-      callToAction: typeof parsed.callToAction === 'string' && parsed.callToAction.trim()
-        ? parsed.callToAction.trim()
-        : 'Veja o comparativo completo: ' + input.comparisonUrl + '. Confira as condições atuais dos anúncios.',
+      callToAction: parsed.callToAction.trim(),
+      generationVersion: 3,
+      videoFormat: "short",
+      creativeAngle: "Comparação factual: nomes e categoria confirmados; demais características devem ser conferidas nas fichas oficiais.",
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error('[comparison-video-script] ' + message);
+    throw new Error("[comparison-video-script] " + message);
   }
 }
-
 function generateDefaultScenes(product: ProductInfo): VideoScene[] {
   return [
     {

@@ -90,7 +90,7 @@ export function buildVideoDescription(input) {
 
   if (input.format === "short") {
     lines.push(
-      "Em Shorts, links externos na descrição podem não ser clicáveis. Se o endereço não abrir ao tocar, copie o link ou acesse os links disponíveis no perfil do canal.",
+      "Em Shorts, links externos na descrição não são clicáveis. Se o endereço não abrir ao tocar, copie o link ou acesse os links disponíveis no perfil do canal.",
     );
   }
   lines.push(

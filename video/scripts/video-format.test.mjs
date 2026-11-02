@@ -55,6 +55,7 @@ assert.ok(shortDescription.includes(reviewUrl));
 assert.ok(shortDescription.includes("Fones de Ouvido"));
 assert.ok(shortDescription.includes("Cancelamento de ruído"));
 assert.ok(shortDescription.includes("links externos na descrição"));
+assert.ok(shortDescription.includes("não são clicáveis"));
 
 const longComment = buildCtaComment({ format: longFormat, productTitle: "Produto X", purchaseUrl, reviewUrl });
 const shortComment = buildCtaComment({ format: shortFormat, productTitle: "Produto X", purchaseUrl, reviewUrl });
