@@ -113,7 +113,7 @@ export function buildCompositionHtml(videoData, options) {
     "<title>" + title + " | Vetor.blog</title>", "<style>",
     "*{box-sizing:border-box}html,body{margin:0;padding:0;width:" + width + "px;height:" + height + "px;overflow:hidden;background:#080c14;color:#fff;font-family:Inter,Arial,Helvetica,sans-serif}",
     "#vetor-root{position:relative;width:" + width + "px;height:" + height + "px;overflow:hidden;background:radial-gradient(ellipse at 78% 16%,rgba(66,133,244,.22),transparent 44%),linear-gradient(145deg,#080c14 0%,#0c1424 54%,#070b13 100%)}",
-    ".ambient-orb{position:absolute;width:70%;height:45%;left:35%;top:-18%;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.24),transparent 68%);filter:blur(50px);pointer-events:none}",
+    ".ambient-orb{position:absolute;width:60%;height:30%;left:20%;top:20%;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.24),transparent 68%);filter:blur(50px);pointer-events:none}",
     ".film-grain{position:absolute;inset:0;opacity:.07;pointer-events:none;background-image:url(\"data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E\")}",
     "#vetor-root video,#vetor-root .scene-still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.64) saturate(1.04)}",
     ".scene-fallback{position:absolute;inset:0;background:radial-gradient(circle at 72% 35%,rgba(66,133,244,.34),transparent 34%),linear-gradient(140deg,#101b31,#080c14 70%)}",
