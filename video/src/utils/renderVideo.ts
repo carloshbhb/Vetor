@@ -102,7 +102,8 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
     inputProps: data as unknown as InputProps,
     crf: 18,
     imageFormat: 'jpeg',
-    concurrency: 2,
+    concurrency: 1,
+    timeoutInMilliseconds: 90000,
     onStart: ({ frameCount, resolvedConcurrency }) => {
       console.log('[Remotion] Render iniciado: ' + frameCount + ' frames; concorrência=' + resolvedConcurrency + '.');
     },
