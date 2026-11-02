@@ -48,6 +48,19 @@ const sceneCues = exactCaptions.filter((entry) => entry.segmentKind === "scene")
 assert.equal(sceneCues.length, 2);
 assert.ok(Math.abs(sceneCues[0].start - 0.115) < 0.000001);
 assert.equal(exactCaptions[exactCaptions.length - 1].segmentKind, "cta");
+
+const fragmentCaptions = buildTimedCaptionEntries(
+  [{ kind: "scene", text: "leva." }, { kind: "scene", text: "volts." }],
+  [
+    { type: "WordBoundary", offset: 0, duration: 5_000_000, text: "leva." },
+    { type: "WordBoundary", offset: 5_200_000, duration: 5_000_000, text: "volts." },
+  ],
+  { maxWords: 5 }
+);
+assert.equal(fragmentCaptions.length, 1);
+assert.equal(fragmentCaptions[0].text, "leva. volts.");
+assert.ok(fragmentCaptions[0].end - fragmentCaptions[0].start >= 1);
+
 assert.equal(buildTimedCaptionEntries(exactSegments, exactBoundaries.slice(1), { maxWords: 3 }), null);
 const wrappedCaptions = buildTimedCaptionEntries(
   [{ kind: "scene", text: "Tela AMOLED de 120 Hz" }],
