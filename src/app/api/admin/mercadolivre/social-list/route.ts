@@ -50,15 +50,21 @@ export async function GET(request: NextRequest) {
 
       const { data: stored, error: storedError } = await supabase
         .from("ml_social_list_items")
-        .select("item_id")
+        .select("item_id,product_id")
         .eq("list_id", ML_SOCIAL_LIST_ID)
         .limit(1000);
 
       if (storedError) return NextResponse.json({ error: storedError.message }, { status: 500 });
 
-      const storedIds = new Set((stored || []).map((row) => String(row.item_id).toUpperCase()));
-      const matching = bookmarkIds.filter((id) => storedIds.has(id));
-      const notInSocialImport = bookmarkIds.filter((id) => !storedIds.has(id));
+      // The public social-list cards expose two different identifiers:
+      // item_id is the offer/listing ID (wid), while product_id is the catalog ID (/p/MLB...).
+      // The bookmarks endpoint returns catalog IDs, so compare both to avoid false "missing" results.
+      const storedItemIds = new Set((stored || []).map((row) => String(row.item_id || "").toUpperCase()).filter(Boolean));
+      const storedProductIds = new Set((stored || []).map((row) => String(row.product_id || "").toUpperCase()).filter(Boolean));
+      const matchingListingIds = bookmarkIds.filter((id) => storedItemIds.has(id));
+      const matchingCatalogIds = bookmarkIds.filter((id) => storedProductIds.has(id));
+      const matchedSocialIds = new Set([...matchingListingIds, ...matchingCatalogIds]);
+      const notInSocialImport = bookmarkIds.filter((id) => !storedItemIds.has(id) && !storedProductIds.has(id));
 
       return NextResponse.json({
         ok: true,
@@ -70,11 +76,14 @@ export async function GET(request: NextRequest) {
         productIdPrefixCounts: prefixCounts,
         sampleProductIds: allBookmarkIds.slice(0, 10),
         invalidItemIdRows: rawItemIds.length - allBookmarkIds.length,
-        importedSocialListIds: storedIds.size,
-        overlapWithImportedList: matching.length,
+        importedSocialListIds: storedItemIds.size,
+        importedSocialListCatalogIds: storedProductIds.size,
+        overlapWithImportedList: matchedSocialIds.size,
+        overlapWithImportedListingIds: matchingListingIds.length,
+        overlapWithImportedCatalogIds: matchingCatalogIds.length,
         bookmarkIdsNotInSocialImport: notInSocialImport.length,
         sampleNotInSocialImport: notInSocialImport.slice(0, 50),
-        note: "O endpoint oficial retorna favoritos da conta, não garante que os itens pertençam exclusivamente à lista social. Nenhum registro foi alterado.",
+        note: "A comparação considera tanto o ID do anúncio (item_id/wid) quanto o ID de catálogo (product_id/URL /p/). A API oficial retorna todos os favoritos da conta e não garante, isoladamente, que todos pertençam à lista social. Nenhum registro foi alterado.",
       });
     } catch (error) {
       return NextResponse.json({
