@@ -11,10 +11,14 @@ assert.equal(extractMercadoLivreItemId("https://meli.la/abc123"), null);
 
 const fit3 = findBestMercadoLivreItemMatch("Samsung Galaxy Fit3", [
   { item_id: "MLB7902750010", product_id: "MLB34062353", title: "Samsung Galaxy Fit3 Pulseira Esportiva Grafite Esportivo" },
-  { item_id: "MLB7572496272", product_id: "MLB34506161", title: "Smartwatch Samsung Galaxy Fit3 Display 1.6 Rose Esportivo" },
 ]);
 assert.ok(fit3);
 assert.equal(fit3.confidence, 1);
+
+assert.equal(findBestMercadoLivreItemMatch("Samsung Galaxy Fit3", [
+  { item_id: "MLB7902750010", product_id: "MLB34062353", title: "Samsung Galaxy Fit3 Pulseira Esportiva Grafite Esportivo" },
+  { item_id: "MLB7572496272", product_id: "MLB34506161", title: "Smartwatch Samsung Galaxy Fit3 Display 1.6 Rose Esportivo" },
+]), null, "different catalog products with equal match confidence must be rejected");
 
 const echo = findBestMercadoLivreItemMatch("Echo Dot 5", [
   { item_id: "MLB3616972805", product_id: "MLB25727897", title: "Amazon Echo Dot Echo Dot (5th Gen) com Assistente Virtual Alexa" },

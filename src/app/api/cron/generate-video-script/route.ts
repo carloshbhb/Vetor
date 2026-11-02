@@ -4,7 +4,7 @@ import { getVideoById, updateVideoStatus } from "@/lib/video-orchestrator";
 import { generateVideoScript } from "@/lib/script-generator";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 import { getProductWithPictures } from "@/lib/mercadolivre-api";
-import { dedupeMercadoLivreImages, extractMercadoLivreItemId, findBestMercadoLivreItemMatch } from "@/lib/video-media-matching";
+import { dedupeMercadoLivreImages, extractMercadoLivreItemId, findBestMercadoLivreItemMatch, scoreProductTitleMatch } from "@/lib/video-media-matching";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -66,13 +66,28 @@ export async function POST(request: NextRequest) {
           .limit(10);
         if (productError) console.warn("[generate-video-script] product link lookup failed:", productError.message);
 
-        const productRow = (productRows || []).find((row: any) =>
-          String(row.product_name || "").toLowerCase() === String(video.product_title || "").toLowerCase()
-        ) || (productRows || [])[0];
+        const rows = (productRows || []) as any[];
+        const exactRow = rows.find((row) =>
+          String(row.product_name || "").trim().toLowerCase() === String(video.product_title || "").trim().toLowerCase()
+        );
+        const scoredRows = rows
+          .map((row) => ({ row, score: scoreProductTitleMatch(video.product_title, row.product_name) }))
+          .filter((item) => item.score)
+          .sort((a, b) => Number(b.score?.confidence || 0) - Number(a.score?.confidence || 0));
+        let productRow = exactRow;
+        if (!productRow && scoredRows.length) {
+          const topConfidence = scoredRows[0].score?.confidence || 0;
+          const tiedRows = scoredRows.filter((item) => Math.abs((item.score?.confidence || 0) - topConfidence) < 0.0001);
+          const tiedItemIds = new Set(tiedRows.map((item) => extractMercadoLivreItemId(item.row.product_url)).filter(Boolean));
+          if (tiedRows.length === 1 || (tiedItemIds.size === 1 && tiedItemIds.has(extractMercadoLivreItemId(tiedRows[0].row.product_url)))) {
+            productRow = tiedRows[0].row;
+          }
+        }
+        if (!productRow && rows.length === 1) productRow = rows[0];
 
         if (!resolvedItemId && productRow) resolvedItemId = extractMercadoLivreItemId(productRow.product_url);
 
-        if (!resolvedItemId && productRow?.product_name) {
+        if (!resolvedItemId && (productRow?.product_name || video.product_title)) {
           const { data: listItems, error: listError } = await supabase
             .from("ml_social_list_items")
             .select("item_id,product_id,title,product_url,image_url,last_seen_at")
@@ -82,7 +97,7 @@ export async function POST(request: NextRequest) {
             console.warn("[generate-video-script] Mercado Livre list lookup failed:", listError.message);
           } else {
             const match = findBestMercadoLivreItemMatch(
-              String(productRow.product_name),
+              String(productRow?.product_name || video.product_title),
               (listItems || []) as any[]
             );
             if (match) resolvedItemId = extractMercadoLivreItemId(match.candidate.item_id || match.candidate.product_url);
@@ -104,7 +119,8 @@ export async function POST(request: NextRequest) {
     }
 
     const primaryImage = String(video.product_image_url || reviewFacts?.image_url || "").trim();
-    const primaryImages = primaryImage.startsWith("https://") ? [primaryImage] : [];
+    const primaryUrl = primaryImage.startsWith("http://") ? primaryImage.replace(/^http:/, "https:") : primaryImage;
+    const primaryImages = primaryUrl.startsWith("https://") ? [primaryUrl] : [];
     const productImages = [...new Set([...primaryImages, ...galleryUrls])]
       .filter((url) => typeof url === "string" && url.startsWith("https://"))
       .slice(0, 5);
