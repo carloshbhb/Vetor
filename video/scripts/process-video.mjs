@@ -1,7 +1,8 @@
-import { execFileSync, execSync, spawn } from 'child_process';
+import { execFileSync, execSync, spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { buildCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
+import { buildCaptionEntries, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
+import { renderWithHyperFrames } from '../hyperframes/render-video.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -159,7 +160,7 @@ function escapeXml(value) {
     .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
-async function generateVoiceover(text, outputPath) {
+async function generateVoiceover(text, outputPath, wordBoundariesPath = null) {
   // Única voz de narração do Vetor: Edge TTS neural pt-BR-FranciscaNeural.
   const voice = 'pt-BR-FranciscaNeural';
   const tempFile = outputPath.replace(/\.mp3$/i, '-temp.mp3');
@@ -177,18 +178,37 @@ async function generateVoiceover(text, outputPath) {
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(textFile, safeText, 'utf8');
   for (const stale of [tempFile, outputPath]) if (fs.existsSync(stale)) fs.unlinkSync(stale);
+  if (wordBoundariesPath && fs.existsSync(wordBoundariesPath)) fs.unlinkSync(wordBoundariesPath);
 
   try {
-    execFileSync('edge-tts', ['--voice', voice, '--file', textFile, '--write-media', tempFile], {
-      stdio: 'pipe',
-      timeout: 120000,
-    });
+    if (wordBoundariesPath) {
+      execFileSync(process.env.PYTHON || 'python', [
+        path.resolve('scripts/tts.py'),
+        safeText,
+        tempFile,
+      ], {
+        stdio: 'pipe',
+        timeout: 180000,
+        maxBuffer: 2 * 1024 * 1024,
+        env: { ...process.env, EDGE_TTS_BOUNDARIES_PATH: wordBoundariesPath },
+      });
+    } else {
+      execFileSync('edge-tts', ['--voice', voice, '--file', textFile, '--write-media', tempFile], {
+        stdio: 'pipe',
+        timeout: 120000,
+      });
+    }
     if (!fs.existsSync(tempFile) || fs.statSync(tempFile).size < 1000) {
       throw new Error('Edge TTS não produziu um MP3 utilizável.');
     }
     const duration = getAudioDuration(tempFile, 'Edge TTS neural');
     fs.renameSync(tempFile, outputPath);
-    console.log('   [TTS] Provider=Edge TTS neural; voz=' + voice + '; duração=' + duration.toFixed(2) + 's.');
+    const boundarySize = wordBoundariesPath && fs.existsSync(wordBoundariesPath)
+      ? fs.statSync(wordBoundariesPath).size
+      : 0;
+    console.log('   [TTS] Provider=Edge TTS neural; voz=' + voice +
+      '; duração=' + duration.toFixed(2) + 's' +
+      (boundarySize ? '; word-boundaries=' + boundarySize + ' bytes.' : '.'));
     return duration;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -199,6 +219,21 @@ async function generateVoiceover(text, outputPath) {
     for (const file of [textFile, tempFile]) if (fs.existsSync(file)) fs.unlinkSync(file);
   }
 }
+function loadEdgeWordBoundaries(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return [];
+  try {
+    return fs.readFileSync(filePath, 'utf8')
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => JSON.parse(line))
+      .filter((item) => item && item.type === 'WordBoundary');
+  } catch (error) {
+    console.warn('[TTS] Não foi possível ler word-boundaries; usando temporização estimada:',
+      error instanceof Error ? error.message.slice(0, 240) : String(error).slice(0, 240));
+    return [];
+  }
+}
+
 async function combineAudioFiles(audioFiles, outputPath) {
   const existingFiles = audioFiles.filter(f => fs.existsSync(f));
   if (existingFiles.length === 0) {
@@ -336,6 +371,66 @@ async function renderWithRemotion(videoData, outputPath) {
     if (fs.existsSync(dataPath)) fs.unlinkSync(dataPath);
   }
 }
+
+function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId) {
+  const safeId = safeVideoAssetId(videoId);
+  const outputDir = path.dirname(videoPath);
+  const beatsPath = path.join(outputDir, "video-" + safeId + "-beats.json");
+  const framesDir = path.join(outputDir, "qa-" + safeId + "-frames");
+  const channel = videoFormat === "long" ? "yt-landscape" : "yt-shorts";
+  // The opening hook and final CTA are checked for safe-zone placement in the render,
+  // while the timed scene captions are measured for reading speed and dead air.
+  const captionList = Array.isArray(captionEntries) ? captionEntries : [];
+  const sceneCaptions = captionList.filter((entry) => entry.segmentKind === "scene");
+  const beats = (sceneCaptions.length ? sceneCaptions : captionList.slice(1, -1))
+    .map((entry) => ({
+      start: Number(entry.start),
+      end: Number(entry.end),
+      text: String(entry.text || ""),
+    }))
+    .filter((entry) => Number.isFinite(entry.start) && Number.isFinite(entry.end) && entry.end > entry.start && entry.text);
+  fs.writeFileSync(beatsPath, JSON.stringify(beats, null, 2));
+
+  const args = [
+    "check", videoPath,
+    "--beats", beatsPath,
+    "--channel", channel,
+    "--max-dead", "1",
+    "--frames", framesDir,
+    "--json",
+  ];
+  const options = {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    timeout: 180000,
+    maxBuffer: 4 * 1024 * 1024,
+    windowsHide: true,
+    shell: process.platform === "win32",
+  };
+
+  let result = spawnSync(process.env.REMOTION_QA_BIN || "remotion-qa", args, options);
+  if (result.error && result.error.code === "ENOENT") {
+    result = spawnSync("npx", ["--yes", "remotion-qa@0.1.3", ...args], options);
+  }
+  if (result.error || result.status !== 0) {
+    const output = [result.stdout, result.stderr]
+      .filter(Boolean)
+      .join("\n")
+      .replace(/\s+/g, " ")
+      .slice(-6500);
+    throw new Error(
+      "[VIDEO_QA_FAILED] " + channel + " rejeitou o render de " + videoId +
+      ". O vídeo não será enviado ao YouTube. Diagnóstico: " +
+      (output || (result.error ? result.error.message : "QA exit=" + result.status))
+    );
+  }
+
+  console.log("[VIDEO_QA_PASS] queue_id=" + videoId + " channel=" + channel +
+    " checks=caption-readability,dead-air,safe-zones");
+  if (fs.existsSync(beatsPath)) fs.unlinkSync(beatsPath);
+  if (fs.existsSync(framesDir)) fs.rmSync(framesDir, { recursive: true, force: true });
+}
+
 async function uploadToYouTube(videoPath, title, description, tags, commentText) {
 
   try {
@@ -432,13 +527,24 @@ function safeVideoAssetId(value) {
   return String(value || "video").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80) || "video";
 }
 
-async function downloadProductImage(sourceUrl, videoId, productTitle) {
+async function downloadProductImage(sourceUrl, videoId, productTitle, options = {}) {
   const tempDir = path.resolve("video/public/tmp");
   fs.mkdirSync(tempDir, { recursive: true });
   const safeId = safeVideoAssetId(videoId);
+  const suffix = String(options.suffix || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
+  const allowFallback = options.allowFallback !== false;
   try {
     const parsed = new URL(String(sourceUrl || ""));
-    if (parsed.protocol !== "https:" || parsed.hostname === "localhost" || parsed.hostname.endsWith(".local")) throw new Error("URL de imagem não HTTPS/pública.");
+    const host = parsed.hostname.toLowerCase();
+    const privateHost =
+      host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") ||
+      host === "metadata.google.internal" || host === "169.254.169.254" ||
+      host === "127.0.0.1" || host === "0.0.0.0" ||
+      /^10\./.test(host) || /^192\.168\./.test(host) ||
+      /^172\.(1[6-9]|2[0-9]|3[01])\./.test(host);
+    if (parsed.protocol !== "https:" || privateHost || parsed.username || parsed.password) {
+      throw new Error("URL de imagem não HTTPS/pública.");
+    }
     const response = await fetch(parsed.toString(), {
       headers: { "User-Agent": "VetorBlog-VideoWorker/1.0", Accept: "image/avif,image/webp,image/png,image/jpeg,*/*;q=0.5" },
       signal: AbortSignal.timeout(12000),
@@ -447,17 +553,21 @@ async function downloadProductImage(sourceUrl, videoId, productTitle) {
     const type = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
     const extension = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" }[type];
     if (!extension) throw new Error("Content-Type não suportado: " + type);
-    if (Number(response.headers.get("content-length") || 0) > 12 * 1024 * 1024) throw new Error("Imagem acima de 12 MB.");
-    const buffer = await readResponseLimited(response, 12 * 1024 * 1024);
+    if (Number(response.headers.get("content-length") || 0) > 10 * 1024 * 1024) throw new Error("Imagem acima de 10 MB.");
+    const buffer = await readResponseLimited(response, 10 * 1024 * 1024);
     if (buffer.length < 1000) throw new Error("Imagem remota vazia.");
-    const filename = "product-" + safeId + "." + extension;
+    const filename = "product-" + safeId + suffix + "." + extension;
     fs.writeFileSync(path.join(tempDir, filename), buffer);
-    console.log("[MEDIA] Imagem do produto baixada localmente (" + buffer.length + " bytes).");
+    console.log("[MEDIA] Imagem " + (suffix ? "de galeria " : "principal ") + "baixada (" + buffer.length + " bytes).");
     return "tmp/" + filename;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.warn("[MEDIA] Imagem remota indisponível; gerado cartão visual local. " + message.slice(0, 180));
-    const filename = "product-" + safeId + ".svg";
+    if (!allowFallback) {
+      console.warn("[MEDIA] Imagem de galeria ignorada: " + message.slice(0, 180));
+      return null;
+    }
+    console.warn("[MEDIA] Imagem principal indisponível; gerado cartão visual local. " + message.slice(0, 180));
+    const filename = "product-" + safeId + suffix + ".svg";
     const title = escapeXml(String(productTitle || "Produto").slice(0, 72));
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d3155"/><stop offset="1" stop-color="#11141c"/></linearGradient></defs><rect width="1200" height="900" fill="url(#g)"/><circle cx="970" cy="120" r="260" fill="#55b9f2" opacity=".12"/><circle cx="120" cy="820" r="300" fill="#ff6848" opacity=".1"/><text x="600" y="410" text-anchor="middle" fill="#55b9f2" font-family="Arial,sans-serif" font-size="34" font-weight="700" letter-spacing="8">VETOR • REVIEW</text><text x="600" y="495" text-anchor="middle" fill="#f3f4f7" font-family="Arial,sans-serif" font-size="48" font-weight="700">' + title + '</text></svg>';
     fs.writeFileSync(path.join(tempDir, filename), svg, "utf8");
@@ -465,80 +575,93 @@ async function downloadProductImage(sourceUrl, videoId, productTitle) {
   }
 }
 
-async function fetchPexelsBroll(scenes, category, videoId) {
+async function fetchPexelsBroll(scenes, category, videoId, videoFormat = "short") {
+  const sceneList = Array.isArray(scenes) ? scenes : [];
+  const alignedSources = Array(sceneList.length).fill("");
   const apiKey = (process.env.PEXELS_API_KEY || process.env.PEXELS_KEY || "").trim();
   if (!apiKey) {
-    console.warn("[BROLL] PEXELS_API_KEY ausente; render seguirá sem footage de apoio.");
-    return [];
+    console.warn("[BROLL] PEXELS_API_KEY ausente; sem B-roll externo.");
+    return alignedSources;
   }
-  const keywords = [];
-  for (const scene of (Array.isArray(scenes) ? scenes : [])) {
-    for (const keyword of (Array.isArray(scene.brollKeywords) ? scene.brollKeywords : [])) {
-      const value = String(keyword || "").trim();
-      if (value.length >= 3 && !keywords.includes(value)) keywords.push(value);
-    }
-  }
-  const candidates = [];
-  const seen = new Set();
-  for (const keyword of keywords.slice(0, 3)) {
-    try {
-      const response = await fetch("https://api.pexels.com/videos/search?query=" + encodeURIComponent(keyword) + "&per_page=8&orientation=portrait", {
-        headers: { Authorization: apiKey }, signal: AbortSignal.timeout(12000),
-      });
-      if (!response.ok) continue;
-      const payload = await response.json();
-      for (const item of (Array.isArray(payload.videos) ? payload.videos : [])) {
-        if (!item || seen.has(item.id)) continue;
-        const files = (Array.isArray(item.video_files) ? item.video_files : [])
-          .filter(file => typeof file.link === "string" && file.link.startsWith("https://"))
-          .sort((a, b) => {
-            const ap = Number(Number(a.height) > Number(a.width));
-            const bp = Number(Number(b.height) > Number(b.width));
-            if (ap !== bp) return bp - ap;
-            const rank = file => {
-              const size = Math.max(Number(file.height) || 0, Number(file.width) || 0);
-              return !size ? Number.MAX_SAFE_INTEGER : size <= 1280 ? -size : 10000 + size;
-            };
-            return rank(a) - rank(b) || (Number(b.width) || 0) - (Number(a.width) || 0);
-          });
-        if (files.length) { seen.add(item.id); candidates.push({ id: String(item.id), url: files[0].link }); }
-      }
-    } catch (error) {
-      console.warn("[BROLL] Busca falhou: " + (error instanceof Error ? error.message : String(error)).slice(0, 180));
-    }
-  }
-  const hash = value => Array.from(String(value)).reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7);
-  const seed = String(videoId || category || "vetor");
-  candidates.sort((a, b) => hash(seed + a.id) - hash(seed + b.id));
-  const selected = candidates.slice(0, 3);
+
+  const seenIds = new Set();
   const tempDir = path.resolve("video/public/tmp");
   fs.mkdirSync(tempDir, { recursive: true });
   const safeId = safeVideoAssetId(videoId);
-  const downloads = await Promise.all(selected.map(async (item, index) => {
+  const orientation = videoFormat === "long" ? "landscape" : "portrait";
+  let downloaded = 0;
+
+  // Uma busca por cena, com teto de cinco clipes únicos por vídeo.
+  for (let sceneIndex = 0; sceneIndex < sceneList.length && downloaded < 5; sceneIndex += 1) {
+    const keywords = [...new Set((Array.isArray(sceneList[sceneIndex]?.brollKeywords)
+      ? sceneList[sceneIndex].brollKeywords
+      : []).map(value => String(value || "").trim()).filter(value => value.length >= 3))];
+    if (!keywords.length) continue;
+
+    const query = keywords.slice(0, 2).join(" ");
     try {
-      const response = await fetch(item.url, {
+      const response = await fetch(
+        "https://api.pexels.com/videos/search?query=" + encodeURIComponent(query) +
+          "&per_page=8&orientation=" + orientation,
+        { headers: { Authorization: apiKey }, signal: AbortSignal.timeout(12000) }
+      );
+      if (!response.ok) {
+        console.warn("[BROLL] Pexels HTTP " + response.status + " na cena " + (sceneIndex + 1));
+        continue;
+      }
+      const payload = await response.json();
+      const candidates = [];
+      for (const item of (Array.isArray(payload.videos) ? payload.videos : [])) {
+        if (!item || seenIds.has(String(item.id))) continue;
+        const files = (Array.isArray(item.video_files) ? item.video_files : [])
+          .filter(file => typeof file.link === "string" && file.link.startsWith("https://"))
+          .sort((a, b) => {
+            const aSize = Math.max(Number(a.width) || 0, Number(a.height) || 0);
+            const bSize = Math.max(Number(b.width) || 0, Number(b.height) || 0);
+            const aOrientation = orientation === "portrait"
+              ? Number(Number(a.height) > Number(a.width))
+              : Number(Number(a.width) > Number(a.height));
+            const bOrientation = orientation === "portrait"
+              ? Number(Number(b.height) > Number(b.width))
+              : Number(Number(b.width) > Number(b.height));
+            if (aOrientation !== bOrientation) return bOrientation - aOrientation;
+            const aRank = aSize > 1280 ? 10000 + aSize : Math.abs(aSize - 1280);
+            const bRank = bSize > 1280 ? 10000 + bSize : Math.abs(bSize - 1280);
+            return aRank - bRank;
+          });
+        if (files.length) candidates.push({ id: String(item.id), url: files[0].link });
+      }
+      if (!candidates.length) continue;
+
+      const selected = candidates[0];
+      const clip = await fetch(selected.url, {
         headers: { "User-Agent": "VetorBlog-VideoWorker/1.0", Accept: "video/mp4,*/*;q=0.5" },
         signal: AbortSignal.timeout(16000),
       });
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      const type = (response.headers.get("content-type") || "").toLowerCase();
-      if (!type.includes("video/") && !item.url.toLowerCase().includes(".mp4")) throw new Error("Resposta não é vídeo.");
-      if (Number(response.headers.get("content-length") || 0) > 18 * 1024 * 1024) throw new Error("Clip acima de 18 MB.");
-      const buffer = await readResponseLimited(response, 18 * 1024 * 1024);
+      if (!clip.ok) throw new Error("download HTTP " + clip.status);
+      const contentType = (clip.headers.get("content-type") || "").toLowerCase();
+      if (!contentType.includes("video/") && !selected.url.toLowerCase().includes(".mp4")) {
+        throw new Error("Resposta não é vídeo.");
+      }
+      if (Number(clip.headers.get("content-length") || 0) > 12 * 1024 * 1024) {
+        throw new Error("Clip acima de 12 MB.");
+      }
+      const buffer = await readResponseLimited(clip, 12 * 1024 * 1024);
       if (buffer.length < 20000) throw new Error("Clip incompleto.");
-      const filename = "broll-" + safeId + "-" + index + ".mp4";
+      const filename = "broll-" + safeId + "-scene-" + sceneIndex + ".mp4";
       fs.writeFileSync(path.join(tempDir, filename), buffer);
-      return "tmp/" + filename;
+      alignedSources[sceneIndex] = "tmp/" + filename;
+      seenIds.add(selected.id);
+      downloaded += 1;
+      console.log("[BROLL] Cena " + (sceneIndex + 1) + " associada a clipe único para: " + query);
     } catch (error) {
-      console.warn("[BROLL] Clip " + item.id + " indisponível: " + (error instanceof Error ? error.message : String(error)).slice(0, 180));
-      return null;
+      console.warn("[BROLL] Cena " + (sceneIndex + 1) + " sem clipe de apoio: " +
+        (error instanceof Error ? error.message : String(error)).slice(0, 180));
     }
-  }));
-  const localPaths = downloads.filter(item => typeof item === "string");
-  console.log("[BROLL] " + localPaths.length + " clips baixados localmente; Remotion receberá apenas fontes locais.");
-  return localPaths;
+  }
+  console.log("[BROLL] " + downloaded + " clipes únicos associados a cenas; limite=5.");
+  return alignedSources;
 }
-
 async function processVideo(video) {
   console.log(`\n🎬 Processando: ${video.product_title}`);
   console.log(`   ID: ${video.id}`);
@@ -553,33 +676,15 @@ async function processVideo(video) {
 
   try {
     let script = null;
-    if (typeof video.script_text === 'string' && video.script_text.trim()) {
-      try {
-        const candidate = JSON.parse(video.script_text);
-        if (
-          candidate &&
-          typeof candidate === 'object' &&
-          candidate.generationVersion === 3 &&
-          candidate.videoFormat === videoFormat &&
-          typeof candidate.creativeAngle === 'string' &&
-          candidate.creativeAngle.trim() &&
-          Array.isArray(candidate.scenes) &&
-          candidate.scenes.length >= 6
-        ) {
-          script = candidate;
-        }
-      } catch {
-        script = null;
-      }
-    }
-    if (!script) {
-      const siteUrl = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
-      const cronSecret = process.env.CRON_SECRET;
-      if (!cronSecret) throw new Error('CRON_SECRET ausente: não é possível solicitar o roteiro de produção.');
-      const response = await fetch(`${siteUrl}/api/cron/generate-video-script/`, {
+    let productImageUrls = [];
+    const siteUrl = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) throw new Error('CRON_SECRET ausente: não é possível solicitar o roteiro de produção.');
+    try {
+      const response = await fetch(siteUrl + '/api/cron/generate-video-script/', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${cronSecret}`,
+          'Authorization': 'Bearer ' + cronSecret,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ videoId: video.id }),
@@ -587,11 +692,30 @@ async function processVideo(video) {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.script) {
-        throw new Error(`Falha na geração do roteiro em produção (HTTP ${response.status}): ${payload.error || 'resposta inválida'}`);
+        throw new Error('Falha na preparação do vídeo (HTTP ' + response.status + '): ' + (payload.error || 'resposta inválida'));
       }
       script = payload.script;
+      productImageUrls = Array.isArray(payload.productImages) ? payload.productImages : [];
       if (!Array.isArray(script.scenes) || script.scenes.length < 5) {
         throw new Error('Roteiro retornado pela API não passou pela validação mínima de cenas.');
+      }
+      console.log("[MEDIA] Galeria vinculada ao produto: " + productImageUrls.length + " imagem(ns).");
+    } catch (error) {
+      // Use an already validated script and its stored gallery when the API is temporarily unavailable.
+      try {
+        const cached = JSON.parse(String(video.script_text || ""));
+        if (cached?.generationVersion === 3 && cached.videoFormat === videoFormat &&
+            Array.isArray(cached.scenes) && cached.scenes.length >= 6) {
+          script = cached;
+          productImageUrls = (Array.isArray(video.media_assets) ? video.media_assets : [])
+            .filter(asset => asset?.type === "product-gallery-image" && typeof asset.url === "string")
+            .map(asset => asset.url);
+          console.warn("[MEDIA] API indisponível; usando roteiro validado e galeria persistida.");
+        } else {
+          throw error;
+        }
+      } catch {
+        throw error;
       }
     }
 
@@ -601,13 +725,14 @@ async function processVideo(video) {
     const audioDir = path.resolve(`/tmp/video-${video.id}`);
     fs.mkdirSync(audioDir, { recursive: true });
     const combinedAudioPath = path.join(audioDir, 'combined.mp3');
+    const wordBoundariesPath = path.join(audioDir, 'combined.word-boundaries.jsonl');
     const narrationSegments = [
       { kind: 'hook', text: String(script.hook || '').trim() },
       ...script.scenes.map((scene) => ({ kind: 'scene', scene, text: String(scene.text || '').trim() })),
       { kind: 'cta', text: String(script.callToAction || '').trim() },
     ];
     const completeNarration = narrationSegments.map((segment) => segment.text).filter(Boolean).join('\n\n');
-    const totalDuration = await generateVoiceover(completeNarration, combinedAudioPath);
+    const totalDuration = await generateVoiceover(completeNarration, combinedAudioPath, wordBoundariesPath);
     if (!fs.existsSync(combinedAudioPath) || fs.statSync(combinedAudioPath).size < 1000) {
       throw new Error('A narração contínua não foi produzida corretamente.');
     }
@@ -628,8 +753,8 @@ async function processVideo(video) {
     });
     const hookDuration = narrationTimings[0]?.duration || Math.min(3, totalDuration);
 
-    processingStage = 'renderização Remotion';
-    console.log('   [3/4] Renderizando vídeo com Remotion...');
+    processingStage = 'renderização HyperFrames';
+    console.log('   [3/4] Renderizando vídeo com HyperFrames...');
     const outputDir = path.resolve('video/out');
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
@@ -642,11 +767,31 @@ async function processVideo(video) {
     });
     const productImageSource = await downloadProductImage(video.product_image_url, video.id, video.product_title);
     temporaryVisualAssets.push(path.resolve("video/public", productImageSource));
-    const brollVideos = await fetchPexelsBroll(script.scenes, video.product_category, video.id);
-    temporaryVisualAssets.push(...brollVideos.map(source => path.resolve("video/public", source)));
+
+    const gallerySources = [];
+    const seenImageUrls = new Set([String(video.product_image_url || "").trim()]);
+    for (let index = 0; index < productImageUrls.length && gallerySources.length < 4; index += 1) {
+      const imageUrl = String(productImageUrls[index] || "").trim();
+      if (!imageUrl || seenImageUrls.has(imageUrl)) continue;
+      seenImageUrls.add(imageUrl);
+      const localPath = await downloadProductImage(
+        imageUrl, video.id, video.product_title,
+        { suffix: "-gallery-" + (gallerySources.length + 1), allowFallback: false }
+      );
+      if (localPath) {
+        gallerySources.push(localPath);
+        temporaryVisualAssets.push(path.resolve("video/public", localPath));
+      }
+    }
+    const productImages = [productImageSource, ...gallerySources].slice(0, 5);
+    console.log("[MEDIA] Produto usa " + productImages.length + " imagem(ns) reais no storyboard.");
+
+    const brollVideos = await fetchPexelsBroll(script.scenes, video.product_category, video.id, videoFormat);
+    temporaryVisualAssets.push(...brollVideos.filter(Boolean).map(source => path.resolve("video/public", source)));
 
     const videoData = {
       type: videoFormat === "long" ? "long" : "review",
+      templateId: /\/comparativos\//i.test(String(video.review_url || "")) ? "comparison-editorial" : (videoFormat === "long" ? "product-editorial" : "shorts-retention"),
       title: video.product_title,
       imageUrl: productImageSource,
       score: Number.isFinite(Number(script.score)) && Number(script.score) > 0 && Number(script.score) <= 10 ? Number(script.score) : 0,
@@ -656,8 +801,20 @@ async function processVideo(video) {
       callToAction: script.callToAction,
       audioUrl: `tmp/video-${video.id}.mp3`,
       hookDuration,
-      subtitleEntries: buildCaptionEntries(narrationTimings, 7),
-      productImages: [productImageSource],
+      subtitleEntries: (() => {
+        const wordBoundaries = loadEdgeWordBoundaries(wordBoundariesPath);
+        const timed = buildTimedCaptionEntries(narrationSegments, wordBoundaries, {
+          maxWords: videoFormat === "long" ? 9 : 5,
+          maxLineChars: videoFormat === "long" ? 48 : 34,
+        });
+        if (timed) {
+          console.log("[CAPTIONS] Sincronização exata com " + wordBoundaries.length + " eventos WordBoundary do Edge TTS.");
+          return timed;
+        }
+        console.warn("[CAPTIONS] Edge TTS não retornou sequência 1:1 de palavras; fallback de temporização por segmento.");
+        return buildCaptionEntries(narrationTimings, videoFormat === "long" ? 18 : 100);
+      })(),
+      productImages,
       brollVideos,
       totalDuration,
       fps,
@@ -665,11 +822,29 @@ async function processVideo(video) {
 
     const videoFileName = `video-${video.id}.mp4`;
     const videoPath = path.join(outputDir, videoFileName);
-    await renderWithRemotion(videoData, videoPath);
+    const renderEngine = String(process.env.VIDEO_RENDER_ENGINE || "hyperframes").toLowerCase();
+    if (renderEngine === "hyperframes") {
+      try {
+        await renderWithHyperFrames({ ...videoData, id: video.id }, videoPath);
+      } catch (hyperframesError) {
+        if (process.env.HYPERFRAMES_REMOTION_FALLBACK !== "true") throw hyperframesError;
+        console.warn("[RENDER_FALLBACK] HyperFrames falhou; usando Remotion como contingência. " +
+          (hyperframesError instanceof Error ? hyperframesError.message : String(hyperframesError)).slice(0, 1200));
+        processingStage = "renderização Remotion (fallback)";
+        await renderWithRemotion(videoData, videoPath);
+      }
+    } else if (renderEngine === "remotion") {
+      processingStage = "renderização Remotion";
+      await renderWithRemotion(videoData, videoPath);
+    } else {
+      throw new Error("VIDEO_RENDER_ENGINE inválido: " + renderEngine + ". Use hyperframes ou remotion.");
+    }
+    processingStage = "controle de qualidade do vídeo";
+    runRemotionQualityGate(videoPath, videoData.subtitleEntries, videoFormat, video.id);
 
     processingStage = 'upload YouTube';
     console.log('   [4/4] Upload para YouTube...');
-    const siteUrl = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
+
     const reviewUrl = (typeof video.review_url === 'string' && video.review_url.startsWith('https://'))
       ? video.review_url
       : '';

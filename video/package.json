@@ -9,7 +9,8 @@
     "render-review": "tsx src/utils/renderVideo.ts review",
     "render-comparison": "tsx src/utils/renderVideo.ts comparison",
     "process-video": "tsx scripts/process-video.ts",
-    "upload-youtube": "node scripts/upload-to-youtube.js"
+    "upload-youtube": "node scripts/upload-to-youtube.js",
+    "hyperframes:catalog": "node hyperframes/install-catalog-library.mjs"
   },
   "dependencies": {
     "@remotion/cli": "4.0.534",
