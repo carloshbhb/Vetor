@@ -3,6 +3,8 @@ import { verifyCronAuth } from "@/lib/cron-auth";
 import { getVideoById, updateVideoStatus } from "@/lib/video-orchestrator";
 import { generateVideoScript } from "@/lib/script-generator";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
+import { getProductWithPictures } from "@/lib/mercadolivre-api";
+import { dedupeMercadoLivreImages, extractMercadoLivreItemId, findBestMercadoLivreItemMatch } from "@/lib/video-media-matching";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -22,23 +24,8 @@ export async function POST(request: NextRequest) {
     const formatAsset = mediaAssets.find((asset: any) => asset && asset.type === "publication_format");
     const videoFormat = formatAsset?.format === "long" ? "long" : "short";
 
-    if (typeof video.script_text === "string" && video.script_text.trim()) {
-      try {
-        const existing = JSON.parse(video.script_text);
-        if (
-          existing.generationVersion === 3 &&
-          existing.videoFormat === videoFormat &&
-          typeof existing.creativeAngle === "string" &&
-          existing.creativeAngle.trim() &&
-          Array.isArray(existing.scenes) &&
-          existing.scenes.length >= 6
-        ) {
-          return NextResponse.json({ success: true, reused: true, videoId, script: existing });
-        }
-      } catch {
-        // Replace a corrupted script only when a new script passes validation.
-      }
-    }
+    let cachedScript: any = null;
+
 
     const supabase = getSupabaseServiceKeyClient();
     const reviewSlug = (() => {
@@ -64,6 +51,71 @@ export async function POST(request: NextRequest) {
         reviewFacts = data;
       }
     }
+
+    const galleryUrls: string[] = [];
+    let resolvedItemId: string | null = extractMercadoLivreItemId(video.product_url);
+
+    try {
+      if (supabase && reviewSlug) {
+        const { data: productRows, error: productError } = await supabase
+          .from("product_links")
+          .select("product_name,product_url,image_url,marketplace,updated_at")
+          .eq("review_slug", reviewSlug)
+          .neq("status", "archived")
+          .order("updated_at", { ascending: false })
+          .limit(10);
+        if (productError) console.warn("[generate-video-script] product link lookup failed:", productError.message);
+
+        const productRow = (productRows || []).find((row: any) =>
+          String(row.product_name || "").toLowerCase() === String(video.product_title || "").toLowerCase()
+        ) || (productRows || [])[0];
+
+        if (!resolvedItemId && productRow) resolvedItemId = extractMercadoLivreItemId(productRow.product_url);
+
+        if (!resolvedItemId && productRow?.product_name) {
+          const { data: listItems, error: listError } = await supabase
+            .from("ml_social_list_items")
+            .select("item_id,product_id,title,product_url,image_url,last_seen_at")
+            .order("last_seen_at", { ascending: false })
+            .limit(500);
+          if (listError) {
+            console.warn("[generate-video-script] Mercado Livre list lookup failed:", listError.message);
+          } else {
+            const match = findBestMercadoLivreItemMatch(
+              String(productRow.product_name),
+              (listItems || []) as any[]
+            );
+            if (match) resolvedItemId = extractMercadoLivreItemId(match.candidate.item_id || match.candidate.product_url);
+          }
+        }
+
+        if (resolvedItemId) {
+          const product = await getProductWithPictures(resolvedItemId);
+          const pictureUrls = Array.isArray(product.pictures)
+            ? product.pictures.flatMap((picture) => [picture.secure_url, picture.url])
+            : [];
+          galleryUrls.push(...dedupeMercadoLivreImages(pictureUrls, 5));
+          console.log("[generate-video-script] Mercado Livre gallery resolved:", resolvedItemId, galleryUrls.length);
+        }
+      }
+    } catch (error) {
+      console.warn("[generate-video-script] Product gallery is unavailable; using verified primary image only:",
+        error instanceof Error ? error.message.slice(0, 240) : String(error).slice(0, 240));
+    }
+
+    const primaryImage = String(video.product_image_url || reviewFacts?.image_url || "").trim();
+    const productImages = dedupeMercadoLivreImages([primaryImage, ...galleryUrls], 5);
+    const mediaAssets = [
+      ...(Array.isArray(video.media_assets) ? video.media_assets : [])
+        .filter((asset: any) => asset && asset.type !== "product-gallery-image"),
+      ...productImages.slice(1).map((url, index) => ({
+        type: "product-gallery-image",
+        source: "mercadolivre-api",
+        itemId: resolvedItemId,
+        index: index + 1,
+        url,
+      })),
+    ];
 
     const parseArray = (value: unknown): any[] => {
       if (Array.isArray(value)) return value;
@@ -138,6 +190,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (typeof video.script_text === "string" && video.script_text.trim()) {
+      try {
+        const existing = JSON.parse(video.script_text);
+        if (
+          existing.generationVersion === 3 &&
+          existing.videoFormat === videoFormat &&
+          typeof existing.creativeAngle === "string" &&
+          existing.creativeAngle.trim() &&
+          Array.isArray(existing.scenes) &&
+          existing.scenes.length >= 6
+        ) {
+          cachedScript = existing;
+        }
+      } catch {
+        // Generate a new script when stored JSON is invalid.
+      }
+    }
+
+    if (cachedScript) {
+      await updateVideoStatus(videoId, { media_assets: mediaAssets });
+      return NextResponse.json({
+        success: true,
+        reused: true,
+        videoId,
+        script: cachedScript,
+        productImages,
+        galleryCount: productImages.length,
+      });
+    }
+
     const script = await generateVideoScript({
       title: String(video.product_title || reviewFacts?.product || "Produto de tecnologia"),
       category: String(reviewFacts?.category || video.product_category || "Tecnologia"),
@@ -169,6 +251,7 @@ export async function POST(request: NextRequest) {
     await updateVideoStatus(videoId, {
       script_text: JSON.stringify(finalScript),
       script_hook: finalScript.hook,
+      media_assets: mediaAssets,
       error_message: null,
     });
     return NextResponse.json({
@@ -178,6 +261,8 @@ export async function POST(request: NextRequest) {
       scenes: finalScript.scenes.length,
       creativeAngle,
       factsUsed: Object.keys(specifications).length,
+      productImages,
+      galleryCount: productImages.length,
       script: finalScript,
     });
   } catch (error: unknown) {
