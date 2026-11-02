@@ -153,8 +153,8 @@ jobs:
       - name: Check rendered sample safe zones
         run: |
           npm install --global remotion-qa@0.1.3
-          remotion-qa safezone /tmp/vetor-review-smoke.mp4 --channel yt-shorts --json
-          remotion-qa safezone /tmp/vetor-landscape-smoke.mp4 --channel yt-landscape --json
+          remotion-qa safezone /tmp/vetor-review-smoke.mp4 --channel yt-shorts
+          remotion-qa safezone /tmp/vetor-landscape-smoke.mp4 --channel yt-landscape
 
       - name: Preserve render smoke samples on failure
         if: failure()
