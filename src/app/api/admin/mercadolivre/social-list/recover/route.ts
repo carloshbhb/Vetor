@@ -137,7 +137,7 @@ async function inspectApplicationPermissions(token: string): Promise<Application
   const scopes = Array.isArray(rawScopes)
     ? rawScopes.map((scope) => String(scope).trim()).filter(Boolean)
     : typeof rawScopes === "string"
-      ? rawScopes.split(/[\\s,]+/).map((scope) => scope.trim()).filter(Boolean)
+      ? rawScopes.split(/[\s,]+/).map((scope) => scope.trim()).filter(Boolean)
       : [];
   const mercadoPagoScopes = scopes.filter((scope) => scope.startsWith("urn:mp:"));
 
@@ -171,7 +171,7 @@ async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> 
   }
 
   const me = asRecord(meResponse.data);
-  const userId = asString(me?.id);
+  const userId = asString(me?.id) || (asNumber(me?.id) != null ? String(asNumber(me?.id)) : null);
   const userStatus = asRecord(me?.status);
   const userSiteStatus = asString(userStatus?.site_status) || asString(userStatus?.status);
   if (!userId) {
@@ -218,7 +218,7 @@ async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> 
   const grantScopes = Array.isArray(rawGrantScopes)
     ? rawGrantScopes.map((scope) => String(scope).trim()).filter(Boolean)
     : typeof rawGrantScopes === "string"
-      ? rawGrantScopes.split(/[\\s,]+/).map((scope) => scope.trim()).filter(Boolean)
+      ? rawGrantScopes.split(/[\s,]+/).map((scope) => scope.trim()).filter(Boolean)
       : [];
 
   return {
