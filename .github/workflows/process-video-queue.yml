@@ -58,11 +58,11 @@ jobs:
           npm ci
           cd video
           npm ci
-      - name: Install pinned HyperFrames CLI
+      - name: Install HyperFrames fallback CLI
         run: |
           npm install --global hyperframes@0.9.2
           hyperframes doctor
-      - name: Validate professional HyperFrames library and renderer
+      - name: Validate optional HyperFrames fallback renderer
         run: |
           node video/hyperframes/library.test.mjs
           node video/hyperframes/smoke-render.mjs
@@ -172,7 +172,7 @@ jobs:
           MANUAL_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
           MAX_VIDEOS: '5'
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          VIDEO_RENDER_ENGINE: hyperframes
+          VIDEO_RENDER_ENGINE: remotion
           HYPERFRAMES_REMOTION_FALLBACK: 'true'
           HYPERFRAMES_BIN: hyperframes
           HYPERFRAMES_WORKERS: '2'
