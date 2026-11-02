@@ -137,13 +137,13 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
       previous &&
       cue.segmentKind === previous.segmentKind &&
       cueDuration < minReadableDuration &&
-      cue.text.replace(/\\n/g, " ").trim().split(/\\s+/).length === 1 &&
+      cue.text.replace(/\n/g, " ").trim().split(/\\s+/).length === 1 &&
       gap <= maxMergeGap &&
       previousDuration + cueDuration <= 7
     ) {
       previous.end = cue.end;
       previous.text = wrapCaptionWords(
-        (previous.text + " " + cue.text).replace(/\\s+/g, " ").split(" "),
+        (previous.text + " " + cue.text).replace(/\s+/g, " ").split(" "),
         maxLineChars
       );
       continue;
@@ -157,11 +157,11 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
     const next = readable[1];
     const gap = next.start - first.end;
     if (first.segmentKind === next.segmentKind && gap <= maxMergeGap &&
-        first.text.replace(/\\n/g, " ").trim().split(/\\s+/).length === 1 &&
+        first.text.replace(/\n/g, " ").trim().split(/\\s+/).length === 1 &&
         next.end - first.start <= 7) {
       next.start = first.start;
       next.text = wrapCaptionWords(
-        (first.text + " " + next.text).replace(/\\s+/g, " ").split(" "),
+        (first.text + " " + next.text).replace(/\s+/g, " ").split(" "),
         maxLineChars
       );
       readable.shift();
