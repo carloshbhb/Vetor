@@ -19,7 +19,7 @@ assert.ok(html.includes('data-width="1080"')&&html.includes('data-height="1920"'
 assert.ok(html.includes('data-track-index="100"'));
 
 assert.ok(
-  html.includes("#vetor-root::after{content:\\"\\";position:absolute;left:0;right:0;bottom:0;height:320px;background:#080c14;z-index:1;pointer-events:none}"),
+  html.includes("#vetor-root::after{content:'';position:absolute;left:0;right:0;bottom:0;height:320px;background:#080c14;z-index:1;pointer-events:none}"),
   "Shorts bottom UI band must have a flat ground so the pixel QA distinguishes background gradients from foreground intrusions"
 );
 assert.ok(
