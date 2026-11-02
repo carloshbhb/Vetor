@@ -534,6 +534,7 @@ export async function POST(request: NextRequest) {
             voiceover_duration: 0,
             media_assets: [{ type: "publication_format", format: videoFormat }],
             status: "pending",
+            publication_mode: "automatic",
             review_url: reviewUrl,
             scheduled_at: new Date().toISOString(),
           })
@@ -634,6 +635,7 @@ export async function POST(request: NextRequest) {
             voiceover_duration: 0,
             media_assets: [],
             status: "pending",
+            publication_mode: "automatic",
             review_url: comparisonUrl,
             scheduled_at: new Date().toISOString(),
           })
