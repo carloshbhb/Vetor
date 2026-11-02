@@ -12,6 +12,7 @@ import {
 import type { CalculateMetadataFunction } from 'remotion';
 import { KineticCaption } from '../components/KineticCaption';
 import { createSceneVisualPlan, extractPrimaryMetric, type SceneVisualPlan } from '../utils/visual-storyboard';
+import { resolveMediaSource } from '../utils/media-source';
 
 export type EditorialScene = {
   id: number;
@@ -106,7 +107,7 @@ const Eyebrow: React.FC<{ children: React.ReactNode; color?: string }> = ({ chil
 
 const ProductImage: React.FC<{ src: string; style?: React.CSSProperties }> = ({ src, style }) => (
   <Img
-    src={src}
+    src={resolveMediaSource(src)}
     style={{
       width: 820,
       height: 660,
@@ -256,7 +257,7 @@ const FeatureScene: React.FC<{
       <AbsoluteFill style={{ opacity: showBroll ? (visual.mode === 'lifestyle' ? 0.82 : 0.56) : 0 }}>
         {brollUrl ? (
           <Video
-            src={brollUrl}
+            src={resolveMediaSource(brollUrl)}
             muted
             loop
             style={{
@@ -484,7 +485,7 @@ export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: colors.ink }}>
-      <Audio src={props.audioUrl} volume={0.96} />
+      <Audio src={resolveMediaSource(props.audioUrl)} volume={0.96} />
       <Sequence from={0} durationInFrames={hookFrames} premountFor={fps}>
         <OpeningScene title={props.title} category={props.category} hook={props.hook} imageUrl={image} />
       </Sequence>
