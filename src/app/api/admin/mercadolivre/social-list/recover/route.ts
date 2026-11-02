@@ -347,7 +347,10 @@ export async function POST(request: NextRequest) {
 
     const outcomes = await mapWithConcurrency(missingIds, 5, (id) => recoverOneProduct(id, token));
     const errors = outcomes.filter((result): result is { error: string; productId: string } => "error" in result);
-    const recovered = outcomes.filter((result): result is { row: RecoveryRow; source: "catalog_product" | "direct_item" } => "row" in result);
+    const recovered = outcomes.filter((result): result is {
+      row: RecoveryRow;
+      source: "catalog_product" | "direct_item" | "catalog_only" | "public_page";
+    } => "row" in result);
 
     const existingByItemId = new Map(currentRows.map((row) => [String(row.item_id).toUpperCase(), row]));
     const deduped = new Map<string, RecoveryRow>();
