@@ -17,6 +17,11 @@ const html=buildCompositionHtml(fixture,{
 assert.ok(html.includes('data-composition-id="vetor-video"'));
 assert.ok(html.includes('data-width="1080"')&&html.includes('data-height="1920"'));
 assert.ok(html.includes('data-track-index="100"'));
+
+assert.ok(
+  html.includes("top:330px;right:240px;bottom:390px;left:145px;"),
+  "Shorts footage must stay inside the safe frame so moving B-roll cannot be mistaken for platform-UI intrusion"
+);
 assert.ok(html.includes('src="./assets/gsap.min.js"'));
 assert.ok(html.includes("caption-0-word-0"));
 assert.ok(html.includes('window.__timelines["vetor-video"]'));
@@ -29,5 +34,10 @@ assert.ok(!escaped.includes("<title><script>alert(1)</script>"));
 assert.ok(escaped.includes("&lt;script&gt;alert(1)&lt;/script&gt;"));
 const landscape=buildCompositionHtml({...fixture,type:"long",templateId:"product-editorial"},{assets:{}});
 assert.ok(landscape.includes('data-width="1920"')&&landscape.includes('data-height="1080"'));
+
+assert.ok(
+  landscape.includes("top:0;right:0;bottom:0;left:0;"),
+  "landscape videos must retain their full-frame editorial canvas"
+);
 assert.ok(landscape.includes(".scene-label{position:absolute;left:8%;top:16%;width:56%;"), "landscape template must use horizontal editorial geometry");
 console.log("hyperframes professional library tests passed");
