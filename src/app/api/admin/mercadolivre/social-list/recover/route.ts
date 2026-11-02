@@ -73,6 +73,62 @@ function getCoveredBookmarkIds(
   return covered;
 }
 
+type ApplicationPermissionDiagnostics = {
+  checked: boolean;
+  applicationId?: string;
+  scopes: string[];
+  mercadoPagoScopes: string[];
+  hasMercadoPagoScopes: boolean | null;
+  status?: number;
+  message?: string;
+};
+
+async function inspectApplicationPermissions(token: string): Promise<ApplicationPermissionDiagnostics> {
+  const applicationId = process.env.ML_CLIENT_ID?.trim();
+  if (!applicationId) {
+    return {
+      checked: false,
+      scopes: [],
+      mercadoPagoScopes: [],
+      hasMercadoPagoScopes: null,
+      message: "ML_CLIENT_ID não está configurado; diagnóstico da aplicação indisponível.",
+    };
+  }
+
+  const response = await requestMlJson(
+    "https://api.mercadolibre.com/applications/" + encodeURIComponent(applicationId),
+    token,
+  );
+  if (!response.ok) {
+    return {
+      checked: false,
+      applicationId,
+      scopes: [],
+      mercadoPagoScopes: [],
+      hasMercadoPagoScopes: null,
+      status: response.status,
+      message: response.details || "A API não permitiu consultar a configuração da aplicação.",
+    };
+  }
+
+  const application = asRecord(response.data);
+  const rawScopes = application?.scopes ?? application?.scope;
+  const scopes = Array.isArray(rawScopes)
+    ? rawScopes.map((scope) => String(scope).trim()).filter(Boolean)
+    : typeof rawScopes === "string"
+      ? rawScopes.split(/[\\s,]+/).map((scope) => scope.trim()).filter(Boolean)
+      : [];
+  const mercadoPagoScopes = scopes.filter((scope) => scope.startsWith("urn:mp:"));
+
+  return {
+    checked: true,
+    applicationId: String(application?.id || applicationId),
+    scopes,
+    mercadoPagoScopes,
+    hasMercadoPagoScopes: mercadoPagoScopes.length > 0,
+  };
+}
+
 async function mapWithConcurrency<T, R>(
   values: T[],
   concurrency: number,
@@ -322,6 +378,7 @@ export async function POST(request: NextRequest) {
   let syncId: string | null = null;
   try {
     const token = await getValidAccessToken();
+    const applicationPermissions = await inspectApplicationPermissions(token);
     const bookmarksResponse = await requestMlJson("https://api.mercadolibre.com/users/me/bookmarks", token);
     if (!bookmarksResponse.ok || !Array.isArray(bookmarksResponse.data)) {
       return NextResponse.json({
@@ -453,6 +510,12 @@ export async function POST(request: NextRequest) {
       ...errors.map((entry) => entry.productId + ": " + entry.error),
       ...conflicts,
     ];
+    const policyBlockedIds = errors
+      .filter((entry) => /PA_UNAUTHORIZED_RESULT_FROM_POLICIES|\\b403\\b/.test(entry.error))
+      .map((entry) => entry.productId);
+    const itemNotFoundIds = errors
+      .filter((entry) => /items=404:/.test(entry.error))
+      .map((entry) => entry.productId);
     const summaryMessage = issueLines.length
       ? "Recuperação via API oficial com pendências: " + issueLines.slice(0, 12).join("; ")
       : "Complemento concluído via API oficial do Mercado Livre. Registros recuperados foram identificados no catálogo.";
@@ -490,10 +553,17 @@ export async function POST(request: NextRequest) {
       missingProductIds: stillMissingIds,
       unresolvedCount: issueLines.length,
       unresolved: issueLines.slice(0, 50),
+      diagnostics: {
+        policyBlockedCount: policyBlockedIds.length,
+        policyBlockedIds,
+        itemNotFoundCount: itemNotFoundIds.length,
+        itemNotFoundIds,
+        applicationPermissions,
+      },
       status,
       message: status === "complete"
         ? "Lista completada: os " + finalCoveredIds.size + " IDs únicos da lista estão representados no catálogo. Existem " + finalTotal + " registros de anúncio/catálogo."
-        : "Recuperação parcial: " + finalCoveredIds.size + " de " + expectedTotal + " IDs únicos cobertos (" + finalTotal + " registros no banco). " + stillMissing + " IDs ainda precisam de resolução.",
+        : "Recuperação parcial: " + finalCoveredIds.size + " de " + expectedTotal + " IDs únicos cobertos (" + finalTotal + " registros no banco). " + stillMissing + " IDs ainda precisam de resolução. " + policyBlockedIds.length + " bloqueados pelo PolicyAgent e " + itemNotFoundIds.length + " com anúncio não encontrado (404).",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido na recuperação da lista.";
