@@ -804,7 +804,7 @@ async function processVideo(video) {
       subtitleEntries: (() => {
         const wordBoundaries = loadEdgeWordBoundaries(wordBoundariesPath);
         const timed = buildTimedCaptionEntries(narrationSegments, wordBoundaries, {
-          maxWords: videoFormat === "long" ? 9 : 5,
+          maxWords: videoFormat === "long" ? 9 : 10,
           maxLineChars: videoFormat === "long" ? 48 : 34,
         });
         if (timed) {
