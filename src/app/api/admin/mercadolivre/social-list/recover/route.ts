@@ -40,7 +40,13 @@ function asNumber(value: unknown): number | null {
   return Number.isFinite(number) ? number : null;
 }
 
-async function requestMlJson(url: string, token?: string): Promise<{ ok: boolean; status: number; data: unknown; details: string | null }> {
+async function requestMlJson(url: string, token?: string): Promise<{
+  ok: boolean;
+  status: number;
+  data: unknown;
+  details: string | null;
+  requestId: string | null;
+}> {
   try {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (token) headers.Authorization = "Bearer " + token;
@@ -52,9 +58,23 @@ async function requestMlJson(url: string, token?: string): Promise<{ ok: boolean
     const raw = await response.text();
     let data: unknown = null;
     try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }
-    return { ok: response.ok, status: response.status, data, details: response.ok ? null : raw.slice(0, 400) };
+    const requestId =
+      response.headers.get("x-request-id") ||
+      response.headers.get("x-correlation-id") ||
+      response.headers.get("x-meli-request-id");
+    const details = response.ok ? null : [
+      raw.slice(0, 350),
+      requestId ? "x-request-id=" + requestId : null,
+    ].filter(Boolean).join(" | ");
+    return { ok: response.ok, status: response.status, data, details, requestId };
   } catch (error) {
-    return { ok: false, status: 0, data: null, details: error instanceof Error ? error.message : "Falha de rede" };
+    return {
+      ok: false,
+      status: 0,
+      data: null,
+      details: error instanceof Error ? error.message : "Falha de rede",
+      requestId: null,
+    };
   }
 }
 
@@ -369,7 +389,8 @@ async function getItemData(itemId: string, token: string): Promise<{ item: JsonR
       const status = Number(entry?.status_code ?? entry?.code ?? 0);
       const body = asRecord(entry?.body);
       if (status === 200 && body) return body;
-      if (status) diagnostics.push("items/bulk item status=" + status);
+      if (status) diagnostics.push("items/bulk item status=" + status +
+        (bulk.requestId ? " x-request-id=" + bulk.requestId : ""));
     }
     return null;
   };
