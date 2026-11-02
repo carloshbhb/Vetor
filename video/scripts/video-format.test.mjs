@@ -29,7 +29,7 @@ const fullSceneCaption = buildCaptionEntries([
   { start: 3, end: 12, text: "Uma frase com várias palavras que explica os detalhes importantes do produto para a decisão de compra." }
 ], 100);
 assert.equal(fullSceneCaption.length, 1);
-assert.ok(fullSceneCaption[0].text.includes("\\n"), "long captions should wrap to readable lines");
+assert.ok(fullSceneCaption[0].text.includes("\n"), "long captions should wrap to readable lines");
 assert.equal(fullSceneCaption[0].start, 3);
 assert.equal(fullSceneCaption[0].end, 12);
 

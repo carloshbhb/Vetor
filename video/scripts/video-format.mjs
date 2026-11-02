@@ -27,13 +27,13 @@ function wrapCaptionWords(words, maxLineChars = 36) {
     }
   }
   if (line) lines.push(line);
-  return lines.join("\\n");
+  return lines.join("\n");
 }
 
 export function buildCaptionEntries(segments, maxWords = 7) {
   const limit = Math.min(100, Math.max(3, Math.floor(Number(maxWords) || 7)));
   return (Array.isArray(segments) ? segments : []).flatMap((segment) => {
-    const words = String(segment?.text || "").trim().split(/\\s+/).filter(Boolean);
+    const words = String(segment?.text || "").trim().split(/\s+/).filter(Boolean);
     const start = Number(segment?.start);
     const end = Number(segment?.end);
     if (!words.length || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
