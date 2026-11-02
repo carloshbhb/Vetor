@@ -60,8 +60,8 @@ const wrappedCaptions = buildTimedCaptionEntries(
   { maxWords: 5, maxLineChars: 12 }
 );
 assert.ok(wrappedCaptions);
-assert.equal(wrappedCaptions[0].text, "Tela AMOLED\\nde 120 Hz");
-assert.ok(wrappedCaptions[0].text.split("\\n").every((line) => line.length <= 12));
+assert.equal(wrappedCaptions[0].text, "Tela AMOLED\nde 120 Hz");
+assert.ok(wrappedCaptions[0].text.split("\n").every((line) => line.length <= 12));
 
 const mismatchedBoundaries = exactBoundaries.map((item, index) =>
   index === 2 ? { ...item, text: "modelo" } : item
