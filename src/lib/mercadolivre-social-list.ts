@@ -205,8 +205,9 @@ export async function diagnosePublicSocialList(): Promise<{
     const scripts = Array.from(document.querySelectorAll<HTMLScriptElement>("script"));
     const scriptSources = scripts
       .map((script) => script.src)
-      .filter((src) => src && /affiliate|social|list|polycard|graphql/i.test(src))
-      .slice(0, 30);
+      .filter(Boolean)
+      .filter((src, index, all) => all.indexOf(src) === index)
+      .slice(0, 60);
     const scriptMarkers = scripts
       .filter((script) => !script.src && script.textContent)
       .flatMap((script) => Array.from((script.textContent || "").matchAll(/.{0,100}(?:total_results|polycard|items|results|list_id|listId|pagination|offset|limit|cursor|__NEXT_DATA__).{0,180}/gi))
