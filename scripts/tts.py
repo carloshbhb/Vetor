@@ -15,7 +15,7 @@ async def generate_tts(text: str, output_path: str, boundaries_path: Optional[st
     """Generate the fixed Brazilian Portuguese neural voice and optional timed words."""
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     boundary = "WordBoundary" if boundaries_path else "SentenceBoundary"
-    communicate = edge_tts.Communicate(text, VOICE, boundary=boundary)
+    communicate = edge_tts.Communicate(text, VOICE, rate="-30%", boundary=boundary)
 
     if boundaries_path:
         os.makedirs(os.path.dirname(os.path.abspath(boundaries_path)), exist_ok=True)
