@@ -76,9 +76,24 @@ function getCoveredBookmarkIds(
 type ApplicationPermissionDiagnostics = {
   checked: boolean;
   applicationId?: string;
+  active: boolean | null;
+  siteId: string | null;
+  certificationStatus: string | null;
   scopes: string[];
   mercadoPagoScopes: string[];
   hasMercadoPagoScopes: boolean | null;
+  status?: number;
+  message?: string;
+};
+
+type OAuthGrantDiagnostics = {
+  checked: boolean;
+  userId: string | null;
+  configuredApplicationId: string | null;
+  configuredApplicationAuthorized: boolean | null;
+  authorizedApplicationIds: string[];
+  grantScopes: string[];
+  userSiteStatus: string | null;
   status?: number;
   message?: string;
 };
@@ -88,6 +103,9 @@ async function inspectApplicationPermissions(token: string): Promise<Application
   if (!applicationId) {
     return {
       checked: false,
+      active: null,
+      siteId: null,
+      certificationStatus: null,
       scopes: [],
       mercadoPagoScopes: [],
       hasMercadoPagoScopes: null,
@@ -103,6 +121,9 @@ async function inspectApplicationPermissions(token: string): Promise<Application
     return {
       checked: false,
       applicationId,
+      active: null,
+      siteId: null,
+      certificationStatus: null,
       scopes: [],
       mercadoPagoScopes: [],
       hasMercadoPagoScopes: null,
@@ -116,16 +137,98 @@ async function inspectApplicationPermissions(token: string): Promise<Application
   const scopes = Array.isArray(rawScopes)
     ? rawScopes.map((scope) => String(scope).trim()).filter(Boolean)
     : typeof rawScopes === "string"
-      ? rawScopes.split(/[\s,]+/).map((scope) => scope.trim()).filter(Boolean)
+      ? rawScopes.split(/[\\s,]+/).map((scope) => scope.trim()).filter(Boolean)
       : [];
   const mercadoPagoScopes = scopes.filter((scope) => scope.startsWith("urn:mp:"));
 
   return {
     checked: true,
     applicationId: String(application?.id || applicationId),
+    active: typeof application?.active === "boolean" ? application.active : null,
+    siteId: asString(application?.site_id),
+    certificationStatus: asString(application?.certification_status),
     scopes,
     mercadoPagoScopes,
     hasMercadoPagoScopes: mercadoPagoScopes.length > 0,
+  };
+}
+
+async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> {
+  const applicationId = process.env.ML_CLIENT_ID?.trim() || null;
+  const meResponse = await requestMlJson("https://api.mercadolibre.com/users/me", token);
+  if (!meResponse.ok) {
+    return {
+      checked: false,
+      userId: null,
+      configuredApplicationId: applicationId,
+      configuredApplicationAuthorized: null,
+      authorizedApplicationIds: [],
+      grantScopes: [],
+      userSiteStatus: null,
+      status: meResponse.status,
+      message: meResponse.details || "Não foi possível validar o usuário associado ao token.",
+    };
+  }
+
+  const me = asRecord(meResponse.data);
+  const userId = asString(me?.id);
+  const userStatus = asRecord(me?.status);
+  const userSiteStatus = asString(userStatus?.site_status) || asString(userStatus?.status);
+  if (!userId) {
+    return {
+      checked: false,
+      userId: null,
+      configuredApplicationId: applicationId,
+      configuredApplicationAuthorized: null,
+      authorizedApplicationIds: [],
+      grantScopes: [],
+      userSiteStatus,
+      message: "A API não retornou o ID do usuário associado ao token.",
+    };
+  }
+
+  const response = await requestMlJson(
+    "https://api.mercadolibre.com/users/" + encodeURIComponent(userId) + "/applications",
+    token,
+  );
+  if (!response.ok) {
+    return {
+      checked: false,
+      userId,
+      configuredApplicationId: applicationId,
+      configuredApplicationAuthorized: null,
+      authorizedApplicationIds: [],
+      grantScopes: [],
+      userSiteStatus,
+      status: response.status,
+      message: response.details || "Não foi possível consultar os aplicativos autorizados pelo usuário.",
+    };
+  }
+
+  const rows = Array.isArray(response.data)
+    ? response.data.map(asRecord).filter((row): row is JsonRecord => Boolean(row))
+    : [];
+  const authorizedApplicationIds = rows
+    .map((row) => asString(row.app_id) || asString(row.id))
+    .filter((id): id is string => Boolean(id));
+  const grant = rows.find((row) =>
+    (asString(row.app_id) || asString(row.id)) === applicationId,
+  );
+  const rawGrantScopes = grant?.scopes ?? grant?.scope;
+  const grantScopes = Array.isArray(rawGrantScopes)
+    ? rawGrantScopes.map((scope) => String(scope).trim()).filter(Boolean)
+    : typeof rawGrantScopes === "string"
+      ? rawGrantScopes.split(/[\\s,]+/).map((scope) => scope.trim()).filter(Boolean)
+      : [];
+
+  return {
+    checked: true,
+    userId,
+    configuredApplicationId: applicationId,
+    configuredApplicationAuthorized: applicationId ? Boolean(grant) : null,
+    authorizedApplicationIds,
+    grantScopes,
+    userSiteStatus,
   };
 }
 
@@ -378,7 +481,10 @@ export async function POST(request: NextRequest) {
   let syncId: string | null = null;
   try {
     const token = await getValidAccessToken();
-    const applicationPermissions = await inspectApplicationPermissions(token);
+    const [applicationPermissions, oauthGrant] = await Promise.all([
+      inspectApplicationPermissions(token),
+      inspectOAuthGrant(token),
+    ]);
     const bookmarksResponse = await requestMlJson("https://api.mercadolibre.com/users/me/bookmarks", token);
     if (!bookmarksResponse.ok || !Array.isArray(bookmarksResponse.data)) {
       return NextResponse.json({
@@ -559,6 +665,7 @@ export async function POST(request: NextRequest) {
         itemNotFoundCount: itemNotFoundIds.length,
         itemNotFoundIds,
         applicationPermissions,
+        oauthGrant,
       },
       status,
       message: status === "complete"
