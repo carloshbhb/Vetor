@@ -14,7 +14,7 @@ export function formatYouTubeTimestamp(value) {
     : minutes + ":" + String(remainder).padStart(2, "0");
 }
 
-export function buildCaptionEntries(segments, maxWords = 7) {
+export function buildCaptionEntries(segments, maxWords = 7, options = {}) {
   const limit = Math.min(10, Math.max(3, Math.floor(Number(maxWords) || 7)));
   return (Array.isArray(segments) ? segments : []).flatMap((segment) => {
     const words = String(segment?.text || "").trim().split(/\s+/).filter(Boolean);
@@ -29,7 +29,7 @@ export function buildCaptionEntries(segments, maxWords = 7) {
       chunks.push({
         start: start + duration * index / words.length,
         end: start + duration * next / words.length,
-        text: words.slice(index, next).join(" "),
+        text: wrapCaptionWords(words.slice(index, next), Math.max(18, Math.min(52, Math.floor(Number(options.maxLineChars) || 36)))),
         segmentKind,
       });
     }
