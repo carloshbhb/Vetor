@@ -8,6 +8,7 @@ import {
 assert.equal(classifySceneVisual({ visualCue: 'Preço e condições', text: 'Confira o preço total e o frete.' }), 'price-check');
 assert.equal(classifySceneVisual({ visualCue: 'Autonomia', text: 'Bateria de 5.000 mAh.' }), 'specification');
 assert.equal(classifySceneVisual({ visualCue: 'O que vale saber', text: 'A tela é LCD, não AMOLED.' }), 'tradeoff');
+assert.equal(classifySceneVisual({ visualCue: 'Limitação', text: 'Não possui GPS integrado.' }), 'tradeoff');
 assert.equal(classifySceneVisual({ visualCue: 'Tela e acabamento', text: 'Veja a tela e os materiais.' }), 'detail');
 assert.equal(classifySceneVisual({ visualCue: 'Uso na rotina', text: 'Para estudo e trabalho.' }), 'lifestyle');
 assert.equal(classifySceneVisual({ visualCue: 'Alternativas', text: 'Compare com concorrentes.' }), 'comparison');
