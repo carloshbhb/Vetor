@@ -106,7 +106,7 @@ export function parseSocialListTotal(html: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-async function fetchListPage(pageNumber: number): Promise<{ status: number; html: string }> {
+async function fetchListPage(pageNumber: number): Promise<{ status: number; html: string; finalUrl: string }> {
   const url = new URL(ML_SOCIAL_LIST_URL);
   if (pageNumber > 1) url.searchParams.set("page", String(pageNumber));
 
@@ -120,22 +120,55 @@ async function fetchListPage(pageNumber: number): Promise<{ status: number; html
     signal: AbortSignal.timeout(20_000),
   });
 
-  return { status: response.status, html: response.ok ? await response.text() : "" };
+  return { status: response.status, html: response.ok ? await response.text() : "", finalUrl: response.url };
 }
 
 export async function diagnosePublicSocialList(): Promise<{
   expectedTotal: number | null;
-  pages: Array<{ page: number; status: number; htmlLength: number; cards: number; titleAnchors: number; mlAnchors: number; parsed: number; sampleUnmatchedLinks: string[] }>;
+  pages: Array<{
+    page: number;
+    status: number;
+    finalUrl: string;
+    htmlLength: number;
+    pageTitle: string;
+    cards: number;
+    titleAnchors: number;
+    mlAnchors: number;
+    parsed: number;
+    paginationLinks: string[];
+    paginationText: string;
+    pageMarkers: string[];
+    sampleUnmatchedLinks: string[];
+  }>;
 }> {
-  const pages: Array<{ page: number; status: number; htmlLength: number; cards: number; titleAnchors: number; mlAnchors: number; parsed: number; sampleUnmatchedLinks: string[] }> = [];
+  const pages: Array<{
+    page: number;
+    status: number;
+    finalUrl: string;
+    htmlLength: number;
+    pageTitle: string;
+    cards: number;
+    titleAnchors: number;
+    mlAnchors: number;
+    parsed: number;
+    paginationLinks: string[];
+    paginationText: string;
+    pageMarkers: string[];
+    sampleUnmatchedLinks: string[];
+  }> = [];
   let expectedTotal: number | null = null;
 
   for (let page = 1; page <= 30; page += 1) {
     const response = await fetchListPage(page);
-    if (response.status === 404 && page > 1) break;
     if (response.status !== 200) {
-      pages.push({ page, status: response.status, htmlLength: response.html.length, cards: 0, titleAnchors: 0, mlAnchors: 0, parsed: 0, sampleUnmatchedLinks: [] });
-      break;
+      pages.push({
+        page, status: response.status, finalUrl: response.finalUrl, htmlLength: response.html.length,
+        pageTitle: "", cards: 0, titleAnchors: 0, mlAnchors: 0, parsed: 0,
+        paginationLinks: [], paginationText: "", pageMarkers: [], sampleUnmatchedLinks: [],
+      });
+      if (page > 1 && response.status === 404) break;
+      if (response.status !== 404) break;
+      continue;
     }
 
     if (page === 1) expectedTotal = parseSocialListTotal(response.html);
@@ -150,10 +183,27 @@ export async function diagnosePublicSocialList(): Promise<{
         const id = extractItemId(anchor.href);
         return /^MLB\d+$/i.test(id) && !parsedIds.has(id);
       })
-      .slice(0, 5)
-      .map((anchor) => (anchor.textContent || anchor.getAttribute("aria-label") || "").trim().slice(0, 100) + " | " + anchor.href.slice(0, 220));
+      .slice(0, 8)
+      .map((anchor) => (anchor.textContent || anchor.getAttribute("aria-label") || "").trim().slice(0, 100) + " | " + anchor.href.slice(0, 240));
+    const paginationLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>("a[href]"))
+      .map((anchor) => anchor.href)
+      .filter((href) => /(?:[?&](?:page|offset|limit)=|\/page\/\d+)/i.test(href))
+      .filter((href, index, all) => all.indexOf(href) === index)
+      .slice(0, 30);
+    const paginationText = Array.from(document.querySelectorAll("nav, [class*='pagination'], [class*='Pagination']"))
+      .map((node) => (node.textContent || "").replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .join(" | ")
+      .slice(0, 500);
+    const pageMarkers = Array.from(response.html.matchAll(/.{0,80}(?:total_results|offset|limit|page_number|pageSize|page_size|pagination).{0,120}/gi))
+      .slice(0, 12)
+      .map((match) => (match[0] || "").replace(/\s+/g, " ").slice(0, 220));
 
-    pages.push({ page, status: response.status, htmlLength: response.html.length, cards: cards.length, titleAnchors, mlAnchors: mlAnchors.length, parsed: parsed.length, sampleUnmatchedLinks });
+    pages.push({
+      page, status: response.status, finalUrl: response.finalUrl, htmlLength: response.html.length,
+      pageTitle: document.title, cards: cards.length, titleAnchors, mlAnchors: mlAnchors.length,
+      parsed: parsed.length, paginationLinks, paginationText, pageMarkers, sampleUnmatchedLinks,
+    });
     if (page > 1 && parsed.length === 0 && cards.length === 0 && mlAnchors.length === 0) break;
   }
 
