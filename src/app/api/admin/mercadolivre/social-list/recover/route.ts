@@ -195,7 +195,7 @@ async function recoverOneProduct(productId: string, token: string): Promise<
 
   if (item) {
     const itemId = asString(item.id);
-    if (itemId && /^MLB\\d+$/.test(itemId)) {
+    if (itemId && /^MLB\d+$/.test(itemId)) {
       const now = new Date().toISOString();
       return {
         source: product ? "catalog_product" : "direct_item",
