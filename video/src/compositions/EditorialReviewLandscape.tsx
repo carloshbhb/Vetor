@@ -121,10 +121,10 @@ const Opening: React.FC<{
           transform: 'scale(' + scale + ')',
         }}
       />
-      <div style={{ position: 'absolute', left: 130, bottom: 185, color: palette.muted, fontSize: 20, letterSpacing: 3 }}>
+      <div style={{ position: 'absolute', left: 130, bottom: 260, color: palette.muted, fontSize: 20, letterSpacing: 3 }}>
         ANÁLISE EDITORIAL • RECURSOS • LIMITAÇÕES • VEREDITO
       </div>
-      <div style={{ position: 'absolute', left: 130, right: 390, bottom: 150, height: 3, borderRadius: 4, background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
+      <div style={{ position: 'absolute', left: 130, right: 390, bottom: 225, height: 3, borderRadius: 4, background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
     </Background>
   );
 };
@@ -243,14 +243,14 @@ const LongFeature: React.FC<{
         }}
       />
 
-      <div style={{ position: 'absolute', left: 130, right: 390, bottom: 185, display: 'flex', alignItems: 'center', gap: 18, color: palette.muted }}>
+      <div style={{ position: 'absolute', left: 130, right: 390, bottom: 260, display: 'flex', alignItems: 'center', gap: 18, color: palette.muted }}>
         <div style={{ color: palette.blue, fontSize: 20, fontWeight: 900 }}>{String(index + 1).padStart(2, '0')}</div>
         <div style={{ flex: 1, height: 3, borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,.16)' }}>
           <div style={{ width: (progress * 100) + '%', height: '100%', background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
         </div>
         <div style={{ fontSize: 18, fontWeight: 850, letterSpacing: 2 }}>{String(index + 1).padStart(2, '0')} / {String(count).padStart(2, '0')}</div>
       </div>
-      <div style={{ position: 'absolute', left: 130, right: 390, bottom: 150, height: 3, borderRadius: 4, background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
+      <div style={{ position: 'absolute', left: 130, right: 390, bottom: 225, height: 3, borderRadius: 4, background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
     </Background>
   );
 };
@@ -279,8 +279,8 @@ const LongEnd: React.FC<{
         </div>
       </div>
       <Product src={imageUrl} style={{ position: 'absolute', right: 340, top: 210, width: 620, height: 550, transform: 'scale(' + scale + ')' }} />
-      <div style={{ position: 'absolute', left: 130, right: 390, bottom: 150, height: 3, background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
-      <div style={{ position: 'absolute', left: 130, bottom: 100, color: palette.muted, fontSize: 19, letterSpacing: 2 }}>{title}</div>
+      <div style={{ position: 'absolute', left: 130, right: 390, bottom: 225, height: 3, background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
+      <div style={{ position: 'absolute', left: 130, bottom: 250, color: palette.muted, fontSize: 19, letterSpacing: 2 }}>{title}</div>
     </Background>
   );
 };

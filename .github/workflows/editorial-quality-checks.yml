@@ -71,6 +71,8 @@ jobs:
         run: |
           node --import tsx scripts/visual-storyboard.test.mjs
           node scripts/video-format.test.mjs
+          cd ..
+          npx tsx scripts/video-media-matching.test.ts
 
       - name: Type-check Remotion project
         working-directory: video
