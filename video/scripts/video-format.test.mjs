@@ -35,7 +35,7 @@ assert.equal(fallbackReadableCaptions.length, 2);
 assert.equal(fallbackReadableCaptions[0].text, "Confira a porção da pipoca");
 assert.equal(fallbackReadableCaptions[1].text, "milho por ciclo.");
 for (const cue of fallbackReadableCaptions) {
-  const lines = cue.text.split(/\\n/);
+  const lines = cue.text.split(/\n/);
   const required = Math.max(...lines.map((line) => line.length)) / 15 + (lines.length - 1) * 0.4 + 1;
   assert.ok(cue.end - cue.start >= required, "fallback caption must meet QA reading-time requirement");
 }
