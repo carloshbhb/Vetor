@@ -753,8 +753,8 @@ async function processVideo(video) {
     });
     const hookDuration = narrationTimings[0]?.duration || Math.min(3, totalDuration);
 
-    processingStage = 'renderização HyperFrames';
-    console.log('   [3/4] Renderizando vídeo com HyperFrames...');
+    processingStage = 'renderização Remotion';
+    console.log('   [3/4] Renderizando vídeo com Remotion (motor principal)...');
     const outputDir = path.resolve('video/out');
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
@@ -822,7 +822,7 @@ async function processVideo(video) {
 
     const videoFileName = `video-${video.id}.mp4`;
     const videoPath = path.join(outputDir, videoFileName);
-    const renderEngine = String(process.env.VIDEO_RENDER_ENGINE || "hyperframes").toLowerCase();
+    const renderEngine = String(process.env.VIDEO_RENDER_ENGINE || "remotion").toLowerCase();
     if (renderEngine === "hyperframes") {
       try {
         await renderWithHyperFrames({ ...videoData, id: video.id }, videoPath);
@@ -837,7 +837,7 @@ async function processVideo(video) {
       processingStage = "renderização Remotion";
       await renderWithRemotion(videoData, videoPath);
     } else {
-      throw new Error("VIDEO_RENDER_ENGINE inválido: " + renderEngine + ". Use hyperframes ou remotion.");
+      throw new Error("VIDEO_RENDER_ENGINE inválido: " + renderEngine + ". Use remotion ou hyperframes (fallback opcional).");
     }
     processingStage = "controle de qualidade do vídeo";
     runRemotionQualityGate(videoPath, videoData.subtitleEntries, videoFormat, video.id);
