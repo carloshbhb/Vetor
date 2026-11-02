@@ -648,6 +648,86 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, queued: queued.length, videos: queued });
     }
 
+    if (action === "retrySafeFailed") {
+      const limit = Math.min(Math.max(Number(body.limit || 5), 1), 5);
+      const retryBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: failed, error: failedError } = await supabase
+        .from("video_queue")
+        .select("id,product_title,review_url,affiliate_url,shortened_affiliate_url,product_image_url,youtube_video_id,youtube_url,updated_at")
+        .eq("status", "failed")
+        .is("youtube_video_id", null)
+        .is("youtube_url", null)
+        .lte("updated_at", retryBefore)
+        .order("updated_at", { ascending: true })
+        .limit(100);
+      if (failedError) throw failedError;
+
+      const seenUrls = new Set<string>();
+      const eligible = [];
+      for (const item of failed || []) {
+        const reviewUrl = String(item.review_url || "").trim();
+        if (!reviewUrl || seenUrls.has(reviewUrl)) continue;
+        seenUrls.add(reviewUrl);
+
+        const purchaseUrl = String(item.shortened_affiliate_url || item.affiliate_url || "").trim();
+        const imageUrl = String(item.product_image_url || "").trim();
+        let purchase: URL | null = null;
+        let image: URL | null = null;
+        try { purchase = new URL(purchaseUrl); } catch {}
+        try { image = new URL(imageUrl); } catch {}
+        const safePurchase = Boolean(
+          purchase && purchase.protocol === "https:" &&
+          (purchase.hostname === "meli.la" || purchase.hostname.endsWith(".meli.la") ||
+            (purchase.hostname === "www.vetor.blog" && purchase.pathname.startsWith("/go/")))
+        );
+        const safeImage = Boolean(
+          image && image.protocol === "https:" &&
+          !image.hostname.endsWith("vetor.blog") &&
+          !/\/og\.png(?:$|\?)/i.test(image.pathname)
+        );
+        if (!safePurchase || !safeImage) continue;
+
+        const { data: completed, error: completedError } = await supabase
+          .from("video_queue")
+          .select("id")
+          .eq("review_url", reviewUrl)
+          .eq("status", "completed")
+          .not("youtube_video_id", "is", null)
+          .limit(1);
+        if (completedError) throw completedError;
+        if ((completed || []).length) continue;
+        eligible.push(item);
+        if (eligible.length >= limit) break;
+      }
+
+      const retried = [];
+      for (const item of eligible) {
+        const { data, error } = await supabase
+          .from("video_queue")
+          .update({
+            status: "pending",
+            error_message: null,
+            started_at: null,
+            scheduled_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", item.id)
+          .eq("status", "failed")
+          .is("youtube_video_id", null)
+          .is("youtube_url", null)
+          .select("id,product_title,status,review_url")
+          .maybeSingle();
+        if (error) throw error;
+        if (data) retried.push(data);
+      }
+      return NextResponse.json({
+        success: true,
+        retried: retried.length,
+        videos: retried,
+        policy: "one failed item per review URL; no prior YouTube upload; safe affiliate and product image; 24-hour cooldown",
+      });
+    }
+
     if (action === "retryRemotionTimeouts") {
       const limit = Math.min(Math.max(Number(body.limit || 5), 1), 5);
       const { data: failed, error: failedError } = await supabase
