@@ -131,7 +131,7 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
     ? Math.max(2, Number(options.maxMergeSpan))
     : 7;
   const requiredCaptionSeconds = (text) => {
-    const lines = String(text || "").split(/\\r?\\n/);
+    const lines = String(text || "").split(/\r?\n/);
     const longestLine = lines.reduce((max, line) => Math.max(max, line.length), 0);
     return longestLine / 15 + Math.max(0, lines.length - 1) * 0.4 + 1;
   };
@@ -165,7 +165,7 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
     if (canMergePrevious) {
       previous.end = Math.max(previous.end, cue.end);
       previous.text = wrapCaptionWords(
-        (previous.text + " " + cue.text).replace(/\\s+/g, " ").trim().split(" "),
+        (previous.text + " " + cue.text).replace(/\s+/g, " ").trim().split(" "),
         maxLineChars
       );
       readable.splice(cueIndex, 1);
@@ -175,7 +175,7 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
     if (canMergeNext) {
       next.start = Math.min(next.start, cue.start);
       next.text = wrapCaptionWords(
-        (cue.text + " " + next.text).replace(/\\s+/g, " ").trim().split(" "),
+        (cue.text + " " + next.text).replace(/\s+/g, " ").trim().split(" "),
         maxLineChars
       );
       readable.splice(cueIndex, 1);
