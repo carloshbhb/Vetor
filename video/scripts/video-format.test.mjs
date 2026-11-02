@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildCaptionEntries,
+  buildTimedCaptionEntries,
   buildCtaComment,
   buildVideoDescription,
   buildVideoTitle,
@@ -25,6 +26,42 @@ assert.equal(captions[0].text, "Um dois três quatro cinco");
 assert.equal(captions[1].text, "seis sete oito nove dez");
 assert.ok(captions[0].start >= 10 && captions[1].end <= 20);
 assert.ok(Math.abs(captions[0].end - captions[1].start) < 0.0001);
+
+
+const fullSceneCaption = buildCaptionEntries([
+  { kind: "scene", start: 3, end: 12, text: "Uma frase com várias palavras que explica os detalhes importantes do produto para a decisão de compra." }
+], 100);
+assert.equal(fullSceneCaption.length, 1);
+assert.ok(fullSceneCaption[0].text.includes("\n"), "long captions should wrap to readable lines");
+assert.equal(fullSceneCaption[0].segmentKind, "scene");
+
+const exactSegments = [
+  { kind: "hook", text: "Veja este detalhe" },
+  { kind: "scene", text: "Tela AMOLED de 120 Hz" },
+  { kind: "cta", text: "Leia a análise completa" },
+];
+const exactWords = exactSegments.flatMap((segment) => segment.text.split(/\s+/));
+const exactBoundaries = exactWords.map((word, index) => ({
+  type: "WordBoundary", offset: index * 350_000 + 100_000, duration: 220_000, text: word,
+}));
+const exactCaptions = buildTimedCaptionEntries(exactSegments, exactBoundaries, { maxWords: 3 });
+assert.ok(exactCaptions);
+assert.equal(exactCaptions[0].segmentKind, "hook");
+assert.ok(Math.abs(exactCaptions[0].start - 0.01) < 0.000001);
+assert.ok(Math.abs(exactCaptions[0].end - 0.102) < 0.000001);
+const sceneCues = exactCaptions.filter((entry) => entry.segmentKind === "scene");
+assert.equal(sceneCues.length, 2);
+assert.ok(Math.abs(sceneCues[0].start - 0.115) < 0.000001);
+assert.equal(exactCaptions[exactCaptions.length - 1].segmentKind, "cta");
+assert.equal(buildTimedCaptionEntries(exactSegments, exactBoundaries.slice(1), { maxWords: 3 }), null);
+const mismatchedBoundaries = exactBoundaries.map((item, index) => index === 2 ? { ...item, text: "modelo" } : item);
+assert.equal(buildTimedCaptionEntries(exactSegments, mismatchedBoundaries), null);
+const fallbackCaptions = buildCaptionEntries([
+  { kind: "hook", start: 0, end: 2, text: "Veja este detalhe" },
+  { kind: "scene", start: 2, end: 6, text: "Tela AMOLED de 120 Hz" },
+  { kind: "cta", start: 6, end: 8, text: "Leia a análise completa" },
+], 5);
+assert.deepEqual(fallbackCaptions.map((entry) => entry.segmentKind), ["hook", "scene", "cta"]);
 
 const longDescription = buildVideoDescription({
   format: longFormat,

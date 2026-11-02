@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   AbsoluteFill,
   Audio,
@@ -9,6 +10,8 @@ import {
   useVideoConfig,
 } from 'remotion';
 import type { CalculateMetadataFunction } from 'remotion';
+import { KineticCaption } from '../components/KineticCaption';
+import { createSceneVisualPlan, extractPrimaryMetric, type SceneVisualPlan } from '../utils/visual-storyboard';
 
 export type EditorialScene = {
   id: number;
@@ -44,14 +47,17 @@ export type EditorialReviewProps = {
 };
 
 const colors = {
-  ink: '#11141C',
-  muted: '#AEB6C4',
-  paper: '#F3F4F7',
-  orange: '#FF6848',
-  blue: '#55B9F2',
+  ink: '#080C14',
+  surface: '#0F1623',
+  paper: '#F7FAFF',
+  muted: '#AEB8C8',
+  blue: '#4285F4',
+  blueDark: '#1428A0',
+  cyan: '#70C4FF',
+  amber: '#FFB85C',
 };
 
-const font = 'Arial, Helvetica, sans-serif';
+const font = 'Inter, DM Sans, Arial, sans-serif';
 const HookFrames = 3;
 
 export const calculateEditorialMetadata: CalculateMetadataFunction<EditorialReviewProps> = ({ props }) => ({
@@ -62,29 +68,35 @@ const Background: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <AbsoluteFill
     style={{
       overflow: 'hidden',
-      background: 'radial-gradient(ellipse at 50% 58%, #253246 0%, #151B29 44%, #0B0E15 100%)',
+      background: 'radial-gradient(ellipse at 52% 43%, #1B2D4C 0%, #0F1623 48%, #080C14 100%)',
       color: colors.paper,
       fontFamily: font,
     }}
   >
     <AbsoluteFill
       style={{
-        opacity: 0.45,
         background:
-          'radial-gradient(circle at 82% 16%, rgba(85,185,242,0.24), transparent 28%), radial-gradient(circle at 12% 72%, rgba(255,104,72,0.16), transparent 30%)',
+          'radial-gradient(circle at 82% 16%, rgba(66,133,244,0.22), transparent 27%), radial-gradient(circle at 14% 76%, rgba(20,40,160,0.23), transparent 32%)',
       }}
     />
     {children}
+    <AbsoluteFill
+      style={{
+        pointerEvents: 'none',
+        background: 'linear-gradient(180deg, rgba(4,8,16,.12) 0%, transparent 26%, transparent 72%, rgba(4,8,16,.48) 100%)',
+      }}
+    />
   </AbsoluteFill>
 );
 
-const Eyebrow: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+const Eyebrow: React.FC<{ children: React.ReactNode; color?: string }> = ({ children, color = colors.cyan }) => (
   <div
     style={{
-      color: colors.blue,
-      fontSize: 27,
-      fontWeight: 800,
-      letterSpacing: 5,
+      color,
+      fontSize: 25,
+      fontWeight: 850,
+      letterSpacing: 4.5,
+      lineHeight: 1.15,
       textTransform: 'uppercase',
     }}
   >
@@ -95,8 +107,31 @@ const Eyebrow: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 const ProductImage: React.FC<{ src: string; style?: React.CSSProperties }> = ({ src, style }) => (
   <Img
     src={src}
-    style={{ width: 1000, height: 600, objectFit: 'contain', ...style }}
+    style={{
+      width: 820,
+      height: 660,
+      objectFit: 'contain',
+      filter: 'drop-shadow(0 34px 48px rgba(0,0,0,.52))',
+      ...style,
+    }}
   />
+);
+
+const AccentLine: React.FC = () => (
+  <div
+    style={{
+      position: 'absolute',
+      bottom: 405,
+      left: 190,
+      right: 190,
+      height: 3,
+      borderRadius: 10,
+      background: 'rgba(255,255,255,.12)',
+      overflow: 'hidden',
+    }}
+  >
+    <div style={{ width: '100%', height: '100%', background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
+  </div>
 );
 
 const OpeningScene: React.FC<{
@@ -106,30 +141,34 @@ const OpeningScene: React.FC<{
   imageUrl: string;
 }> = ({ title, category, hook, imageUrl }) => {
   const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [0, 14], [0, 1], { extrapolateRight: 'clamp' });
-  const rise = interpolate(frame, [0, 18], [38, 0], { extrapolateRight: 'clamp' });
+  const { fps } = useVideoConfig();
+  const opacity = interpolate(frame, [0, 18], [0, 1], { extrapolateRight: 'clamp' });
+  const rise = interpolate(frame, [0, 22], [54, 0], { extrapolateRight: 'clamp' });
+  const scale = interpolate(frame, [0, 3 * fps], [0.96, 1.08], { extrapolateRight: 'clamp' });
 
   return (
     <Background>
       <div
         style={{
           position: 'absolute',
-          top: 145,
-          left: 82,
-          right: 82,
+          top: 250,
+          left: 190,
+          right: 190,
           opacity,
-          translate: `0px ${rise}px`,
+          transform: `translateY(${rise}px)`,
         }}
       >
         <Eyebrow>Vetor • {category}</Eyebrow>
         <div
           style={{
-            marginTop: 32,
+            marginTop: 30,
             fontSize: 76,
-            lineHeight: 1,
+            lineHeight: 1.02,
             fontWeight: 900,
-            letterSpacing: -4,
+            letterSpacing: -3.5,
+            maxWidth: 700,
             overflowWrap: 'anywhere',
+            textShadow: '0 10px 34px rgba(0,0,0,.38)',
           }}
         >
           {hook}
@@ -139,22 +178,25 @@ const OpeningScene: React.FC<{
         src={imageUrl}
         style={{
           position: 'absolute',
-          left: 40,
-          top: 760,
-          scale: interpolate(frame, [0, 48], [0.9, 1.03], { extrapolateRight: 'clamp' }),
+          left: 130,
+          top: 690,
+          width: 820,
+          height: 650,
+          transform: `scale(${scale})`,
         }}
       />
       <div
         style={{
           position: 'absolute',
-          bottom: 150,
-          left: 82,
-          right: 82,
-          fontSize: 32,
-          fontWeight: 700,
-          letterSpacing: 2,
+          bottom: 430,
+          left: 190,
+          right: 190,
           color: colors.muted,
+          fontSize: 28,
+          fontWeight: 750,
+          letterSpacing: 2.2,
           textTransform: 'uppercase',
+          opacity: interpolate(frame, [18, 34], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
         }}
       >
         {title}
@@ -171,83 +213,187 @@ const FeatureScene: React.FC<{
   category: string;
   imageUrl: string;
   brollUrl?: string;
-}> = ({ scene, index, count, category, imageUrl, brollUrl }) => {
+  visual: SceneVisualPlan;
+}> = ({ scene, index, count, category, imageUrl, brollUrl, visual }) => {
   const frame = useCurrentFrame();
-  const enter = interpolate(frame, [0, 22], [70, 0], { extrapolateRight: 'clamp' });
-  const opacity = interpolate(frame, [0, 12], [0, 1], { extrapolateRight: 'clamp' });
+  const durationFrames = Math.max(1, scene.endFrame - scene.startFrame);
+  const progress = Math.max(0, Math.min(1, frame / durationFrames));
+  const phaseFrames = Math.max(1, durationFrames / 3);
+  const phase = Math.min(2, Math.floor(frame / phaseFrames));
+  const phaseProgress = Math.max(0, Math.min(1, (frame - phase * phaseFrames) / phaseFrames));
+  const enter = interpolate(frame, [0, 20], [48, 0], { extrapolateRight: 'clamp' });
   const label = (scene.visualCue || category).replace(/[.!?]+$/, '');
+  const metric = visual.mode === 'specification' ? extractPrimaryMetric(scene.text) : null;
+  const showBroll = Boolean(brollUrl) && (phase === 1 || (visual.mode === 'lifestyle' && phase === 2));
+  const isLeftMove = visual.motion === 'pan-left' || visual.motion === 'tilt-left';
+  const isRightMove = visual.motion === 'pan-right' || visual.motion === 'tilt-right';
+  const drift = isLeftMove
+    ? interpolate(progress, [0, 1], [72, -72])
+    : isRightMove
+      ? interpolate(progress, [0, 1], [-72, 72])
+      : visual.motion === 'float'
+        ? Math.sin(progress * Math.PI * 2) * 18
+        : 0;
+  const zoom = visual.motion === 'push-in'
+    ? interpolate(progress, [0, 1], [1.01, 1.18])
+    : visual.motion === 'float'
+      ? interpolate(progress, [0, 1], [1.04, 1.09])
+      : interpolate(progress, [0, 1], [1.12, 1.03]);
+  const tilt = visual.motion === 'tilt-left' ? -2.2 : visual.motion === 'tilt-right' ? 2.2 : 0;
+  const imageLayout = phase === 0
+    ? { left: 130, top: 690, width: 820, height: 650 }
+    : phase === 1
+      ? { left: showBroll ? 410 : 275, top: 700, width: showBroll ? 500 : 650, height: 610 }
+      : { left: visual.mode === 'price-check' || visual.mode === 'tradeoff' ? 450 : 185, top: 720, width: 640, height: 570 };
+  const visualLabel = visual.mode === 'price-check'
+    ? 'CONFIRA O PREÇO ATUAL'
+    : visual.mode === 'tradeoff'
+      ? 'PONTO DE ATENÇÃO'
+      : visual.label;
 
   return (
     <Background>
-      {brollUrl ? (
-        <Video
-          src={brollUrl}
-          muted
-          loop
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            opacity: 0.36,
-            filter: 'brightness(0.68) blur(1px)',
-          }}
-        />
-      ) : null}
-      <div
+      <AbsoluteFill style={{ opacity: showBroll ? (visual.mode === 'lifestyle' ? 0.82 : 0.56) : 0 }}>
+        {brollUrl ? (
+          <Video
+            src={brollUrl}
+            muted
+            loop
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              filter: 'saturate(.82) brightness(.76)',
+            }}
+          />
+        ) : null}
+      </AbsoluteFill>
+      <AbsoluteFill
         style={{
-          position: 'absolute',
-          top: 180,
-          left: 82,
-          right: 82,
-          opacity,
-          translate: `0px ${enter}px`,
-        }}
-      >
-        <Eyebrow>{label || category}</Eyebrow>
-        <div
-          style={{
-            marginTop: 38,
-            fontSize: 56,
-            lineHeight: 1.08,
-            fontWeight: 850,
-            letterSpacing: -2,
-            maxWidth: 900,
-          }}
-        >
-          {scene.text}
-        </div>
-      </div>
-      <ProductImage
-        src={imageUrl}
-        style={{
-          position: 'absolute',
-          left: 44,
-          top: 850,
-          rotate: `${index % 2 === 0 ? '-2deg' : '2deg'}`,
-          scale: interpolate(frame, [0, 36], [0.94, 1], { extrapolateRight: 'clamp' }),
+          background: showBroll
+            ? 'linear-gradient(180deg,rgba(8,12,20,.72) 0%,rgba(8,12,20,.18) 44%,rgba(8,12,20,.74) 100%)'
+            : 'radial-gradient(ellipse at 50% 55%,rgba(66,133,244,.10),transparent 46%)',
         }}
       />
       <div
         style={{
           position: 'absolute',
-          bottom: 110,
-          left: 82,
-          right: 82,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 22,
+          top: 250,
+          left: 190,
+          right: 190,
+          transform: `translateY(${enter}px)`,
+          opacity: interpolate(frame, [0, 14], [0, 1], { extrapolateRight: 'clamp' }),
         }}
       >
-        <div style={{ fontSize: 28, color: colors.orange, fontWeight: 900 }}>
-          {String(index + 1).padStart(2, '0')}
+        <Eyebrow color={visual.mode === 'tradeoff' ? colors.amber : colors.cyan}>
+          {visualLabel || category}
+        </Eyebrow>
+        <div
+          style={{
+            marginTop: 24,
+            fontSize: 60,
+            lineHeight: 1.04,
+            fontWeight: 900,
+            letterSpacing: -2.6,
+            maxWidth: 700,
+            overflowWrap: 'anywhere',
+            textShadow: '0 8px 28px rgba(0,0,0,.5)',
+          }}
+        >
+          {label}
         </div>
-        <div style={{ width: 50, height: 2, background: 'rgba(255,255,255,0.35)' }} />
-        <div style={{ fontSize: 24, letterSpacing: 4, color: colors.muted, fontWeight: 700 }}>
+      </div>
+
+      {visual.mode === 'specification' && metric ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: 590,
+            left: 190,
+            minWidth: 300,
+            padding: '22px 28px',
+            borderRadius: 22,
+            background: 'rgba(15,22,35,.94)',
+            border: '1px solid rgba(112,196,255,.44)',
+            boxShadow: '0 18px 44px rgba(0,0,0,.28)',
+            opacity: interpolate(frame, [phaseFrames * .2, phaseFrames * .55], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
+            transform: `translateY(${interpolate(frame, [phaseFrames * .2, phaseFrames * .55], [22, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}px)`,
+          }}
+        >
+          <div style={{ fontSize: 66, fontWeight: 900, lineHeight: 1, letterSpacing: -2 }}>{metric}</div>
+          <div style={{ marginTop: 12, color: colors.cyan, fontSize: 22, fontWeight: 800, letterSpacing: 2 }}>
+            ESPECIFICAÇÃO CITADA
+          </div>
+        </div>
+      ) : null}
+
+      {visual.mode === 'price-check' ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: 610,
+            left: 190,
+            padding: '22px 28px',
+            borderRadius: 22,
+            background: 'rgba(15,22,35,.94)',
+            border: '1px solid rgba(66,133,244,.5)',
+            boxShadow: '0 18px 44px rgba(0,0,0,.28)',
+            opacity: interpolate(frame, [phaseFrames * .16, phaseFrames * .48], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
+          }}
+        >
+          <div style={{ fontSize: 24, fontWeight: 850, letterSpacing: 2, color: colors.cyan }}>VALOR E CONDIÇÕES</div>
+          <div style={{ marginTop: 8, fontSize: 38, fontWeight: 900 }}>Confira o anúncio atualizado</div>
+        </div>
+      ) : null}
+
+      {showBroll && brollUrl ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: 680,
+            left: 160,
+            right: 160,
+            bottom: 540,
+            border: '1px solid rgba(255,255,255,.18)',
+            borderRadius: 28,
+            background: 'linear-gradient(135deg,rgba(20,40,160,.20),rgba(8,12,20,.10))',
+            opacity: interpolate(phaseProgress, [0, .16, .85, 1], [0, 1, 1, 0], { extrapolateRight: 'clamp' }),
+          }}
+        />
+      ) : null}
+
+      <ProductImage
+        src={imageUrl}
+        style={{
+          position: 'absolute',
+          ...imageLayout,
+          transform: `translateX(${drift}px) scale(${zoom}) rotate(${tilt}deg)`,
+          opacity: showBroll && visual.mode === 'lifestyle' ? 1 : 0.98,
+        }}
+      />
+
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 365,
+          left: 190,
+          right: 190,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 20,
+          color: colors.muted,
+          opacity: interpolate(frame, [10, 22], [0, .92], { extrapolateRight: 'clamp' }),
+        }}
+      >
+        <div style={{ fontSize: 22, fontWeight: 900, color: colors.blue }}>{String(index + 1).padStart(2, '0')}</div>
+        <div style={{ flex: 1, height: 3, borderRadius: 8, background: 'rgba(255,255,255,.16)', overflow: 'hidden' }}>
+          <div style={{ width: `${progress * 100}%`, height: '100%', background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 2 }}>
           {String(index + 1).padStart(2, '0')} / {String(count).padStart(2, '0')}
         </div>
       </div>
+      <AccentLine />
     </Background>
   );
 };
@@ -259,28 +405,30 @@ const ClosingScene: React.FC<{
   imageUrl: string;
 }> = ({ title, score, callToAction, imageUrl }) => {
   const frame = useCurrentFrame();
-  const scale = interpolate(frame, [0, 30], [0.92, 1], { extrapolateRight: 'clamp' });
+  const scale = interpolate(frame, [0, 48], [0.94, 1.08], { extrapolateRight: 'clamp' });
+  const opacity = interpolate(frame, [0, 24], [0, 1], { extrapolateRight: 'clamp' });
 
   return (
     <Background>
-      <div style={{ position: 'absolute', top: 150, left: 82, right: 82, textAlign: 'center' }}>
-        <Eyebrow>{score > 0 ? `Nota do review • ${score.toFixed(1)} / 10` : 'Conclusão editorial'}</Eyebrow>
-        <div style={{ marginTop: 35, fontSize: 72, lineHeight: 1.02, fontWeight: 900, letterSpacing: -4 }}>
-          {score > 0 ? 'Vale a pena para você?' : 'Faz sentido para seu uso?'}
+      <div style={{ position: 'absolute', top: 260, left: 190, right: 190, opacity }}>
+        <Eyebrow>{score > 0 ? `NOTA EDITORIAL • ${score.toFixed(1)} / 10` : 'VEREDITO EDITORIAL'}</Eyebrow>
+        <div style={{ marginTop: 28, fontSize: 70, lineHeight: 1.02, fontWeight: 900, letterSpacing: -3, maxWidth: 700 }}>
+          Vale a pena para o seu uso?
         </div>
       </div>
       <ProductImage
         src={imageUrl}
-        style={{ position: 'absolute', left: 40, top: 620, scale }}
+        style={{ position: 'absolute', left: 130, top: 700, width: 820, height: 650, transform: `scale(${scale})` }}
       />
       <div
         style={{
           position: 'absolute',
-          bottom: 260,
-          left: 82,
-          right: 82,
+          bottom: 430,
+          left: 190,
+          right: 190,
           textAlign: 'center',
-          fontSize: 37,
+          fontSize: 34,
+          fontWeight: 750,
           lineHeight: 1.18,
           color: colors.muted,
         }}
@@ -290,39 +438,22 @@ const ClosingScene: React.FC<{
       <div
         style={{
           position: 'absolute',
-          bottom: 116,
-          left: 100,
-          right: 100,
+          bottom: 365,
+          left: 190,
+          right: 190,
           textAlign: 'center',
-          padding: '26px 24px',
-          background: colors.orange,
-          color: colors.ink,
-          borderRadius: 80,
-          fontSize: 33,
-          fontWeight: 900,
-          letterSpacing: 1,
+          color: colors.cyan,
+          fontSize: 22,
+          fontWeight: 850,
+          letterSpacing: 3,
         }}
       >
         {title}
       </div>
+      <AccentLine />
     </Background>
   );
 };
-
-const AccentLine: React.FC = () => (
-  <div
-    style={{
-      position: 'absolute',
-      bottom: 84,
-      left: 82,
-      width: 916,
-      height: 4,
-      background: 'rgba(255,255,255,0.15)',
-    }}
-  >
-    <div style={{ width: '100%', height: '100%', background: colors.orange }} />
-  </div>
-);
 
 const SubtitleOverlay: React.FC<{
   entries: EditorialSubtitle[];
@@ -331,65 +462,31 @@ const SubtitleOverlay: React.FC<{
 }> = ({ entries, frame, fps }) => {
   const time = frame / fps;
   const entry = entries.find((item) => time >= item.start && time < item.end);
-
   if (!entry) return null;
 
-  const progress = (time - entry.start) / Math.max(0.01, entry.end - entry.start);
-  const opacity = interpolate(progress, [0, 0.08, 0.92, 1], [0, 1, 1, 0], {
+  const progress = Math.max(0, Math.min(1, (time - entry.start) / Math.max(0.01, entry.end - entry.start)));
+  const opacity = interpolate(progress, [0, .06, .92, 1], [0, 1, 1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
 
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        zIndex: 10,
-        bottom: 200,
-        left: 72,
-        right: 72,
-        opacity,
-        textAlign: 'center',
-      }}
-    >
-      <span
-        style={{
-          display: 'inline-block',
-          maxWidth: '100%',
-          padding: '12px 20px',
-          borderRadius: 12,
-          background: 'rgba(9,13,22,.86)',
-          color: '#fff',
-          fontSize: 36,
-          fontWeight: 700,
-          lineHeight: 1.12,
-          textShadow: '0 2px 3px rgba(0,0,0,.4)',
-        }}
-      >
-        {entry.text}
-      </span>
-    </div>
-  );
+  return <KineticCaption text={entry.text} progress={progress} opacity={opacity} />;
 };
 
 export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const imageUrl = props.productImages?.[0] || props.imageUrl;
+  const image = props.productImages?.[0] || props.imageUrl;
   const hookFrames = (props.hookDuration ?? HookFrames) * fps;
   const scenesEndFrame = props.scenes.reduce((max, scene) => Math.max(max, scene.endFrame), hookFrames);
   const closingDuration = Math.max(1, props.totalDuration * fps - scenesEndFrame);
+  const visualPlan = createSceneVisualPlan(props.scenes, props.title + '|' + props.category);
 
   return (
     <AbsoluteFill style={{ backgroundColor: colors.ink }}>
-      <Audio src={props.audioUrl} volume={0.94} />
+      <Audio src={props.audioUrl} volume={0.96} />
       <Sequence from={0} durationInFrames={hookFrames} premountFor={fps}>
-        <OpeningScene
-          title={props.title}
-          category={props.category}
-          hook={props.hook}
-          imageUrl={imageUrl}
-        />
+        <OpeningScene title={props.title} category={props.category} hook={props.hook} imageUrl={image} />
       </Sequence>
       {props.scenes.map((scene, index) => (
         <Sequence
@@ -403,18 +500,14 @@ export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {
             index={index}
             count={props.scenes.length}
             category={props.category}
-            imageUrl={imageUrl}
-            brollUrl={props.brollVideos?.[index % Math.max(1, props.brollVideos.length)]}
+            imageUrl={props.productImages?.[index % Math.max(1, props.productImages.length)] || image}
+            brollUrl={props.brollVideos?.[index]}
+            visual={visualPlan[index]}
           />
         </Sequence>
       ))}
       <Sequence from={scenesEndFrame} durationInFrames={closingDuration} premountFor={fps}>
-        <ClosingScene
-          title={props.title}
-          score={props.score}
-          callToAction={props.callToAction}
-          imageUrl={imageUrl}
-        />
+        <ClosingScene title={props.title} score={props.score} callToAction={props.callToAction} imageUrl={image} />
       </Sequence>
       <SubtitleOverlay entries={props.subtitleEntries} frame={frame} fps={fps} />
     </AbsoluteFill>

@@ -14,27 +14,103 @@ export function formatYouTubeTimestamp(value) {
     : minutes + ":" + String(remainder).padStart(2, "0");
 }
 
+function wrapCaptionWords(words, maxLineChars = 36) {
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const candidate = line ? line + " " + word : word;
+    if (line && candidate.length > maxLineChars) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.join("\n");
+}
+
 export function buildCaptionEntries(segments, maxWords = 7) {
-  const limit = Math.min(10, Math.max(3, Math.floor(Number(maxWords) || 7)));
+  const limit = Math.min(100, Math.max(3, Math.floor(Number(maxWords) || 7)));
   return (Array.isArray(segments) ? segments : []).flatMap((segment) => {
     const words = String(segment?.text || "").trim().split(/\s+/).filter(Boolean);
     const start = Number(segment?.start);
     const end = Number(segment?.end);
     if (!words.length || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
-    const duration = end - start;
+    const chunkCount = Math.ceil(words.length / limit);
+    const baseSize = Math.floor(words.length / chunkCount);
+    const remainder = words.length % chunkCount;
     const chunks = [];
-    for (let index = 0; index < words.length; index += limit) {
-      const next = Math.min(words.length, index + limit);
+    let cursor = 0;
+    for (let index = 0; index < chunkCount; index += 1) {
+      const size = baseSize + (index < remainder ? 1 : 0);
+      const chunkWords = words.slice(cursor, cursor + size);
+      const from = cursor;
+      cursor += size;
       chunks.push({
-        start: start + duration * index / words.length,
-        end: start + duration * next / words.length,
-        text: words.slice(index, next).join(" "),
+        start: start + (end - start) * from / words.length,
+        end: start + (end - start) * cursor / words.length,
+        text: wrapCaptionWords(chunkWords),
+        segmentKind: String(segment.kind || "scene"),
       });
     }
     return chunks;
   });
 }
 
+function normalizeBoundaryToken(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+export function buildTimedCaptionEntries(segments, wordBoundaries, options = {}) {
+  const maxWords = Math.max(2, Math.min(12, Math.floor(Number(options.maxWords) || 5)));
+  const maxLineChars = Math.max(18, Math.min(52, Math.floor(Number(options.maxLineChars) || 36)));
+  const sourceSegments = Array.isArray(segments) ? segments : [];
+  const boundaries = (Array.isArray(wordBoundaries) ? wordBoundaries : [])
+    .filter((item) => item && String(item.type || "WordBoundary") === "WordBoundary")
+    .map((item) => ({
+      offset: Number(item.offset),
+      duration: Number(item.duration),
+      text: String(item.text || ""),
+    }));
+  const expected = sourceSegments.flatMap((segment, segmentIndex) =>
+    String(segment?.text || "").trim().split(/\s+/).filter(Boolean).map((word) => ({ word, segmentIndex }))
+  );
+  if (!expected.length || boundaries.length !== expected.length) return null;
+  for (let index = 0; index < expected.length; index += 1) {
+    const actualToken = normalizeBoundaryToken(boundaries[index].text);
+    const expectedToken = normalizeBoundaryToken(expected[index].word);
+    if (!actualToken || !expectedToken || actualToken !== expectedToken) return null;
+    if (!Number.isFinite(boundaries[index].offset) || !Number.isFinite(boundaries[index].duration) || boundaries[index].duration <= 0) return null;
+    if (index > 0 && boundaries[index].offset < boundaries[index - 1].offset) return null;
+  }
+  const result = [];
+  let cursor = 0;
+  for (let segmentIndex = 0; segmentIndex < sourceSegments.length; segmentIndex += 1) {
+    const words = expected.filter((item) => item.segmentIndex === segmentIndex).map((item) => item.word);
+    if (!words.length) continue;
+    const segmentKind = String(sourceSegments[segmentIndex].kind || "scene");
+    for (let wordIndex = 0; wordIndex < words.length; wordIndex += maxWords) {
+      const next = Math.min(words.length, wordIndex + maxWords);
+      const firstBoundary = boundaries[cursor + wordIndex];
+      const lastBoundary = boundaries[cursor + next - 1];
+      const start = firstBoundary.offset / 10_000_000;
+      const end = (lastBoundary.offset + lastBoundary.duration) / 10_000_000;
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+      result.push({
+        start, end,
+        text: wrapCaptionWords(words.slice(wordIndex, next), maxLineChars),
+        segmentKind,
+      });
+    }
+    cursor += words.length;
+  }
+  return result.length ? result : null;
+}
 export function buildVideoTitle(input) {
   const productTitle = String(input.productTitle || "Produto de tecnologia").trim();
   const hook = String(input.hook || "").trim().replace(/[.!?]+$/, "");

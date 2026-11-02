@@ -63,8 +63,19 @@ jobs:
       - name: Syntax-check video queue worker
         run: node --check video/scripts/process-video.mjs
 
+      - name: Syntax-check Edge TTS metadata runner
+        run: python -m py_compile scripts/tts.py
+
       - name: Install video renderer dependencies
         run: npm ci --prefix video
+
+      - name: Validate video storyboard and caption contracts
+        working-directory: video
+        run: |
+          node --import tsx scripts/visual-storyboard.test.mjs
+          node scripts/video-format.test.mjs
+          cd ..
+          npx tsx scripts/video-media-matching.test.ts
 
       - name: Type-check Remotion project
         working-directory: video
