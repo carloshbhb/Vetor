@@ -1,0 +1,1 @@
+Run a read-only inventory of every upload in the authenticated YouTube channel and compare it with Vetor video_queue records. Do not modify channel or database data.
