@@ -6,6 +6,13 @@ on:
     paths:
       - "video/**"
       - ".github/workflows/video-pipeline-validation.yml"
+      - "scripts/tts.py"
+  pull_request:
+    branches: [main]
+    paths:
+      - "video/**"
+      - "scripts/tts.py"
+      - ".github/workflows/video-pipeline-validation.yml"
 
 permissions:
   contents: read
@@ -37,6 +44,9 @@ jobs:
       - name: Install video dependencies
         working-directory: video
         run: npm ci
+      
+      - name: Syntax-check Edge TTS metadata runner
+        run: python -m py_compile scripts/tts.py
 
       - name: Validate format, affiliate-link and chapter contracts
         run: node video/scripts/video-format.test.mjs
