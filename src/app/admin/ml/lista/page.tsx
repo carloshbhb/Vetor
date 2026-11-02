@@ -54,6 +54,7 @@ export default function MercadoLivreSocialListPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [recovering, setRecovering] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -95,6 +96,24 @@ export default function MercadoLivreSocialListPage() {
     }
   };
 
+  const recoverMissing = async () => {
+    setRecovering(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/mercadolivre/social-list/recover", { method: "POST" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "Não foi possível recuperar os produtos ausentes.");
+      setNotice(payload.message || "Recuperação da lista concluída.");
+      setPage(1);
+      await load(1, search);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao recuperar os produtos ausentes.");
+    } finally {
+      setRecovering(false);
+    }
+  };
+
   const importToQueue = async () => {
     setImporting(true);
     setError("");
@@ -133,10 +152,13 @@ export default function MercadoLivreSocialListPage() {
             </a>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={sync} disabled={syncing || importing} className="rounded-xl bg-[var(--amber)] px-5 py-3 text-sm font-extrabold text-black disabled:opacity-50">
+            <button onClick={sync} disabled={syncing || importing || recovering} className="rounded-xl bg-[var(--amber)] px-5 py-3 text-sm font-extrabold text-black disabled:opacity-50">
               {syncing ? "Sincronizando lista..." : "Sincronizar produtos"}
             </button>
-            <button onClick={importToQueue} disabled={importing || syncing || !data?.total} className="rounded-xl border border-border bg-[var(--surface2)] px-5 py-3 text-sm font-bold disabled:opacity-50">
+            <button onClick={recoverMissing} disabled={recovering || syncing || importing || missing === 0 || missing == null} className="rounded-xl border border-[var(--amber)]/50 bg-[var(--amber-bg)] px-5 py-3 text-sm font-bold text-[var(--amber)] disabled:opacity-50">
+              {recovering ? "Consultando API oficial..." : "Completar itens ausentes via API"}
+            </button>
+            <button onClick={importToQueue} disabled={importing || syncing || recovering || !data?.total} className="rounded-xl border border-border bg-[var(--surface2)] px-5 py-3 text-sm font-bold disabled:opacity-50">
               {importing ? "Enviando à fila..." : "Enviar à fila de pesquisa"}
             </button>
           </div>
@@ -222,7 +244,7 @@ export default function MercadoLivreSocialListPage() {
                     <h3 className="text-sm font-bold leading-5">{item.title}</h3>
                     {item.highlight && <span className="rounded-full bg-[var(--amber-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--amber)]">{item.highlight}</span>}
                   </div>
-                  <p className="mt-1 text-[11px] text-[var(--muted)]">{item.item_id}{item.product_id ? " · catálogo " + item.product_id : ""} · página {item.page_number}</p>
+                  <p className="mt-1 text-[11px] text-[var(--muted)]">{item.item_id}{item.product_id ? " · catálogo " + item.product_id : ""} · {item.page_number === 0 ? "recuperado via API oficial" : "página " + item.page_number}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                     <strong>{money(item.price)}</strong>
                     {item.original_price != null && item.original_price > (item.price || 0) && <span className="text-[var(--muted)] line-through">{money(item.original_price)}</span>}
