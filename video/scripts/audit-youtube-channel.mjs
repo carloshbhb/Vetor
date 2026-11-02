@@ -1,8 +1,11 @@
 import fs from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
+const execFileAsync = promisify(execFile);
 const SITE_URL = (process.env.VETOR_SITE_URL || "https://www.vetor.blog").replace(/\/$/, "");
 const CRON_SECRET = String(process.env.CRON_SECRET || "").trim();
-const YT_API = "https://www.googleapis.com/youtube/v3";
+const STUDIO_REPORTED_VIDEO_COUNT = 254;
 
 async function productionApi(action, payload = {}) {
   if (!CRON_SECRET) throw new Error("CRON_SECRET ausente.");
@@ -22,78 +25,84 @@ async function productionApi(action, payload = {}) {
   return data;
 }
 
-async function youtubeApi(path, accessToken) {
-  const response = await fetch(YT_API + "/" + path, {
-    headers: { Authorization: "Bearer " + accessToken },
-    signal: AbortSignal.timeout(30000),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const reason = data?.error?.errors?.[0]?.reason || data?.error?.message || "erro desconhecido";
-    throw new Error("YouTube API HTTP " + response.status + ": " + reason);
+async function fetchPublicUploads(channelId) {
+  if (!/^UC[A-Za-z0-9_-]{22}$/.test(channelId)) {
+    throw new Error("ID do canal salvo no Vetor é inválido.");
   }
-  return data;
+  const uploadsPlaylistId = "UU" + channelId.slice(2);
+  const playlistUrl = "https://www.youtube.com/playlist?list=" + uploadsPlaylistId;
+  console.log("[youtube-audit] reading public uploads playlist via yt-dlp: " + uploadsPlaylistId);
+
+  let stdout = "";
+  let stderr = "";
+  try {
+    ({ stdout, stderr } = await execFileAsync("yt-dlp", [
+      "--no-warnings",
+      "--flat-playlist",
+      "--dump-single-json",
+      "--skip-download",
+      "--playlist-end", "1000",
+      "--js-runtimes", "node",
+      "--remote-components", "ejs:github",
+      "--socket-timeout", "30",
+      "--extractor-retries", "3",
+      playlistUrl,
+    ], {
+      maxBuffer: 80 * 1024 * 1024,
+      timeout: 15 * 60 * 1000,
+      killSignal: "SIGTERM",
+    }));
+  } catch (error) {
+    const message = String(error?.stderr || error?.message || error).slice(-4000);
+    throw new Error("yt-dlp não conseguiu ler a playlist pública: " + message);
+  }
+
+  if (stderr.trim()) console.warn("[youtube-audit] yt-dlp warnings: " + stderr.trim().slice(-4000));
+  const data = JSON.parse(String(stdout || "").trim());
+  if (!Array.isArray(data.entries)) {
+    throw new Error("yt-dlp não retornou uma lista de vídeos. Verifique a resposta da playlist.");
+  }
+
+  const entries = data.entries.map((entry) => ({
+    videoId: String(entry?.id || "").trim(),
+    title: String(entry?.title || ""),
+    publishedAt: entry?.release_timestamp
+      ? new Date(Number(entry.release_timestamp) * 1000).toISOString()
+      : entry?.upload_date && /^\d{8}$/.test(String(entry.upload_date))
+        ? String(entry.upload_date).slice(0, 4) + "-" + String(entry.upload_date).slice(4, 6) + "-" + String(entry.upload_date).slice(6, 8)
+        : null,
+    availability: String(entry?.availability || "public-list-entry"),
+    duration: Number.isFinite(Number(entry?.duration)) ? Number(entry.duration) : null,
+    url: String(entry?.webpage_url || (entry?.id ? "https://www.youtube.com/watch?v=" + entry.id : "")),
+  })).filter((entry) => /^[A-Za-z0-9_-]{11}$/.test(entry.videoId));
+
+  const unique = [...new Map(entries.map((entry) => [entry.videoId, entry])).values()];
+  if (unique.length === 0) {
+    throw new Error("Playlist retornou zero IDs de vídeo; auditoria interrompida para evitar um relatório enganoso.");
+  }
+  return {
+    uploadsPlaylistId,
+    playlistTitle: String(data.title || ""),
+    extractor: String(data.extractor || ""),
+    playlistCountReported: Number(data.playlist_count || data.n_entries || entries.length),
+    rawEntryCount: entries.length,
+    entries: unique,
+    warnings: stderr.trim() ? stderr.trim().slice(-4000) : null,
+  };
 }
 
 async function main() {
   const startedAt = new Date().toISOString();
-  console.log("[youtube-audit] starting read-only channel inventory");
+  console.log("[youtube-audit] starting read-only channel inventory without YouTube Data API");
 
-  const auth = await productionApi("youtubeAccessToken");
-  if (!auth.accessToken) throw new Error("Production não retornou access token do YouTube.");
+  const [channelData, queueData] = await Promise.all([
+    productionApi("youtubeChannelInfo"),
+    productionApi("metadataBatch", { limit: 500 }),
+  ]);
+  const channel = channelData.channel;
+  if (!channel?.id) throw new Error("Production não retornou o canal salvo no OAuth.");
 
-  const channelData = await youtubeApi(
-    "channels?part=id,snippet,contentDetails&mine=true&maxResults=1",
-    auth.accessToken,
-  );
-  const channel = channelData.items?.[0];
-  const uploadsPlaylistId = channel?.contentDetails?.relatedPlaylists?.uploads;
-  if (!channel?.id || !uploadsPlaylistId) {
-    throw new Error("Não foi possível identificar o canal autenticado e sua playlist de uploads.");
-  }
-
-  const playlistItems = [];
-  let pageToken = "";
-  let playlistPages = 0;
-  let playlistTotalResults = 0;
-  do {
-    const params = new URLSearchParams({
-      part: "snippet,contentDetails,status",
-      playlistId: uploadsPlaylistId,
-      maxResults: "50",
-    });
-    if (pageToken) params.set("pageToken", pageToken);
-    const page = await youtubeApi("playlistItems?" + params.toString(), auth.accessToken);
-    playlistPages += 1;
-    playlistTotalResults = Number(page.pageInfo?.totalResults || playlistTotalResults || 0);
-    for (const item of page.items || []) {
-      const videoId = item.contentDetails?.videoId || item.snippet?.resourceId?.videoId || "";
-      playlistItems.push({
-        videoId,
-        title: item.snippet?.title || "",
-        publishedAt: item.contentDetails?.videoPublishedAt || item.snippet?.publishedAt || null,
-        playlistItemStatus: item.status?.privacyStatus || null,
-      });
-    }
-    pageToken = page.nextPageToken || "";
-  } while (pageToken);
-
-  const channelVideoIds = [...new Set(playlistItems.map((item) => item.videoId).filter(Boolean))];
-  const videoDetails = [];
-  for (let offset = 0; offset < channelVideoIds.length; offset += 50) {
-    const ids = channelVideoIds.slice(offset, offset + 50);
-    const params = new URLSearchParams({ part: "id,snippet,status", id: ids.join(",") });
-    const result = await youtubeApi("videos?" + params.toString(), auth.accessToken);
-    videoDetails.push(...(result.items || []).map((video) => ({
-      videoId: video.id,
-      title: video.snippet?.title || "",
-      publishedAt: video.snippet?.publishedAt || null,
-      privacyStatus: video.status?.privacyStatus || null,
-      uploadStatus: video.status?.uploadStatus || null,
-    })));
-  }
-
-  const queueData = await productionApi("metadataBatch", { limit: 500 });
+  const inventory = await fetchPublicUploads(String(channel.id));
   const queueVideos = (queueData.videos || []).map((video) => ({
     videoId: String(video.youtube_video_id || ""),
     title: String(video.product_title || ""),
@@ -102,66 +111,64 @@ async function main() {
     completedAt: video.completed_at || null,
   })).filter((video) => video.videoId);
 
-  const channelIdSet = new Set(channelVideoIds);
-  const queueIdSet = new Set(queueVideos.map((video) => video.videoId));
-  const detailsById = new Map(videoDetails.map((video) => [video.videoId, video]));
-  const playlistById = new Map(playlistItems.filter((item) => item.videoId).map((item) => [item.videoId, item]));
-
-  const onlyInChannel = channelVideoIds
-    .filter((id) => !queueIdSet.has(id))
-    .map((id) => detailsById.get(id) || playlistById.get(id) || { videoId: id });
+  const channelIdSet = new Set(inventory.entries.map((item) => item.videoId));
+  const queueIdSet = new Set(queueVideos.map((item) => item.videoId));
+  const onlyInChannel = inventory.entries.filter((item) => !queueIdSet.has(item.videoId));
   const onlyInQueue = queueVideos
-    .filter((video) => !channelIdSet.has(video.videoId))
-    .map((video) => ({
-      ...video,
-      detail: detailsById.get(video.videoId) || null,
-      likelyRemovedOrNotInUploads: true,
+    .filter((item) => !channelIdSet.has(item.videoId))
+    .map((item) => ({
+      ...item,
+      publicChannelStatus: item.videoId === "ISJf8yZbrH4"
+        ? "owner-confirmed-removed"
+        : "not-present-in-public-uploads-playlist",
+      note: item.videoId === "ISJf8yZbrH4"
+        ? "Canal owner confirmed this video was removed."
+        : "Could be private, unlisted, deleted, or otherwise unavailable to a public playlist extraction.",
     }));
-  const inBothCount = [...channelIdSet].filter((id) => queueIdSet.has(id)).length;
-  const unavailablePlaylistItems = playlistItems.filter((item) => !item.videoId).length;
-  const missingVideoDetails = channelVideoIds.filter((id) => !detailsById.has(id));
+  const presentInBoth = [...channelIdSet].filter((id) => queueIdSet.has(id)).length;
 
   const report = {
     generatedAt: new Date().toISOString(),
     startedAt,
-    mode: "read-only",
+    mode: "read-only-public-channel-inventory",
+    limitation: "yt-dlp reads public uploads only; private, unlisted, and deleted videos may not appear. Studio count is user-reported and not independently re-read.",
     channel: {
-      id: channel.id,
-      title: channel.snippet?.title || "",
-      uploadsPlaylistId,
+      id: String(channel.id),
+      title: String(channel.title || ""),
     },
-    youtube: {
-      uploadsPlaylistTotalResults: playlistTotalResults,
-      playlistItemsFetched: playlistItems.length,
-      uniqueVideoIdsInUploadsPlaylist: channelVideoIds.length,
-      videosWithDetailsReturnedByApi: videoDetails.length,
-      playlistItemsWithoutVideoId: unavailablePlaylistItems,
-      playlistVideoIdsWithoutVideoDetails: missingVideoDetails,
-      pagesFetched: playlistPages,
+    studioReportedVideoCount: STUDIO_REPORTED_VIDEO_COUNT,
+    publicUploads: {
+      playlistId: inventory.uploadsPlaylistId,
+      playlistTitle: inventory.playlistTitle,
+      extractor: inventory.extractor,
+      playlistCountReported: inventory.playlistCountReported,
+      rawEntryCount: inventory.rawEntryCount,
+      uniquePublicVideoIds: inventory.entries.length,
+      warnings: inventory.warnings,
+      entries: inventory.entries,
     },
     vetorQueue: {
       completedVideoRowsReturned: queueVideos.length,
       uniqueVideoIds: queueIdSet.size,
     },
     comparison: {
-      presentInBoth: inBothCount,
-      presentOnChannelButMissingFromQueue: onlyInChannel.length,
-      presentInQueueButNotInChannelUploads: onlyInQueue.length,
+      presentInBoth: presentInBoth,
+      presentOnPublicChannelButMissingFromQueue: onlyInChannel.length,
+      presentInQueueButNotInPublicUploadsPlaylist: onlyInQueue.length,
+      studioCountMinusPublicInventory: STUDIO_REPORTED_VIDEO_COUNT - inventory.entries.length,
     },
     onlyInChannel,
     onlyInQueue,
-    videoDetails,
-    playlistItems,
   };
 
   await fs.writeFile("youtube-channel-audit-report.json", JSON.stringify(report, null, 2));
-  const lines = [
-    "video_id,title,published_at,privacy_status,source",
-    ...videoDetails.map((video) => [
+  const csvRows = [
+    ["video_id", "title", "published_at", "availability", "comparison_status"].join(","),
+    ...inventory.entries.map((video) => [
       video.videoId,
       JSON.stringify(video.title),
       video.publishedAt || "",
-      video.privacyStatus || "",
+      video.availability || "",
       queueIdSet.has(video.videoId) ? "channel_and_vetor_queue" : "channel_only",
     ].join(",")),
     ...onlyInQueue.map((video) => [
@@ -169,19 +176,19 @@ async function main() {
       JSON.stringify(video.title),
       "",
       "",
-      "vetor_queue_only_not_in_uploads_playlist",
+      video.publicChannelStatus,
     ].join(",")),
   ];
-  await fs.writeFile("youtube-channel-audit-report.csv", lines.join("\n") + "\n");
+  await fs.writeFile("youtube-channel-audit-report.csv", csvRows.join("\n") + "\n");
 
-  console.log("[youtube-audit] channel=" + (channel.snippet?.title || channel.id));
-  console.log("[youtube-audit] uploads_playlist_total=" + playlistTotalResults);
-  console.log("[youtube-audit] unique_upload_video_ids=" + channelVideoIds.length);
-  console.log("[youtube-audit] youtube_video_details=" + videoDetails.length);
+  console.log("[youtube-audit] channel=" + (channel.title || channel.id));
+  console.log("[youtube-audit] studio_reported_count=" + STUDIO_REPORTED_VIDEO_COUNT);
+  console.log("[youtube-audit] public_upload_entries=" + inventory.rawEntryCount);
+  console.log("[youtube-audit] unique_public_video_ids=" + inventory.entries.length);
   console.log("[youtube-audit] vetor_queue_unique_ids=" + queueIdSet.size);
-  console.log("[youtube-audit] present_in_both=" + inBothCount);
+  console.log("[youtube-audit] present_in_both=" + presentInBoth);
   console.log("[youtube-audit] channel_only=" + onlyInChannel.length);
-  console.log("[youtube-audit] queue_only_not_in_channel=" + onlyInQueue.length);
+  console.log("[youtube-audit] queue_only_not_public=" + onlyInQueue.length);
   console.log("[youtube-audit] report_written=true");
 }
 

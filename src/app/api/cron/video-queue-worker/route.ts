@@ -230,6 +230,25 @@ export async function POST(request: NextRequest) {
 
 
 
+    if (action === "youtubeChannelInfo") {
+      const { data: savedChannel, error: channelError } = await supabase
+        .from("youtube_oauth_credentials")
+        .select("channel_id,channel_title")
+        .eq("provider", "youtube")
+        .maybeSingle();
+      if (channelError) throw channelError;
+      if (!savedChannel?.channel_id) {
+        throw new Error("Canal do YouTube não encontrado. Reconecte o canal em /admin/videos.");
+      }
+      return NextResponse.json({
+        success: true,
+        channel: {
+          id: String(savedChannel.channel_id),
+          title: String(savedChannel.channel_title || ""),
+        },
+      });
+    }
+
     if (action === "youtubeOAuthCheck") {
       await getProductionYouTubeAccessToken(supabase);
       return NextResponse.json({ success: true, authorized: true, credentialSource: "vercel-production" });

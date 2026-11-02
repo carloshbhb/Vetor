@@ -1,1 +1,1 @@
-Run a read-only inventory of every upload in the authenticated YouTube channel and compare it with Vetor video_queue records. Do not modify channel or database data.
+Run a read-only inventory of the public uploads playlist using yt-dlp (without YouTube Data API quota) and compare video IDs against Vetor video_queue. Do not modify channel or queue records. Studio reports 254 videos.
