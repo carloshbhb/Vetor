@@ -244,7 +244,7 @@ export default function MercadoLivreSocialListPage() {
                     <h3 className="text-sm font-bold leading-5">{item.title}</h3>
                     {item.highlight && <span className="rounded-full bg-[var(--amber-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--amber)]">{item.highlight}</span>}
                   </div>
-                  <p className="mt-1 text-[11px] text-[var(--muted)]">{item.item_id}{item.product_id ? " · catálogo " + item.product_id : ""} · {item.page_number === 0 ? "recuperado via API oficial" : "página " + item.page_number}</p>
+                  <p className="mt-1 text-[11px] text-[var(--muted)]">{item.item_id}{item.product_id ? " · catálogo " + item.product_id : ""} · {item.page_number === 0 ? "complementado fora da paginação" : "página " + item.page_number}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                     <strong>{money(item.price)}</strong>
                     {item.original_price != null && item.original_price > (item.price || 0) && <span className="text-[var(--muted)] line-through">{money(item.original_price)}</span>}
