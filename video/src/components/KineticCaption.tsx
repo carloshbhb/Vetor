@@ -21,6 +21,8 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
   progress,
   opacity,
   variant = 'portrait',
+  currentTime,
+  wordTimings,
 }) => {
   const words = text.trim().split(/\s+/).filter(Boolean);
   const landscape = variant === 'landscape';
