@@ -1000,6 +1000,12 @@ async function main() {
       console.log('[QUEUE_RECOVERY] Recolocados ' + Number(remotionRecovery.retried) + ' vídeo(s) que falharam por timeout no Remotion.');
     }
 
+    const safeFailedRecovery = await queueApi('retrySafeFailed', { limit: requestedLimit });
+    if (Number(safeFailedRecovery.retried) > 0) {
+      console.log('[QUEUE_RECOVERY] Recolocados ' + Number(safeFailedRecovery.retried) +
+        ' vídeo(s) com falha antiga, sem upload no YouTube e com links/imagens seguros.');
+    }
+
     // Restore TTS quota failures from the retired provider as before.
     const restored = await queueApi('retryQuotaFailures', { limit: requestedLimit });
     if (Number(restored.retried) > 0) {
