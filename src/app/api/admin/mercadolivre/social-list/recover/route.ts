@@ -40,10 +40,12 @@ function asNumber(value: unknown): number | null {
   return Number.isFinite(number) ? number : null;
 }
 
-async function requestMlJson(url: string, token: string): Promise<{ ok: boolean; status: number; data: unknown; details: string | null }> {
+async function requestMlJson(url: string, token?: string): Promise<{ ok: boolean; status: number; data: unknown; details: string | null }> {
   try {
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (token) headers.Authorization = "Bearer " + token;
     const response = await fetch(url, {
-      headers: { Authorization: "Bearer " + token, Accept: "application/json" },
+      headers,
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
     });
@@ -54,6 +56,21 @@ async function requestMlJson(url: string, token: string): Promise<{ ok: boolean;
   } catch (error) {
     return { ok: false, status: 0, data: null, details: error instanceof Error ? error.message : "Falha de rede" };
   }
+}
+
+function getCoveredBookmarkIds(
+  bookmarkIds: string[],
+  rows: Array<{ item_id?: unknown; product_id?: unknown }>,
+): Set<string> {
+  const bookmarkSet = new Set(bookmarkIds);
+  const covered = new Set<string>();
+  for (const row of rows) {
+    const itemId = String(row.item_id || "").trim().toUpperCase();
+    const productId = String(row.product_id || "").trim().toUpperCase();
+    if (bookmarkSet.has(itemId)) covered.add(itemId);
+    if (bookmarkSet.has(productId)) covered.add(productId);
+  }
+  return covered;
 }
 
 async function mapWithConcurrency<T, R>(
@@ -111,35 +128,70 @@ async function getProductData(productId: string, token: string): Promise<{ produ
   return { product: null, diagnostics };
 }
 
+async function searchListingByCatalogProduct(productId: string, token: string): Promise<{ item: JsonRecord | null; diagnostics: string[] }> {
+  const diagnostics: string[] = [];
+  const url = "https://api.mercadolibre.com/sites/MLB/search?q=" + encodeURIComponent(productId) + "&limit=50";
+  let response = await requestMlJson(url, token);
+  if (!response.ok && response.status === 403) {
+    diagnostics.push("sites/search autenticado=403");
+    response = await requestMlJson(url);
+  }
+  if (!response.ok) {
+    diagnostics.push("sites/search=" + response.status + (response.details ? ":" + response.details : ""));
+    return { item: null, diagnostics };
+  }
+  const payload = asRecord(response.data);
+  const results = Array.isArray(payload?.results) ? payload.results : [];
+  const exact = results.map(asRecord).find((candidate) =>
+    String(candidate?.catalog_product_id || "").toUpperCase() === productId ||
+    String(candidate?.id || "").toUpperCase() === productId,
+  ) || null;
+  return { item: exact, diagnostics };
+}
+
 async function getItemData(itemId: string, token: string): Promise<{ item: JsonRecord | null; diagnostics: string[] }> {
   const diagnostics: string[] = [];
-  // The multi-get replacement is the supported endpoint as of October 25, 2026.
-  const bulk = await requestMlJson(
-    "https://api.mercadolibre.com/items/bulk?ids=" + encodeURIComponent(itemId),
-    token,
-  );
-  if (bulk.ok && Array.isArray(bulk.data)) {
+  const bulkUrl = "https://api.mercadolibre.com/items/bulk?ids=" + encodeURIComponent(itemId);
+
+  const tryBulk = async (accessToken?: string): Promise<JsonRecord | null> => {
+    const bulk = await requestMlJson(bulkUrl, accessToken);
+    if (!bulk.ok) {
+      diagnostics.push("items/bulk" + (accessToken ? " autenticado" : " público") + "=" + bulk.status);
+      return null;
+    }
+    if (!Array.isArray(bulk.data)) {
+      diagnostics.push("items/bulk sem array de resposta");
+      return null;
+    }
     for (const entryValue of bulk.data) {
       const entry = asRecord(entryValue);
       const status = Number(entry?.status_code ?? entry?.code ?? 0);
       const body = asRecord(entry?.body);
-      if (status === 200 && body) return { item: body, diagnostics };
+      if (status === 200 && body) return body;
+      if (status) diagnostics.push("items/bulk item status=" + status);
     }
-    diagnostics.push("items/bulk=sem corpo 200");
-  } else {
-    diagnostics.push("items/bulk=" + bulk.status + (bulk.details ? ":" + bulk.details : ""));
-  }
+    return null;
+  };
 
-  const single = await requestMlJson("https://api.mercadolibre.com/items/" + encodeURIComponent(itemId), token);
+  let item = await tryBulk(token);
+  if (!item && diagnostics.some((message) => message.includes("403"))) {
+    item = await tryBulk();
+  }
+  if (item) return { item, diagnostics };
+
+  let single = await requestMlJson("https://api.mercadolibre.com/items/" + encodeURIComponent(itemId), token);
+  if (!single.ok && single.status === 403) {
+    diagnostics.push("items autenticado=403; repetindo sem OAuth");
+    single = await requestMlJson("https://api.mercadolibre.com/items/" + encodeURIComponent(itemId));
+  }
   if (single.ok) {
-    const item = asRecord(single.data);
-    if (item) return { item, diagnostics };
+    const parsed = asRecord(single.data);
+    if (parsed) return { item: parsed, diagnostics };
   } else {
     diagnostics.push("items=" + single.status + (single.details ? ":" + single.details : ""));
   }
   return { item: null, diagnostics };
 }
-
 async function recoverFromPublicProductPage(productId: string): Promise<RecoveryRow | null> {
   try {
     const response = await fetch("https://www.mercadolivre.com.br/p/" + encodeURIComponent(productId), {
@@ -191,7 +243,14 @@ async function recoverOneProduct(productId: string, token: string): Promise<
   const winner = asRecord(product?.buy_box_winner);
   const winnerItemId = asString(winner?.item_id);
   const itemResult = await getItemData(winnerItemId || productId, token);
-  const item = itemResult.item;
+  let item = itemResult.item;
+  let listingSearchDiagnostics: string[] = [];
+  if (!item) {
+    const listingSearch = await searchListingByCatalogProduct(productId, token);
+    item = listingSearch.item;
+    listingSearchDiagnostics = listingSearch.diagnostics;
+    if (item && !asString(item.id)) item = null;
+  }
 
   if (item) {
     const itemId = asString(item.id);
@@ -247,7 +306,7 @@ async function recoverOneProduct(productId: string, token: string): Promise<
   const publicRow = await recoverFromPublicProductPage(productId);
   if (publicRow) return { row: publicRow, source: "public_page" };
 
-  const details = [...productResult.diagnostics, ...itemResult.diagnostics].join(" | ");
+  const details = [...productResult.diagnostics, ...itemResult.diagnostics, ...listingSearchDiagnostics].join(" | ");
   return {
     productId,
     error: details || "A API não retornou detalhes de catálogo, anúncio ou página pública.",
@@ -318,13 +377,7 @@ export async function POST(request: NextRequest) {
       }, { status: 409 });
     }
 
-    const representedIds = new Set<string>();
-    for (const row of currentRows) {
-      const itemId = String(row.item_id || "").toUpperCase();
-      const productId = String(row.product_id || "").toUpperCase();
-      if (bookmarkSet.has(itemId)) representedIds.add(itemId);
-      if (bookmarkSet.has(productId)) representedIds.add(productId);
-    }
+    const representedIds = getCoveredBookmarkIds(bookmarkIds, currentRows);
     const missingIds = bookmarkIds.filter((id) => !representedIds.has(id));
 
     const { data: sync, error: syncInsertError } = await supabase
@@ -333,8 +386,8 @@ export async function POST(request: NextRequest) {
         list_id: ML_SOCIAL_LIST_ID,
         expected_total: expectedTotal,
         fetched_total: currentRows.length,
-        unique_total: currentRows.length,
-        missing_total: Math.max(0, expectedTotal - currentRows.length),
+        unique_total: representedIds.size,
+        missing_total: missingIds.length,
         pages_scanned: latestSync?.pages_scanned || 0,
         status: "running",
         error_message: "Recuperação complementar pela API oficial do Mercado Livre em andamento.",
@@ -384,14 +437,17 @@ export async function POST(request: NextRequest) {
       saved += data?.length || batch.length;
     }
 
-    const { count: finalCount, error: countError } = await supabase
+    const { data: finalRows, error: finalReadError } = await supabase
       .from("ml_social_list_items")
-      .select("item_id", { count: "exact", head: true })
-      .eq("list_id", ML_SOCIAL_LIST_ID);
-    if (countError) throw new Error("Produtos salvos, mas a contagem final falhou: " + countError.message);
+      .select("item_id,product_id")
+      .eq("list_id", ML_SOCIAL_LIST_ID)
+      .limit(1000);
+    if (finalReadError) throw new Error("Produtos salvos, mas a conferência final falhou: " + finalReadError.message);
 
-    const finalTotal = finalCount || 0;
-    const stillMissing = Math.max(0, expectedTotal - finalTotal);
+    const finalTotal = (finalRows || []).length;
+    const finalCoveredIds = getCoveredBookmarkIds(bookmarkIds, finalRows || []);
+    const stillMissingIds = bookmarkIds.filter((id) => !finalCoveredIds.has(id));
+    const stillMissing = stillMissingIds.length;
     const status = stillMissing === 0 ? "complete" : "partial";
     const issueLines = [
       ...errors.map((entry) => entry.productId + ": " + entry.error),
@@ -406,7 +462,7 @@ export async function POST(request: NextRequest) {
       .update({
         expected_total: expectedTotal,
         fetched_total: finalTotal,
-        unique_total: finalTotal,
+        unique_total: finalCoveredIds.size,
         missing_total: stillMissing,
         pages_scanned: latestSync?.pages_scanned || 0,
         status,
@@ -429,12 +485,15 @@ export async function POST(request: NextRequest) {
       recoveredFromPublicPage: recovered.filter((result) => result.source === "public_page").length,
       saved,
       finalTotal,
+      coveredProductIds: finalCoveredIds.size,
       stillMissing,
+      missingProductIds: stillMissingIds,
+      unresolvedCount: issueLines.length,
       unresolved: issueLines.slice(0, 50),
       status,
       message: status === "complete"
-        ? "Lista completada com " + finalTotal + " produtos. Os registros recuperados estão identificados como provenientes da API oficial."
-        : "Recuperação parcial: " + finalTotal + " de " + expectedTotal + " produtos registrados. " + stillMissing + " ainda precisam de resolução.",
+        ? "Lista completada: os " + finalCoveredIds.size + " IDs únicos da lista estão representados no catálogo. Existem " + finalTotal + " registros de anúncio/catálogo."
+        : "Recuperação parcial: " + finalCoveredIds.size + " de " + expectedTotal + " IDs únicos cobertos (" + finalTotal + " registros no banco). " + stillMissing + " IDs ainda precisam de resolução.",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido na recuperação da lista.";
