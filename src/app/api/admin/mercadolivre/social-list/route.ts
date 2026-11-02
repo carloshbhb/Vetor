@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminAuth } from "@/lib/admin-auth";
+import { getValidAccessToken } from "@/lib/mercadolivre-auth";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 import { diagnosePublicSocialList, fetchPublicSocialList, ML_SOCIAL_LIST_ID } from "@/lib/mercadolivre-social-list";
 
@@ -9,6 +10,70 @@ export const maxDuration = 300;
 export async function GET(request: NextRequest) {
   const authError = verifyAdminAuth(request);
   if (authError) return authError;
+
+  if (request.nextUrl.searchParams.get("bookmarks") === "1") {
+    try {
+      const token = await getValidAccessToken();
+      const response = await fetch("https://api.mercadolibre.com/users/me/bookmarks", {
+        headers: {
+          Authorization: "Bearer " + token,
+          Accept: "application/json",
+        },
+        cache: "no-store",
+        signal: AbortSignal.timeout(20_000),
+      });
+
+      if (!response.ok) {
+        const details = (await response.text()).slice(0, 500);
+        return NextResponse.json({
+          ok: false,
+          source: "official_bookmarks_api",
+          status: response.status,
+          error: "A API oficial de favoritos retornou HTTP " + response.status + ".",
+          details,
+        }, { status: 502 });
+      }
+
+      const payload: unknown = await response.json();
+      const rows = Array.isArray(payload) ? payload as Array<{ item_id?: unknown }> : [];
+      const bookmarkIds = Array.from(new Set(rows
+        .map((row) => String(row?.item_id || "").toUpperCase())
+        .filter((id) => /^MLB\\d+$/.test(id))));
+
+      const supabase = getSupabaseServiceKeyClient();
+      if (!supabase) return NextResponse.json({ error: "Supabase não configurado." }, { status: 500 });
+
+      const { data: stored, error: storedError } = await supabase
+        .from("ml_social_list_items")
+        .select("item_id")
+        .eq("list_id", ML_SOCIAL_LIST_ID)
+        .limit(1000);
+
+      if (storedError) return NextResponse.json({ error: storedError.message }, { status: 500 });
+
+      const storedIds = new Set((stored || []).map((row) => String(row.item_id).toUpperCase()));
+      const matching = bookmarkIds.filter((id) => storedIds.has(id));
+      const notInSocialImport = bookmarkIds.filter((id) => !storedIds.has(id));
+
+      return NextResponse.json({
+        ok: true,
+        source: "official_bookmarks_api",
+        scope: "all_bookmarks_for_authenticated_user",
+        totalRows: rows.length,
+        uniqueProductIds: bookmarkIds.length,
+        importedSocialListIds: storedIds.size,
+        overlapWithImportedList: matching.length,
+        bookmarkIdsNotInSocialImport: notInSocialImport.length,
+        sampleNotInSocialImport: notInSocialImport.slice(0, 50),
+        note: "O endpoint oficial retorna favoritos da conta, não garante que os itens pertençam exclusivamente à lista social. Nenhum registro foi alterado.",
+      });
+    } catch (error) {
+      return NextResponse.json({
+        ok: false,
+        error: error instanceof Error ? error.message : "Falha ao consultar favoritos oficiais.",
+      }, { status: 502 });
+    }
+  }
 
   if (request.nextUrl.searchParams.get("diagnostics") === "1") {
     try {
