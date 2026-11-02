@@ -200,14 +200,14 @@ export default function MercadoLivreSocialListPage() {
         <section className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber)]/5 p-4">
           <p className="text-sm font-bold text-[var(--amber)]">Sincronização parcial — não considerar os 287 itens concluídos</p>
           <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-            O contador público informa {expected} resultados, mas o HTML paginado expôs {imported} produtos únicos. Os {missing} restantes não foram inventados nem substituídos por favoritos da conta. Última leitura: {date(data?.sync?.finished_at || null)}.
+            O contador público informa {expected} resultados. O catálogo HTML e a recuperação pela API oficial já registraram {imported} produtos; {missing} ainda precisam de resolução. Registros recuperados pela API ficam identificados individualmente. Última leitura: {date(data?.sync?.finished_at || null)}.
           </p>
         </section>
       )}
 
       {syncStatus === "complete" && (
         <section className="rounded-xl border border-[var(--green)]/30 bg-[var(--green)]/5 p-4 text-sm text-[var(--green)]">
-          Lista sincronizada integralmente. Última leitura: {date(data?.sync?.finished_at || null)}.
+          Lista completa: {imported} de {expected} produtos registrados, incluindo itens recuperados pela API oficial quando necessário. Última leitura: {date(data?.sync?.finished_at || null)}.
         </section>
       )}
 
