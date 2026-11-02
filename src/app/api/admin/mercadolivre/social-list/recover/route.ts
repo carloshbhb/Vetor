@@ -116,7 +116,7 @@ async function inspectApplicationPermissions(token: string): Promise<Application
   const scopes = Array.isArray(rawScopes)
     ? rawScopes.map((scope) => String(scope).trim()).filter(Boolean)
     : typeof rawScopes === "string"
-      ? rawScopes.split(/[\\s,]+/).map((scope) => scope.trim()).filter(Boolean)
+      ? rawScopes.split(/[\s,]+/).map((scope) => scope.trim()).filter(Boolean)
       : [];
   const mercadoPagoScopes = scopes.filter((scope) => scope.startsWith("urn:mp:"));
 
@@ -511,7 +511,7 @@ export async function POST(request: NextRequest) {
       ...conflicts,
     ];
     const policyBlockedIds = errors
-      .filter((entry) => /PA_UNAUTHORIZED_RESULT_FROM_POLICIES|\\b403\\b/.test(entry.error))
+      .filter((entry) => /PA_UNAUTHORIZED_RESULT_FROM_POLICIES|\b403\b/.test(entry.error))
       .map((entry) => entry.productId);
     const itemNotFoundIds = errors
       .filter((entry) => /items=404:/.test(entry.error))
@@ -563,7 +563,7 @@ export async function POST(request: NextRequest) {
       status,
       message: status === "complete"
         ? "Lista completada: os " + finalCoveredIds.size + " IDs únicos da lista estão representados no catálogo. Existem " + finalTotal + " registros de anúncio/catálogo."
-        : "Recuperação parcial: " + finalCoveredIds.size + " de " + expectedTotal + " IDs únicos cobertos (" + finalTotal + " registros no banco). " + stillMissing + " IDs ainda precisam de resolução. " + policyBlockedIds.length + " bloqueados pelo PolicyAgent e " + itemNotFoundIds.length + " com anúncio não encontrado (404).",
+        : "Recuperação parcial: " + finalCoveredIds.size + " de " + expectedTotal + " IDs únicos cobertos (" + finalTotal + " registros no banco). " + stillMissing + " IDs ainda precisam de resolução. " + policyBlockedIds.length + " bloqueados pelo PolicyAgent e " + itemNotFoundIds.length + " com anúncio não encontrado (404). " + (applicationPermissions.checked ? (applicationPermissions.hasMercadoPagoScopes ? "A configuração da aplicação contém escopos Mercado Pago: " + applicationPermissions.mercadoPagoScopes.join(", ") + "." : "A configuração consultada não contém escopos urn:mp: do Mercado Pago.") : "Não foi possível consultar as permissões da aplicação: " + (applicationPermissions.status || applicationPermissions.message || "sem detalhes") + "."),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido na recuperação da lista.";
