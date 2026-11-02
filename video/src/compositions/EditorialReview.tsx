@@ -28,6 +28,8 @@ export type EditorialSubtitle = {
   start: number;
   end: number;
   text: string;
+  segmentKind?: string;
+  wordTimings?: Array<{ text: string; start: number; end: number }>;
 };
 
 export type EditorialReviewProps = {
@@ -471,7 +473,7 @@ const SubtitleOverlay: React.FC<{
     extrapolateRight: 'clamp',
   });
 
-  return <KineticCaption text={entry.text} progress={progress} opacity={opacity} />;
+  return <KineticCaption text={entry.text} progress={progress} opacity={opacity} currentTime={time} wordTimings={entry.wordTimings} />;
 };
 
 export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {

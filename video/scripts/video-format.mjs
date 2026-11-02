@@ -101,10 +101,19 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
       const start = firstBoundary.offset / 10_000_000;
       const end = (lastBoundary.offset + lastBoundary.duration) / 10_000_000;
       if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+      const wordTimings = words.slice(wordIndex, next).map((word, offset) => {
+        const boundary = boundaries[cursor + wordIndex + offset];
+        return {
+          text: word,
+          start: boundary.offset / 10_000_000,
+          end: (boundary.offset + boundary.duration) / 10_000_000,
+        };
+      });
       result.push({
         start, end,
         text: wrapCaptionWords(words.slice(wordIndex, next), maxLineChars),
         segmentKind,
+        wordTimings,
       });
     }
     cursor += words.length;

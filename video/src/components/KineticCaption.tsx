@@ -8,6 +8,8 @@ type KineticCaptionProps = {
   progress: number;
   opacity: number;
   variant?: 'portrait' | 'landscape';
+  currentTime?: number;
+  wordTimings?: Array<{ text: string; start: number; end: number }>;
 };
 
 /**
@@ -25,13 +27,23 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
   const fontSize = landscape
     ? words.length > 12 ? 29 : 34
     : words.length > 8 ? 38 : 42;
-  const activeIndex = Math.min(
+  const fallbackActiveIndex = Math.min(
     Math.max(0, words.length - 1),
     Math.floor(interpolate(progress, [0, 1], [0, words.length], {
       extrapolateLeft: 'clamp',
       extrapolateRight: 'clamp',
     })),
   );
+  const hasExactWordTimings = Array.isArray(wordTimings) && wordTimings.length === words.length &&
+    wordTimings.every((item) => Number.isFinite(item.start) && Number.isFinite(item.end) && item.end > item.start);
+  const activeIndex = hasExactWordTimings && Number.isFinite(currentTime)
+    ? (() => {
+        const current = wordTimings!.findIndex((item) => currentTime! >= item.start && currentTime! < item.end);
+        if (current >= 0) return current;
+        const upcoming = wordTimings!.findIndex((item) => currentTime! < item.start);
+        return upcoming >= 0 ? upcoming : Math.max(0, words.length - 1);
+      })()
+    : fallbackActiveIndex;
 
   return (
     <div
