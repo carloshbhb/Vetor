@@ -21,6 +21,9 @@ const echo = findBestMercadoLivreItemMatch("Echo Dot 5", [
 ]);
 assert.ok(echo);
 assert.equal(echo.candidate.item_id, "MLB3616972805");
+assert.equal(findBestMercadoLivreItemMatch("Echo Dot 4", [
+  { item_id: "MLB3616972805", product_id: "MLB25727897", title: "Amazon Echo Dot Echo Dot (5th Gen) com Assistente Virtual Alexa" },
+]), null, "different generation numbers must not match");
 
 assert.equal(findBestMercadoLivreItemMatch("Samsung Galaxy A56", [
   { item_id: "MLB7916348648", product_id: "MLB68201987", title: "Celular Samsung Galaxy A57 5G 256GB 8GB RAM" },

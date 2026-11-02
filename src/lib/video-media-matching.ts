@@ -28,7 +28,7 @@ export function normalizeProductTokens(value: unknown): string[] {
       .replace(/[^a-z0-9]+/g, " ")
       .trim()
       .split(/\s+/)
-      .filter((token) => token.length >= 2 && !STOPWORDS.has(token))
+      .map((token) => token.replace(/^(\\d+)(?:st|nd|rd|th)$/i, "$1"))\n      .filter((token) => (token.length >= 2 || /^\\d+$/.test(token)) && !STOPWORDS.has(token))
   )];
 }
 
