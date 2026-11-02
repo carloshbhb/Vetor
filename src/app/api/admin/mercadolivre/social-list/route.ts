@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminAuth } from "@/lib/admin-auth";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
-import { fetchPublicSocialList, ML_SOCIAL_LIST_ID } from "@/lib/mercadolivre-social-list";
+import { diagnosePublicSocialList, fetchPublicSocialList, ML_SOCIAL_LIST_ID } from "@/lib/mercadolivre-social-list";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -9,6 +9,14 @@ export const maxDuration = 300;
 export async function GET(request: NextRequest) {
   const authError = verifyAdminAuth(request);
   if (authError) return authError;
+
+  if (request.nextUrl.searchParams.get("diagnostics") === "1") {
+    try {
+      return NextResponse.json({ ok: true, diagnostics: await diagnosePublicSocialList() });
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "Falha no diagnóstico." }, { status: 502 });
+    }
+  }
 
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) return NextResponse.json({ error: "Supabase não configurado." }, { status: 500 });
@@ -36,13 +44,7 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (syncError) return NextResponse.json({ error: syncError.message }, { status: 500 });
 
-  return NextResponse.json({
-    items: data || [],
-    total: count || 0,
-    page,
-    limit,
-    sync: syncs?.[0] || null,
-  });
+  return NextResponse.json({ items: data || [], total: count || 0, page, limit, sync: syncs?.[0] || null });
 }
 
 export async function POST(request: NextRequest) {
@@ -58,9 +60,7 @@ export async function POST(request: NextRequest) {
     .select("id")
     .single();
 
-  if (syncInsertError || !sync) {
-    return NextResponse.json({ error: syncInsertError?.message || "Não foi possível iniciar a sincronização." }, { status: 500 });
-  }
+  if (syncInsertError || !sync) return NextResponse.json({ error: syncInsertError?.message || "Não foi possível iniciar a sincronização." }, { status: 500 });
 
   try {
     const result = await fetchPublicSocialList();
@@ -73,14 +73,11 @@ export async function POST(request: NextRequest) {
         .from("ml_social_list_items")
         .upsert(batch, { onConflict: "list_id,item_id" })
         .select("item_id");
-
       if (error) throw new Error("Falha ao gravar lote " + (Math.floor(offset / 50) + 1) + ": " + error.message);
       saved += data?.length || batch.length;
     }
 
-    const missing = result.expectedTotal == null
-      ? null
-      : Math.max(0, result.expectedTotal - result.items.length);
+    const missing = result.expectedTotal == null ? null : Math.max(0, result.expectedTotal - result.items.length);
     const status = missing == null || missing > 0 ? "partial" : "complete";
     const summary = {
       expected_total: result.expectedTotal,
@@ -93,17 +90,11 @@ export async function POST(request: NextRequest) {
       finished_at: new Date().toISOString(),
     };
 
-    const { error: updateError } = await supabase
-      .from("ml_social_list_syncs")
-      .update(summary)
-      .eq("id", sync.id);
-
+    const { error: updateError } = await supabase.from("ml_social_list_syncs").update(summary).eq("id", sync.id);
     if (updateError) throw new Error("Produtos gravados, mas não foi possível finalizar o histórico: " + updateError.message);
 
     return NextResponse.json({
-      ok: true,
-      saved,
-      ...summary,
+      ok: true, saved, ...summary,
       message: result.expectedTotal == null
         ? "Sincronização parcial: produtos importados, mas o contador total da página não pôde ser validado."
         : (missing || 0) > 0
@@ -112,10 +103,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido ao sincronizar.";
-    await supabase
-      .from("ml_social_list_syncs")
-      .update({ status: "error", error_message: message, finished_at: new Date().toISOString() })
-      .eq("id", sync.id);
+    await supabase.from("ml_social_list_syncs").update({ status: "error", error_message: message, finished_at: new Date().toISOString() }).eq("id", sync.id);
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }
