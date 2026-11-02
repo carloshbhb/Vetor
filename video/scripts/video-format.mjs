@@ -22,6 +22,7 @@ export function buildCaptionEntries(segments, maxWords = 7) {
     const end = Number(segment?.end);
     if (!words.length || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
     const duration = end - start;
+    const segmentKind = String(segment?.kind || "scene");
     const chunks = [];
     for (let index = 0; index < words.length; index += limit) {
       const next = Math.min(words.length, index + limit);
@@ -29,6 +30,7 @@ export function buildCaptionEntries(segments, maxWords = 7) {
         start: start + duration * index / words.length,
         end: start + duration * next / words.length,
         text: words.slice(index, next).join(" "),
+        segmentKind,
       });
     }
     return chunks;
