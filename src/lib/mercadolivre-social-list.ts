@@ -106,9 +106,10 @@ export function parseSocialListTotal(html: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-async function fetchListPage(pageNumber: number): Promise<{ status: number; html: string; finalUrl: string }> {
+async function fetchListPage(pageNumber: number, extraParams: Record<string, string> = {}): Promise<{ status: number; html: string; finalUrl: string }> {
   const url = new URL(ML_SOCIAL_LIST_URL);
   if (pageNumber > 1) url.searchParams.set("page", String(pageNumber));
+  for (const [key, value] of Object.entries(extraParams)) url.searchParams.set(key, value);
 
   const response = await fetch(url.toString(), {
     headers: {
@@ -125,6 +126,7 @@ async function fetchListPage(pageNumber: number): Promise<{ status: number; html
 
 export async function diagnosePublicSocialList(): Promise<{
   expectedTotal: number | null;
+  probes: Array<{ params: Record<string, string>; status: number; finalUrl: string; htmlLength: number; cards: number; parsed: number; total: number | null; sampleIds: string[] }>;
   pages: Array<{
     page: number;
     status: number;
@@ -161,6 +163,33 @@ export async function diagnosePublicSocialList(): Promise<{
     scriptMarkers: string[];
   }> = [];
   let expectedTotal: number | null = null;
+  const probes: Array<{ params: Record<string, string>; status: number; finalUrl: string; htmlLength: number; cards: number; parsed: number; total: number | null; sampleIds: string[] }> = [];
+
+  const probeParams: Record<string, string>[] = [
+    { page: "1", limit: "50" },
+    { page: "1", limit: "100" },
+    { page: "1", offset: "16" },
+    { page: "1", offset: "32" },
+    { page: "1", offset: "100" },
+    { offset: "0", limit: "50" },
+    { offset: "16", limit: "16" },
+    { offset: "32", limit: "16" },
+    { page: "18", limit: "50" },
+  ];
+  for (const params of probeParams) {
+    const pageNumber = Number(params.page || "1");
+    const extraParams = { ...params };
+    delete extraParams.page;
+    const response = await fetchListPage(pageNumber, extraParams);
+    const parsed = response.status === 200 ? parseSocialListPage(response.html, pageNumber) : [];
+    const document = response.status === 200 ? new JSDOM(response.html).window.document : null;
+    probes.push({
+      params, status: response.status, finalUrl: response.finalUrl, htmlLength: response.html.length,
+      cards: document?.querySelectorAll(".aff-social-polycard__container .poly-card").length || 0,
+      parsed: parsed.length, total: response.status === 200 ? parseSocialListTotal(response.html) : null,
+      sampleIds: parsed.slice(0, 5).map((item) => item.item_id),
+    });
+  }
 
   for (let page = 1; page <= 30; page += 1) {
     const response = await fetchListPage(page);
@@ -224,7 +253,7 @@ export async function diagnosePublicSocialList(): Promise<{
     if (page > 1 && parsed.length === 0 && cards.length === 0 && mlAnchors.length === 0) break;
   }
 
-  return { expectedTotal, pages };
+  return { expectedTotal, probes, pages };
 }
 
 export async function fetchPublicSocialList(): Promise<{
