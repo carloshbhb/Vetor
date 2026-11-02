@@ -18,13 +18,13 @@ export function buildCaptionEntries(segments, maxWords = 7, options = {}) {
   const limit = Math.min(10, Math.max(3, Math.floor(Number(maxWords) || 7)));
   const maxLineChars = Math.max(18, Math.min(52, Math.floor(Number(options.maxLineChars) || 36)));
   const requiredCaptionSeconds = (text) => {
-    const lines = String(text || "").split(/\\r?\\n/);
+    const lines = String(text || "").split(/\r?\n/);
     const longestLine = lines.reduce((max, line) => Math.max(max, line.length), 0);
     return longestLine / 15 + Math.max(0, lines.length - 1) * 0.4 + 1;
   };
 
   return (Array.isArray(segments) ? segments : []).flatMap((segment) => {
-    const words = String(segment?.text || "").trim().split(/\\s+/).filter(Boolean);
+    const words = String(segment?.text || "").trim().split(/\s+/).filter(Boolean);
     const start = Number(segment?.start);
     const end = Number(segment?.end);
     if (!words.length || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
