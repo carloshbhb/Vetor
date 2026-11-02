@@ -35,19 +35,20 @@ const exactSegments = [
 const exactWords = exactSegments.flatMap((segment) => segment.text.split(/\s+/));
 const exactBoundaries = exactWords.map((word, index) => ({
   type: "WordBoundary",
-  offset: index * 350_000 + 100_000,
-  duration: 220_000,
+  offset: index * 6_000_000 + 100_000,
+  duration: 3_000_000,
   text: word,
 }));
 const exactCaptions = buildTimedCaptionEntries(exactSegments, exactBoundaries, { maxWords: 3 });
 assert.ok(exactCaptions);
 assert.equal(exactCaptions[0].segmentKind, "hook");
 assert.ok(Math.abs(exactCaptions[0].start - 0.01) < 0.000001);
-assert.ok(Math.abs(exactCaptions[0].end - 0.102) < 0.000001);
+assert.ok(Math.abs(exactCaptions[0].end - 1.51) < 0.000001);
 const sceneCues = exactCaptions.filter((entry) => entry.segmentKind === "scene");
 assert.equal(sceneCues.length, 1);
 assert.equal(sceneCues[0].text.replace(/\n/g, " "), "Tela AMOLED de 120 Hz");
-assert.ok(Math.abs(sceneCues[0].start - 0.115) < 0.000001);
+assert.ok(Math.abs(sceneCues[0].start - 1.91) < 0.000001);
+assert.ok(sceneCues[0].end - sceneCues[0].start >= sceneCues[0].text.length / 15 + 1);
 assert.equal(exactCaptions[exactCaptions.length - 1].segmentKind, "cta");
 
 const fragmentCaptions = buildTimedCaptionEntries(
@@ -77,11 +78,13 @@ const shortTailCaptions = buildTimedCaptionEntries(
     { type: "WordBoundary", offset: 32_500_000, duration: 4_000_000, text: "por" },
     { type: "WordBoundary", offset: 37_000_000, duration: 4_000_000, text: "ciclo." },
   ],
-  { maxWords: 10, maxLineChars: 34 }
+  { maxWords: 5, maxLineChars: 34 }
 );
 assert.equal(shortTailCaptions.length, 1);
 assert.equal(shortTailCaptions[0].text.replace(/\n/g, " "), "Confira a porção da pipoca milho por ciclo.");
-assert.ok(shortTailCaptions[0].end - shortTailCaptions[0].start >= 3.2);
+const tailLines = shortTailCaptions[0].text.split(/\\n/);
+const tailRequired = Math.max(...tailLines.map((line) => line.length)) / 15 + (tailLines.length - 1) * 0.4 + 1;
+assert.ok(shortTailCaptions[0].end - shortTailCaptions[0].start >= tailRequired);
 
 assert.equal(buildTimedCaptionEntries(exactSegments, exactBoundaries.slice(1), { maxWords: 3 }), null);
 const wrappedCaptions = buildTimedCaptionEntries(
