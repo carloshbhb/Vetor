@@ -185,11 +185,14 @@ async function generateVoiceover(text, outputPath, wordBoundariesPath = null) {
         path.resolve('scripts/tts.py'),
         safeText,
         tempFile,
-        wordBoundariesPath,
       ], {
         stdio: 'pipe',
         timeout: 180000,
         maxBuffer: 2 * 1024 * 1024,
+        env: {
+          ...process.env,
+          VETOR_EDGE_TTS_BOUNDARIES_PATH: wordBoundariesPath,
+        },
       });
     } else {
       execFileSync('edge-tts', ['--voice', voice, '--file', textFile, '--write-media', tempFile], {

@@ -4,16 +4,17 @@ import asyncio
 import json
 import os
 import sys
-from typing import Optional
 
 import edge_tts
 
 VOICE = "pt-BR-FranciscaNeural"
+BOUNDARIES_ENV = "VETOR_EDGE_TTS_BOUNDARIES_PATH"
 
 
-async def generate_tts(text: str, output_path: str, boundaries_path: Optional[str] = None):
+async def generate_tts(text: str, output_path: str):
     """Generate the fixed Brazilian Portuguese neural voice and optional timed words."""
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    boundaries_path = os.environ.get(BOUNDARIES_ENV) or None
     boundary = "WordBoundary" if boundaries_path else "SentenceBoundary"
     communicate = edge_tts.Communicate(text, VOICE, boundary=boundary)
 
@@ -42,14 +43,11 @@ async def generate_tts(text: str, output_path: str, boundaries_path: Optional[st
 
 
 async def main():
-    if len(sys.argv) < 3:
-        print("Usage: python tts.py <text> <output_path> [word_boundaries_jsonl]", file=sys.stderr)
+    if len(sys.argv) != 3:
+        print("Usage: python tts.py <text> <output_path>", file=sys.stderr)
         sys.exit(1)
 
-    text = sys.argv[1]
-    output_path = sys.argv[2]
-    boundaries_path = sys.argv[3] if len(sys.argv) >= 4 and sys.argv[3].strip() else None
-    result = await generate_tts(text, output_path, boundaries_path)
+    result = await generate_tts(sys.argv[1], sys.argv[2])
     print(json.dumps(result, ensure_ascii=False))
 
 
