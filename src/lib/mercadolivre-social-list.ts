@@ -139,6 +139,8 @@ export async function diagnosePublicSocialList(): Promise<{
     paginationText: string;
     pageMarkers: string[];
     sampleUnmatchedLinks: string[];
+    scriptSources: string[];
+    scriptMarkers: string[];
   }>;
 }> {
   const pages: Array<{
@@ -155,6 +157,8 @@ export async function diagnosePublicSocialList(): Promise<{
     paginationText: string;
     pageMarkers: string[];
     sampleUnmatchedLinks: string[];
+    scriptSources: string[];
+    scriptMarkers: string[];
   }> = [];
   let expectedTotal: number | null = null;
 
@@ -164,7 +168,7 @@ export async function diagnosePublicSocialList(): Promise<{
       pages.push({
         page, status: response.status, finalUrl: response.finalUrl, htmlLength: response.html.length,
         pageTitle: "", cards: 0, titleAnchors: 0, mlAnchors: 0, parsed: 0,
-        paginationLinks: [], paginationText: "", pageMarkers: [], sampleUnmatchedLinks: [],
+        paginationLinks: [], paginationText: "", pageMarkers: [], sampleUnmatchedLinks: [], scriptSources: [], scriptMarkers: [],
       });
       if (page > 1 && response.status === 404) break;
       if (response.status !== 404) break;
@@ -198,11 +202,23 @@ export async function diagnosePublicSocialList(): Promise<{
     const pageMarkers = Array.from(response.html.matchAll(/.{0,80}(?:total_results|offset|limit|page_number|pageSize|page_size|pagination).{0,120}/gi))
       .slice(0, 12)
       .map((match) => (match[0] || "").replace(/\s+/g, " ").slice(0, 220));
+    const scripts = Array.from(document.querySelectorAll<HTMLScriptElement>("script"));
+    const scriptSources = scripts
+      .map((script) => script.src)
+      .filter((src) => src && /affiliate|social|list|polycard|graphql/i.test(src))
+      .slice(0, 30);
+    const scriptMarkers = scripts
+      .filter((script) => !script.src && script.textContent)
+      .flatMap((script) => Array.from((script.textContent || "").matchAll(/.{0,100}(?:total_results|polycard|items|results|list_id|listId|pagination|offset|limit|cursor|__NEXT_DATA__).{0,180}/gi))
+        .slice(0, 8)
+        .map((match) => (match[0] || "").replace(/\\s+/g, " ").slice(0, 280)))
+      .filter((value, index, all) => all.indexOf(value) === index)
+      .slice(0, 24);
 
     pages.push({
       page, status: response.status, finalUrl: response.finalUrl, htmlLength: response.html.length,
       pageTitle: document.title, cards: cards.length, titleAnchors, mlAnchors: mlAnchors.length,
-      parsed: parsed.length, paginationLinks, paginationText, pageMarkers, sampleUnmatchedLinks,
+      parsed: parsed.length, paginationLinks, paginationText, pageMarkers, sampleUnmatchedLinks, scriptSources, scriptMarkers,
     });
     if (page > 1 && parsed.length === 0 && cards.length === 0 && mlAnchors.length === 0) break;
   }
