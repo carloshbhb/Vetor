@@ -241,8 +241,10 @@ export async function POST(request: NextRequest) {
     for (const result of recovered) {
       const row = result.row;
       const existing = existingByItemId.get(row.item_id.toUpperCase());
-      if (existing?.product_id && String(existing.product_id).toUpperCase() !== row.product_id) {
-        conflicts.push(row.product_id + " (anúncio " + row.item_id + " já vinculado a " + existing.product_id + ")");
+      if (existing) {
+        if (existing.product_id && String(existing.product_id).toUpperCase() === row.product_id) continue;
+        conflicts.push(row.product_id + " (anúncio " + row.item_id + " já pertence a outro registro" +
+          (existing.product_id ? " vinculado a " + existing.product_id : " sem vínculo de catálogo") + ")");
         continue;
       }
       const duplicate = deduped.get(row.item_id);
