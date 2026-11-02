@@ -35,6 +35,24 @@ export function buildCaptionEntries(segments, maxWords = 7) {
   });
 }
 
+function wrapCaptionWords(words, maxLineChars) {
+  const lines = [];
+  let current = "";
+  for (const rawWord of Array.isArray(words) ? words : []) {
+    const word = String(rawWord || "").trim();
+    if (!word) continue;
+    const candidate = current ? current + " " + word : word;
+    if (current && candidate.length > maxLineChars) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.join("\n");
+}
+
 function normalizeBoundaryToken(value) {
   return String(value || "")
     .toLowerCase()

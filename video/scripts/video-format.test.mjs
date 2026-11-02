@@ -49,6 +49,20 @@ assert.equal(sceneCues.length, 2);
 assert.ok(Math.abs(sceneCues[0].start - 0.115) < 0.000001);
 assert.equal(exactCaptions[exactCaptions.length - 1].segmentKind, "cta");
 assert.equal(buildTimedCaptionEntries(exactSegments, exactBoundaries.slice(1), { maxWords: 3 }), null);
+const wrappedCaptions = buildTimedCaptionEntries(
+  [{ kind: "scene", text: "Tela AMOLED de 120 Hz" }],
+  ["Tela", "AMOLED", "de", "120", "Hz"].map((word, index) => ({
+    type: "WordBoundary",
+    offset: index * 300_000,
+    duration: 220_000,
+    text: word,
+  })),
+  { maxWords: 5, maxLineChars: 12 }
+);
+assert.ok(wrappedCaptions);
+assert.equal(wrappedCaptions[0].text, "Tela AMOLED\\nde 120 Hz");
+assert.ok(wrappedCaptions[0].text.split("\\n").every((line) => line.length <= 12));
+
 const mismatchedBoundaries = exactBoundaries.map((item, index) =>
   index === 2 ? { ...item, text: "modelo" } : item
 );
