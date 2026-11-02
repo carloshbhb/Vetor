@@ -1,0 +1,48 @@
+name: Audit complete YouTube channel inventory
+run-name: Read-only YouTube channel inventory and Vetor queue comparison
+
+on:
+  push:
+    paths:
+      - ".run-youtube-channel-audit"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vetor-youtube-channel-audit
+  cancel-in-progress: false
+
+jobs:
+  audit-channel:
+    name: Compare all channel uploads with Vetor records
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate audit script syntax
+        run: node --check video/scripts/audit-youtube-channel.mjs
+
+      - name: Audit channel using official YouTube API
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+        run: node video/scripts/audit-youtube-channel.mjs
+
+      - name: Upload read-only audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-channel-audit-report
+          path: |
+            youtube-channel-audit-report.json
+            youtube-channel-audit-report.csv
+          if-no-files-found: ignore
+          retention-days: 30
