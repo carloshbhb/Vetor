@@ -1,4 +1,4 @@
-import { execFileSync, execSync, spawn } from 'child_process';
+import { execFileSync, execSync, spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { buildCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
@@ -336,6 +336,62 @@ async function renderWithRemotion(videoData, outputPath) {
     if (fs.existsSync(dataPath)) fs.unlinkSync(dataPath);
   }
 }
+
+function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId) {
+  const safeId = safeVideoAssetId(videoId);
+  const outputDir = path.dirname(videoPath);
+  const beatsPath = path.join(outputDir, "video-" + safeId + "-beats.json");
+  const framesDir = path.join(outputDir, "qa-" + safeId + "-frames");
+  const channel = videoFormat === "long" ? "yt-landscape" : "yt-shorts";
+  const beats = (Array.isArray(captionEntries) ? captionEntries : [])
+    .map((entry) => ({
+      start: Number(entry.start),
+      end: Number(entry.end),
+      text: String(entry.text || ""),
+    }))
+    .filter((entry) => Number.isFinite(entry.start) && Number.isFinite(entry.end) && entry.end > entry.start && entry.text);
+  fs.writeFileSync(beatsPath, JSON.stringify(beats, null, 2));
+
+  const args = [
+    "check", videoPath,
+    "--beats", beatsPath,
+    "--channel", channel,
+    "--max-dead", "1",
+    "--frames", framesDir,
+    "--json",
+  ];
+  const options = {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    timeout: 180000,
+    maxBuffer: 4 * 1024 * 1024,
+    windowsHide: true,
+    shell: process.platform === "win32",
+  };
+
+  let result = spawnSync(process.env.REMOTION_QA_BIN || "remotion-qa", args, options);
+  if (result.error && result.error.code === "ENOENT") {
+    result = spawnSync("npx", ["--yes", "remotion-qa@0.1.3", ...args], options);
+  }
+  if (result.error || result.status !== 0) {
+    const output = [result.stdout, result.stderr]
+      .filter(Boolean)
+      .join("\n")
+      .replace(/\s+/g, " ")
+      .slice(-6500);
+    throw new Error(
+      "[VIDEO_QA_FAILED] " + channel + " rejeitou o render de " + videoId +
+      ". O vídeo não será enviado ao YouTube. Diagnóstico: " +
+      (output || (result.error ? result.error.message : "QA exit=" + result.status))
+    );
+  }
+
+  console.log("[VIDEO_QA_PASS] queue_id=" + videoId + " channel=" + channel +
+    " checks=caption-readability,dead-air,safe-zones");
+  if (fs.existsSync(beatsPath)) fs.unlinkSync(beatsPath);
+  if (fs.existsSync(framesDir)) fs.rmSync(framesDir, { recursive: true, force: true });
+}
+
 async function uploadToYouTube(videoPath, title, description, tags, commentText) {
 
   try {
@@ -656,7 +712,7 @@ async function processVideo(video) {
       callToAction: script.callToAction,
       audioUrl: `tmp/video-${video.id}.mp3`,
       hookDuration,
-      subtitleEntries: buildCaptionEntries(narrationTimings, 7),
+      subtitleEntries: buildCaptionEntries(narrationTimings, 9),
       productImages: [productImageSource],
       brollVideos,
       totalDuration,
@@ -666,6 +722,8 @@ async function processVideo(video) {
     const videoFileName = `video-${video.id}.mp4`;
     const videoPath = path.join(outputDir, videoFileName);
     await renderWithRemotion(videoData, videoPath);
+    processingStage = 'controle de qualidade Remotion';
+    runRemotionQualityGate(videoPath, videoData.subtitleEntries, videoFormat, video.id);
 
     processingStage = 'upload YouTube';
     console.log('   [4/4] Upload para YouTube...');
