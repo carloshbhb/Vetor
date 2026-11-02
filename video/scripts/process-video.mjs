@@ -1,7 +1,7 @@
 import { execFileSync, execSync, spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { buildCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
+import { buildCaptionEntries, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -159,7 +159,7 @@ function escapeXml(value) {
     .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
-async function generateVoiceover(text, outputPath) {
+async function generateVoiceover(text, outputPath, wordBoundariesPath = null) {
   // Única voz de narração do Vetor: Edge TTS neural pt-BR-FranciscaNeural.
   const voice = 'pt-BR-FranciscaNeural';
   const tempFile = outputPath.replace(/\.mp3$/i, '-temp.mp3');
@@ -177,18 +177,37 @@ async function generateVoiceover(text, outputPath) {
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(textFile, safeText, 'utf8');
   for (const stale of [tempFile, outputPath]) if (fs.existsSync(stale)) fs.unlinkSync(stale);
+  if (wordBoundariesPath && fs.existsSync(wordBoundariesPath)) fs.unlinkSync(wordBoundariesPath);
 
   try {
-    execFileSync('edge-tts', ['--voice', voice, '--file', textFile, '--write-media', tempFile], {
-      stdio: 'pipe',
-      timeout: 120000,
-    });
+    if (wordBoundariesPath) {
+      execFileSync(process.env.PYTHON || 'python', [
+        path.resolve('scripts/tts.py'),
+        safeText,
+        tempFile,
+        wordBoundariesPath,
+      ], {
+        stdio: 'pipe',
+        timeout: 180000,
+        maxBuffer: 2 * 1024 * 1024,
+      });
+    } else {
+      execFileSync('edge-tts', ['--voice', voice, '--file', textFile, '--write-media', tempFile], {
+        stdio: 'pipe',
+        timeout: 120000,
+      });
+    }
     if (!fs.existsSync(tempFile) || fs.statSync(tempFile).size < 1000) {
       throw new Error('Edge TTS não produziu um MP3 utilizável.');
     }
     const duration = getAudioDuration(tempFile, 'Edge TTS neural');
     fs.renameSync(tempFile, outputPath);
-    console.log('   [TTS] Provider=Edge TTS neural; voz=' + voice + '; duração=' + duration.toFixed(2) + 's.');
+    const boundarySize = wordBoundariesPath && fs.existsSync(wordBoundariesPath)
+      ? fs.statSync(wordBoundariesPath).size
+      : 0;
+    console.log('   [TTS] Provider=Edge TTS neural; voz=' + voice +
+      '; duração=' + duration.toFixed(2) + 's' +
+      (boundarySize ? '; word-boundaries=' + boundarySize + ' bytes.' : '.'));
     return duration;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -199,6 +218,21 @@ async function generateVoiceover(text, outputPath) {
     for (const file of [textFile, tempFile]) if (fs.existsSync(file)) fs.unlinkSync(file);
   }
 }
+function loadEdgeWordBoundaries(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return [];
+  try {
+    return fs.readFileSync(filePath, 'utf8')
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => JSON.parse(line))
+      .filter((item) => item && item.type === 'WordBoundary');
+  } catch (error) {
+    console.warn('[TTS] Não foi possível ler word-boundaries; usando temporização estimada:',
+      error instanceof Error ? error.message.slice(0, 240) : String(error).slice(0, 240));
+    return [];
+  }
+}
+
 async function combineAudioFiles(audioFiles, outputPath) {
   const existingFiles = audioFiles.filter(f => fs.existsSync(f));
   if (existingFiles.length === 0) {
@@ -346,7 +380,8 @@ function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId)
   // The opening hook and final CTA are checked for safe-zone placement in the render,
   // while the timed scene captions are measured for reading speed and dead air.
   const captionList = Array.isArray(captionEntries) ? captionEntries : [];
-  const beats = captionList.slice(1, -1)
+  const sceneCaptions = captionList.filter((entry) => entry.segmentKind === "scene");
+  const beats = (sceneCaptions.length ? sceneCaptions : captionList.slice(1, -1))
     .map((entry) => ({
       start: Number(entry.start),
       end: Number(entry.end),
@@ -689,13 +724,14 @@ async function processVideo(video) {
     const audioDir = path.resolve(`/tmp/video-${video.id}`);
     fs.mkdirSync(audioDir, { recursive: true });
     const combinedAudioPath = path.join(audioDir, 'combined.mp3');
+    const wordBoundariesPath = path.join(audioDir, 'combined.word-boundaries.jsonl');
     const narrationSegments = [
       { kind: 'hook', text: String(script.hook || '').trim() },
       ...script.scenes.map((scene) => ({ kind: 'scene', scene, text: String(scene.text || '').trim() })),
       { kind: 'cta', text: String(script.callToAction || '').trim() },
     ];
     const completeNarration = narrationSegments.map((segment) => segment.text).filter(Boolean).join('\n\n');
-    const totalDuration = await generateVoiceover(completeNarration, combinedAudioPath);
+    const totalDuration = await generateVoiceover(completeNarration, combinedAudioPath, wordBoundariesPath);
     if (!fs.existsSync(combinedAudioPath) || fs.statSync(combinedAudioPath).size < 1000) {
       throw new Error('A narração contínua não foi produzida corretamente.');
     }
@@ -763,7 +799,19 @@ async function processVideo(video) {
       callToAction: script.callToAction,
       audioUrl: `tmp/video-${video.id}.mp3`,
       hookDuration,
-      subtitleEntries: buildCaptionEntries(narrationTimings, videoFormat === "long" ? 18 : 100),
+      subtitleEntries: (() => {
+        const wordBoundaries = loadEdgeWordBoundaries(wordBoundariesPath);
+        const timed = buildTimedCaptionEntries(narrationSegments, wordBoundaries, {
+          maxWords: videoFormat === "long" ? 9 : 5,
+          maxLineChars: videoFormat === "long" ? 48 : 34,
+        });
+        if (timed) {
+          console.log("[CAPTIONS] Sincronização exata com " + wordBoundaries.length + " eventos WordBoundary do Edge TTS.");
+          return timed;
+        }
+        console.warn("[CAPTIONS] Edge TTS não retornou sequência 1:1 de palavras; fallback de temporização por segmento.");
+        return buildCaptionEntries(narrationTimings, videoFormat === "long" ? 18 : 100);
+      })(),
       productImages,
       brollVideos,
       totalDuration,
