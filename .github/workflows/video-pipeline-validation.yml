@@ -110,7 +110,7 @@ jobs:
             "hook": "O detalhe que muda a decisão",
             "hookDuration": 1,
             "scenes": [
-              {"id": 1, "text": "Tela e desempenho para o uso cotidiano.", "duration": 1.5, "visualCue": "Tela e desempenho", "brollKeywords": [], "startFrame": 30, "endFrame": 75}
+              {"id": 1, "text": "Tela e desempenho para o uso cotidiano.", "duration": 4, "visualCue": "Tela e desempenho", "brollKeywords": [], "startFrame": 30, "endFrame": 150}
             ],
             "callToAction": "Confira a análise completa.",
             "subtitleEntries": [{"start": 1, "end": 5, "text": "Tela e desempenho para o uso cotidiano.", "segmentKind": "scene"}],
