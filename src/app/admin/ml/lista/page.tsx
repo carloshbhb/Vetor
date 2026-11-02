@@ -173,7 +173,7 @@ export default function MercadoLivreSocialListPage() {
       {notice && <div className="rounded-xl border border-[var(--green)]/30 bg-[var(--green)]/5 px-4 py-3 text-sm text-[var(--green)]">{notice}</div>}
       {recoveryDetails.length > 0 && (
         <section className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber)]/5 p-4">
-          <p className="text-sm font-bold text-[var(--amber)]">Detalhes dos itens ainda não resolvidos</p>
+          <p className="text-sm font-bold text-[var(--amber)]">Pendências e diagnóstico de autorização da API</p>
           <ul className="mt-2 space-y-1 text-xs leading-5 text-[var(--muted)]">
             {recoveryDetails.map((detail, index) => <li key={index}>{detail}</li>)}
           </ul>
