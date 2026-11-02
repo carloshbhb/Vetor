@@ -29,5 +29,5 @@ assert.ok(!escaped.includes("<title><script>alert(1)</script>"));
 assert.ok(escaped.includes("&lt;script&gt;alert(1)&lt;/script&gt;"));
 const landscape=buildCompositionHtml({...fixture,type:"long",templateId:"product-editorial"},{assets:{}});
 assert.ok(landscape.includes('data-width="1920"')&&landscape.includes('data-height="1080"'));
-assert.ok(landscape.includes(".scene-label{position:absolute;left:"+(landscape?"8%":"7%")+";top:"+(landscape?"16%":"19%")+";width:"+(landscape?"56%":"84%")+";"), "landscape template must use horizontal editorial geometry");
+assert.ok(landscape.includes(".scene-label{position:absolute;left:8%;top:16%;width:56%;"), "landscape template must use horizontal editorial geometry");
 console.log("hyperframes professional library tests passed");
