@@ -16,24 +16,62 @@ export function formatYouTubeTimestamp(value) {
 
 export function buildCaptionEntries(segments, maxWords = 7, options = {}) {
   const limit = Math.min(10, Math.max(3, Math.floor(Number(maxWords) || 7)));
+  const maxLineChars = Math.max(18, Math.min(52, Math.floor(Number(options.maxLineChars) || 36)));
+  const requiredCaptionSeconds = (text) => {
+    const lines = String(text || "").split(/\\r?\\n/);
+    const longestLine = lines.reduce((max, line) => Math.max(max, line.length), 0);
+    return longestLine / 15 + Math.max(0, lines.length - 1) * 0.4 + 1;
+  };
+
   return (Array.isArray(segments) ? segments : []).flatMap((segment) => {
-    const words = String(segment?.text || "").trim().split(/\s+/).filter(Boolean);
+    const words = String(segment?.text || "").trim().split(/\\s+/).filter(Boolean);
     const start = Number(segment?.start);
     const end = Number(segment?.end);
     if (!words.length || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
+
     const duration = end - start;
     const segmentKind = String(segment?.kind || "scene");
     const chunks = [];
     for (let index = 0; index < words.length; index += limit) {
       const next = Math.min(words.length, index + limit);
+      const chunkWords = words.slice(index, next);
       chunks.push({
-        start: start + duration * index / words.length,
-        end: start + duration * next / words.length,
-        text: wrapCaptionWords(words.slice(index, next), Math.max(18, Math.min(52, Math.floor(Number(options.maxLineChars) || 36)))),
-        segmentKind,
+        words: chunkWords,
+        text: wrapCaptionWords(chunkWords, maxLineChars),
       });
     }
-    return chunks;
+
+    // The Edge TTS alignment can be rejected when its word events differ from
+    // the normalized script. In that case, do not divide time only by word count:
+    // reserve the same on-screen reading time the QA gate will require.
+    while (chunks.length > 1) {
+      const requiredTotal = chunks.reduce((sum, chunk) => sum + requiredCaptionSeconds(chunk.text), 0);
+      if (requiredTotal <= duration + 0.02) break;
+      const last = chunks.pop();
+      const previous = chunks.pop();
+      const mergedWords = [...previous.words, ...last.words];
+      chunks.push({ words: mergedWords, text: wrapCaptionWords(mergedWords, maxLineChars) });
+    }
+
+    const required = chunks.map((chunk) => requiredCaptionSeconds(chunk.text));
+    const requiredTotal = required.reduce((sum, value) => sum + value, 0);
+    const spare = Math.max(0, duration - requiredTotal);
+    const extraPerCue = chunks.length ? spare / chunks.length : 0;
+    let cursor = start;
+
+    return chunks.map((chunk, index) => {
+      const cueStart = cursor;
+      const cueEnd = index === chunks.length - 1
+        ? end
+        : Math.min(end, cueStart + required[index] + extraPerCue);
+      cursor = cueEnd;
+      return {
+        start: cueStart,
+        end: cueEnd,
+        text: chunk.text,
+        segmentKind,
+      };
+    });
   });
 }
 
@@ -129,7 +167,7 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
     : 0.9;
   const maxMergeSpan = Number.isFinite(Number(options.maxMergeSpan))
     ? Math.max(2, Number(options.maxMergeSpan))
-    : 7;
+    : 12;
   const requiredCaptionSeconds = (text) => {
     const lines = String(text || "").split(/\r?\n/);
     const longestLine = lines.reduce((max, line) => Math.max(max, line.length), 0);
