@@ -38,7 +38,6 @@ export function buildCaptionEntries(segments, maxWords = 7) {
     const end = Number(segment?.end);
     if (!words.length || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
 
-    // Balance chunks so the last caption is never a tiny, unreadable fragment.
     const chunkCount = Math.ceil(words.length / limit);
     const baseSize = Math.floor(words.length / chunkCount);
     const remainder = words.length % chunkCount;
@@ -53,12 +52,81 @@ export function buildCaptionEntries(segments, maxWords = 7) {
         start: start + (end - start) * from / words.length,
         end: start + (end - start) * cursor / words.length,
         text: wrapCaptionWords(chunkWords),
+        segmentKind: String(segment.kind || "scene"),
       });
     }
     return chunks;
   });
 }
 
+function normalizeBoundaryToken(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Convert Edge TTS word boundaries (100ns ticks) to caption cues.
+ * Return null if the returned words do not align one-to-one with the script;
+ * the caller then uses the deterministic word-count timing fallback.
+ */
+export function buildTimedCaptionEntries(segments, wordBoundaries, options = {}) {
+  const maxWords = Math.max(2, Math.min(12, Math.floor(Number(options.maxWords) || 5)));
+  const maxLineChars = Math.max(18, Math.min(52, Math.floor(Number(options.maxLineChars) || 36)));
+  const sourceSegments = Array.isArray(segments) ? segments : [];
+  const boundaries = (Array.isArray(wordBoundaries) ? wordBoundaries : [])
+    .filter((item) => item && String(item.type || "WordBoundary") === "WordBoundary")
+    .map((item) => ({
+      offset: Number(item.offset),
+      duration: Number(item.duration),
+      text: String(item.text || ""),
+    }));
+
+  const expected = sourceSegments.flatMap((segment, segmentIndex) =>
+    String(segment?.text || "").trim().split(/\s+/).filter(Boolean).map((word) => ({
+      word,
+      segmentIndex,
+      kind: String(segment.kind || "scene"),
+    }))
+  );
+  if (!expected.length || boundaries.length !== expected.length) return null;
+
+  for (let index = 0; index < expected.length; index += 1) {
+    const actualToken = normalizeBoundaryToken(boundaries[index].text);
+    const expectedToken = normalizeBoundaryToken(expected[index].word);
+    if (!actualToken || !expectedToken || actualToken !== expectedToken) return null;
+    if (!Number.isFinite(boundaries[index].offset) || !Number.isFinite(boundaries[index].duration) || boundaries[index].duration <= 0) {
+      return null;
+    }
+    if (index > 0 && boundaries[index].offset < boundaries[index - 1].offset) return null;
+  }
+
+  const result = [];
+  let cursor = 0;
+  for (let segmentIndex = 0; segmentIndex < sourceSegments.length; segmentIndex += 1) {
+    const words = expected.filter((item) => item.segmentIndex === segmentIndex).map((item) => item.word);
+    if (!words.length) continue;
+    const segmentKind = String(sourceSegments[segmentIndex].kind || "scene");
+    for (let wordIndex = 0; wordIndex < words.length; wordIndex += maxWords) {
+      const next = Math.min(words.length, wordIndex + maxWords);
+      const firstBoundary = boundaries[cursor + wordIndex];
+      const lastBoundary = boundaries[cursor + next - 1];
+      const start = firstBoundary.offset / 10_000_000;
+      const end = (lastBoundary.offset + lastBoundary.duration) / 10_000_000;
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+      result.push({
+        start,
+        end,
+        text: wrapCaptionWords(words.slice(wordIndex, next), maxLineChars),
+        segmentKind,
+      });
+    }
+    cursor += words.length;
+  }
+  return result.length ? result : null;
+}
 export function buildVideoTitle(input) {
   const productTitle = String(input.productTitle || "Produto de tecnologia").trim();
   const hook = String(input.hook || "").trim().replace(/[.!?]+$/, "");
