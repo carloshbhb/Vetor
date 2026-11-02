@@ -13,7 +13,7 @@ type JsonRecord = Record<string, unknown>;
 type RecoveryRow = {
   list_id: string;
   item_id: string;
-  product_id: string;
+  product_id: string | null;
   title: string;
   product_url: string;
   image_url: string | null;
@@ -202,7 +202,7 @@ async function recoverOneProduct(productId: string, token: string): Promise<
         row: {
           list_id: ML_SOCIAL_LIST_ID,
           item_id: itemId,
-          product_id: asString(item.catalog_product_id) || productId,
+          product_id: asString(item.catalog_product_id) || (product ? productId : null),
           title: asString(item.title) || asString(product?.name) || ("Produto Mercado Livre " + productId),
           product_url: asString(item.permalink) || asString(product?.permalink) || ("https://www.mercadolivre.com.br/p/" + productId),
           image_url: firstPicture(item.pictures) || asString(item.thumbnail) || firstPicture(product?.pictures),
