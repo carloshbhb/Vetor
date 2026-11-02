@@ -683,6 +683,24 @@ export async function POST(request: NextRequest) {
       .eq("id", syncId);
     if (finishError) throw new Error("Produtos gravados, mas o histórico não foi finalizado: " + finishError.message);
 
+    const diagnosticLines = [
+      "DIAGNÓSTICO DA APLICAÇÃO",
+      "App ID configurado: " + (applicationPermissions.applicationId || oauthGrant.configuredApplicationId || "não identificado"),
+      "Aplicação ativa: " + (applicationPermissions.active === null ? "não informado" : applicationPermissions.active ? "sim" : "não"),
+      "Site da aplicação: " + (applicationPermissions.siteId || "não informado"),
+      "Status de certificação: " + (applicationPermissions.certificationStatus || "não informado"),
+      "DIAGNÓSTICO DO GRANT OAUTH",
+      "App ID configurado autorizado pelo usuário: " + (oauthGrant.configuredApplicationAuthorized === null ? "não verificado" : oauthGrant.configuredApplicationAuthorized ? "sim" : "não"),
+      "IDs de aplicações autorizadas: " + (oauthGrant.authorizedApplicationIds.join(", ") || "não retornados"),
+      "Escopos efetivos do token: " + (oauthGrant.tokenScopes.join(", ") || "não retornados"),
+      "Escopos do grant do usuário: " + (oauthGrant.grantScopes.join(", ") || "não retornados"),
+      "Publication & Sync com leitura no token: " + (oauthGrant.tokenHasPublicationReadScope ? "sim" : "não"),
+      "Escopos Mercado Pago no token: " + (oauthGrant.tokenHasMercadoPagoScopes ? "sim" : "não"),
+      "Status do usuário ML: " + (oauthGrant.userSiteStatus || "não informado"),
+      ...(applicationPermissions.message ? ["Detalhe da aplicação: " + applicationPermissions.message] : []),
+      ...(oauthGrant.message ? ["Detalhe do grant: " + oauthGrant.message] : []),
+    ];
+
     return NextResponse.json({
       ok: true,
       source: "official_bookmarks_plus_catalog_api",
@@ -700,7 +718,7 @@ export async function POST(request: NextRequest) {
       stillMissing,
       missingProductIds: stillMissingIds,
       unresolvedCount: issueLines.length,
-      unresolved: issueLines.slice(0, 50),
+      unresolved: [...issueLines.slice(0, 35), ...diagnosticLines],
       diagnostics: {
         policyBlockedCount: policyBlockedIds.length,
         policyBlockedIds,
