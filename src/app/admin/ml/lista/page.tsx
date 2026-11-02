@@ -58,6 +58,7 @@ export default function MercadoLivreSocialListPage() {
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [recoveryDetails, setRecoveryDetails] = useState<string[]>([]);
 
   const load = useCallback(async (nextPage = 1, q = "") => {
     setLoading(true);
@@ -82,6 +83,7 @@ export default function MercadoLivreSocialListPage() {
     setSyncing(true);
     setError("");
     setNotice("");
+    setRecoveryDetails([]);
     try {
       const response = await fetch("/api/admin/mercadolivre/social-list", { method: "POST" });
       const payload = await response.json().catch(() => ({}));
@@ -100,11 +102,13 @@ export default function MercadoLivreSocialListPage() {
     setRecovering(true);
     setError("");
     setNotice("");
+    setRecoveryDetails([]);
     try {
       const response = await fetch("/api/admin/mercadolivre/social-list/recover", { method: "POST" });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Não foi possível recuperar os produtos ausentes.");
       setNotice(payload.message || "Recuperação da lista concluída.");
+      setRecoveryDetails(Array.isArray(payload.unresolved) ? payload.unresolved.filter((value: unknown): value is string => typeof value === "string").slice(0, 20) : []);
       setPage(1);
       await load(1, search);
     } catch (err) {
@@ -167,6 +171,14 @@ export default function MercadoLivreSocialListPage() {
 
       {error && <div className="rounded-xl border border-[var(--red)]/30 bg-[var(--red)]/5 px-4 py-3 text-sm text-[var(--red)]">{error}</div>}
       {notice && <div className="rounded-xl border border-[var(--green)]/30 bg-[var(--green)]/5 px-4 py-3 text-sm text-[var(--green)]">{notice}</div>}
+      {recoveryDetails.length > 0 && (
+        <section className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber)]/5 p-4">
+          <p className="text-sm font-bold text-[var(--amber)]">Detalhes dos itens ainda não resolvidos</p>
+          <ul className="mt-2 space-y-1 text-xs leading-5 text-[var(--muted)]">
+            {recoveryDetails.map((detail, index) => <li key={index}>{detail}</li>)}
+          </ul>
+        </section>
+      )}
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="rounded-2xl border border-border bg-[var(--surface)] p-5">
