@@ -121,51 +121,67 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
     }
     cursor += words.length;
   }
-  // Edge TTS can split a sentence across source segments and leave a final
-  // one-word cue (for example "leva." or "volts.") lasting only ~0.5s.
-  // Fold short fragments into an adjacent cue of the same track so the viewer
-  // gets a readable phrase without changing the underlying word order.
-  const minReadableDuration = Math.max(1.2, Number(options.minReadableDuration) || 1.2);
-  const maxMergeGap = Math.max(0, Number(options.maxMergeGap) || 0.25);
-  const readable = [];
-  for (const cue of result) {
-    const previous = readable[readable.length - 1];
-    const cueDuration = cue.end - cue.start;
-    const previousDuration = previous ? previous.end - previous.start : 0;
-    const gap = previous ? cue.start - previous.end : Infinity;
-    if (
-      previous &&
-      cue.segmentKind === previous.segmentKind &&
-      cueDuration < minReadableDuration &&
-      cue.text.replace(/\n/g, " ").trim().split(/\s+/).length === 1 &&
-      gap <= maxMergeGap &&
-      previousDuration + cueDuration <= 7
-    ) {
-      previous.end = cue.end;
-      previous.text = wrapCaptionWords(
-        (previous.text + " " + cue.text).replace(/\s+/g, " ").split(" "),
-        maxLineChars
-      );
+  // Edge TTS word boundaries can leave short tail cues or split a phrase around a natural pause.
+  // Merge adjacent same-track cues until each beat has enough on-screen time to be read.
+  // remotion-qa uses: longest line / 15 chars per second + 0.4s per extra line + 1s.
+  const maxMergeGap = Number.isFinite(Number(options.maxMergeGap))
+    ? Math.max(0, Number(options.maxMergeGap))
+    : 0.9;
+  const maxMergeSpan = Number.isFinite(Number(options.maxMergeSpan))
+    ? Math.max(2, Number(options.maxMergeSpan))
+    : 7;
+  const requiredCaptionSeconds = (text) => {
+    const lines = String(text || "").split(/\\r?\\n/);
+    const longestLine = lines.reduce((max, line) => Math.max(max, line.length), 0);
+    return longestLine / 15 + Math.max(0, lines.length - 1) * 0.4 + 1;
+  };
+  const readable = result.map((cue) => ({ ...cue }));
+  let cueIndex = 0;
+  while (cueIndex < readable.length) {
+    const cue = readable[cueIndex];
+    const duration = cue.end - cue.start;
+    if (duration + 0.02 >= requiredCaptionSeconds(cue.text)) {
+      cueIndex += 1;
       continue;
     }
-    readable.push({ ...cue });
-  }
 
-  // A short first cue has no previous neighbor; merge it forward when safe.
-  if (readable.length > 1 && readable[0].end - readable[0].start < minReadableDuration) {
-    const first = readable[0];
-    const next = readable[1];
-    const gap = next.start - first.end;
-    if (first.segmentKind === next.segmentKind && gap <= maxMergeGap &&
-        first.text.replace(/\n/g, " ").trim().split(/\s+/).length === 1 &&
-        next.end - first.start <= 7) {
-      next.start = first.start;
-      next.text = wrapCaptionWords(
-        (first.text + " " + next.text).replace(/\s+/g, " ").split(" "),
+    const previous = readable[cueIndex - 1];
+    const next = readable[cueIndex + 1];
+    const previousGap = previous ? cue.start - previous.end : Infinity;
+    const nextGap = next ? next.start - cue.end : Infinity;
+    const canMergePrevious = Boolean(
+      previous &&
+      cue.segmentKind === previous.segmentKind &&
+      previousGap <= maxMergeGap &&
+      cue.end - previous.start <= maxMergeSpan
+    );
+    const canMergeNext = Boolean(
+      next &&
+      cue.segmentKind === next.segmentKind &&
+      nextGap <= maxMergeGap &&
+      next.end - cue.start <= maxMergeSpan
+    );
+
+    if (canMergePrevious) {
+      previous.end = Math.max(previous.end, cue.end);
+      previous.text = wrapCaptionWords(
+        (previous.text + " " + cue.text).replace(/\\s+/g, " ").trim().split(" "),
         maxLineChars
       );
-      readable.shift();
+      readable.splice(cueIndex, 1);
+      cueIndex = Math.max(0, cueIndex - 1);
+      continue;
     }
+    if (canMergeNext) {
+      next.start = Math.min(next.start, cue.start);
+      next.text = wrapCaptionWords(
+        (cue.text + " " + next.text).replace(/\\s+/g, " ").trim().split(" "),
+        maxLineChars
+      );
+      readable.splice(cueIndex, 1);
+      continue;
+    }
+    cueIndex += 1;
   }
 
   return readable.length ? readable : null;
