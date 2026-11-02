@@ -35,31 +35,56 @@ const exactSegments = [
 const exactWords = exactSegments.flatMap((segment) => segment.text.split(/\s+/));
 const exactBoundaries = exactWords.map((word, index) => ({
   type: "WordBoundary",
-  offset: index * 350_000 + 100_000,
-  duration: 220_000,
+  offset: index * 6_000_000 + 100_000,
+  duration: 3_000_000,
   text: word,
 }));
 const exactCaptions = buildTimedCaptionEntries(exactSegments, exactBoundaries, { maxWords: 3 });
 assert.ok(exactCaptions);
 assert.equal(exactCaptions[0].segmentKind, "hook");
 assert.ok(Math.abs(exactCaptions[0].start - 0.01) < 0.000001);
-assert.ok(Math.abs(exactCaptions[0].end - 0.102) < 0.000001);
+assert.ok(Math.abs(exactCaptions[0].end - 1.51) < 0.000001);
 const sceneCues = exactCaptions.filter((entry) => entry.segmentKind === "scene");
-assert.equal(sceneCues.length, 2);
-assert.ok(Math.abs(sceneCues[0].start - 0.115) < 0.000001);
+assert.equal(sceneCues.length, 1);
+assert.equal(sceneCues[0].text.replace(/\n/g, " "), "Tela AMOLED de 120 Hz");
+assert.ok(Math.abs(sceneCues[0].start - 1.81) < 0.000001);
+assert.ok(sceneCues[0].end - sceneCues[0].start >= sceneCues[0].text.length / 15 + 1);
 assert.equal(exactCaptions[exactCaptions.length - 1].segmentKind, "cta");
 
 const fragmentCaptions = buildTimedCaptionEntries(
   [{ kind: "scene", text: "leva." }, { kind: "scene", text: "volts." }],
   [
-    { type: "WordBoundary", offset: 0, duration: 5_000_000, text: "leva." },
-    { type: "WordBoundary", offset: 5_200_000, duration: 5_000_000, text: "volts." },
+    { type: "WordBoundary", offset: 0, duration: 11_000_000, text: "leva." },
+    { type: "WordBoundary", offset: 11_200_000, duration: 11_000_000, text: "volts." },
   ],
   { maxWords: 5 }
 );
 assert.equal(fragmentCaptions.length, 1);
 assert.equal(fragmentCaptions[0].text, "leva. volts.");
-assert.ok(fragmentCaptions[0].end - fragmentCaptions[0].start >= 1);
+assert.ok(fragmentCaptions[0].end - fragmentCaptions[0].start >= 1.8);
+
+const shortTailCaptions = buildTimedCaptionEntries(
+  [
+    { kind: "scene", text: "Confira a porção da pipoca" },
+    { kind: "scene", text: "milho por ciclo." },
+  ],
+  [
+    { type: "WordBoundary", offset: 0, duration: 4_000_000, text: "Confira" },
+    { type: "WordBoundary", offset: 4_500_000, duration: 4_000_000, text: "a" },
+    { type: "WordBoundary", offset: 9_000_000, duration: 4_000_000, text: "porção" },
+    { type: "WordBoundary", offset: 13_500_000, duration: 4_000_000, text: "da" },
+    { type: "WordBoundary", offset: 18_000_000, duration: 4_000_000, text: "pipoca" },
+    { type: "WordBoundary", offset: 28_000_000, duration: 4_000_000, text: "milho" },
+    { type: "WordBoundary", offset: 32_500_000, duration: 4_000_000, text: "por" },
+    { type: "WordBoundary", offset: 37_000_000, duration: 4_000_000, text: "ciclo." },
+  ],
+  { maxWords: 5, maxLineChars: 34 }
+);
+assert.equal(shortTailCaptions.length, 1);
+assert.equal(shortTailCaptions[0].text.replace(/\n/g, " "), "Confira a porção da pipoca milho por ciclo.");
+const tailLines = shortTailCaptions[0].text.split(/\n/);
+const tailRequired = Math.max(...tailLines.map((line) => line.length)) / 15 + (tailLines.length - 1) * 0.4 + 1;
+assert.ok(shortTailCaptions[0].end - shortTailCaptions[0].start >= tailRequired);
 
 assert.equal(buildTimedCaptionEntries(exactSegments, exactBoundaries.slice(1), { maxWords: 3 }), null);
 const wrappedCaptions = buildTimedCaptionEntries(
