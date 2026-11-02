@@ -46,7 +46,7 @@ assert.ok(Math.abs(exactCaptions[0].start - 0.01) < 0.000001);
 assert.ok(Math.abs(exactCaptions[0].end - 0.102) < 0.000001);
 const sceneCues = exactCaptions.filter((entry) => entry.segmentKind === "scene");
 assert.equal(sceneCues.length, 1);
-assert.equal(sceneCues[0].text.replace(/\\n/g, " "), "Tela AMOLED de 120 Hz");
+assert.equal(sceneCues[0].text.replace(/\n/g, " "), "Tela AMOLED de 120 Hz");
 assert.ok(Math.abs(sceneCues[0].start - 0.115) < 0.000001);
 assert.equal(exactCaptions[exactCaptions.length - 1].segmentKind, "cta");
 
@@ -80,7 +80,7 @@ const shortTailCaptions = buildTimedCaptionEntries(
   { maxWords: 10, maxLineChars: 34 }
 );
 assert.equal(shortTailCaptions.length, 1);
-assert.equal(shortTailCaptions[0].text.replace(/\\n/g, " "), "Confira a porção da pipoca milho por ciclo.");
+assert.equal(shortTailCaptions[0].text.replace(/\n/g, " "), "Confira a porção da pipoca milho por ciclo.");
 assert.ok(shortTailCaptions[0].end - shortTailCaptions[0].start >= 3.2);
 
 assert.equal(buildTimedCaptionEntries(exactSegments, exactBoundaries.slice(1), { maxWords: 3 }), null);
