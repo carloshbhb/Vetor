@@ -812,7 +812,7 @@ async function processVideo(video) {
           return timed;
         }
         console.warn("[CAPTIONS] Edge TTS não retornou sequência 1:1 de palavras; fallback de temporização por segmento.");
-        return buildCaptionEntries(narrationTimings, videoFormat === "long" ? 18 : 100);
+        return buildCaptionEntries(narrationTimings, videoFormat === "long" ? 9 : 10, { maxLineChars: videoFormat === "long" ? 48 : 34 });
       })(),
       productImages,
       brollVideos,
