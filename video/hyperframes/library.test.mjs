@@ -21,6 +21,11 @@ assert.ok(html.includes('data-track-index="100"'));
 assert.ok(
   html.includes("top:330px;right:240px;bottom:390px;left:145px;"),
   "Shorts footage must stay inside the safe frame so moving B-roll cannot be mistaken for platform-UI intrusion"
+
+assert.ok(
+  html.includes(".ambient-orb{position:absolute;width:58%;height:28%;left:21%;top:21%;"),
+  "ambient glow must remain inside all four Shorts safe-zone insets when scaled"
+);
 );
 assert.ok(html.includes('src="./assets/gsap.min.js"'));
 assert.ok(html.includes("caption-0-word-0"));
