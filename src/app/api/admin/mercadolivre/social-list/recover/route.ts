@@ -93,6 +93,9 @@ type OAuthGrantDiagnostics = {
   configuredApplicationAuthorized: boolean | null;
   authorizedApplicationIds: string[];
   grantScopes: string[];
+  hasMercadoPagoScopes: boolean | null;
+  hasPublicationReadScope: boolean | null;
+  hasPublicationWriteScope: boolean | null;
   userSiteStatus: string | null;
   status?: number;
   message?: string;
@@ -164,6 +167,9 @@ async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> 
       configuredApplicationAuthorized: null,
       authorizedApplicationIds: [],
       grantScopes: [],
+      hasMercadoPagoScopes: null,
+      hasPublicationReadScope: null,
+      hasPublicationWriteScope: null,
       userSiteStatus: null,
       status: meResponse.status,
       message: meResponse.details || "Não foi possível validar o usuário associado ao token.",
@@ -182,6 +188,9 @@ async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> 
       configuredApplicationAuthorized: null,
       authorizedApplicationIds: [],
       grantScopes: [],
+      hasMercadoPagoScopes: null,
+      hasPublicationReadScope: null,
+      hasPublicationWriteScope: null,
       userSiteStatus,
       message: "A API não retornou o ID do usuário associado ao token.",
     };
@@ -208,12 +217,14 @@ async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> 
   const rows = Array.isArray(response.data)
     ? response.data.map(asRecord).filter((row): row is JsonRecord => Boolean(row))
     : [];
+  const getAuthorizedAppId = (row: JsonRecord) => {
+    const value = row.app_id ?? row.id;
+    return asString(value) || (asNumber(value) != null ? String(asNumber(value)) : null);
+  };
   const authorizedApplicationIds = rows
-    .map((row) => asString(row.app_id) || asString(row.id))
+    .map(getAuthorizedAppId)
     .filter((id): id is string => Boolean(id));
-  const grant = rows.find((row) =>
-    (asString(row.app_id) || asString(row.id)) === applicationId,
-  );
+  const grant = rows.find((row) => getAuthorizedAppId(row) === applicationId);
   const rawGrantScopes = grant?.scopes ?? grant?.scope;
   const grantScopes = Array.isArray(rawGrantScopes)
     ? rawGrantScopes.map((scope) => String(scope).trim()).filter(Boolean)
@@ -228,6 +239,9 @@ async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> 
     configuredApplicationAuthorized: applicationId ? Boolean(grant) : null,
     authorizedApplicationIds,
     grantScopes,
+    hasMercadoPagoScopes: grantScopes.some((scope) => scope.startsWith("urn:mp:")),
+    hasPublicationReadScope: grantScopes.some((scope) => scope.includes("publish-sync") && scope.includes("read-only")),
+    hasPublicationWriteScope: grantScopes.some((scope) => scope.includes("publish-sync") && scope.includes("read-write")),
     userSiteStatus,
   };
 }
