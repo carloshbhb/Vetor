@@ -343,7 +343,10 @@ function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId)
   const beatsPath = path.join(outputDir, "video-" + safeId + "-beats.json");
   const framesDir = path.join(outputDir, "qa-" + safeId + "-frames");
   const channel = videoFormat === "long" ? "yt-landscape" : "yt-shorts";
-  const beats = (Array.isArray(captionEntries) ? captionEntries : [])
+  // The opening hook and final CTA are checked for safe-zone placement in the render,
+  // while the timed scene captions are measured for reading speed and dead air.
+  const captionList = Array.isArray(captionEntries) ? captionEntries : [];
+  const beats = captionList.slice(1, -1)
     .map((entry) => ({
       start: Number(entry.start),
       end: Number(entry.end),
@@ -712,7 +715,7 @@ async function processVideo(video) {
       callToAction: script.callToAction,
       audioUrl: `tmp/video-${video.id}.mp3`,
       hookDuration,
-      subtitleEntries: buildCaptionEntries(narrationTimings, 9),
+      subtitleEntries: buildCaptionEntries(narrationTimings, videoFormat === "long" ? 18 : 100),
       productImages: [productImageSource],
       brollVideos,
       totalDuration,

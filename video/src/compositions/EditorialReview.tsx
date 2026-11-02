@@ -216,7 +216,6 @@ const FeatureScene: React.FC<{
   visual: SceneVisualPlan;
 }> = ({ scene, index, count, category, imageUrl, brollUrl, visual }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
   const durationFrames = Math.max(1, scene.endFrame - scene.startFrame);
   const progress = Math.max(0, Math.min(1, frame / durationFrames));
   const phaseFrames = Math.max(1, durationFrames / 3);
@@ -226,9 +225,20 @@ const FeatureScene: React.FC<{
   const label = (scene.visualCue || category).replace(/[.!?]+$/, '');
   const metric = visual.mode === 'specification' ? extractPrimaryMetric(scene.text) : null;
   const showBroll = Boolean(brollUrl) && (phase === 1 || (visual.mode === 'lifestyle' && phase === 2));
-  const panDirection = visual.motion === 'pan-left' || visual.motion === 'tilt-left' ? -1 : 1;
-  const drift = interpolate(progress, [0, 1], [64 * panDirection, -64 * panDirection]);
-  const zoom = interpolate(progress, [0, 1], [1.01, 1.16]);
+  const isLeftMove = visual.motion === 'pan-left' || visual.motion === 'tilt-left';
+  const isRightMove = visual.motion === 'pan-right' || visual.motion === 'tilt-right';
+  const drift = isLeftMove
+    ? interpolate(progress, [0, 1], [72, -72])
+    : isRightMove
+      ? interpolate(progress, [0, 1], [-72, 72])
+      : visual.motion === 'float'
+        ? Math.sin(progress * Math.PI * 2) * 18
+        : 0;
+  const zoom = visual.motion === 'push-in'
+    ? interpolate(progress, [0, 1], [1.01, 1.18])
+    : visual.motion === 'float'
+      ? interpolate(progress, [0, 1], [1.04, 1.09])
+      : interpolate(progress, [0, 1], [1.12, 1.03]);
   const tilt = visual.motion === 'tilt-left' ? -2.2 : visual.motion === 'tilt-right' ? 2.2 : 0;
   const imageLayout = phase === 0
     ? { left: 130, top: 690, width: 820, height: 650 }
@@ -333,26 +343,6 @@ const FeatureScene: React.FC<{
         >
           <div style={{ fontSize: 24, fontWeight: 850, letterSpacing: 2, color: colors.cyan }}>VALOR E CONDIÇÕES</div>
           <div style={{ marginTop: 8, fontSize: 38, fontWeight: 900 }}>Confira o anúncio atualizado</div>
-        </div>
-      ) : null}
-
-      {visual.mode === 'tradeoff' ? (
-        <div
-          style={{
-            position: 'absolute',
-            top: 610,
-            left: 190,
-            padding: '18px 26px',
-            borderRadius: 16,
-            background: 'rgba(15,22,35,.95)',
-            border: '1px solid rgba(255,184,92,.52)',
-            color: colors.amber,
-            fontSize: 28,
-            fontWeight: 900,
-            letterSpacing: 1.4,
-          }}
-        >
-          PONTO DE ATENÇÃO
         </div>
       ) : null}
 
