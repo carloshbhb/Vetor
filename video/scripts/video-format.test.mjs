@@ -26,6 +26,22 @@ assert.equal(captions[0].text, "Um dois três quatro cinco");
 assert.equal(captions[1].text, "seis sete oito nove dez");
 assert.ok(captions[0].start >= 10 && captions[1].end <= 20);
 assert.ok(Math.abs(captions[0].end - captions[1].start) < 0.0001);
+const fallbackReadableCaptions = buildCaptionEntries(
+  [{ kind: "scene", start: 20, end: 29, text: "Confira a porção da pipoca milho por ciclo." }],
+  5,
+  { maxLineChars: 34 }
+);
+assert.equal(fallbackReadableCaptions.length, 2);
+assert.equal(fallbackReadableCaptions[0].text, "Confira a porção da pipoca");
+assert.equal(fallbackReadableCaptions[1].text, "milho por ciclo.");
+for (const cue of fallbackReadableCaptions) {
+  const lines = cue.text.split(/\n/);
+  const required = Math.max(...lines.map((line) => line.length)) / 15 + (lines.length - 1) * 0.4 + 1;
+  assert.ok(cue.end - cue.start >= required, "fallback caption must meet QA reading-time requirement");
+}
+assert.ok(Math.abs(fallbackReadableCaptions[0].start - 20) < 0.0001);
+assert.ok(Math.abs(fallbackReadableCaptions[1].end - 29) < 0.0001);
+
 
 const exactSegments = [
   { kind: "hook", text: "Veja este detalhe" },
