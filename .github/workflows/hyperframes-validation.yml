@@ -56,3 +56,6 @@ jobs:
 
       - name: Render and validate sample MP4
         run: node video/hyperframes/smoke-render.mjs
+      - name: Install selected official HyperFrames catalog blocks
+        working-directory: video
+        run: npm run hyperframes:catalog
