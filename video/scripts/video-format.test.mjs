@@ -82,7 +82,7 @@ const shortTailCaptions = buildTimedCaptionEntries(
 );
 assert.equal(shortTailCaptions.length, 1);
 assert.equal(shortTailCaptions[0].text.replace(/\n/g, " "), "Confira a porção da pipoca milho por ciclo.");
-const tailLines = shortTailCaptions[0].text.split(/\\n/);
+const tailLines = shortTailCaptions[0].text.split(/\n/);
 const tailRequired = Math.max(...tailLines.map((line) => line.length)) / 15 + (tailLines.length - 1) * 0.4 + 1;
 assert.ok(shortTailCaptions[0].end - shortTailCaptions[0].start >= tailRequired);
 
