@@ -83,7 +83,7 @@ export const RemotionRoot = () => {
             endFrame: 90 + (index + 1) * 900,
           })),
           callToAction: 'Confira o preço atual e leia o review completo antes de comprar.',
-          audioUrl: '/audio/sample.mp3',
+          audioUrl: '/audio/sample-review.mp3',
           subtitleEntries: [],
           productImages: ['/assets/redmi-pad-2-pro-hero.png'],
           brollVideos: [],
@@ -119,7 +119,7 @@ export const RemotionRoot = () => {
             { id: 5, text: '', duration: 5, visualCue: 'Coroa no vencedor', brollKeywords: ['winner'], startFrame: 990, endFrame: 1140, type: 'verdict' },
           ],
           callToAction: 'Confira a análise completa!',
-          audioUrl: '/audio/sample.mp3',
+          audioUrl: '/audio/sample-comparison.mp3',
           subtitleEntries: [
             { start: 0, end: 3, text: 'Galaxy S24 vs iPhone 15 - qual comprar em 2026?' },
             { start: 3, end: 11, text: 'Galaxy S24: tela incrível, câmera versátil, S Pen opcional.' },
