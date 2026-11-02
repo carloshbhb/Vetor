@@ -35,17 +35,34 @@ function parseCount(value: string | null | undefined): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function extractItemId(href: string): string {
+  try {
+    const url = new URL(href);
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+    const productId = url.pathname.match(/\/p\/(MLB\d+)/i)?.[1] || null;
+    return (url.searchParams.get("wid") || hashParams.get("wid") || productId || href.match(/\bMLB\d{6,}\b/i)?.[0] || "").toUpperCase();
+  } catch {
+    return "";
+  }
+}
+
 export function parseSocialListPage(html: string, pageNumber: number): MLSocialListItem[] {
   const document = new JSDOM(html).window.document;
   const cards = Array.from(document.querySelectorAll(".aff-social-polycard__container .poly-card"));
   const now = new Date().toISOString();
   const items: MLSocialListItem[] = [];
+  const seen = new Set<string>();
 
   for (const card of cards) {
-    const anchor = card.querySelector<HTMLAnchorElement>("a.poly-component__title");
-    const title = anchor?.textContent?.trim() || "";
+    const anchor = card.querySelector<HTMLAnchorElement>("a.poly-component__title") ||
+      card.querySelector<HTMLAnchorElement>('a[href*="MLB"]');
+    const title = anchor?.textContent?.trim() || anchor?.getAttribute("aria-label")?.trim() || "";
     const href = anchor?.href || "";
     if (!title || !href) continue;
+
+    const itemId = extractItemId(href);
+    if (!/^MLB\d+$/i.test(itemId) || seen.has(itemId)) continue;
+    seen.add(itemId);
 
     let url: URL;
     try {
@@ -54,11 +71,9 @@ export function parseSocialListPage(html: string, pageNumber: number): MLSocialL
       continue;
     }
 
-    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
     const productId = url.pathname.match(/\/p\/(MLB\d+)/i)?.[1] || null;
-    const itemId = url.searchParams.get("wid") || hashParams.get("wid") || productId || href.match(/\bMLB\d{6,}\b/i)?.[0] || "";
-    if (!/^MLB\d+$/i.test(itemId)) continue;
-    const image = card.querySelector<HTMLImageElement>(".poly-component__picture");
+    const image = card.querySelector<HTMLImageElement>(".poly-component__picture") ||
+      card.querySelector<HTMLImageElement>("img");
     const currentPrice = card.querySelector(".poly-price__current");
     const previousPrice = card.querySelector(".poly-price__previous");
     const ratingText = card.querySelector(".poly-reviews__rating")?.textContent?.trim() || "";
@@ -67,11 +82,11 @@ export function parseSocialListPage(html: string, pageNumber: number): MLSocialL
 
     items.push({
       list_id: ML_SOCIAL_LIST_ID,
-      item_id: itemId.toUpperCase(),
+      item_id: itemId,
       product_id: productId?.toUpperCase() || null,
       title,
       product_url: url.toString(),
-      image_url: image?.getAttribute("src") || image?.getAttribute("data-src") || null,
+      image_url: image?.getAttribute("src") || image?.getAttribute("data-src") || image?.getAttribute("data-lazy") || null,
       price: moneyFrom(currentPrice),
       original_price: moneyFrom(previousPrice),
       rating: Number.isFinite(rating) && rating > 0 ? rating : null,
@@ -108,6 +123,43 @@ async function fetchListPage(pageNumber: number): Promise<{ status: number; html
   return { status: response.status, html: response.ok ? await response.text() : "" };
 }
 
+export async function diagnosePublicSocialList(): Promise<{
+  expectedTotal: number | null;
+  pages: Array<{ page: number; status: number; htmlLength: number; cards: number; titleAnchors: number; mlAnchors: number; parsed: number; sampleUnmatchedLinks: string[] }>;
+}> {
+  const pages: Array<{ page: number; status: number; htmlLength: number; cards: number; titleAnchors: number; mlAnchors: number; parsed: number; sampleUnmatchedLinks: string[] }> = [];
+  let expectedTotal: number | null = null;
+
+  for (let page = 1; page <= 30; page += 1) {
+    const response = await fetchListPage(page);
+    if (response.status === 404 && page > 1) break;
+    if (response.status !== 200) {
+      pages.push({ page, status: response.status, htmlLength: response.html.length, cards: 0, titleAnchors: 0, mlAnchors: 0, parsed: 0, sampleUnmatchedLinks: [] });
+      break;
+    }
+
+    if (page === 1) expectedTotal = parseSocialListTotal(response.html);
+    const document = new JSDOM(response.html).window.document;
+    const cards = Array.from(document.querySelectorAll(".aff-social-polycard__container .poly-card"));
+    const titleAnchors = document.querySelectorAll("a.poly-component__title").length;
+    const mlAnchors = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href*="MLB"]'));
+    const parsed = parseSocialListPage(response.html, page);
+    const parsedIds = new Set(parsed.map((item) => item.item_id));
+    const sampleUnmatchedLinks = mlAnchors
+      .filter((anchor) => {
+        const id = extractItemId(anchor.href);
+        return /^MLB\d+$/i.test(id) && !parsedIds.has(id);
+      })
+      .slice(0, 5)
+      .map((anchor) => (anchor.textContent || anchor.getAttribute("aria-label") || "").trim().slice(0, 100) + " | " + anchor.href.slice(0, 220));
+
+    pages.push({ page, status: response.status, htmlLength: response.html.length, cards: cards.length, titleAnchors, mlAnchors: mlAnchors.length, parsed: parsed.length, sampleUnmatchedLinks });
+    if (page > 1 && parsed.length === 0 && cards.length === 0 && mlAnchors.length === 0) break;
+  }
+
+  return { expectedTotal, pages };
+}
+
 export async function fetchPublicSocialList(): Promise<{
   items: MLSocialListItem[];
   expectedTotal: number | null;
@@ -132,7 +184,6 @@ export async function fetchPublicSocialList(): Promise<{
       if (!existing || item.page_number < existing.page_number) byItemId.set(item.item_id, item);
     }
 
-    // O endpoint público pagina a lista; uma página sem cards encerra a leitura.
     if (page > 1 && parsed.length === 0) break;
   }
 
