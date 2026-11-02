@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { JSDOM } from "jsdom";
 import { verifyAdminAuth } from "@/lib/admin-auth";
-import { getValidAccessToken } from "@/lib/mercadolivre-auth";
+import { getSessionInfo, getValidAccessToken } from "@/lib/mercadolivre-auth";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 import { ML_SOCIAL_LIST_ID } from "@/lib/mercadolivre-social-list";
 
@@ -93,9 +93,13 @@ type OAuthGrantDiagnostics = {
   configuredApplicationAuthorized: boolean | null;
   authorizedApplicationIds: string[];
   grantScopes: string[];
-  hasMercadoPagoScopes: boolean | null;
-  hasPublicationReadScope: boolean | null;
-  hasPublicationWriteScope: boolean | null;
+  grantHasMercadoPagoScopes: boolean | null;
+  grantHasPublicationReadScope: boolean | null;
+  grantHasPublicationWriteScope: boolean | null;
+  tokenScopes: string[];
+  tokenHasMercadoPagoScopes: boolean;
+  tokenHasPublicationReadScope: boolean;
+  tokenHasPublicationWriteScope: boolean;
   userSiteStatus: string | null;
   status?: number;
   message?: string;
@@ -158,6 +162,11 @@ async function inspectApplicationPermissions(token: string): Promise<Application
 
 async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> {
   const applicationId = process.env.ML_CLIENT_ID?.trim() || null;
+  const session = await getSessionInfo();
+  const tokenScopes = (session?.scope || "").split(/[\\s,]+/).map((scope) => scope.trim()).filter(Boolean);
+  const tokenHasMercadoPagoScopes = tokenScopes.some((scope) => scope.startsWith("urn:mp:"));
+  const tokenHasPublicationReadScope = tokenScopes.some((scope) => scope.includes("publish-sync") && scope.includes("read-only"));
+  const tokenHasPublicationWriteScope = tokenScopes.some((scope) => scope.includes("publish-sync") && scope.includes("read-write"));
   const meResponse = await requestMlJson("https://api.mercadolibre.com/users/me", token);
   if (!meResponse.ok) {
     return {
@@ -167,9 +176,13 @@ async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> 
       configuredApplicationAuthorized: null,
       authorizedApplicationIds: [],
       grantScopes: [],
-      hasMercadoPagoScopes: null,
-      hasPublicationReadScope: null,
-      hasPublicationWriteScope: null,
+      grantHasMercadoPagoScopes: null,
+      grantHasPublicationReadScope: null,
+      grantHasPublicationWriteScope: null,
+      tokenScopes,
+      tokenHasMercadoPagoScopes,
+      tokenHasPublicationReadScope,
+      tokenHasPublicationWriteScope,
       userSiteStatus: null,
       status: meResponse.status,
       message: meResponse.details || "Não foi possível validar o usuário associado ao token.",
@@ -188,9 +201,13 @@ async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> 
       configuredApplicationAuthorized: null,
       authorizedApplicationIds: [],
       grantScopes: [],
-      hasMercadoPagoScopes: null,
-      hasPublicationReadScope: null,
-      hasPublicationWriteScope: null,
+      grantHasMercadoPagoScopes: null,
+      grantHasPublicationReadScope: null,
+      grantHasPublicationWriteScope: null,
+      tokenScopes,
+      tokenHasMercadoPagoScopes,
+      tokenHasPublicationReadScope,
+      tokenHasPublicationWriteScope,
       userSiteStatus,
       message: "A API não retornou o ID do usuário associado ao token.",
     };
@@ -208,9 +225,13 @@ async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> 
       configuredApplicationAuthorized: null,
       authorizedApplicationIds: [],
       grantScopes: [],
-      hasMercadoPagoScopes: null,
-      hasPublicationReadScope: null,
-      hasPublicationWriteScope: null,
+      grantHasMercadoPagoScopes: null,
+      grantHasPublicationReadScope: null,
+      grantHasPublicationWriteScope: null,
+      tokenScopes,
+      tokenHasMercadoPagoScopes,
+      tokenHasPublicationReadScope,
+      tokenHasPublicationWriteScope,
       userSiteStatus,
       status: response.status,
       message: response.details || "Não foi possível consultar os aplicativos autorizados pelo usuário.",
@@ -242,9 +263,13 @@ async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> 
     configuredApplicationAuthorized: applicationId ? Boolean(grant) : null,
     authorizedApplicationIds,
     grantScopes,
-    hasMercadoPagoScopes: grantScopes.some((scope) => scope.startsWith("urn:mp:")),
-    hasPublicationReadScope: grantScopes.some((scope) => scope.includes("publish-sync") && scope.includes("read-only")),
-    hasPublicationWriteScope: grantScopes.some((scope) => scope.includes("publish-sync") && scope.includes("read-write")),
+    grantHasMercadoPagoScopes: grantScopes.some((scope) => scope.startsWith("urn:mp:")),
+    grantHasPublicationReadScope: grantScopes.some((scope) => scope.includes("publish-sync") && scope.includes("read-only")),
+    grantHasPublicationWriteScope: grantScopes.some((scope) => scope.includes("publish-sync") && scope.includes("read-write")),
+    tokenScopes,
+    tokenHasMercadoPagoScopes,
+    tokenHasPublicationReadScope,
+    tokenHasPublicationWriteScope,
     userSiteStatus,
   };
 }
