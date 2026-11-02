@@ -163,7 +163,7 @@ async function inspectApplicationPermissions(token: string): Promise<Application
 async function inspectOAuthGrant(token: string): Promise<OAuthGrantDiagnostics> {
   const applicationId = process.env.ML_CLIENT_ID?.trim() || null;
   const session = await getSessionInfo();
-  const tokenScopes = (session?.scope || "").split(/[\\s,]+/).map((scope) => scope.trim()).filter(Boolean);
+  const tokenScopes = (session?.scope || "").split(/[\s,]+/).map((scope) => scope.trim()).filter(Boolean);
   const tokenHasMercadoPagoScopes = tokenScopes.some((scope) => scope.startsWith("urn:mp:"));
   const tokenHasPublicationReadScope = tokenScopes.some((scope) => scope.includes("publish-sync") && scope.includes("read-only"));
   const tokenHasPublicationWriteScope = tokenScopes.some((scope) => scope.includes("publish-sync") && scope.includes("read-write"));
