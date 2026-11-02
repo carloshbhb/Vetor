@@ -14,45 +14,21 @@ export function formatYouTubeTimestamp(value) {
     : minutes + ":" + String(remainder).padStart(2, "0");
 }
 
-function wrapCaptionWords(words, maxLineChars = 36) {
-  const lines = [];
-  let line = "";
-  for (const word of words) {
-    const candidate = line ? line + " " + word : word;
-    if (line && candidate.length > maxLineChars) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = candidate;
-    }
-  }
-  if (line) lines.push(line);
-  return lines.join("\n");
-}
-
 export function buildCaptionEntries(segments, maxWords = 7) {
-  const limit = Math.min(100, Math.max(3, Math.floor(Number(maxWords) || 7)));
+  const limit = Math.min(10, Math.max(3, Math.floor(Number(maxWords) || 7)));
   return (Array.isArray(segments) ? segments : []).flatMap((segment) => {
     const words = String(segment?.text || "").trim().split(/\s+/).filter(Boolean);
     const start = Number(segment?.start);
     const end = Number(segment?.end);
     if (!words.length || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
-
-    const chunkCount = Math.ceil(words.length / limit);
-    const baseSize = Math.floor(words.length / chunkCount);
-    const remainder = words.length % chunkCount;
+    const duration = end - start;
     const chunks = [];
-    let cursor = 0;
-    for (let index = 0; index < chunkCount; index += 1) {
-      const size = baseSize + (index < remainder ? 1 : 0);
-      const chunkWords = words.slice(cursor, cursor + size);
-      const from = cursor;
-      cursor += size;
+    for (let index = 0; index < words.length; index += limit) {
+      const next = Math.min(words.length, index + limit);
       chunks.push({
-        start: start + (end - start) * from / words.length,
-        end: start + (end - start) * cursor / words.length,
-        text: wrapCaptionWords(chunkWords),
-        segmentKind: String(segment.kind || "scene"),
+        start: start + duration * index / words.length,
+        end: start + duration * next / words.length,
+        text: words.slice(index, next).join(" "),
       });
     }
     return chunks;
@@ -182,7 +158,7 @@ export function buildVideoDescription(input) {
 
   if (input.format === "short") {
     lines.push(
-      "Em Shorts, links externos na descrição não são clicáveis. Use o link do perfil do canal ou o comentário fixado quando aplicável.",
+      "Em Shorts, links externos na descrição não são clicáveis. Se o endereço não abrir ao tocar, copie o link ou acesse os links disponíveis no perfil do canal.",
     );
   }
   lines.push(

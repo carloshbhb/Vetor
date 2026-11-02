@@ -26,14 +26,6 @@ assert.equal(captions[0].text, "Um dois três quatro cinco");
 assert.equal(captions[1].text, "seis sete oito nove dez");
 assert.ok(captions[0].start >= 10 && captions[1].end <= 20);
 assert.ok(Math.abs(captions[0].end - captions[1].start) < 0.0001);
-const fullSceneCaption = buildCaptionEntries([
-  { start: 3, end: 12, text: "Uma frase com várias palavras que explica os detalhes importantes do produto para a decisão de compra." }
-], 100);
-assert.equal(fullSceneCaption.length, 1);
-assert.ok(fullSceneCaption[0].text.includes("\n"), "long captions should wrap to readable lines");
-assert.equal(fullSceneCaption[0].start, 3);
-assert.equal(fullSceneCaption[0].end, 12);
-
 
 const exactSegments = [
   { kind: "hook", text: "Veja este detalhe" },
@@ -98,6 +90,7 @@ assert.ok(shortDescription.includes(reviewUrl));
 assert.ok(shortDescription.includes("Fones de Ouvido"));
 assert.ok(shortDescription.includes("Cancelamento de ruído"));
 assert.ok(shortDescription.includes("links externos na descrição"));
+assert.ok(shortDescription.includes("não são clicáveis"));
 
 const longComment = buildCtaComment({ format: longFormat, productTitle: "Produto X", purchaseUrl, reviewUrl });
 const shortComment = buildCtaComment({ format: shortFormat, productTitle: "Produto X", purchaseUrl, reviewUrl });

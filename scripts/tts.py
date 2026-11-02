@@ -43,12 +43,12 @@ async def generate_tts(text: str, output_path: str, boundaries_path: Optional[st
 
 async def main():
     if len(sys.argv) < 3:
-        print("Usage: python tts.py <text> <output_path> [word_boundaries_jsonl]", file=sys.stderr)
+        print("Usage: python tts.py <text> <output_path> (optional EDGE_TTS_BOUNDARIES_PATH environment variable)", file=sys.stderr)
         sys.exit(1)
 
     text = sys.argv[1]
     output_path = sys.argv[2]
-    boundaries_path = sys.argv[3] if len(sys.argv) >= 4 and sys.argv[3].strip() else None
+    boundaries_path = os.environ.get("EDGE_TTS_BOUNDARIES_PATH") or None
     result = await generate_tts(text, output_path, boundaries_path)
     print(json.dumps(result, ensure_ascii=False))
 

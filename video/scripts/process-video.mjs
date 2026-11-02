@@ -844,7 +844,7 @@ async function processVideo(video) {
 
     processingStage = 'upload YouTube';
     console.log('   [4/4] Upload para YouTube...');
-    const siteUrl = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
+
     const reviewUrl = (typeof video.review_url === 'string' && video.review_url.startsWith('https://'))
       ? video.review_url
       : '';
