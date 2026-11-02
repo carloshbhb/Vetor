@@ -4,7 +4,7 @@ import {
   Audio,
   Img,
   Sequence,
-  Video,
+  OffthreadVideo,
   interpolate,
   useCurrentFrame,
   useVideoConfig,
@@ -181,7 +181,7 @@ const LongFeature: React.FC<{
             opacity: interpolate(phaseProgress, [0, .16, .9, 1], [0, 1, 1, 0], { extrapolateRight: 'clamp' }),
           }}
         >
-          <Video src={brollUrl} muted loop style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'saturate(.88) brightness(.78)' }} />
+          <OffthreadVideo src={brollUrl} muted loop delayRenderTimeoutInMilliseconds={90000} delayRenderRetries={1} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'saturate(.88) brightness(.78)' }} />
         </AbsoluteFill>
       ) : null}
 
