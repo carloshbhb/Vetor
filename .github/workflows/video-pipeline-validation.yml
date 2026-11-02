@@ -1,6 +1,11 @@
 name: Validate Video Pipeline
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "video/**"
+      - ".github/workflows/video-pipeline-validation.yml"
   push:
     branches: [main]
     paths:
