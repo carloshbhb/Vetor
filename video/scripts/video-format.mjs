@@ -121,7 +121,52 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
     }
     cursor += words.length;
   }
-  return result.length ? result : null;
+  // Edge TTS can split a sentence across source segments and leave a final
+  // one-word cue (for example "leva." or "volts.") lasting only ~0.5s.
+  // Fold short fragments into an adjacent cue of the same track so the viewer
+  // gets a readable phrase without changing the underlying word order.
+  const minReadableDuration = Math.max(1.2, Number(options.minReadableDuration) || 1.2);
+  const maxMergeGap = Math.max(0, Number(options.maxMergeGap) || 0.25);
+  const readable = [];
+  for (const cue of result) {
+    const previous = readable[readable.length - 1];
+    const cueDuration = cue.end - cue.start;
+    const previousDuration = previous ? previous.end - previous.start : 0;
+    const gap = previous ? cue.start - previous.end : Infinity;
+    if (
+      previous &&
+      cue.segmentKind === previous.segmentKind &&
+      cueDuration < minReadableDuration &&
+      gap <= maxMergeGap &&
+      previousDuration + cueDuration <= 7
+    ) {
+      previous.end = cue.end;
+      previous.text = wrapCaptionWords(
+        (previous.text + " " + cue.text).replace(/\\s+/g, " ").split(" "),
+        maxLineChars
+      );
+      continue;
+    }
+    readable.push({ ...cue });
+  }
+
+  // A short first cue has no previous neighbor; merge it forward when safe.
+  if (readable.length > 1 && readable[0].end - readable[0].start < minReadableDuration) {
+    const first = readable[0];
+    const next = readable[1];
+    const gap = next.start - first.end;
+    if (first.segmentKind === next.segmentKind && gap <= maxMergeGap &&
+        next.end - first.start <= 7) {
+      next.start = first.start;
+      next.text = wrapCaptionWords(
+        (first.text + " " + next.text).replace(/\\s+/g, " ").split(" "),
+        maxLineChars
+      );
+      readable.shift();
+    }
+  }
+
+  return readable.length ? readable : null;
 }
 export function buildVideoTitle(input) {
   const productTitle = String(input.productTitle || "Produto de tecnologia").trim();
