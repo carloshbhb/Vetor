@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { validateGeneratedViralArticle } from '../src/lib/content-quality';
+import { isValidViralModelResponse } from '../src/lib/generate-viral';
 
 const products = [
   { name: 'Galaxy S24', slug: 'galaxy-s24', imageUrl: 'https://example.com/galaxy-s24.webp' },
@@ -59,5 +60,31 @@ const unsupported = validateGeneratedViralArticle({
   content: articleContent + '<p>Em nossos testes, medimos resultados próprios que não foram documentados.</p>',
 }, { source: 'generator', slug: 'unsupported-comparison' });
 assert.equal(unsupported.ok, false, 'alegações de teste não fornecidas devem ser recusadas');
+
+const generationTopic = {
+  title: validPayload.title,
+  category: validPayload.category,
+  comparisonProducts: products,
+};
+const validModelResponse = JSON.stringify({
+  title: validPayload.title,
+  description: validPayload.description,
+  content: articleContent,
+});
+assert.equal(
+  isValidViralModelResponse(validModelResponse, generationTopic),
+  true,
+  'a resposta completa deve passar pelo validador antes de ser aceita pelo provedor'
+);
+const shortModelResponse = JSON.stringify({
+  title: validPayload.title,
+  description: validPayload.description,
+  content: '<h2>Comparação</h2><p>Galaxy S24 e iPhone 15: qual escolher?</p>',
+});
+assert.equal(
+  isValidViralModelResponse(shortModelResponse, generationTopic),
+  false,
+  'a resposta abaixo de 1.200 palavras deve provocar uma nova tentativa do modelo'
+);
 
 console.log('viral quality tests passed');

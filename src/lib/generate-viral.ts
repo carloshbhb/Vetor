@@ -1,7 +1,7 @@
 import { buildViralPrompt } from './prompt';
 import { seo } from './seo';
 import { chatCompletion } from './llm-provider';
-import { validateGeneratedViralArticle } from './content-quality';
+import { generatedViralQualitySchema, validateGeneratedViralArticle } from './content-quality';
 import type { EditorialBrief } from './prompt';
 import { slugifyEditorialTitle } from './slug';
 
@@ -28,6 +28,44 @@ function buildHeroBars(topic: {
   }));
 }
 
+export function isValidViralModelResponse(
+  response: string,
+  topic: {
+    title: string;
+    category: string;
+    comparisonProducts: Array<{ name: string; slug: string; imageUrl: string; product_url?: string }>;
+  }
+): boolean {
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return false;
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+
+    const title =
+      typeof parsed.title === 'string' && parsed.title.trim() ? parsed.title.trim() : topic.title;
+    const description =
+      typeof parsed.description === 'string' && parsed.description.trim()
+        ? parsed.description.trim()
+        : `Comparativo de ${topic.category} com critérios claros para pesquisar antes da compra.`;
+    const content = typeof parsed.content === 'string' ? parsed.content.trim() : '';
+    const meta = seo(title, description);
+
+    return generatedViralQualitySchema.safeParse({
+      slug: slugifyEditorialTitle(title),
+      title,
+      description,
+      content,
+      category: topic.category,
+      products: topic.comparisonProducts,
+      seo_title: meta.title,
+      seo_description: meta.description,
+    }).success;
+  } catch {
+    return false;
+  }
+}
+
 export async function generateViralArticle(topic: {
   title: string;
   category: string;
@@ -46,7 +84,11 @@ export async function generateViralArticle(topic: {
         'Você é um editor de comparativos do vetor.blog. Responda APENAS em JSON válido, sem texto adicional.',
       userPrompt: prompt,
       temperature: 0.55,
-      maxTokens: 5500,
+      maxTokens: 6500,
+      timeoutMs: 23000,
+      deadlineMs: 47000,
+      maxAttemptsPerModel: 2,
+      validateResponse: (candidate) => isValidViralModelResponse(candidate, topic),
       responseFormat: { type: 'json_object' },
     });
 

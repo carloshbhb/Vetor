@@ -227,15 +227,22 @@ async function main() {
   const modeLinks = testProductId && testProductId !== 'first-eligible'
     ? eligibleLinks.filter((link) => link.id === testProductId)
     : eligibleLinks;
-  const requiredCount = testProductId ? 1 : 2;
+  // A rotina diária pode encontrar zero ou um produto novo. Isso é um no-op legítimo,
+  // não uma falha; o smoke test continua exigindo exatamente um candidato.
+  const requiredCount = testProductId ? 1 : Math.min(2, eligibleLinks.length);
   const toProcess: ProductLink[] = modeLinks
     .filter((link) => isHttpUrl(link.image_url))
     .slice(0, requiredCount);
 
+  if (!testProductId && toProcess.length === 0) {
+    console.log('[landing-generation] Nenhum produto novo elegível; nenhuma LP necessária nesta execução.');
+    return [];
+  }
+
   if (toProcess.length < requiredCount) {
     console.error(testProductId
       ? `[landing-generation] O produto selecionado não está elegível para um teste de LP (ID não encontrado, já possui review/LP ou dados obrigatórios inválidos). Nenhum outro produto será usado.`
-      : `[landing-generation] Apenas ${toProcess.length} produtos com URL de imagem HTTP(S) válida encontrados; são necessários 2.`);
+      : `[landing-generation] Apenas ${toProcess.length} produtos com URL de imagem HTTP(S) válida encontrados; são necessários ${requiredCount}.`);
     process.exitCode = 1;
     return [];
   }

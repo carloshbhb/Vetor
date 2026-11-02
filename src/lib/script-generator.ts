@@ -107,8 +107,8 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
 export function getVideoScriptGenerationBudget() {
   return {
     // Keep two NVIDIA models inside the Vercel route's 60-second execution window.
-    timeoutMs: 27000,
-    deadlineMs: 51000,
+    timeoutMs: 23000,
+    deadlineMs: 47000,
     maxAttemptsPerModel: 1 as const,
   };
 }
@@ -121,7 +121,7 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     systemPrompt: "Você é roteirista editorial de tecnologia do Vetor.blog. Produza roteiro falado, natural, factual e distinto. Responda somente JSON válido.",
     userPrompt: prompt,
     temperature: isLong ? 0.74 : 0.82,
-    maxTokens: isLong ? 3000 : 2200,
+    maxTokens: isLong ? 3000 : 1600,
     ...getVideoScriptGenerationBudget(),
     responseFormat: { type: "json_object" },
     validateResponse: (candidate) => isDistinctScriptResponse(candidate, product),

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { getVideoScriptGenerationBudget } from "../src/lib/script-generator";
 
 const budget = getVideoScriptGenerationBudget();
-assert.equal(budget.timeoutMs, 27_000);
-assert.equal(budget.deadlineMs, 51_000);
+assert.equal(budget.timeoutMs, 23_000);
+assert.equal(budget.deadlineMs, 47_000);
 assert.equal(budget.maxAttemptsPerModel, 1);
 assert.ok(
   budget.deadlineMs - budget.timeoutMs - 7_000 >= 15_000,
