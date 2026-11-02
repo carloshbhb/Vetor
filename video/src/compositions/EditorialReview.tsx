@@ -4,7 +4,7 @@ import {
   Audio,
   Img,
   Sequence,
-  Video,
+  OffthreadVideo,
   interpolate,
   useCurrentFrame,
   useVideoConfig,
@@ -144,7 +144,7 @@ const OpeningScene: React.FC<{
   const { fps } = useVideoConfig();
   const opacity = interpolate(frame, [0, 18], [0, 1], { extrapolateRight: 'clamp' });
   const rise = interpolate(frame, [0, 22], [54, 0], { extrapolateRight: 'clamp' });
-  const scale = interpolate(frame, [0, 3 * fps], [0.96, 1.08], { extrapolateRight: 'clamp' });
+  const scale = interpolate(frame, [0, 3 * fps], [0.96, 1.06], { extrapolateRight: 'clamp' });
 
   return (
     <Background>
@@ -178,10 +178,10 @@ const OpeningScene: React.FC<{
         src={imageUrl}
         style={{
           position: 'absolute',
-          left: 130,
-          top: 690,
-          width: 820,
-          height: 650,
+          left: 210,
+          top: 720,
+          width: 660,
+          height: 560,
           transform: `scale(${scale})`,
         }}
       />
@@ -228,23 +228,23 @@ const FeatureScene: React.FC<{
   const isLeftMove = visual.motion === 'pan-left' || visual.motion === 'tilt-left';
   const isRightMove = visual.motion === 'pan-right' || visual.motion === 'tilt-right';
   const drift = isLeftMove
-    ? interpolate(progress, [0, 1], [72, -72])
+    ? interpolate(progress, [0, 1], [24, -24])
     : isRightMove
-      ? interpolate(progress, [0, 1], [-72, 72])
+      ? interpolate(progress, [0, 1], [-24, 24])
       : visual.motion === 'float'
         ? Math.sin(progress * Math.PI * 2) * 18
         : 0;
   const zoom = visual.motion === 'push-in'
-    ? interpolate(progress, [0, 1], [1.01, 1.18])
+    ? interpolate(progress, [0, 1], [1.01, 1.08])
     : visual.motion === 'float'
-      ? interpolate(progress, [0, 1], [1.04, 1.09])
-      : interpolate(progress, [0, 1], [1.12, 1.03]);
+      ? interpolate(progress, [0, 1], [1.03, 1.06])
+      : interpolate(progress, [0, 1], [1.06, 1.02]);
   const tilt = visual.motion === 'tilt-left' ? -2.2 : visual.motion === 'tilt-right' ? 2.2 : 0;
   const imageLayout = phase === 0
-    ? { left: 130, top: 690, width: 820, height: 650 }
+    ? { left: 210, top: 720, width: 660, height: 560 }
     : phase === 1
-      ? { left: showBroll ? 410 : 275, top: 700, width: showBroll ? 500 : 650, height: 610 }
-      : { left: visual.mode === 'price-check' || visual.mode === 'tradeoff' ? 450 : 185, top: 720, width: 640, height: 570 };
+      ? { left: showBroll ? 410 : 230, top: 700, width: showBroll ? 500 : 620, height: 610 }
+      : { left: 220, top: 720, width: 640, height: 570 };
   const visualLabel = visual.mode === 'price-check'
     ? 'CONFIRA O PREÇO ATUAL'
     : visual.mode === 'tradeoff'
@@ -255,10 +255,12 @@ const FeatureScene: React.FC<{
     <Background>
       <AbsoluteFill style={{ opacity: showBroll ? (visual.mode === 'lifestyle' ? 0.82 : 0.56) : 0 }}>
         {brollUrl ? (
-          <Video
+          <OffthreadVideo
             src={brollUrl}
             muted
             loop
+            delayRenderTimeoutInMilliseconds={90000}
+            delayRenderRetries={1}
             style={{
               width: '100%',
               height: '100%',
@@ -418,7 +420,7 @@ const ClosingScene: React.FC<{
       </div>
       <ProductImage
         src={imageUrl}
-        style={{ position: 'absolute', left: 130, top: 700, width: 820, height: 650, transform: `scale(${scale})` }}
+        style={{ position: 'absolute', left: 210, top: 720, width: 660, height: 560, transform: `scale(${scale})` }}
       />
       <div
         style={{
