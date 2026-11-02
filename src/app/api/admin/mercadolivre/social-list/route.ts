@@ -36,9 +36,14 @@ export async function GET(request: NextRequest) {
 
       const payload: unknown = await response.json();
       const rows = Array.isArray(payload) ? payload as Array<{ item_id?: unknown }> : [];
-      const bookmarkIds = Array.from(new Set(rows
-        .map((row) => String(row?.item_id || "").toUpperCase())
-        .filter((id) => /^MLB\\d+$/.test(id))));
+      const rawItemIds = rows.map((row) => String(row?.item_id || "").trim().toUpperCase()).filter(Boolean);
+      const allBookmarkIds = Array.from(new Set(rawItemIds.filter((id) => /^[A-Z]{3}\\d+$/.test(id))));
+      const bookmarkIds = allBookmarkIds.filter((id) => /^MLB\\d+$/.test(id));
+      const prefixCounts = allBookmarkIds.reduce((counts, id) => {
+        const prefix = id.slice(0, 3);
+        counts[prefix] = (counts[prefix] || 0) + 1;
+        return counts;
+      }, {} as Record<string, number>);
 
       const supabase = getSupabaseServiceKeyClient();
       if (!supabase) return NextResponse.json({ error: "Supabase não configurado." }, { status: 500 });
@@ -60,7 +65,11 @@ export async function GET(request: NextRequest) {
         source: "official_bookmarks_api",
         scope: "all_bookmarks_for_authenticated_user",
         totalRows: rows.length,
-        uniqueProductIds: bookmarkIds.length,
+        uniqueProductIds: allBookmarkIds.length,
+        uniqueMLBProductIds: bookmarkIds.length,
+        productIdPrefixCounts: prefixCounts,
+        sampleProductIds: allBookmarkIds.slice(0, 10),
+        invalidItemIdRows: rawItemIds.length - allBookmarkIds.length,
         importedSocialListIds: storedIds.size,
         overlapWithImportedList: matching.length,
         bookmarkIdsNotInSocialImport: notInSocialImport.length,
