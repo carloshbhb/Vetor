@@ -1,0 +1,58 @@
+name: HyperFrames Validation
+
+on:
+  push:
+    branches:
+      - feat/hyperframes-professional-library
+    paths:
+      - "video/hyperframes/**"
+      - "video/scripts/process-video.mjs"
+      - ".github/workflows/hyperframes-validation.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "video/hyperframes/**"
+      - "video/scripts/process-video.mjs"
+      - ".github/workflows/hyperframes-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hyperframes-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-smoke:
+    name: HyperFrames library and render smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install repository dependencies
+        run: npm ci
+
+      - name: Install pinned HyperFrames CLI
+        run: |
+          npm install --global hyperframes@0.9.2
+          hyperframes doctor
+
+      - name: Validate template library
+        run: node video/hyperframes/library.test.mjs
+
+      - name: Render and validate sample MP4
+        run: node video/hyperframes/smoke-render.mjs

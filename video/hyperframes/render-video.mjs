@@ -93,10 +93,9 @@ export async function renderWithHyperFrames(videoData,outputPath,options){
   });
   fs.writeFileSync(path.join(projectDir,"index.html"),html,"utf8");
   fs.writeFileSync(path.join(projectDir,"hyperframes.json"),JSON.stringify({
-    "$schema":"https://hyperframes.app/schemas/project.json",
-    "name":"vetor-"+id,
-    "version":"1.0.0",
-    "compositions":["index.html"]
+    "$schema":"https://hyperframes.heygen.com/schema/hyperframes.json",
+    "registry":"https://raw.githubusercontent.com/heygen-com/hyperframes/main/registry",
+    "paths":{"blocks":"compositions","components":"compositions/components","assets":"assets"}
   },null,2),"utf8");
 
   try{
