@@ -104,7 +104,10 @@ export async function POST(request: NextRequest) {
     }
 
     const primaryImage = String(video.product_image_url || reviewFacts?.image_url || "").trim();
-    const productImages = dedupeMercadoLivreImages([primaryImage, ...galleryUrls], 5);
+    const primaryImages = primaryImage.startsWith("https://") ? [primaryImage] : [];
+    const productImages = [...new Set([...primaryImages, ...galleryUrls])]
+      .filter((url) => typeof url === "string" && url.startsWith("https://"))
+      .slice(0, 5);
     const mediaAssets = [
       ...(Array.isArray(video.media_assets) ? video.media_assets : [])
         .filter((asset: any) => asset && asset.type !== "product-gallery-image"),

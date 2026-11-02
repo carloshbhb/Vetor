@@ -27,8 +27,8 @@ assert.equal(findBestMercadoLivreItemMatch("Samsung Galaxy A56", [
 ]), null, "different model numbers must not match");
 
 assert.equal(findBestMercadoLivreItemMatch("Galaxy Buds 4 Pro", [
-  { item_id: "MLB1", product_id: "P1", title: "Samsung Galaxy Buds 4 Pro" },
-  { item_id: "MLB2", product_id: "P2", title: "Samsung Galaxy Buds 4 Pro" },
+  { item_id: "MLB1111111111", product_id: "P1", title: "Samsung Galaxy Buds 4 Pro" },
+  { item_id: "MLB2222222222", product_id: "P2", title: "Samsung Galaxy Buds 4 Pro" },
 ]), null, "ambiguous catalog products must be rejected");
 
 assert.equal(
