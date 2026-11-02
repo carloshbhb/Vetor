@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
     const video = await getVideoById(videoId);
     if (!video) return NextResponse.json({ error: "Vídeo não encontrado na fila." }, { status: 404 });
 
-    const mediaAssets = Array.isArray(video.media_assets) ? video.media_assets : [];
-    const formatAsset = mediaAssets.find((asset: any) => asset && asset.type === "publication_format");
+    const existingMediaAssets = Array.isArray(video.media_assets) ? video.media_assets : [];
+    const formatAsset = existingMediaAssets.find((asset: any) => asset && asset.type === "publication_format");
     const videoFormat = formatAsset?.format === "long" ? "long" : "short";
 
     let cachedScript: any = null;
