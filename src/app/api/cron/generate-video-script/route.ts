@@ -149,9 +149,15 @@ export async function POST(request: NextRequest) {
         if (productError) console.warn("[generate-video-script] product link lookup failed:", productError.message);
 
         const rows = (productRows || []) as any[];
-        const exactRow = rows.find((row) =>
+        const exactRows = rows.filter((row) =>
           String(row.product_name || "").trim().toLowerCase() === String(video.product_title || "").trim().toLowerCase()
         );
+        const exactItemIds = new Set(exactRows.map((row) => extractMercadoLivreItemId(row.product_url)).filter(Boolean));
+        const exactRow = exactRows.length === 1
+          ? exactRows[0]
+          : exactRows.length > 1 && exactItemIds.size === 1
+            ? exactRows[0]
+            : null;
         const scoredRows = rows
           .map((row) => ({ row, score: scoreProductTitleMatch(video.product_title, row.product_name) }))
           .filter((item) => item.score)
@@ -165,7 +171,6 @@ export async function POST(request: NextRequest) {
             selectedProductRow = tiedRows[0].row;
           }
         }
-        if (!selectedProductRow && rows.length === 1) selectedProductRow = rows[0];
 
         if (!resolvedItemId && selectedProductRow) resolvedItemId = extractMercadoLivreItemId(selectedProductRow.product_url);
 
