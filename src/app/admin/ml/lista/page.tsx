@@ -182,7 +182,7 @@ export default function MercadoLivreSocialListPage() {
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="rounded-2xl border border-border bg-[var(--surface)] p-5">
-          <p className="text-xs text-[var(--muted)]">Produtos importados</p>
+          <p className="text-xs text-[var(--muted)]">IDs únicos cobertos</p>
           <strong className="mt-1 block text-2xl font-display text-[var(--amber)]">{imported}</strong>
         </div>
         <div className="rounded-2xl border border-border bg-[var(--surface)] p-5">
@@ -190,7 +190,7 @@ export default function MercadoLivreSocialListPage() {
           <strong className="mt-1 block text-2xl font-display">{expected ?? "—"}</strong>
         </div>
         <div className="rounded-2xl border border-border bg-[var(--surface)] p-5">
-          <p className="text-xs text-[var(--muted)]">Não retornados pela página</p>
+          <p className="text-xs text-[var(--muted)]">IDs únicos pendentes</p>
           <strong className="mt-1 block text-2xl font-display text-[var(--amber)]">{missing ?? "—"}</strong>
         </div>
         <div className="rounded-2xl border border-border bg-[var(--surface)] p-5">
@@ -210,16 +210,16 @@ export default function MercadoLivreSocialListPage() {
 
       {syncStatus === "partial" && (
         <section className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber)]/5 p-4">
-          <p className="text-sm font-bold text-[var(--amber)]">Sincronização parcial — não considerar os 287 itens concluídos</p>
+          <p className="text-sm font-bold text-[var(--amber)]">Cobertura parcial da lista</p>
           <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-            O contador público informa {expected} resultados. O catálogo HTML e a recuperação pela API oficial já registraram {imported} produtos; {missing} ainda precisam de resolução. Registros recuperados pela API ficam identificados individualmente. Última leitura: {date(data?.sync?.finished_at || null)}.
+            O contador público informa {expected} produtos. Há {imported} IDs únicos da lista representados no catálogo e {missing} IDs ainda sem correspondência. O total de registros pode ser maior quando um produto possui mais de um anúncio. Última leitura: {date(data?.sync?.finished_at || null)}.
           </p>
         </section>
       )}
 
       {syncStatus === "complete" && (
         <section className="rounded-xl border border-[var(--green)]/30 bg-[var(--green)]/5 p-4 text-sm text-[var(--green)]">
-          Lista completa: {imported} de {expected} produtos registrados, incluindo itens recuperados pela API oficial quando necessário. Última leitura: {date(data?.sync?.finished_at || null)}.
+          Lista completa: os {imported} IDs únicos foram identificados. O banco pode conter mais registros quando existem anúncios distintos do mesmo produto. Última leitura: {date(data?.sync?.finished_at || null)}.
         </section>
       )}
 
