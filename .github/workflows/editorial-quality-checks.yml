@@ -66,6 +66,12 @@ jobs:
       - name: Install video renderer dependencies
         run: npm ci --prefix video
 
+      - name: Validate video storyboard and caption contracts
+        working-directory: video
+        run: |
+          node --import tsx scripts/visual-storyboard.test.mjs
+          node scripts/video-format.test.mjs
+
       - name: Type-check Remotion project
         working-directory: video
         run: npx tsc --noEmit -p tsconfig.json
