@@ -136,6 +136,10 @@ jobs:
           }
           JSON
 
+      - name: Validate Remotion public media path contract
+        working-directory: video
+        run: node scripts/media-source.test.mjs
+
       - name: Render portrait sample without publishing
         working-directory: video
         timeout-minutes: 10
