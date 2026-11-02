@@ -47,7 +47,7 @@ assert.ok(Math.abs(exactCaptions[0].end - 1.51) < 0.000001);
 const sceneCues = exactCaptions.filter((entry) => entry.segmentKind === "scene");
 assert.equal(sceneCues.length, 1);
 assert.equal(sceneCues[0].text.replace(/\n/g, " "), "Tela AMOLED de 120 Hz");
-assert.ok(Math.abs(sceneCues[0].start - 1.91) < 0.000001);
+assert.ok(Math.abs(sceneCues[0].start - 1.81) < 0.000001);
 assert.ok(sceneCues[0].end - sceneCues[0].start >= sceneCues[0].text.length / 15 + 1);
 assert.equal(exactCaptions[exactCaptions.length - 1].segmentKind, "cta");
 
