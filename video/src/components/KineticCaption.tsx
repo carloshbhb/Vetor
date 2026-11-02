@@ -7,15 +7,24 @@ type KineticCaptionProps = {
   text: string;
   progress: number;
   opacity: number;
+  variant?: 'portrait' | 'landscape';
 };
 
 /**
- * Word-highlight captions with a YouTube Shorts safe-zone layout.
- * Timing is derived from the same narration segments that feed Edge TTS.
+ * Word-highlight captions with platform-specific safe-zone geometry.
+ * The same narration timing drives both portrait Shorts and horizontal reviews.
  */
-export const KineticCaption: React.FC<KineticCaptionProps> = ({ text, progress, opacity }) => {
+export const KineticCaption: React.FC<KineticCaptionProps> = ({
+  text,
+  progress,
+  opacity,
+  variant = 'portrait',
+}) => {
   const words = text.trim().split(/\s+/).filter(Boolean);
-  const fontSize = words.length > 8 ? 38 : 42;
+  const landscape = variant === 'landscape';
+  const fontSize = landscape
+    ? words.length > 12 ? 29 : 34
+    : words.length > 8 ? 38 : 42;
   const activeIndex = Math.min(
     Math.max(0, words.length - 1),
     Math.floor(interpolate(progress, [0, 1], [0, words.length], {
@@ -28,9 +37,9 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({ text, progress, 
     <div
       style={{
         position: 'absolute',
-        bottom: 420,
-        left: 190,
-        right: 190,
+        bottom: landscape ? 105 : 420,
+        left: landscape ? 135 : 190,
+        right: landscape ? 390 : 190,
         zIndex: 100,
         opacity,
         display: 'flex',
@@ -40,12 +49,12 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({ text, progress, 
     >
       <div
         style={{
-          background: 'rgba(7, 12, 24, 0.94)',
+          background: 'rgba(7, 12, 24, 0.95)',
           border: '2px solid rgba(66, 133, 244, 0.9)',
-          borderRadius: 22,
-          padding: '18px 24px',
+          borderRadius: landscape ? 18 : 22,
+          padding: landscape ? '14px 22px' : '18px 24px',
           width: '100%',
-          maxWidth: 700,
+          maxWidth: landscape ? 1160 : 700,
           textAlign: 'center',
           boxShadow: '0 12px 38px rgba(0,0,0,0.48), 0 0 24px rgba(37,99,235,0.20)',
         }}
@@ -55,7 +64,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({ text, progress, 
             display: 'flex',
             flexWrap: 'wrap',
             justifyContent: 'center',
-            columnGap: 9,
+            columnGap: landscape ? 8 : 9,
             rowGap: 5,
             fontSize,
             fontWeight: 850,
@@ -77,7 +86,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({ text, progress, 
                   background: isActive ? '#2563EB' : 'transparent',
                   borderRadius: 7,
                   padding: isActive ? '1px 5px' : '1px 0',
-                  transform: isActive ? 'scale(1.07)' : 'scale(1)',
+                  transform: isActive ? 'scale(1.06)' : 'scale(1)',
                   transformOrigin: 'center',
                   opacity: isPast ? 0.94 : 1,
                 }}

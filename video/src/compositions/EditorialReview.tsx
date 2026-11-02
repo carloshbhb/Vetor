@@ -121,7 +121,7 @@ const AccentLine: React.FC = () => (
   <div
     style={{
       position: 'absolute',
-      bottom: 350,
+      bottom: 405,
       left: 190,
       right: 190,
       height: 3,
@@ -501,7 +501,7 @@ export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {
             count={props.scenes.length}
             category={props.category}
             imageUrl={props.productImages?.[index % Math.max(1, props.productImages.length)] || image}
-            brollUrl={props.brollVideos?.[index % Math.max(1, props.brollVideos.length)]}
+            brollUrl={props.brollVideos?.[index]}
             visual={visualPlan[index]}
           />
         </Sequence>
