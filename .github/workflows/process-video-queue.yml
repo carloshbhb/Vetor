@@ -13,8 +13,16 @@ on:
     - cron: '17 21 * * *'
   workflow_dispatch:
     inputs:
+      run_mode:
+        description: 'Batch publishes up to 5 queued videos; single retries one specific queue item.'
+        required: true
+        default: batch
+        type: choice
+        options:
+          - batch
+          - single
       video_id:
-        description: 'Optional queue item ID to retry after OAuth is fixed'
+        description: 'Queue item ID (used only when run_mode=single)'
         required: false
         default: ''
         type: string
@@ -98,11 +106,11 @@ jobs:
             exit 1
           fi
       - name: Fill this batch from new published reviews and comparatives
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.video_id == '' }}
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_mode != 'single' }}
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
-          VIDEO_ID: ${{ github.event.inputs.video_id || '' }}
+          VIDEO_ID: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'single' && github.event.inputs.video_id || '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -164,8 +172,8 @@ jobs:
           MANUAL_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
           MAX_VIDEOS: '5'
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          VIDEO_RENDER_ENGINE: hyperframes
-          HYPERFRAMES_REMOTION_FALLBACK: 'true'
+          VIDEO_RENDER_ENGINE: remotion
+          HYPERFRAMES_REMOTION_FALLBACK: 'false'
           HYPERFRAMES_BIN: hyperframes
           HYPERFRAMES_WORKERS: '2'
         run: node video/scripts/process-video.mjs
