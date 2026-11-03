@@ -25,11 +25,11 @@ Entregue um mini-review de aproximadamente 450 a 600 palavras com: (1) título S
 Esta é apenas uma avaliação offline: não publique nem salve o texto em qualquer serviço.`;
 
 function quality(output) {
-  const words = output.trim() ? output.trim().split(/\\s+/).length : 0;
+  const words = output.trim() ? output.trim().split(/\s+/).length : 0;
   const checks = {
     sufficientLength: words >= 350,
     productSpecific: /galaxy fit3/i.test(output) && /amoled|tela/i.test(output) && /bateria|autonomia/i.test(output) && /gps/i.test(output),
-    structuredSections: (output.match(/(^|\\n)\\s{0,3}(?:#{1,6}\\s|\\*\\*[^*\\n]{3,}\\*\\*)/gim) || []).length >= 3,
+    structuredSections: (output.match(/(^|\n)\s{0,3}(?:#{1,6}\s|\*\*[^*\n]{3,}\*\*)/gim) || []).length >= 3,
     includesProsAndCons: /pr[oó]s|vantagens/i.test(output) && /contras|limita[cç][oõ]es/i.test(output),
     includesVerdict: /veredito|vale a pena/i.test(output),
     metadataPresent: /meta[- ]?description|meta descri[cç][aã]o|descri[cç][aã]o meta/i.test(output),
@@ -147,7 +147,7 @@ async function main() {
   };
 
   fs.mkdirSync("artifacts", { recursive: true });
-  fs.writeFileSync(path.join("artifacts", "groq-model-benchmark.json"), JSON.stringify(report, null, 2) + "\\n");
+  fs.writeFileSync(path.join("artifacts", "groq-model-benchmark.json"), JSON.stringify(report, null, 2) + "\n");
   const rows = results.map(r => {
     const u = r.usage ?? {};
     return `| ${r.id} | ${r.status} | ${r.httpStatus ?? "—"} | ${r.elapsedMs} | ${r.wordCount ?? 0} | ${u.prompt_tokens ?? "—"}/${u.completion_tokens ?? "—"} | ${r.checks ? (r.checks.passed ? "PASS" : "REVIEW") : "—"} |`;
@@ -161,8 +161,8 @@ async function main() {
     "| Model | Status | HTTP | Latency (ms) | Words | Tokens (prompt/completion) | Quality |",
     "|---|---|---:|---:|---:|---:|---|", ...rows, "",
     "Automated checks are screening signals only. Review complete outputs in the JSON artifact.",
-  ].join("\\n");
-  fs.writeFileSync(path.join("artifacts", "groq-model-benchmark.md"), markdown + "\\n");
+  ].join("\n");
+  fs.writeFileSync(path.join("artifacts", "groq-model-benchmark.md"), markdown + "\n");
   console.log(`Benchmark concluído: ${report.totals.succeeded}/${TARGETS.length} respostas.`);
   if (report.totals.succeeded === 0) process.exitCode = 1;
 }
