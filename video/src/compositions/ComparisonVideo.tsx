@@ -10,6 +10,7 @@ import {
   useVideoConfig,
   spring,
 } from 'remotion';
+import type { CalculateMetadataFunction } from 'remotion';
 import { theme } from '../styles/theme';
 import { fonts } from '../styles/fonts';
 import { GradientBackground } from '../components/GradientBackground';
@@ -35,7 +36,7 @@ export interface ComparisonSceneData {
   type: 'intro' | 'product1' | 'product2' | 'comparison' | 'verdict';
 }
 
-interface ComparisonVideoProps {
+type ComparisonVideoProps = {
   title: string;
   product1: { name: string; imageUrl: string; score: number };
   product2: { name: string; imageUrl: string; score: number };
@@ -51,7 +52,7 @@ interface ComparisonVideoProps {
   brollVideos?: string[];
   totalDuration: number;
   fps: number;
-}
+};
 
 const HookScene: React.FC<{ hook: string; product1Image: string; product2Image: string }> = ({ hook, product1Image, product2Image }) => {
   const frame = useCurrentFrame();
@@ -362,3 +363,7 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
     </AbsoluteFill>
   );
 };
+
+export const calculateComparisonMetadata: CalculateMetadataFunction<ComparisonVideoProps> = ({ props }) => ({
+  durationInFrames: Math.max(1, Math.ceil(props.totalDuration * props.fps)),
+});

@@ -1,9 +1,10 @@
 import { Composition, registerRoot } from 'remotion';
 import { calculateEditorialMetadata, EditorialReview } from './compositions/EditorialReview';
 import { EditorialReviewLandscape } from './compositions/EditorialReviewLandscape';
-import { ComparisonVideo } from './compositions/ComparisonVideo';
+import { ComparisonVideo, calculateComparisonMetadata } from './compositions/ComparisonVideo';
 
-// Import Google Fonts via CSS
+// Brand fonts come from public/fonts (no network at render time).
+import './styles/loadFonts';
 import './styles/global.css';
 
 const ReviewVideoAny = EditorialReview as any;
@@ -16,7 +17,7 @@ export const RemotionRoot = () => {
       <Composition
         id="ReviewVideo"
         component={ReviewVideoAny}
-        durationInFrames={3600}
+        durationInFrames={1800}
         fps={30}
         width={1080}
         height={1920}
@@ -61,7 +62,7 @@ export const RemotionRoot = () => {
       <Composition
         id="LongReviewVideo"
         component={LongReviewVideoAny}
-        durationInFrames={10800}
+        durationInFrames={7500}
         fps={30}
         width={1920}
         height={1080}
@@ -94,10 +95,11 @@ export const RemotionRoot = () => {
       <Composition
         id="ComparisonVideo"
         component={ComparisonVideoAny}
-        durationInFrames={3600}
+        durationInFrames={1110}
         fps={30}
         width={1080}
         height={1920}
+        calculateMetadata={calculateComparisonMetadata}
         defaultProps={{
           title: 'Galaxy S24 vs iPhone 15: Qual Comprar?',
           product1: { name: 'Galaxy S24', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_galaxy-s24.webp', score: 8.8 },
@@ -130,7 +132,7 @@ export const RemotionRoot = () => {
           ],
           productImages: ['https://http2.mlstatic.com/D_NQ_NP_galaxy-s24.webp', 'https://http2.mlstatic.com/D_NQ_NP_iphone-15.webp'],
           brollVideos: [],
-          totalDuration: 120,
+          totalDuration: 37,
           fps: 30,
         }}
       />

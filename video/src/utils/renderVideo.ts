@@ -1,7 +1,8 @@
-import type { VideoScene } from '../compositions/ReviewVideo';
+import type { EditorialScene, EditorialSubtitle } from '../compositions/EditorialReview';
 import type { ComparisonSceneData, SubtitleEntry } from '../compositions/ComparisonVideo';
+import { resolveSceneTimings } from './timing';
 import { bundle } from '@remotion/bundler';
-import { renderMedia, getCompositions, ensureBrowser } from '@remotion/renderer';
+import { renderMedia, selectComposition, ensureBrowser } from '@remotion/renderer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -18,16 +19,17 @@ interface ReviewVideoData {
   score: number;
   category: string;
   hook: string;
-  scenes: VideoScene[];
+  hookDuration: number;
+  scenes: EditorialScene[];
   callToAction: string;
   audioUrl: string;
-  subtitleEntries: SubtitleEntry[];
+  subtitleEntries: EditorialSubtitle[];
   productImages: string[];
   brollVideos: string[];
   totalDuration: number;
   fps: number;
-  hookDuration?: number;
   reviewUrl?: string;
+  musicUrl?: string;
 }
 
 interface ComparisonVideoData {
@@ -53,8 +55,17 @@ type VideoData = ReviewVideoData | ComparisonVideoData;
 
 async function renderVideo(data: VideoData, outputPath: string): Promise<string> {
   const projectRoot = path.resolve(__dirname, '../..');
-  console.log('[Remotion] Confirmando Chrome Headless Shell local no cache do projeto...');
-  await ensureBrowser({ logLevel: 'info' });
+  // REMOTION_CHROME_PATH aponta para um Chrome já instalado (ex.: setup-chrome no CI);
+  // sem ele o Remotion usa/baixa o Chrome Headless Shell do cache do projeto.
+  const browserExecutable = process.env.REMOTION_CHROME_PATH || null;
+  // 'chrome-for-testing' para um Chrome comum; vazio = Chrome Headless Shell do Remotion.
+  const chromeMode = process.env.REMOTION_CHROME_MODE === 'chrome-for-testing' ? 'chrome-for-testing' : undefined;
+  if (browserExecutable) {
+    console.log('[Remotion] Usando Chrome em ' + browserExecutable + '.');
+  } else {
+    console.log('[Remotion] Confirmando Chrome Headless Shell local no cache do projeto...');
+    await ensureBrowser({ logLevel: 'info' });
+  }
   console.log('[Remotion] Chrome pronto. Iniciando bundle da composição...');
   const bundleLocation = await bundle({
     entryPoint: path.resolve(projectRoot, 'src/Root.tsx'),
@@ -80,16 +91,16 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
     copyDirRecursive(publicDir, bundleLocation);
   }
 
-  const compositions = await getCompositions(bundleLocation, {
-    inputProps: data as unknown as InputProps,
-  });
-
   const compositionId = data.type === 'long' ? 'LongReviewVideo' : data.type === 'review' ? 'ReviewVideo' : 'ComparisonVideo';
-  const composition = compositions.find((c) => c.id === compositionId);
-  
-  if (!composition) {
-    throw new Error(`${compositionId} composition not found`);
-  }
+  // selectComposition avalia calculateMetadata com as props reais, então a duração do MP4
+  // acompanha totalDuration (a narração) em vez do valor fixo do <Composition>.
+  const composition = await selectComposition({
+    serveUrl: bundleLocation,
+    id: compositionId,
+    inputProps: data as unknown as InputProps,
+    browserExecutable,
+    chromeMode,
+  });
 
   const timestamp = Date.now();
   const prefix = data.type === 'long' ? 'long-review' : data.type === 'review' ? 'review' : 'comparison';
@@ -101,9 +112,18 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
     codec: 'h264',
     outputLocation,
     inputProps: data as unknown as InputProps,
+    browserExecutable,
+    chromeMode,
     crf: 18,
+    // yuv420p + bt709: faixa limitada, o que o YouTube e os celulares decodificam corretamente.
+    pixelFormat: 'yuv420p',
+    colorSpace: 'bt709',
+    x264Preset: 'medium',
+    audioBitrate: '192k',
+    enforceAudioTrack: true,
     imageFormat: 'jpeg',
-    concurrency: 1,
+    jpegQuality: 95,
+    concurrency: Math.max(1, Number(process.env.REMOTION_CONCURRENCY) || 2),
     timeoutInMilliseconds: 90000,
     onStart: ({ frameCount, resolvedConcurrency }) => {
       console.log('[Remotion] Render iniciado: ' + frameCount + ' frames; concorrência=' + resolvedConcurrency + '.');
@@ -111,16 +131,6 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
   });
 
   return outputLocation;
-}
-
-function calculateFrameTimings(scenes: VideoScene[], fps: number, hookFrames: number): VideoScene[] {
-  let currentFrame = hookFrames;
-  return scenes.map((scene) => {
-    const startFrame = currentFrame;
-    const endFrame = currentFrame + scene.duration * fps;
-    currentFrame = endFrame;
-    return { ...scene, startFrame, endFrame };
-  });
 }
 
 function calculateComparisonFrameTimings(scenes: ComparisonSceneData[], fps: number, hookFrames: number): ComparisonSceneData[] {
@@ -157,19 +167,15 @@ async function main() {
     const rawData = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
     
     if (type === 'review' || type === 'long') {
-      // The continuous Edge TTS narration is the source of truth for the timeline.
-      // The script's suggested scene.duration values are editorial hints, not audio timings.
-      const actualHookDuration = Number(rawData.hookDuration);
-      const alignedHookFrames = Number.isFinite(actualHookDuration) && actualHookDuration > 0
-        ? Math.max(1, Math.round(actualHookDuration * fps))
-        : hookFrames;
-      const scenesWithFrames = calculateFrameTimings(rawData.scenes, fps, alignedHookFrames);
-      const contentFrames = scenesWithFrames.reduce((max, s) => Math.max(max, s.endFrame), alignedHookFrames) - alignedHookFrames;
-      const sceneEndSeconds = (alignedHookFrames + contentFrames) / fps;
-      const audioDuration = Number(rawData.totalDuration);
-      const totalDuration = Number.isFinite(audioDuration) && audioDuration > 0
-        ? Math.max(audioDuration, sceneEndSeconds + 0.5)
-        : sceneEndSeconds + 8;
+      // O worker envia startFrame/endFrame medidos na narração real e totalDuration = duração
+      // do áudio. Esses valores têm prioridade; as durações nominais do roteiro só valem
+      // quando não há tempo exato (amostras e execuções manuais).
+      const timings = resolveSceneTimings<EditorialScene>(
+        { scenes: rawData.scenes, totalDuration: rawData.totalDuration, hookDuration: rawData.hookDuration },
+        fps,
+        { defaultHookSeconds: 3, tailSeconds: 8 },
+      );
+      console.log('[Remotion] Tempos de cena: ' + (timings.exact ? 'exatos da narração' : 'nominais do roteiro (sem tempo exato)') + '.');
 
       videoData = {
         type,
@@ -178,16 +184,17 @@ async function main() {
         score: rawData.score,
         category: rawData.category,
         hook: rawData.hook,
-        scenes: scenesWithFrames,
+        hookDuration: timings.hookDuration,
+        scenes: timings.scenes,
         callToAction: rawData.callToAction,
         audioUrl: rawData.audioUrl,
         subtitleEntries: rawData.subtitleEntries,
         reviewUrl: typeof rawData.reviewUrl === 'string' ? rawData.reviewUrl : 'https://www.vetor.blog/reviews/',
         productImages: rawData.productImages || [rawData.imageUrl],
         brollVideos: rawData.brollVideos || [],
-        totalDuration,
+        musicUrl: typeof rawData.musicUrl === 'string' && rawData.musicUrl ? rawData.musicUrl : undefined,
+        totalDuration: timings.totalDuration,
         fps,
-        hookDuration: alignedHookFrames / fps,
       };
     } else {
       const scenesWithFrames = calculateComparisonFrameTimings(rawData.scenes, fps, hookFrames);
@@ -218,7 +225,7 @@ async function main() {
     console.log(`\n🎬 Rendering ${type} video with sample data...`);
 
     if (type === 'review') {
-      const sampleScenes: VideoScene[] = [
+      const sampleScenes: EditorialScene[] = [
         { id: 1, text: 'Chegou o Samsung Galaxy S24 Ultra, será que vale o investimento?', duration: 5, visualCue: 'Produto em destaque com zoom dramático', brollKeywords: ['product reveal', 'tech unboxing'], startFrame: 0, endFrame: 0 },
         { id: 2, text: 'Confira preço, condições e a ficha técnica do modelo exato antes de comprar.', duration: 7, visualCue: 'Preço aparecendo na tela, transição para produto em mãos', brollKeywords: ['price tag', 'money', 'shopping'], startFrame: 0, endFrame: 0 },
         { id: 3, text: 'Design premium, construção sólida. Na mão passa confiança.', duration: 8, visualCue: 'Close nos detalhes, materiais, acabamento', brollKeywords: ['product close up', 'premium design', 'hands on'], startFrame: 0, endFrame: 0 },
@@ -228,13 +235,11 @@ async function main() {
         { id: 7, text: 'Veredito: decida com base nos recursos documentados e nas suas necessidades.', duration: 8, visualCue: 'Nota final na tela, produto ao lado de concorrentes', brollKeywords: ['verdict', 'rating', 'comparison'], startFrame: 0, endFrame: 0 },
       ];
 
-      const scenesWithFrames = calculateFrameTimings(sampleScenes, fps, hookFrames);
-      const contentFrames = scenesWithFrames[scenesWithFrames.length - 1].endFrame - hookFrames;
-      const scoreFrames = 4 * fps;
-      const ctaFrames = 4 * fps;
-      const totalDuration = (hookFrames + contentFrames + scoreFrames + ctaFrames) / fps;
+      const sampleTimings = resolveSceneTimings<EditorialScene>({ scenes: sampleScenes }, fps, { defaultHookSeconds: 3, tailSeconds: 8 });
+      const scenesWithFrames = sampleTimings.scenes;
+      const totalDuration = sampleTimings.totalDuration;
 
-      const subtitleEntries: SubtitleEntry[] = [
+      const subtitleEntries: EditorialSubtitle[] = [
         { start: 0, end: 3, text: 'Pare! Antes de comprar o Galaxy S24 Ultra, veja isso!' },
         ...sampleScenes.map((s, i) => {
           const start = 3 + sampleScenes.slice(0, i).reduce((sum, sc) => sum + sc.duration, 0);
@@ -250,6 +255,7 @@ async function main() {
         score: 0,
         category: 'Smartphones',
         hook: 'Pare! Antes de comprar o Galaxy S24 Ultra, veja isso!',
+        hookDuration: sampleTimings.hookDuration,
         scenes: scenesWithFrames,
         callToAction: 'Confira preço e condições atuais no link da descrição.',
         audioUrl: '/audio/sample-review.mp3',
