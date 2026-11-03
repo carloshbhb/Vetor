@@ -5,11 +5,19 @@ on:
     branches: [main]
     paths:
       - "video/**"
+      - "scripts/tts.py"
+      - "scripts/video-media-matching.test.ts"
+      - "src/lib/video-media-matching.ts"
+      - "src/app/api/cron/generate-video-script/route.ts"
       - ".github/workflows/video-pipeline-validation.yml"
   push:
     branches: [main]
     paths:
       - "video/**"
+      - "scripts/tts.py"
+      - "scripts/video-media-matching.test.ts"
+      - "src/lib/video-media-matching.ts"
+      - "src/app/api/cron/generate-video-script/route.ts"
       - ".github/workflows/video-pipeline-validation.yml"
 
 permissions:
@@ -42,6 +50,15 @@ jobs:
       - name: Install video dependencies
         working-directory: video
         run: npm ci
+
+      - name: Syntax-check Edge TTS metadata runner
+        run: python -m py_compile scripts/tts.py
+
+      - name: Validate storyboard and local media source contracts
+        working-directory: video
+        run: |
+          node --import tsx scripts/visual-storyboard.test.mjs
+          node scripts/media-source.test.mjs
 
       - name: Validate format, affiliate-link and chapter contracts
         run: node video/scripts/video-format.test.mjs

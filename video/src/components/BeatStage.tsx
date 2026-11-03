@@ -11,6 +11,7 @@ import {
 } from 'remotion';
 import type { SceneBeat } from '../utils/visual-storyboard';
 import { fonts } from '../styles/fonts';
+import { resolveMediaSource } from '../utils/media-source';
 
 /**
  * Vertical (Shorts) stage for one beat. Rendered inside a <Sequence> that starts at the
@@ -47,7 +48,7 @@ const ProductBox: React.FC<{
   box?: { left: number; top: number; width: number; height: number };
 }> = ({ src, scale = 1, x = 0, y = 0, rotate = 0, originX = 0.5, originY = 0.5, opacity = 1, box = STAGE }) => (
   <Img
-    src={src}
+    src={resolveMediaSource(src)}
     style={{
       position: 'absolute',
       left: box.left,
@@ -170,7 +171,7 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
       <>
         <AbsoluteFill style={{ opacity: interpolate(frame, [0, 6], [0, 1], { extrapolateRight: 'clamp' }) }}>
           <OffthreadVideo
-            src={brollUrl}
+            src={resolveMediaSource(brollUrl)}
             muted
             delayRenderTimeoutInMilliseconds={90000}
             delayRenderRetries={1}

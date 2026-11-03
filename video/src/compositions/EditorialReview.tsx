@@ -20,6 +20,7 @@ import {
   type SceneVisualPlan,
 } from '../utils/visual-storyboard';
 import { fonts } from '../styles/fonts';
+import { resolveMediaSource } from '../utils/media-source';
 
 export type EditorialScene = {
   id: number;
@@ -144,7 +145,7 @@ const headlineSize = (text: string, huge: number): number => {
 
 const StageImage: React.FC<{ src: string; scale?: number; y?: number }> = ({ src, scale = 1, y = 0 }) => (
   <Img
-    src={src}
+    src={resolveMediaSource(src)}
     style={{
       position: 'absolute',
       left: STAGE.left,
@@ -436,8 +437,8 @@ export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: colors.ink }}>
-      <Audio src={props.audioUrl} volume={0.96} />
-      {props.musicUrl ? <Audio src={props.musicUrl} volume={0.07} loop /> : null}
+      <Audio src={resolveMediaSource(props.audioUrl)} volume={0.96} />
+      {props.musicUrl ? <Audio src={resolveMediaSource(props.musicUrl)} volume={0.07} loop /> : null}
       <Sequence from={0} durationInFrames={hookFrames} premountFor={fps}>
         <OpeningScene title={props.title} category={props.category} hook={props.hook} imageUrl={image} />
       </Sequence>

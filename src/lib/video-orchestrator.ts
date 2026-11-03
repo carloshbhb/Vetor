@@ -25,7 +25,7 @@ export interface VideoQueueItem {
   script_hook: string;
   voiceover_url: string;
   voiceover_duration: number;
-  media_assets: MediaFetchResult;
+  media_assets: MediaFetchResult | Array<Record<string, unknown>>;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   error_message: string | null;
   video_url: string | null;

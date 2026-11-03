@@ -12,6 +12,7 @@ import {
 } from 'remotion';
 import type { EditorialReviewProps, EditorialScene } from './EditorialReview';
 import { KineticCaption } from '../components/KineticCaption';
+import { resolveMediaSource } from '../utils/media-source';
 import { createSceneVisualPlan, extractPrimaryMetric, type SceneVisualPlan } from '../utils/visual-storyboard';
 
 const palette = {
@@ -52,7 +53,7 @@ const Background: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 const Product: React.FC<{ src: string; style?: React.CSSProperties }> = ({ src, style }) => (
   <Img
-    src={src}
+    src={resolveMediaSource(src)}
     style={{
       width: 660,
       height: 560,
@@ -183,7 +184,7 @@ const LongFeature: React.FC<{
           }}
         >
           <Loop durationInFrames={duration}>
-            <OffthreadVideo src={brollUrl} muted delayRenderTimeoutInMilliseconds={90000} delayRenderRetries={1} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'saturate(.88) brightness(.78)' }} />
+            <OffthreadVideo src={resolveMediaSource(brollUrl)} muted delayRenderTimeoutInMilliseconds={90000} delayRenderRetries={1} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'saturate(.88) brightness(.78)' }} />
           </Loop>
         </AbsoluteFill>
       ) : null}
@@ -311,7 +312,7 @@ export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) 
   const visualPlan = createSceneVisualPlan(props.scenes, props.title + '|' + props.category + '|long');
   return (
     <AbsoluteFill style={{ backgroundColor: palette.background }}>
-      <Audio src={props.audioUrl} volume={0.96} />
+      <Audio src={resolveMediaSource(props.audioUrl)} volume={0.96} />
       <Sequence from={0} durationInFrames={hookFrames} premountFor={fps}>
         <Opening title={props.title} category={props.category} hook={props.hook} imageUrl={image} />
       </Sequence>

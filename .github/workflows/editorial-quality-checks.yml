@@ -63,6 +63,12 @@ jobs:
       - name: Syntax-check video queue worker
         run: node --check video/scripts/process-video.mjs
 
+      - name: Validate Mercado Livre product gallery matching
+        run: npx tsx scripts/video-media-matching.test.ts
+
+      - name: Syntax-check Edge TTS metadata runner
+        run: python -m py_compile scripts/tts.py
+
       - name: Install video renderer dependencies
         run: npm ci --prefix video
 
