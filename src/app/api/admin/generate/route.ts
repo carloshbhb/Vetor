@@ -16,6 +16,9 @@ import {
   type PipelineProductInput,
 } from "@/lib/content-pipeline";
 
+export const runtime = "nodejs";
+export const maxDuration = 240;
+
 interface SourceProduct {
   product_name: string;
   product_url: string;

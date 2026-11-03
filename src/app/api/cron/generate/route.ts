@@ -16,6 +16,9 @@ import {
   runReviewPipeline,
 } from '@/lib/content-pipeline';
 
+export const runtime = "nodejs";
+export const maxDuration = 240;
+
 type CronReviewStatus = 'success' | 'failed' | 'skipped';
 
 interface CronResult {

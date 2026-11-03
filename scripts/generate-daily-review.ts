@@ -617,8 +617,8 @@ async function main(): Promise<void> {
   if (!supabase) {
     throw new Error('Supabase Service Role ausente; geração interrompida sem simular uma gravação.');
   }
-  if (!process.env.NVIDIA_API_KEY?.trim()) {
-    throw new Error('NVIDIA_API_KEY ausente; geração de review interrompida.');
+  if (!process.env.OPENROUTER_API_KEY?.trim() && !process.env.GROQ_API_KEY?.trim() && !process.env.NVIDIA_API_KEY?.trim()) {
+    throw new Error('Nenhuma credencial LLM disponível; configure OPENROUTER_API_KEY, GROQ_API_KEY ou NVIDIA_API_KEY.');
   }
 
   const [{ data: rawLinks, error: linksError }, { data: existingRows, error: reviewsError }, { data: allProductRows, error: allProductLinksError }] = await Promise.all([
