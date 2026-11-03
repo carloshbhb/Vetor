@@ -182,7 +182,9 @@ async function generateComparison(pair: [ProductLink, ProductLink], existingSlug
 }
 
 async function main(): Promise<ArticleResult[]> {
-  if (!process.env.NVIDIA_API_KEY?.trim()) throw new Error('[content-generation] NVIDIA_API_KEY ausente.');
+  if (!process.env.OPENROUTER_API_KEY?.trim() && !process.env.GROQ_API_KEY?.trim() && !process.env.NVIDIA_API_KEY?.trim()) {
+    throw new Error('[content-generation] Configure ao menos uma credencial: OPENROUTER_API_KEY, GROQ_API_KEY ou NVIDIA_API_KEY.');
+  }
   const serviceClient = getSupabaseServiceKeyClient();
   if (!serviceClient) throw new Error('[content-generation] Supabase Service Role ausente; a execução não simulará persistência.');
 
