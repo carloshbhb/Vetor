@@ -87,3 +87,84 @@ jobs:
               exit 1
             fi
           done
+
+      - name: Prepare Remotion render smoke props
+        working-directory: video
+        run: |
+          test -s public/smoke-product.svg
+          test -s public/audio/sample-review.mp3
+          cat > /tmp/vetor-review-smoke-props.json <<'JSON'
+          {
+            "title": "Produto de demonstração",
+            "imageUrl": "/smoke-product.svg",
+            "productImages": ["/smoke-product.svg"],
+            "audioUrl": "/audio/sample-review.mp3",
+            "score": 8.5,
+            "category": "Tecnologia",
+            "hook": "O detalhe que muda a decisão",
+            "hookDuration": 1,
+            "scenes": [
+              {"id": 1, "text": "Tela e desempenho para o uso cotidiano.", "duration": 4, "visualCue": "Tela e desempenho", "brollKeywords": [], "startFrame": 30, "endFrame": 150}
+            ],
+            "callToAction": "Confira a análise completa.",
+            "subtitleEntries": [{"start": 1, "end": 5, "text": "Tela e desempenho para o uso cotidiano.", "segmentKind": "scene"}],
+            "brollVideos": [],
+            "totalDuration": 6,
+            "fps": 30
+          }
+          JSON
+          cat > /tmp/vetor-landscape-smoke-props.json <<'JSON'
+          {
+            "title": "Produto de demonstração",
+            "imageUrl": "/smoke-product.svg",
+            "productImages": ["/smoke-product.svg"],
+            "audioUrl": "/audio/sample-review.mp3",
+            "score": 8.5,
+            "category": "Tecnologia",
+            "hook": "O detalhe que muda a decisão",
+            "hookDuration": 2,
+            "scenes": [
+              {"id": 1, "text": "Tela ampla e autonomia para a rotina. Compare as especificações e limitações com seu perfil de uso antes de decidir.", "duration": 9, "visualCue": "Tela e desempenho", "brollKeywords": [], "startFrame": 60, "endFrame": 330}
+            ],
+            "callToAction": "Confira a análise completa.",
+            "subtitleEntries": [{"start": 2, "end": 11, "text": "Tela ampla e autonomia para a rotina. Compare as especificações e limitações com seu perfil de uso antes de decidir.", "segmentKind": "scene"}],
+            "brollVideos": [],
+            "totalDuration": 12,
+            "fps": 30
+          }
+          JSON
+
+      - name: Render vertical Remotion sample without publishing
+        working-directory: video
+        timeout-minutes: 10
+        run: npx remotion render src/Root.tsx ReviewVideo /tmp/vetor-review-smoke.mp4 --props=/tmp/vetor-review-smoke-props.json --frames=0-179 --log=error
+
+      - name: Render landscape Remotion sample without publishing
+        working-directory: video
+        timeout-minutes: 10
+        run: npx remotion render src/Root.tsx LongReviewVideo /tmp/vetor-landscape-smoke.mp4 --props=/tmp/vetor-landscape-smoke-props.json --frames=0-359 --log=error
+
+      - name: Run Remotion visual QA on rendered samples
+        run: |
+          npm install --global remotion-qa@0.1.3
+          cat > /tmp/vetor-review-smoke-beats.json <<'JSON'
+          [{"start":1,"end":5,"text":"Tela e desempenho para o uso cotidiano."}]
+          JSON
+          cat > /tmp/vetor-landscape-smoke-beats.json <<'JSON'
+          [{"start":2,"end":11,"text":"Tela ampla e autonomia para a rotina. Compare as especificações e limitações com seu perfil de uso antes de decidir."}]
+          JSON
+          remotion-qa check /tmp/vetor-review-smoke.mp4 --beats /tmp/vetor-review-smoke-beats.json --channel yt-shorts --max-dead 1 --frames /tmp/vetor-review-qa-frames --json
+          remotion-qa check /tmp/vetor-landscape-smoke.mp4 --beats /tmp/vetor-landscape-smoke-beats.json --channel yt-landscape --max-dead 1 --frames /tmp/vetor-landscape-qa-frames --json
+
+      - name: Preserve Remotion render evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remotion-render-smoke-failure-${{ github.run_id }}
+          path: |
+            /tmp/vetor-review-smoke.mp4
+            /tmp/vetor-landscape-smoke.mp4
+            /tmp/vetor-review-qa-frames/**
+            /tmp/vetor-landscape-qa-frames/**
+          if-no-files-found: ignore
+          retention-days: 7
