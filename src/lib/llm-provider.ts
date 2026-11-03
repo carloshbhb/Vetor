@@ -1,58 +1,170 @@
 import OpenAI from 'openai';
 
+type ProviderKind = 'openrouter' | 'groq' | 'nvidia';
+
 interface LLMProvider {
   client: OpenAI;
   model: string;
-  provider: 'nvidia';
+  provider: ProviderKind;
 }
 
+type OpenRouterCatalogModel = {
+  id?: string;
+  pricing?: { prompt?: string | number; completion?: string | number };
+  architecture?: { input_modalities?: string[]; output_modalities?: string[] };
+};
+
+const OPENROUTER_FREE_MODEL_PRIORITY = [
+  'nvidia/nemotron-3-ultra-550b-a55b:free',
+  'nvidia/nemotron-3.5-super-vl:free',
+  'thinkingmachines/inkling:free',
+  'google/gemma-4-31b-it:free',
+  'google/gemma-4-26b-a4b-it:free',
+  'nvidia/nemotron-3.5-lightning:free',
+] as const;
+
+const OPENROUTER_FREE_CATALOG_TTL_MS = 5 * 60_000;
+const OPENROUTER_FREE_CATALOG_TIMEOUT_MS = 3_500;
+const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
 const DEFAULT_NVIDIA_MODEL = 'nvidia/nemotron-3.5-lightning-30b-a3b';
-const DEFAULT_NVIDIA_FALLBACK_MODEL = 'nvidia/nemotron-3.5-super-vl-120b-a12b';
 
-function createNvidiaProviders(): LLMProvider[] {
-  const apiKey = process.env.NVIDIA_API_KEY?.trim();
-  if (!apiKey) return [];
+let cachedProviders: LLMProvider[] | null = null;
+let cachedOpenRouterFreeModels: { expiresAt: number; models: string[] } | null = null;
 
-  const primaryModel = process.env.NVIDIA_MODEL?.trim() || DEFAULT_NVIDIA_MODEL;
-  const fallbackModel = process.env.NVIDIA_FALLBACK_MODEL?.trim() || DEFAULT_NVIDIA_FALLBACK_MODEL;
-  // Only use a third model when one is explicitly configured; do not assume a model
-  // ID is live on NVIDIA NIM when it has already returned HTTP 410.
-  const backupModel = process.env.NVIDIA_FALLBACK_MODEL_2?.trim();
-  const models = Array.from(new Set([primaryModel, fallbackModel, backupModel].filter((model): model is string => !!model)));
-
-  const client = new OpenAI({
-    apiKey,
-    baseURL: 'https://integrate.api.nvidia.com/v1',
-    timeout: 215000, // Allow the full NVIDIA fallback budget to complete.
-    maxRetries: 0,
-  });
-
-  return models.map((model) => ({ client, model, provider: 'nvidia' }));
+function isZeroPrice(value: string | number | undefined): boolean {
+  return value !== undefined && Number(value) === 0;
 }
 
-let cachedProvider: LLMProvider | null = null;
+/** Keeps only vetted, currently listed text models with zero prompt and completion pricing. */
+export function rankOpenRouterFreeModels(catalog: OpenRouterCatalogModel[]): string[] {
+  const available = new Set(
+    catalog
+      .filter((model) => {
+        const id = String(model.id || '');
+        const input = model.architecture?.input_modalities || [];
+        const output = model.architecture?.output_modalities || [];
+        return id.endsWith(':free') &&
+          OPENROUTER_FREE_MODEL_PRIORITY.includes(id as (typeof OPENROUTER_FREE_MODEL_PRIORITY)[number]) &&
+          isZeroPrice(model.pricing?.prompt) &&
+          isZeroPrice(model.pricing?.completion) &&
+          input.includes('text') &&
+          output.includes('text');
+      })
+      .map((model) => String(model.id))
+  );
 
-export function getLLMProvider(): LLMProvider {
-  if (cachedProvider) return cachedProvider;
+  return OPENROUTER_FREE_MODEL_PRIORITY.filter((id) => available.has(id)).slice(0, 6);
+}
 
-  const provider = configuredProviders()[0];
-  if (provider) {
-    cachedProvider = provider;
-    console.log(`[LLM] Provedor exclusivo: NVIDIA | Modelo: ${provider.model}`);
-    return provider;
+async function getOpenRouterFreeModels(apiKey: string): Promise<string[]> {
+  if (cachedOpenRouterFreeModels && cachedOpenRouterFreeModels.expiresAt > Date.now()) {
+    return cachedOpenRouterFreeModels.models;
   }
 
-  throw new Error(
-    '[LLM] NVIDIA_API_KEY ausente. Configure uma chave NVIDIA válida; provedores externos não são utilizados.'
-  );
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: { Authorization: 'Bearer ' + apiKey },
+      signal: AbortSignal.timeout(OPENROUTER_FREE_CATALOG_TIMEOUT_MS),
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error('OpenRouter model catalog HTTP ' + response.status);
+
+    const body = await response.json() as { data?: OpenRouterCatalogModel[] };
+    const models = rankOpenRouterFreeModels(Array.isArray(body.data) ? body.data : []);
+    // The free auto-router is the safe last resort if the curated free catalog is
+    // temporarily unavailable or its IDs change; it cannot select a paid model.
+    const selected = models.length ? models : ['openrouter/free'];
+    cachedOpenRouterFreeModels = {
+      expiresAt: Date.now() + OPENROUTER_FREE_CATALOG_TTL_MS,
+      models: selected,
+    };
+    console.log('[LLM] OpenRouter free catalog: ' + (models.length ? models.join(', ') : 'fallback openrouter/free'));
+    return selected;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.warn('[LLM] OpenRouter free catalog unavailable; using free auto-router: ' + detail.slice(0, 180));
+    return ['openrouter/free'];
+  }
 }
 
 function configuredProviders(): LLMProvider[] {
-  return createNvidiaProviders();
+  if (cachedProviders) return cachedProviders;
+
+  const providers: LLMProvider[] = [];
+  const openRouterKey = process.env.OPENROUTER_API_KEY?.trim();
+  const groqKey = process.env.GROQ_API_KEY?.trim();
+  const nvidiaKey = process.env.NVIDIA_API_KEY?.trim();
+
+  if (openRouterKey) {
+    providers.push({
+      provider: 'openrouter',
+      model: OPENROUTER_FREE_MODEL_PRIORITY[0],
+      client: new OpenAI({
+        apiKey: openRouterKey,
+        baseURL: 'https://openrouter.ai/api/v1',
+        defaultHeaders: {
+          'HTTP-Referer': 'https://www.vetor.blog',
+          'X-Title': 'Vetor.blog',
+        },
+        timeout: 60_000,
+        maxRetries: 0,
+      }),
+    });
+  }
+
+  if (groqKey) {
+    providers.push({
+      provider: 'groq',
+      model: DEFAULT_GROQ_MODEL,
+      client: new OpenAI({
+        apiKey: groqKey,
+        baseURL: 'https://api.groq.com/openai/v1',
+        timeout: 45_000,
+        maxRetries: 0,
+      }),
+    });
+  }
+
+  if (nvidiaKey) {
+    providers.push({
+      provider: 'nvidia',
+      model: DEFAULT_NVIDIA_MODEL,
+      client: new OpenAI({
+        apiKey: nvidiaKey,
+        baseURL: 'https://integrate.api.nvidia.com/v1',
+        timeout: 65_000,
+        maxRetries: 0,
+      }),
+    });
+  }
+
+  cachedProviders = providers;
+  return providers;
 }
 
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export function getLLMProvider(): LLMProvider {
+  const provider = configuredProviders()[0];
+  if (!provider) {
+    throw new Error('[LLM] Nenhuma credencial de IA configurada. Configure OPENROUTER_API_KEY, GROQ_API_KEY ou NVIDIA_API_KEY.');
+  }
+  return provider;
+}
+
+function getHttpStatus(error: unknown): number {
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    return Number((error as { status?: unknown }).status) || 0;
+  }
+  return 0;
+}
+
+function extractText(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => part && typeof part === 'object' && 'text' in part ? String((part as { text?: unknown }).text || '') : '')
+      .join('');
+  }
+  return '';
 }
 
 export async function chatCompletion(params: {
@@ -66,120 +178,109 @@ export async function chatCompletion(params: {
   timeoutMs?: number;
   deadlineMs?: number;
   maxAttemptsPerModel?: number;
+  providerTimeouts?: Partial<Record<ProviderKind, number>>;
 }): Promise<string> {
   const providers = configuredProviders();
   if (!providers.length) {
-    throw new Error('[LLM] NVIDIA_API_KEY ausente. Configure uma chave NVIDIA válida; provedores externos não são utilizados.');
+    throw new Error('[LLM] Nenhuma credencial de IA configurada. Configure OPENROUTER_API_KEY, GROQ_API_KEY ou NVIDIA_API_KEY.');
   }
 
-  const deadline = Date.now() + (params.deadlineMs ?? 220000);
-  let lastError: unknown = null;
+  const deadline = Date.now() + (params.deadlineMs ?? 220_000);
+  let lastFailure = 'nenhum provedor respondeu';
 
   for (let index = 0; index < providers.length; index += 1) {
     const provider = providers[index];
-    const model = index === 0 && params.model ? params.model : provider.model;
-    const requestedAttempts = params.maxAttemptsPerModel ?? (params.validateResponse ? 2 : 1);
-    const maxAttempts = Math.min(3, Math.max(1, Math.floor(requestedAttempts)));
+    const requestedModel = index === 0 && params.model ? params.model : provider.model;
+    const remainingMs = deadline - Date.now();
+    if (remainingMs < 5_000) break;
 
-    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      const remainingBeforeRequest = deadline - Date.now();
-      if (remainingBeforeRequest < 8000) break;
+    const providerDefaultTimeout = provider.provider === 'openrouter' ? 45_000
+      : provider.provider === 'groq' ? 40_000 : 60_000;
+    const providerTimeout = params.providerTimeouts?.[provider.provider] ?? params.timeoutMs ?? providerDefaultTimeout;
+    const requestTimeoutMs = Math.max(1_000, Math.min(providerTimeout, remainingMs - 2_000));
+    const requestOptions = {
+      timeout: requestTimeoutMs,
+      signal: AbortSignal.timeout(requestTimeoutMs),
+      maxRetries: 0,
+    };
 
-      try {
-        const createParams: {
-          model: string;
-          messages: Array<{ role: 'system' | 'user'; content: string }>;
-          temperature: number;
-          max_tokens: number;
-          response_format?: { type: 'json_object' };
-          reasoning_effort?: 'none' | 'high' | 'max';
-        } = {
-          model,
-          messages: [
-            { role: 'system', content: params.systemPrompt },
-            {
-              role: 'user',
-              content: attempt === 0
-                ? params.userPrompt
-                : [
-                    params.userPrompt,
-                    '',
-                    'CORREÇÃO OBRIGATÓRIA: a resposta anterior não passou pelo validador. Gere novamente do início, cumpra todos os campos/marcadores e limites de palavras, sem introdução, sem raciocínio interno e sem cercas de código. Retorne somente a saída final no formato solicitado.',
-                  ].join('\n'),
-            },
-          ],
-          temperature: params.temperature ?? 0.6,
-          max_tokens: params.maxTokens ?? 3000,
-        };
+    try {
+      let model = requestedModel;
+      const createParams: Record<string, unknown> = {
+        model,
+        messages: [
+          { role: 'system', content: params.systemPrompt },
+          { role: 'user', content: params.userPrompt },
+        ],
+        temperature: params.temperature ?? 0.6,
+        max_tokens: params.maxTokens ?? 3_000,
+      };
+
+      if (provider.provider === 'openrouter') {
+        const freeModels = params.model ? [params.model] : await getOpenRouterFreeModels(
+          process.env.OPENROUTER_API_KEY?.trim() || ''
+        );
+        model = freeModels[0] || 'openrouter/free';
+        createParams.model = model;
+        // OpenRouter's ordered models array retries other free candidates on
+        // provider/rate-limit errors inside this single API request. It does not
+        // judge quality; the validator below still decides whether to accept text.
+        if (freeModels.length > 1) createParams.extra_body = { models: freeModels };
+        // Keep the request portable across the free catalog. JSON is enforced by
+        // the existing content validators, not by model-specific response_format.
+      } else if (provider.provider === 'groq') {
         if (params.responseFormat) createParams.response_format = params.responseFormat;
-        if (!model.includes('nemotron-3.5-lightning')) createParams.reasoning_effort = 'none';
+        if (model === DEFAULT_GROQ_MODEL) createParams.reasoning_effort = 'low';
+      } else {
+        if (params.responseFormat) createParams.response_format = params.responseFormat;
+      }
 
-        const remainingMs = deadline - Date.now();
-        if (remainingMs < 8000) break;
-        const requestTimeoutMs = Math.max(1000, Math.min(
-          params.timeoutMs ?? (model.includes('nemotron-3.5-lightning') ? 70000 : 65000),
-          remainingMs - 7000
-        ));
-        // The SDK timeout can cover response headers without reliably stopping a
-        // stalled streamed body. An explicit AbortSignal also cancels stream reads.
-        const requestOptions = {
-          timeout: requestTimeoutMs,
-          signal: AbortSignal.timeout(requestTimeoutMs),
-          maxRetries: 0,
-        };
-        const chatTemplateOptions = { enable_thinking: false, force_nonempty_content: true };
-        let content = '';
+      const startedAt = Date.now();
+      let content = '';
+      let servedModel = model;
 
-        if (model.includes('nemotron-3.5-lightning')) {
-          const stream = await provider.client.chat.completions.create({
-            ...(createParams as any),
-            stream: true,
-            chat_template_kwargs: chatTemplateOptions,
-          } as any, requestOptions) as any;
-          for await (const chunk of stream) {
-            const delta = chunk?.choices?.[0]?.delta?.content;
-            if (typeof delta === 'string') content += delta;
-          }
-        } else {
-          const response = await provider.client.chat.completions.create({
-            ...(createParams as any),
-            chat_template_kwargs: chatTemplateOptions,
-          } as any, requestOptions);
-          content = response.choices[0]?.message?.content || '';
-        }
+      if (provider.provider === 'nvidia' && model.includes('nemotron-3.5-lightning')) {
+        const stream = await provider.client.chat.completions.create({
+          ...createParams,
+          stream: true,
+          chat_template_kwargs: { enable_thinking: false, force_nonempty_content: true },
+        } as any, requestOptions) as any;
 
-        if (!content.trim()) {
-          throw new Error(`[LLM] NVIDIA/${model} retornou conteúdo vazio (thinking desativado e conteúdo final forçado).`);
+        for await (const chunk of stream) {
+          const delta = chunk?.choices?.[0]?.delta?.content;
+          if (typeof delta === 'string') content += delta;
         }
-        if (params.validateResponse && !params.validateResponse(content)) {
-          lastError = new Error(`[LLM] NVIDIA/${model} não passou no validador de resposta na tentativa ${attempt + 1}/${maxAttempts}.`);
-          const remainingAfterValidation = deadline - Date.now();
-          if (attempt + 1 < maxAttempts && remainingAfterValidation > 15000) {
-            console.warn(`[LLM] NVIDIA/${model} reprovado no validador; repetindo o mesmo modelo com instrução de correção.`);
-            continue;
-          }
-          throw lastError;
-        }
+      } else {
+        const response = await provider.client.chat.completions.create(createParams as any, requestOptions);
+        content = extractText(response.choices[0]?.message?.content);
+        servedModel = response.model || model;
+      }
 
-        console.log(`[LLM] Sucesso: NVIDIA | modelo: ${model} | tentativa: ${attempt + 1}`);
-        return content;
-      } catch (error: unknown) {
-        lastError = error;
-        const status = typeof error === 'object' && error !== null && 'status' in error
-          ? Number((error as { status?: unknown }).status) : 0;
-        const detail = error instanceof Error ? error.message.slice(0, 400) : String(error).slice(0, 400);
-        const failureKind = detail.includes('validador') ? 'quality' : (status || 'timeout/network');
-        console.warn(`[LLM] NVIDIA/${model} falhou (status ${failureKind}): ${detail}.`);
-        if (status === 429 && deadline - Date.now() > 15000) await wait(750);
-        if (attempt + 1 < maxAttempts && deadline - Date.now() > 15000) {
-          console.warn(`[LLM] Repetindo NVIDIA/${model} uma vez antes do fallback.`);
-          continue;
-        }
-        break;
+      if (!content.trim()) {
+        lastFailure = provider.provider + '/' + servedModel + ' retornou conteúdo vazio';
+        console.warn('[LLM] ' + lastFailure + '; tentando o próximo provedor.');
+        continue;
+      }
+
+      if (params.validateResponse && !params.validateResponse(content)) {
+        lastFailure = provider.provider + '/' + servedModel + ' reprovado pelo validador de qualidade';
+        console.warn('[LLM] ' + lastFailure + '; conteúdo recusado e fallback acionado.');
+        continue;
+      }
+
+      const elapsedMs = Date.now() - startedAt;
+      console.log('[LLM] Sucesso: ' + provider.provider + ' | modelo: ' + servedModel + ' | ' + elapsedMs + ' ms');
+      return content;
+    } catch (error: unknown) {
+      const status = getHttpStatus(error);
+      const detail = error instanceof Error ? error.message.slice(0, 220) : 'erro de rede não identificado';
+      lastFailure = provider.provider + '/' + model + ' HTTP ' + (status || 'network/timeout');
+      console.warn('[LLM] ' + lastFailure + ': ' + detail + '; tentando o próximo provedor.');
+      if (status === 429 && deadline - Date.now() > 1_000) {
+        await new Promise((resolve) => setTimeout(resolve, Math.min(250, deadline - Date.now())));
       }
     }
   }
 
-  const message = lastError instanceof Error ? lastError.message : String(lastError ?? 'nenhum modelo respondeu');
-  throw new Error(`[LLM] Todos os modelos NVIDIA configurados falharam dentro do tempo disponível. Último erro: ${message}`);
+  throw new Error('[LLM] Todos os provedores disponíveis falharam ou foram reprovados. Último resultado: ' + lastFailure);
 }
