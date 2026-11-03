@@ -156,11 +156,19 @@ async function main() {
     const rawData = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
     
     if (type === 'review' || type === 'long') {
-      const scenesWithFrames = calculateFrameTimings(rawData.scenes, fps, hookFrames);
-      const contentFrames = scenesWithFrames.reduce((max, s) => Math.max(max, s.endFrame), hookFrames) - hookFrames;
-      const scoreFrames = 4 * fps;
-      const ctaFrames = 4 * fps;
-      const totalDuration = (hookFrames + contentFrames + scoreFrames + ctaFrames) / fps;
+      // The continuous Edge TTS narration is the source of truth for the timeline.
+      // The script's suggested scene.duration values are editorial hints, not audio timings.
+      const actualHookDuration = Number(rawData.hookDuration);
+      const alignedHookFrames = Number.isFinite(actualHookDuration) && actualHookDuration > 0
+        ? Math.max(1, Math.round(actualHookDuration * fps))
+        : hookFrames;
+      const scenesWithFrames = calculateFrameTimings(rawData.scenes, fps, alignedHookFrames);
+      const contentFrames = scenesWithFrames.reduce((max, s) => Math.max(max, s.endFrame), alignedHookFrames) - alignedHookFrames;
+      const sceneEndSeconds = (alignedHookFrames + contentFrames) / fps;
+      const audioDuration = Number(rawData.totalDuration);
+      const totalDuration = Number.isFinite(audioDuration) && audioDuration > 0
+        ? Math.max(audioDuration, sceneEndSeconds + 0.5)
+        : sceneEndSeconds + 8;
 
       videoData = {
         type,
@@ -178,6 +186,7 @@ async function main() {
         brollVideos: rawData.brollVideos || [],
         totalDuration,
         fps,
+        hookDuration: alignedHookFrames / fps,
       };
     } else {
       const scenesWithFrames = calculateComparisonFrameTimings(rawData.scenes, fps, hookFrames);
