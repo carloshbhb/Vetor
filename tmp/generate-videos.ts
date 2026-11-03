@@ -15,7 +15,9 @@ function requiredEnv(name: string, fallbackName?: string): string {
 
 const supabaseUrl = requiredEnv('SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL');
 const serviceKey = requiredEnv('SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY');
-requiredEnv('NVIDIA_API_KEY');
+if (!process.env.OPENROUTER_API_KEY?.trim() && !process.env.GROQ_API_KEY?.trim() && !process.env.NVIDIA_API_KEY?.trim()) {
+  throw new Error('[video-worker] Configure ao menos uma credencial LLM: OPENROUTER_API_KEY, GROQ_API_KEY ou NVIDIA_API_KEY.');
+}
 requiredEnv('YOUTUBE_CLIENT_ID');
 requiredEnv('YOUTUBE_CLIENT_SECRET');
 requiredEnv('YOUTUBE_REFRESH_TOKEN');
