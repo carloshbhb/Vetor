@@ -14,17 +14,19 @@ type OpenRouterCatalogModel = {
   architecture?: { input_modalities?: string[]; output_modalities?: string[] };
 };
 
-// Priority is based on independent capability scores for general writing and
-// the current OpenRouter free catalog. Inkling is intentionally excluded:
-// its free endpoint is scheduled to retire on 2026-11-04 and logs prompts for training.
+// Ordered by OpenRouter's current free-model adoption ranking, with general
+// editorial-capable text models only. Inkling is excluded because its free
+// endpoint is scheduled to retire on 2026-11-04; specialized code/moderation,
+// embedding and reranking models are not content generators.
 export const OPENROUTER_FREE_MODEL_PRIORITY = [
-  'google/gemma-4-31b-it:free',
-  'google/gemma-4-26b-a4b-it:free',
   'nvidia/nemotron-3-ultra-550b-a55b:free',
   'nvidia/nemotron-3.5-super-vl:free',
-  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-  'dots-studio/dots-3-note-preview:free',
   'nvidia/nemotron-3.5-lightning:free',
+  'dots-studio/dots-3-note-preview:free',
+  'google/gemma-4-31b-it:free',
+  'google/gemma-4-26b-a4b-it:free',
+  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+  'xingchen-agi/xing4.0-29b-a4b:free',
 ] as const;
 
 const OPENROUTER_FREE_CATALOG_TTL_MS = 5 * 60_000;
@@ -78,8 +80,12 @@ async function getOpenRouterFreeModels(apiKey: string): Promise<string[]> {
   }
 
   try {
+    // Use the public model catalog, not the key-scoped catalog response:
+    // OpenRouter can omit otherwise public free variants from the authenticated
+    // list even though the same API key can call them directly. Request-level
+    // authorization is validated by the model call itself; failures advance
+    // to the next free model and then to Groq/NVIDIA.
     const response = await fetch('https://openrouter.ai/api/v1/models', {
-      headers: { Authorization: 'Bearer ' + apiKey },
       signal: AbortSignal.timeout(OPENROUTER_FREE_CATALOG_TIMEOUT_MS),
       cache: 'no-store',
     });
@@ -214,7 +220,7 @@ export async function chatCompletion(params: {
   const nvidiaConfigured = providers.some((provider) => provider.provider === 'nvidia');
   const groqBudgetMs = params.providerTimeouts?.groq ?? params.timeoutMs ?? 15_000;
   const nvidiaBudgetMs = params.providerTimeouts?.nvidia ?? params.timeoutMs ?? 35_000;
-  const maxOpenRouterModels = Math.max(1, Math.min(7, Math.floor(params.maxOpenRouterModels ?? 2)));
+  const maxOpenRouterModels = Math.max(1, Math.min(8, Math.floor(params.maxOpenRouterModels ?? 8)));
   const requestedAttempts = Math.max(1, Math.min(2, Math.floor(params.maxAttemptsPerModel ?? 1)));
   let lastFailure = 'nenhum provedor respondeu';
 
