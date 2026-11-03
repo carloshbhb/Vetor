@@ -106,7 +106,7 @@ jobs:
           for (const id of priority) {
             console.log(`[CATALOG] ${id} | public=${describe(publicById.get(id))} | account=${describe(accountById.get(id))}`);
           }
-          console.log(`Eligible zero-cost text models found in public catalog: ${candidates.length}/${priority.length}`);
+          console.log(`Eligible zero-cost text models found in authenticated account catalog: ${candidates.length}/${priority.length}`);
 
           const results = [];
           for (const model of candidates) {
