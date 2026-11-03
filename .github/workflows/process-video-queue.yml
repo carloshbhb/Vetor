@@ -58,6 +58,9 @@ jobs:
           npm ci
           cd video
           npm ci
+      - name: Type-check Remotion project before any queue operation
+        working-directory: video
+        run: npx tsc --noEmit
       - name: Install HyperFrames fallback CLI
         run: |
           npm install --global hyperframes@0.9.2
