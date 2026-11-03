@@ -763,7 +763,7 @@ async function processVideo(video) {
       const timing = narrationTimings[index + 1];
       const startFrame = Math.max(0, Math.round((timing?.start || 0) * fps));
       const endFrame = Math.max(startFrame + 1, Math.round((timing?.end || 0) * fps));
-      return { ...scene, startFrame, endFrame };
+      return { ...scene, duration: timing?.duration || scene.duration, startFrame, endFrame };
     });
     const productImageSource = await downloadProductImage(video.product_image_url, video.id, video.product_title);
     temporaryVisualAssets.push(path.resolve("video/public", productImageSource));
