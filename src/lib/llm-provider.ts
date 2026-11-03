@@ -223,7 +223,8 @@ export async function chatCompletion(params: {
   const requestedAttempts = Math.max(1, Math.min(2, Math.floor(params.maxAttemptsPerModel ?? 1)));
   let lastFailure = 'nenhum provedor respondeu';
 
-  for (const provider of providers) {
+  for (let providerIndex = 0; providerIndex < providers.length; providerIndex += 1) {
+    const provider = providers[providerIndex];
     if (Date.now() >= deadline - 1_000) break;
 
     let models = [provider.model];
@@ -239,7 +240,7 @@ export async function chatCompletion(params: {
       } else {
         models = freeModels.slice(0, maxOpenRouterModels);
       }
-    } else if (params.model) {
+    } else if (params.model && providerIndex === 0) {
       // Preserve explicit model selection for provider-isolated maintenance scripts.
       models = [params.model];
     }
@@ -283,11 +284,18 @@ export async function chatCompletion(params: {
             max_tokens: params.maxTokens ?? 3_000,
           };
 
-          if (provider.provider !== 'openrouter' && params.responseFormat) {
+          if (provider.provider === 'groq') {
+            // Groq's GPT-OSS endpoint uses max_completion_tokens (max_tokens is deprecated).
+            createParams.max_completion_tokens = params.maxTokens ?? 3_000;
+            delete createParams.max_tokens;
+            if (params.responseFormat) {
+              createParams.response_format = params.responseFormat;
+              // GPT-OSS requires an explicit reasoning format when JSON mode is enabled.
+              createParams.reasoning_format = 'hidden';
+            }
+            if (model === DEFAULT_GROQ_MODEL) createParams.reasoning_effort = 'low';
+          } else if (provider.provider === 'nvidia' && params.responseFormat) {
             createParams.response_format = params.responseFormat;
-          }
-          if (provider.provider === 'groq' && model === DEFAULT_GROQ_MODEL) {
-            createParams.reasoning_effort = 'low';
           }
 
           const requestOptions = {
