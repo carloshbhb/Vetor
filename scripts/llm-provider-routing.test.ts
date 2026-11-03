@@ -46,9 +46,9 @@ const freeCatalog = [
 assert.deepEqual(
   rankOpenRouterFreeModels(freeCatalog),
   [
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
     "google/gemma-4-31b-it:free",
     "google/gemma-4-26b-a4b-it:free",
-    "nvidia/nemotron-3-ultra-550b-a55b:free",
   ],
   "only curated, currently free text-in/text-out models should be returned in priority order"
 );
