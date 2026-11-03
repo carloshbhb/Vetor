@@ -88,6 +88,12 @@ jobs:
             fi
           done
 
+      - name: Prepare local B-roll fixture
+        working-directory: video
+        run: |
+          ffmpeg -y -f lavfi -i "testsrc2=size=540x960:rate=30" -t 6 -c:v libx264 -pix_fmt yuv420p public/smoke-broll.mp4
+          test -s public/smoke-broll.mp4
+
       - name: Prepare Remotion render smoke props
         working-directory: video
         run: |
@@ -108,7 +114,7 @@ jobs:
             ],
             "callToAction": "Confira a análise completa.",
             "subtitleEntries": [{"start": 1, "end": 5, "text": "Tela e desempenho para o uso cotidiano.", "segmentKind": "scene"}],
-            "brollVideos": [],
+            "brollVideos": ["/smoke-broll.mp4"],
             "totalDuration": 6,
             "fps": 30
           }
