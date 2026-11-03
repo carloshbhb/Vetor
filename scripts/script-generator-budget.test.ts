@@ -13,10 +13,6 @@ assert.ok(
   budget.deadlineMs < 60_000,
   "OpenRouter, Groq and NVIDIA must fit inside the Vercel route execution limit"
 );
-assert.ok(
-  budget.deadlineMs < 60_000,
-  "generation budget must finish before the Vercel route execution limit"
-);
 
 const product1 = "Samsung Galaxy A56";
 const product2 = "Samsung Galaxy A57";
