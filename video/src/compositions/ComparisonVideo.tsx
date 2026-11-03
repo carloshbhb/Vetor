@@ -18,6 +18,7 @@ import { AnimatedText } from '../components/AnimatedText';
 import { ProductCard } from '../components/ProductCard';
 import { ScoreBar } from '../components/ScoreBar';
 import { KineticCaption } from '../components/KineticCaption';
+import { COMPARISON_BROLL_STAGE } from '../utils/shorts-safe-zone';
 
 export interface SubtitleEntry {
   start: number;
@@ -120,17 +121,32 @@ const ProductScene: React.FC<{
   return (
     <GradientBackground>
       <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30 }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
-            {useBroll && brollVideos.length > 0 && (
-              <Loop durationInFrames={Math.max(1, Math.round(3 * fps))}>
-                <OffthreadVideo
-                  src={brollVideos[brollIndex]}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: brollOpacity, filter: 'brightness(0.35) blur(1px)' }}
-                  muted
-                />
-              </Loop>
-            )}
-          </div>
+        {/* Local coordinates compensate for GradientBackground's 60px padding.
+            The resulting canvas rectangle is x=120..860, y=540..1240. */}
+        <div
+          style={{
+            position: 'absolute',
+            left: COMPARISON_BROLL_STAGE.left,
+            top: COMPARISON_BROLL_STAGE.top,
+            width: COMPARISON_BROLL_STAGE.width,
+            height: COMPARISON_BROLL_STAGE.height,
+            zIndex: 0,
+            overflow: 'hidden',
+            borderRadius: 32,
+            border: '1px solid rgba(255,255,255,.16)',
+            boxShadow: '0 20px 60px rgba(0,0,0,.32)',
+          }}
+        >
+          {useBroll && brollVideos.length > 0 && (
+            <Loop durationInFrames={Math.max(1, Math.round(3 * fps))}>
+              <OffthreadVideo
+                src={brollVideos[brollIndex]}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: brollOpacity, filter: 'brightness(0.35) blur(1px)' }}
+                muted
+              />
+            </Loop>
+          )}
+        </div>
 
         <div style={{ opacity: productOpacity, transform: `translateX(${slideIn}px)`, zIndex: 1, background: theme.surface, borderRadius: 32, padding: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, border: `2px solid ${borderColor}`, boxShadow: `0 20px 60px rgba(0,0,0,0.4)` }}>
           <AnimatedText text={label} fontSize={32} color={theme.muted} />
