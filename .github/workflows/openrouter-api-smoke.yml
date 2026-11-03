@@ -56,56 +56,35 @@ jobs:
           console.log(`Authentication: VALID (HTTP ${auth.status})`);
 
           const priority = [
+            "nvidia/nemotron-3-ultra-550b-a55b:free",
+            "nvidia/nemotron-3.5-super-vl:free",
+            "nvidia/nemotron-3.5-lightning:free",
+            "dots-studio/dots-3-note-preview:free",
             "google/gemma-4-31b-it:free",
             "google/gemma-4-26b-a4b-it:free",
-            "nvidia/nemotron-3-ultra-550b-a55b:free"
+            "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+            "xingchen-agi/xing4.0-29b-a4b:free"
           ];
-
-          async function readCatalog(url, requestHeaders = {}) {
-            const response = await fetch(url, {
-              headers: requestHeaders,
-              signal: AbortSignal.timeout(15000)
-            });
-            const body = await response.json().catch(() => ({}));
-            return { response, body };
-          }
-
-          const [publicCatalog, accountCatalog] = await Promise.all([
-            readCatalog("https://openrouter.ai/api/v1/models"),
-            readCatalog("https://openrouter.ai/api/v1/models", { Authorization: `Bearer ${key}` })
-          ]);
-          if (!publicCatalog.response.ok || !Array.isArray(publicCatalog.body.data)) {
-            console.error(`Public model catalog unavailable: HTTP ${publicCatalog.response.status}`);
-            process.exit(12);
-          }
-          if (!accountCatalog.response.ok || !Array.isArray(accountCatalog.body.data)) {
-            console.error(`Authenticated model catalog unavailable: HTTP ${accountCatalog.response.status}`);
-            process.exit(12);
-          }
-
           const publicById = new Map(publicCatalog.body.data.map(model => [model.id, model]));
           const accountById = new Map(accountCatalog.body.data.map(model => [model.id, model]));
-          for (const id of priority) {
-            const pub = publicById.get(id);
-            const acc = accountById.get(id);
-            const describe = model => model ? JSON.stringify({
-              prompt: model.pricing?.prompt,
-              completion: model.pricing?.completion,
-              input: model.architecture?.input_modalities,
-              output: model.architecture?.output_modalities
-            }) : "not-listed";
-            console.log(`[CATALOG] ${id} | public=${describe(pub)} | account=${describe(acc)}`);
-          }
-
+          const describe = model => model ? JSON.stringify({
+            prompt: model.pricing?.prompt,
+            completion: model.pricing?.completion,
+            input: model.architecture?.input_modalities,
+            output: model.architecture?.output_modalities
+          }) : "not-listed";
           const candidates = priority.filter(id => {
-            const model = accountById.get(id);
+            const model = publicById.get(id);
             return model &&
               Number(model.pricing?.prompt) === 0 &&
               Number(model.pricing?.completion) === 0 &&
               (model.architecture?.input_modalities || []).includes("text") &&
               (model.architecture?.output_modalities || []).includes("text");
           });
-          console.log(`Eligible zero-cost text models found in account catalog: ${candidates.length}/${priority.length}`);
+          for (const id of priority) {
+            console.log(`[CATALOG] ${id} | public=${describe(publicById.get(id))} | account=${describe(accountById.get(id))}`);
+          }
+          console.log(`Eligible zero-cost text models found in public catalog: ${candidates.length}/${priority.length}`);
 
           const results = [];
           for (const model of candidates) {
