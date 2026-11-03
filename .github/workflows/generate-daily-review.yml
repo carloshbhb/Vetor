@@ -27,6 +27,8 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
       ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
       ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
@@ -53,10 +55,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          : "${NVIDIA_API_KEY:?NVIDIA_API_KEY secret is required}"
+          if [ -z "${OPENROUTER_API_KEY:-}${GROQ_API_KEY:-}${NVIDIA_API_KEY:-}" ]; then
+            echo "::error::Configure at least one LLM secret: OPENROUTER_API_KEY, GROQ_API_KEY or NVIDIA_API_KEY."
+            exit 1
+          fi
           : "${NEXT_PUBLIC_SUPABASE_ANON_KEY:?NEXT_PUBLIC_SUPABASE_ANON_KEY secret is required}"
           : "${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY secret is required}"
-          echo "NVIDIA and Supabase secrets are present; values are not displayed."
+          echo "At least one LLM and the Supabase secrets are present; values are not displayed."
       - name: Check Mercado Livre discovery credentials
         shell: bash
         run: |
