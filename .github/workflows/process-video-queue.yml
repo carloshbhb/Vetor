@@ -76,6 +76,7 @@ jobs:
           node video/scripts/video-format.test.mjs
           cd video
           node --import tsx scripts/visual-storyboard.test.mjs
+          node --import tsx scripts/shorts-safe-zone-layout.test.mjs
       - name: Preinstall Remotion Chrome Headless Shell
         working-directory: video
         timeout-minutes: 15
