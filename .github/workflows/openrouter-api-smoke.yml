@@ -6,6 +6,12 @@ on:
       - main
     paths:
       - .github/workflows/openrouter-api-smoke.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/openrouter-api-smoke.yml
+      - src/lib/llm-provider.ts
   workflow_dispatch:
 
 permissions:
@@ -13,14 +19,14 @@ permissions:
 
 jobs:
   smoke-test:
-    name: Validate OpenRouter key and chat completion
+    name: Validate OpenRouter auth and free text models
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Test OpenRouter authentication and generation
+      - name: Test authentication and selected free models
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
@@ -31,49 +37,92 @@ jobs:
             process.exit(10);
           }
 
+          const headers = {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://www.vetor.blog",
+            "X-Title": "Vetor.blog Free Model Smoke Test"
+          };
+
           const auth = await fetch("https://openrouter.ai/api/v1/key", {
-            headers: { Authorization: `Bearer ${key}` }
+            headers: { Authorization: `Bearer ${key}` },
+            signal: AbortSignal.timeout(12000)
           });
           const authBody = await auth.json().catch(() => ({}));
           if (!auth.ok) {
             console.error(`Authentication failed: HTTP ${auth.status} — ${authBody.error?.message || "OpenRouter rejected the key"}`);
             process.exit(11);
           }
-
-          const account = authBody.data || {};
           console.log(`Authentication: VALID (HTTP ${auth.status})`);
-          if (typeof account.usage === "number") console.log(`Account usage: ${account.usage}`);
-          if (typeof account.limit === "number") console.log(`Account limit: ${account.limit}`);
 
-          const completion = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${key}`,
-              "Content-Type": "application/json",
-              "HTTP-Referer": "https://www.vetor.blog",
-              "X-Title": "Vetor.blog OpenRouter Smoke Test"
-            },
-            body: JSON.stringify({
-              model: "openrouter/free",
-              messages: [{ role: "user", content: "Responda apenas com a palavra OK." }],
-              max_tokens: 24,
-              temperature: 0
-            })
+          const catalogResponse = await fetch("https://openrouter.ai/api/v1/models", {
+            headers: { Authorization: `Bearer ${key}` },
+            signal: AbortSignal.timeout(12000)
           });
-
-          const completionBody = await completion.json().catch(() => ({}));
-          if (!completion.ok) {
-            console.error(`Chat completion failed: HTTP ${completion.status} — ${completionBody.error?.message || "No error detail returned"}`);
+          const catalogBody = await catalogResponse.json().catch(() => ({}));
+          if (!catalogResponse.ok || !Array.isArray(catalogBody.data)) {
+            console.error(`Model catalog unavailable: HTTP ${catalogResponse.status}`);
             process.exit(12);
           }
 
-          const text = completionBody.choices?.[0]?.message?.content;
-          if (typeof text !== "string" || !text.trim()) {
-            console.error("Chat completion returned HTTP success but no assistant text.");
-            process.exit(13);
+          const priority = [
+            "google/gemma-4-31b-it:free",
+            "google/gemma-4-26b-a4b-it:free",
+            "nvidia/nemotron-3-ultra-550b-a55b:free"
+          ];
+          const byId = new Map(catalogBody.data.map(model => [model.id, model]));
+          const candidates = priority.filter(id => {
+            const model = byId.get(id);
+            return model &&
+              Number(model.pricing?.prompt) === 0 &&
+              Number(model.pricing?.completion) === 0 &&
+              (model.architecture?.input_modalities || []).includes("text") &&
+              (model.architecture?.output_modalities || []).includes("text");
+          });
+          console.log(`Eligible zero-cost text models found: ${candidates.length}/${priority.length}`);
+
+          const results = [];
+          for (const model of candidates) {
+            try {
+              const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers,
+                signal: AbortSignal.timeout(20000),
+                body: JSON.stringify({
+                  model,
+                  messages: [
+                    {
+                      role: "system",
+                      content: "Responda em português brasileiro, sem inventar fatos."
+                    },
+                    {
+                      role: "user",
+                      content: "Escreva duas frases curtas sobre o Samsung Galaxy Fit3 usando apenas estes fatos: tela AMOLED de 1,6 polegada; autonomia anunciada de até 13 dias, variável conforme uso; resistência 5 ATM; não possui GPS integrado."
+                    }
+                  ],
+                  max_tokens: 140,
+                  temperature: 0.2
+                })
+              });
+              const body = await response.json().catch(() => ({}));
+              const text = body.choices?.[0]?.message?.content;
+              const valid = response.ok && typeof text === "string" && text.trim().length >= 50 &&
+                /Galaxy Fit3/i.test(text) && /GPS/i.test(text);
+              results.push({ model, valid, status: response.status });
+              console.log(`[${valid ? "PASS" : "FAIL"}] ${model}: HTTP ${response.status}`);
+              if (!valid && body.error?.message) {
+                console.log(`  Reason: ${String(body.error.message).slice(0, 180)}`);
+              }
+            } catch (error) {
+              results.push({ model, valid: false, status: "network" });
+              console.log(`[FAIL] ${model}: ${String(error).slice(0, 160)}`);
+            }
           }
 
-          console.log(`Chat completion: SUCCESS (HTTP ${completion.status})`);
-          console.log(`Model served: ${completionBody.model || "not reported"}`);
-          console.log(`Response: ${text.trim().slice(0, 120)}`);
+          const passed = results.filter(result => result.valid);
+          console.log(`Free model smoke result: ${passed.length}/${results.length} returned a usable Portuguese response.`);
+          if (passed.length === 0) {
+            console.error("No curated free model returned a usable answer. The application should fall back to Groq, then NVIDIA.");
+            process.exit(13);
+          }
           NODE
