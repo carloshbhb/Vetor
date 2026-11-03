@@ -4,6 +4,7 @@ import {
   Audio,
   Img,
   Sequence,
+  Loop,
   OffthreadVideo,
   interpolate,
   useCurrentFrame,
@@ -181,7 +182,9 @@ const LongFeature: React.FC<{
             opacity: interpolate(phaseProgress, [0, .16, .9, 1], [0, 1, 1, 0], { extrapolateRight: 'clamp' }),
           }}
         >
-          <OffthreadVideo src={brollUrl} muted loop delayRenderTimeoutInMilliseconds={90000} delayRenderRetries={1} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'saturate(.88) brightness(.78)' }} />
+          <Loop durationInFrames={duration}>
+            <OffthreadVideo src={brollUrl} muted delayRenderTimeoutInMilliseconds={90000} delayRenderRetries={1} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'saturate(.88) brightness(.78)' }} />
+          </Loop>
         </AbsoluteFill>
       ) : null}
 
