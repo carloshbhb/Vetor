@@ -106,10 +106,16 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
 
 export function getVideoScriptGenerationBudget() {
   return {
-    // Keep two NVIDIA models inside the Vercel route's 60-second execution window.
-    timeoutMs: 23000,
-    deadlineMs: 47000,
+    // Respect the route's 60-second Vercel limit while reserving time for
+    // both provider fallbacks after two free OpenRouter quality attempts.
+    deadlineMs: 55000,
+    maxOpenRouterModels: 2,
     maxAttemptsPerModel: 1 as const,
+    providerTimeouts: {
+      openrouter: 12000,
+      groq: 9000,
+      nvidia: 25000,
+    },
   };
 }
 
