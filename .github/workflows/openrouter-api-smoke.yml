@@ -96,7 +96,7 @@ jobs:
             output: model.architecture?.output_modalities
           }) : "not-listed";
           const candidates = priority.filter(id => {
-            const model = publicById.get(id);
+            const model = accountById.get(id);
             return model &&
               Number(model.pricing?.prompt) === 0 &&
               Number(model.pricing?.completion) === 0 &&
@@ -132,13 +132,21 @@ jobs:
                 })
               });
               const body = await response.json().catch(() => ({}));
-              const text = body.choices?.[0]?.message?.content;
-              const valid = response.ok && typeof text === "string" && text.trim().length >= 50 &&
+              const rawContent = body.choices?.[0]?.message?.content;
+              const text = typeof rawContent === "string"
+                ? rawContent
+                : Array.isArray(rawContent)
+                  ? rawContent.map(part => part && typeof part === "object" && part.text ? String(part.text) : "").join("")
+                  : "";
+              const valid = response.ok && text.trim().length >= 50 &&
                 /Galaxy Fit3/i.test(text) && /GPS/i.test(text);
               results.push({ model, valid, status: response.status });
-              console.log(`[${valid ? "PASS" : "FAIL"}] ${model}: HTTP ${response.status}`);
-              if (!valid && body.error?.message) {
-                console.log(`  Reason: ${String(body.error.message).slice(0, 180)}`);
+              console.log(`[${valid ? "PASS" : "REVIEW"}] ${model}: HTTP ${response.status}; finish=${body.choices?.[0]?.finish_reason || "n/a"}; contentType=${typeof rawContent}`);
+              if (text.trim()) {
+                console.log(`  Sample: ${text.trim().replace(/\s+/g, " ").slice(0, 220)}`);
+              }
+              if (!response.ok && body.error?.message) {
+                console.log(`  Reason: ${String(body.error.message).slice(0, 350)}`);
               }
             } catch (error) {
               results.push({ model, valid: false, status: "network" });
