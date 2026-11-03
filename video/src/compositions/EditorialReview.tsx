@@ -4,6 +4,7 @@ import {
   Audio,
   Img,
   Sequence,
+  Loop,
   OffthreadVideo,
   interpolate,
   useCurrentFrame,
@@ -255,19 +256,20 @@ const FeatureScene: React.FC<{
     <Background>
       <AbsoluteFill style={{ opacity: showBroll ? (visual.mode === 'lifestyle' ? 0.82 : 0.56) : 0 }}>
         {brollUrl ? (
-          <OffthreadVideo
-            src={brollUrl}
-            muted
-            loop
-            delayRenderTimeoutInMilliseconds={90000}
-            delayRenderRetries={1}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              filter: 'saturate(.82) brightness(.76)',
-            }}
-          />
+          <Loop durationInFrames={durationFrames}>
+            <OffthreadVideo
+              src={brollUrl}
+              muted
+              delayRenderTimeoutInMilliseconds={90000}
+              delayRenderRetries={1}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                filter: 'saturate(.82) brightness(.76)',
+              }}
+            />
+          </Loop>
         ) : null}
       </AbsoluteFill>
       <AbsoluteFill
