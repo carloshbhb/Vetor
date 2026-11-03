@@ -1,0 +1,79 @@
+name: OpenRouter API Smoke Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/openrouter-api-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    name: Validate OpenRouter key and chat completion
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Test OpenRouter authentication and generation
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          node <<'NODE'
+          const key = process.env.OPENROUTER_API_KEY;
+          if (!key) {
+            console.error("OPENROUTER_API_KEY is unavailable in GitHub Actions secrets.");
+            process.exit(10);
+          }
+
+          const auth = await fetch("https://openrouter.ai/api/v1/key", {
+            headers: { Authorization: `Bearer ${key}` }
+          });
+          const authBody = await auth.json().catch(() => ({}));
+          if (!auth.ok) {
+            console.error(`Authentication failed: HTTP ${auth.status} — ${authBody.error?.message || "OpenRouter rejected the key"}`);
+            process.exit(11);
+          }
+
+          const account = authBody.data || {};
+          console.log(`Authentication: VALID (HTTP ${auth.status})`);
+          if (typeof account.usage === "number") console.log(`Account usage: ${account.usage}`);
+          if (typeof account.limit === "number") console.log(`Account limit: ${account.limit}`);
+
+          const completion = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${key}`,
+              "Content-Type": "application/json",
+              "HTTP-Referer": "https://www.vetor.blog",
+              "X-Title": "Vetor.blog OpenRouter Smoke Test"
+            },
+            body: JSON.stringify({
+              model: "openrouter/free",
+              messages: [{ role: "user", content: "Responda apenas com a palavra OK." }],
+              max_tokens: 24,
+              temperature: 0
+            })
+          });
+
+          const completionBody = await completion.json().catch(() => ({}));
+          if (!completion.ok) {
+            console.error(`Chat completion failed: HTTP ${completion.status} — ${completionBody.error?.message || "No error detail returned"}`);
+            process.exit(12);
+          }
+
+          const text = completionBody.choices?.[0]?.message?.content;
+          if (typeof text !== "string" || !text.trim()) {
+            console.error("Chat completion returned HTTP success but no assistant text.");
+            process.exit(13);
+          }
+
+          console.log(`Chat completion: SUCCESS (HTTP ${completion.status})`);
+          console.log(`Model served: ${completionBody.model || "not reported"}`);
+          console.log(`Response: ${text.trim().slice(0, 120)}`);
+          NODE
