@@ -26,6 +26,7 @@ interface ReviewVideoData {
   brollVideos: string[];
   totalDuration: number;
   fps: number;
+  hookDuration?: number;
   reviewUrl?: string;
 }
 
