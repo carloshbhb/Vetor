@@ -21,12 +21,8 @@ type OpenRouterCatalogModel = {
 export const OPENROUTER_FREE_MODEL_PRIORITY = [
   'nvidia/nemotron-3-ultra-550b-a55b:free',
   'nvidia/nemotron-3.5-super-vl:free',
-  'nvidia/nemotron-3.5-lightning:free',
   'dots-studio/dots-3-note-preview:free',
-  'google/gemma-4-31b-it:free',
-  'google/gemma-4-26b-a4b-it:free',
   'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-  'xingchen-agi/xing4.0-29b-a4b:free',
 ] as const;
 
 const OPENROUTER_FREE_CATALOG_TTL_MS = 5 * 60_000;
