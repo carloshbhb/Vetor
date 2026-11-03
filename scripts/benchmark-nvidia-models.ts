@@ -50,11 +50,11 @@ type ModelResult = {
 };
 
 function evaluate(output: string) {
-  const wordCount = output.trim() ? output.trim().split(/\\s+/).length : 0;
+  const wordCount = output.trim() ? output.trim().split(/\s+/).length : 0;
   const checks = {
     sufficientLength: wordCount >= 350,
     productSpecific: /galaxy fit3/i.test(output) && /amoled|tela/i.test(output) && /bateria|autonomia/i.test(output) && /gps/i.test(output),
-    structuredSections: (output.match(/(^|\\n)\\s{0,3}(?:#{1,6}\\s|\\*\\*[^*\\n]{3,}\\*\\*)/gim) || []).length >= 3,
+    structuredSections: (output.match(/(^|\n)\s{0,3}(?:#{1,6}\s|\*\*[^*\n]{3,}\*\*)/gim) || []).length >= 3,
     includesProsAndCons: /pr[oó]s|vantagens/i.test(output) && /contras|limita[cç][oõ]es/i.test(output),
     includesVerdict: /veredito|vale a pena/i.test(output),
     metadataPresent: /meta[- ]?description|meta descri[cç][aã]o|descri[cç][aã]o meta/i.test(output),
@@ -81,7 +81,7 @@ async function main() {
 
   for (const model of MODELS) {
     const startedAt = Date.now();
-    console.log(`\\n[START] ${model}`);
+    console.log(`\n[START] ${model}`);
     try {
       // Keep request parameters conservative and common across providers.
       const response = await client.chat.completions.create({
@@ -166,7 +166,7 @@ async function main() {
 
   const outDir = path.join(process.cwd(), 'artifacts');
   fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, 'nvidia-model-benchmark.json'), JSON.stringify(report, null, 2) + '\\n', 'utf8');
+  fs.writeFileSync(path.join(outDir, 'nvidia-model-benchmark.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
 
   const markdown = [
     '# NVIDIA NIM Model Benchmark',
@@ -184,10 +184,10 @@ async function main() {
     ...results.map((r) => `| ${r.model} | ${r.status} | ${r.httpStatus ?? '—'} | ${r.elapsedMs} | ${r.wordCount ?? 0} | ${r.promptTokens ?? '—'}/${r.completionTokens ?? '—'} | ${r.qualityChecks ? (r.qualityChecks.passed ? 'PASS' : 'REVIEW') : '—'} |`),
     '',
     'Automated quality checks are screening signals, not a final editorial judgment. Review each model output in the JSON artifact.',
-  ].join('\\n');
-  fs.writeFileSync(path.join(outDir, 'nvidia-model-benchmark.md'), markdown + '\\n', 'utf8');
+  ].join('\n');
+  fs.writeFileSync(path.join(outDir, 'nvidia-model-benchmark.md'), markdown + '\n', 'utf8');
 
-  console.log(`\\nBenchmark concluído: ${succeeded}/${MODELS.length} respostas. Relatórios JSON e Markdown gravados em artifacts/.`);
+  console.log(`\nBenchmark concluído: ${succeeded}/${MODELS.length} respostas. Relatórios JSON e Markdown gravados em artifacts/.`);
   // Keep the workflow useful even when individual free endpoints are unavailable.
   // Fail only when no model produced a response; per-model failures remain in the artifact.
   if (succeeded === 0) process.exitCode = 1;
