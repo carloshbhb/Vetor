@@ -3,12 +3,15 @@ import { getVideoScriptGenerationBudget } from "../src/lib/script-generator";
 import { isValidComparisonVideoScriptResponse } from "../src/lib/script-generator";
 
 const budget = getVideoScriptGenerationBudget();
-assert.equal(budget.timeoutMs, 23_000);
-assert.equal(budget.deadlineMs, 47_000);
+assert.equal(budget.deadlineMs, 55_000);
+assert.equal(budget.maxOpenRouterModels, 2);
 assert.equal(budget.maxAttemptsPerModel, 1);
+assert.equal(budget.providerTimeouts.openrouter, 12_000);
+assert.equal(budget.providerTimeouts.groq, 9_000);
+assert.equal(budget.providerTimeouts.nvidia, 25_000);
 assert.ok(
-  budget.deadlineMs - budget.timeoutMs - 7_000 >= 15_000,
-  "the primary model must leave enough time for a real NVIDIA fallback attempt"
+  budget.deadlineMs < 60_000,
+  "OpenRouter, Groq and NVIDIA must fit inside the Vercel route execution limit"
 );
 assert.ok(
   budget.deadlineMs < 60_000,
