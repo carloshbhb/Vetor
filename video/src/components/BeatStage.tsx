@@ -12,6 +12,7 @@ import {
 import type { SceneBeat } from '../utils/visual-storyboard';
 import { fonts } from '../styles/fonts';
 import { resolveMediaSource } from '../utils/media-source';
+import { SHORTS_STAGE } from '../utils/shorts-safe-zone';
 
 /**
  * Vertical (Shorts) stage for one beat. Rendered inside a <Sequence> that starts at the
@@ -23,7 +24,7 @@ import { resolveMediaSource } from '../utils/media-source';
  */
 // Centred in the YouTube Shorts safe column (60px left, 160px right => x 60..920) with room
 // for the landing and zoom animations, so no frame of the product reaches into the Shorts UI.
-export const STAGE = { left: 120, top: 540, width: 740, height: 700 } as const;
+export const STAGE = SHORTS_STAGE;
 
 type BeatStageProps = {
   beat: SceneBeat;
@@ -169,7 +170,24 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
   if (beat.kind === 'broll' && brollUrl) {
     return (
       <>
-        <AbsoluteFill style={{ opacity: interpolate(frame, [0, 6], [0, 1], { extrapolateRight: 'clamp' }) }}>
+        {/* B-roll is a visual supporting asset, not a full-bleed layer. Keep it in
+            the same Shorts-safe stage as the product so platform UI never covers
+            important visual details and pixel QA does not mistake background
+            footage for foreground text. */}
+        <div
+          style={{
+            position: 'absolute',
+            left: STAGE.left,
+            top: STAGE.top,
+            width: STAGE.width,
+            height: STAGE.height,
+            overflow: 'hidden',
+            borderRadius: 44,
+            border: '2px solid rgba(112,196,255,.28)',
+            boxShadow: '0 24px 70px rgba(0,0,0,.4)',
+            opacity: interpolate(frame, [0, 6], [0, 1], { extrapolateRight: 'clamp' }),
+          }}
+        >
           <OffthreadVideo
             src={resolveMediaSource(brollUrl)}
             muted
@@ -177,10 +195,15 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
             delayRenderRetries={1}
             style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'saturate(.9) brightness(.72)' }}
           />
-        </AbsoluteFill>
-        <AbsoluteFill
-          style={{ background: 'linear-gradient(180deg,rgba(8,12,20,.78) 0%,rgba(8,12,20,.12) 40%,rgba(8,12,20,.8) 100%)' }}
-        />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(180deg,rgba(8,12,20,.58) 0%,rgba(8,12,20,.08) 42%,rgba(8,12,20,.62) 100%)',
+              pointerEvents: 'none',
+            }}
+          />
+        </div>
         <ProductBox
           src={main}
           box={{ left: 90, top: 840, width: 520, height: 470 }}
