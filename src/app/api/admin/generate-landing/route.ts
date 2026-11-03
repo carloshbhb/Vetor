@@ -4,6 +4,9 @@ import { getProductLinkById, markProductLinkLandingPageGenerated } from "@/lib/p
 import { createReview, getAllReviewsAdmin } from "@/lib/supabase";
 import { chatCompletion } from "@/lib/llm-provider";
 
+export const runtime = "nodejs";
+export const maxDuration = 240;
+
 type JsonObject = Record<string, unknown>;
 
 function asText(value: unknown, fallback = ""): string {
