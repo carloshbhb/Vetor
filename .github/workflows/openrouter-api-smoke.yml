@@ -21,7 +21,7 @@ jobs:
   smoke-test:
     name: Validate OpenRouter auth and free text models
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -54,6 +54,28 @@ jobs:
             process.exit(11);
           }
           console.log(`Authentication: VALID (HTTP ${auth.status})`);
+
+          async function readCatalog(url, requestHeaders = {}) {
+            const response = await fetch(url, {
+              headers: requestHeaders,
+              signal: AbortSignal.timeout(15000)
+            });
+            const body = await response.json().catch(() => ({}));
+            return { response, body };
+          }
+
+          const [publicCatalog, accountCatalog] = await Promise.all([
+            readCatalog("https://openrouter.ai/api/v1/models"),
+            readCatalog("https://openrouter.ai/api/v1/models", { Authorization: `Bearer ${key}` })
+          ]);
+          if (!publicCatalog.response.ok || !Array.isArray(publicCatalog.body.data)) {
+            console.error(`Public model catalog unavailable: HTTP ${publicCatalog.response.status}`);
+            process.exit(12);
+          }
+          if (!accountCatalog.response.ok || !Array.isArray(accountCatalog.body.data)) {
+            console.error(`Authenticated model catalog unavailable: HTTP ${accountCatalog.response.status}`);
+            process.exit(12);
+          }
 
           const priority = [
             "nvidia/nemotron-3-ultra-550b-a55b:free",
