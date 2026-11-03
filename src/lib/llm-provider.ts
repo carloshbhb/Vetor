@@ -80,12 +80,11 @@ async function getOpenRouterFreeModels(apiKey: string): Promise<string[]> {
   }
 
   try {
-    // Use the public model catalog, not the key-scoped catalog response:
-    // OpenRouter can omit otherwise public free variants from the authenticated
-    // list even though the same API key can call them directly. Request-level
-    // authorization is validated by the model call itself; failures advance
-    // to the next free model and then to Groq/NVIDIA.
+    // Use the authenticated catalog: it reflects this API key's actual model
+    // access, including account-level data-policy/guardrail restrictions.
+    // The public catalog can list free models that this key is not allowed to call.
     const response = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: { Authorization: 'Bearer ' + apiKey },
       signal: AbortSignal.timeout(OPENROUTER_FREE_CATALOG_TIMEOUT_MS),
       cache: 'no-store',
     });
