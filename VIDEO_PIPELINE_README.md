@@ -113,12 +113,19 @@ vetor-blog/
 ├── video/
 │   ├── src/
 │   │   ├── compositions/
-│   │   │   ├── ReviewVideo.tsx     # Template review c/ legendas
-│   │   │   └── ComparisonVideo.tsx # Template comparação
-│   │   ├── utils/renderVideo.ts    # Script de render
-│   │   └── scripts/
-│   │       ├── process-video.js    # Pipeline completo (Node)
-│   │       └── upload-to-youtube.js # Upload YouTube API
+│   │   │   ├── EditorialReview.tsx          # Short 9:16 (batidas, SFX, legenda por palavra)
+│   │   │   ├── EditorialReviewLandscape.tsx # Vídeo longo 16:9
+│   │   │   └── ComparisonVideo.tsx          # Comparativo
+│   │   ├── components/BeatStage.tsx         # Palco das batidas + transição (wipe)
+│   │   ├── styles/loadFonts.ts              # Fontes locais (public/fonts)
+│   │   └── utils/
+│   │       ├── renderVideo.ts               # Bundle + render (Remotion)
+│   │       ├── timing.ts                    # Tempos exatos de cena (narração)
+│   │       └── visual-storyboard.ts         # Modos visuais e plano de batidas
+│   ├── scripts/
+│   │   ├── process-video.mjs                # Worker: roteiro → TTS → render → QA → YouTube
+│   │   ├── video-format.mjs                 # Legendas, tempos por palavra, título/descrição
+│   │   └── generate-sfx.sh                  # Regenera public/sfx (whoosh, pop) com ffmpeg
 │   └── package.json
 ├── .github/workflows/render-videos.yml  # GitHub Actions
 ├── supabase/schema.sql             # Schema BD
@@ -213,9 +220,17 @@ const BRAZILIAN_VOICES = [
 ```
 
 ### Alterar Template de Vídeo
-Os reviews gerados usam `video/src/compositions/EditorialReview.tsx`, adaptado do modelo do projeto Remotion. O roteiro, as imagens, o áudio do `edge-tts` e o B-roll entram como propriedades da composição. O Studio abre com `cd video && npm start`.
+Os Shorts usam `video/src/compositions/EditorialReview.tsx` e os longos `EditorialReviewLandscape.tsx`. Roteiro, imagens, áudio do `edge-tts` e B-roll entram como propriedades da composição. O Studio abre com `cd video && npm start`. Comparativos usam `ComparisonVideo.tsx`.
 
-Comparações manuais continuam usando `video/src/compositions/ComparisonVideo.tsx`.
+**Como o Short é montado**
+- **Sincronia**: o worker mede o início de cada cena pelas palavras realmente faladas (`WordBoundary` do Edge TTS, `buildNarrationTimings`). Se as palavras não casarem 1:1 com o roteiro, usa a estimativa proporcional (com aviso no log). O `renderVideo.ts` respeita esses tempos e a duração real do áudio.
+- **Batidas**: cada cena é dividida em batidas de ~2,6 s (`planSceneBeats`): produto, macro, card de especificação, foto da galeria e B-roll, com transição entre elas.
+- **Legenda**: a palavra falada é destacada em amarelo, com tempos reais por palavra.
+- **Áudio**: narração normalizada a -14 LUFS (`NARRATION_LOUDNORM=false` desliga), efeitos `whoosh`/`pop` em `video/public/sfx` e trilha opcional pela propriedade `musicUrl` (volume baixo sob a voz).
+- **Fontes**: Inter e Space Grotesk locais em `video/public/fonts` (licença OFL); nada é baixado durante o render.
+- **Encode**: H.264 `yuv420p`, BT.709, CRF 18, áudio 192 kbps. Variáveis: `REMOTION_CONCURRENCY` (padrão 2), `REMOTION_CHROME_PATH` e `REMOTION_CHROME_MODE=chrome-for-testing` para usar um Chrome já instalado.
+
+**Testes**: `node video/scripts/video-format.test.mjs`, `visual-storyboard.test.mjs`, `timing.test.mjs` e `node video/hyperframes/library.test.mjs`; tipos com `cd video && npx tsc --noEmit`.
 
 ### Adicionar Marketplaces
 Edite `src/lib/product-extractor.ts` - adicione seletores CSS

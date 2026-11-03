@@ -106,3 +106,83 @@ export function extractPrimaryMetric(text: string): string | null {
   );
   return match?.[0]?.replace(/\s+/g, ' ') ?? null;
 }
+
+/**
+ * Beats: short visual segments inside one scene.
+ *
+ * A 9-10 second scene showing one photo loses Shorts viewers. Splitting every scene into
+ * beats of ~2.6s, each with a different treatment (hero shot, macro detail, spec callout,
+ * gallery photo, B-roll cutaway), gives a visual change every few seconds while the
+ * narration keeps running underneath.
+ */
+export type BeatKind = 'hero' | 'detail' | 'callout' | 'gallery' | 'broll';
+
+export type SceneBeat = {
+  /** Frame offsets relative to the start of the scene. */
+  startFrame: number;
+  endFrame: number;
+  kind: BeatKind;
+  /** Index into the product image list (gallery beats rotate; the others use the main image). */
+  imageIndex: number;
+  /** Focus point (0..1) for the macro "detail" zoom. */
+  focusX: number;
+  focusY: number;
+};
+
+export type BeatPlanOptions = {
+  fps: number;
+  targetSeconds?: number;
+  minSeconds?: number;
+  hasBroll?: boolean;
+  hasMetric?: boolean;
+  imageCount?: number;
+  seed?: string;
+};
+
+const FOCUS_POINTS: ReadonlyArray<readonly [number, number]> = [
+  [0.34, 0.36],
+  [0.66, 0.4],
+  [0.5, 0.66],
+  [0.5, 0.28],
+];
+
+export function planSceneBeats(durationFrames: number, options: BeatPlanOptions): SceneBeat[] {
+  const fps = Math.max(1, options.fps);
+  const total = Math.max(1, Math.round(durationFrames));
+  const target = Math.max(0.8, options.targetSeconds ?? 2.6) * fps;
+  const minLength = Math.max(0.5, options.minSeconds ?? 1.6) * fps;
+  const count = Math.max(1, Math.min(Math.round(total / target), Math.floor(total / minLength)));
+  const imageCount = Math.max(1, Math.floor(options.imageCount ?? 1));
+  const seed = hashText(String(options.seed ?? 'vetor'));
+
+  // Order of preference after the opening hero shot: the spec callout first (it lands
+  // while the number is being spoken), then the B-roll cutaway, a gallery photo and a macro.
+  const extras: BeatKind[] = [];
+  if (options.hasMetric) extras.push('callout');
+  if (options.hasBroll) extras.push('broll');
+  if (imageCount > 1) extras.push('gallery');
+  extras.push('detail');
+  const filler: BeatKind[] = imageCount > 1 ? ['detail', 'gallery', 'hero'] : ['detail', 'hero'];
+
+  const kinds: BeatKind[] = ['hero'];
+  for (let index = 1; index < count; index += 1) {
+    const slot = index - 1;
+    let kind: BeatKind = slot < extras.length ? extras[slot] : filler[(slot - extras.length) % filler.length];
+    if (kind === kinds[index - 1]) {
+      kind = filler.find((candidate) => candidate !== kinds[index - 1]) ?? 'hero';
+    }
+    kinds.push(kind);
+  }
+
+  return kinds.map((kind, index) => {
+    const focus = FOCUS_POINTS[(seed + index) % FOCUS_POINTS.length];
+    return {
+      startFrame: Math.round((index * total) / count),
+      endFrame: Math.round(((index + 1) * total) / count),
+      kind,
+      imageIndex: kind === 'gallery' && imageCount > 1 ? 1 + ((seed + index) % (imageCount - 1)) : 0,
+      focusX: focus[0],
+      focusY: focus[1],
+    };
+  });
+}

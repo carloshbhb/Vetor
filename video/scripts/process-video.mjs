@@ -1,7 +1,7 @@
 import { execFileSync, execSync, spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { buildCaptionEntries, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
+import { buildCaptionEntries, buildNarrationTimings, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
 import { renderWithHyperFrames } from '../hyperframes/render-video.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
@@ -153,6 +153,36 @@ function getAudioDuration(filePath, provider) {
   const duration = parseFloat(durationStr);
   if (!Number.isFinite(duration) || duration <= 0) throw new Error('ffprobe não conseguiu validar a duração de ' + provider + '.');
   return duration;
+}
+
+// Normalize the narration to -14 LUFS, the level YouTube plays at, so voice and the
+// quieter music/SFX layers sit at a predictable loudness. Never fatal: on any failure,
+// or if the processed file drifts from the original timeline (word boundaries were
+// measured against the original), the untouched narration is kept.
+function normalizeNarrationLoudness(audioPath, originalDuration) {
+  if (process.env.NARRATION_LOUDNORM === 'false') return originalDuration;
+  const normalizedPath = audioPath.replace(/\.mp3$/i, '-loudnorm.mp3');
+  try {
+    execFileSync('ffmpeg', [
+      '-y', '-v', 'error', '-i', audioPath,
+      '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100',
+      '-codec:a', 'libmp3lame', '-q:a', '2',
+      normalizedPath,
+    ], { stdio: 'pipe', timeout: 120000 });
+    const duration = getAudioDuration(normalizedPath, 'loudnorm');
+    if (Math.abs(duration - originalDuration) > 0.15) {
+      throw new Error('duração mudou de ' + originalDuration.toFixed(2) + 's para ' + duration.toFixed(2) + 's');
+    }
+    fs.renameSync(normalizedPath, audioPath);
+    console.log('   [AUDIO] Narração normalizada para -14 LUFS; duração=' + duration.toFixed(2) + 's.');
+    return duration;
+  } catch (error) {
+    console.warn('   [AUDIO] Normalização de loudness ignorada: ' +
+      (error instanceof Error ? error.message : String(error)).slice(0, 240));
+    return originalDuration;
+  } finally {
+    if (fs.existsSync(normalizedPath)) fs.unlinkSync(normalizedPath);
+  }
 }
 
 function escapeXml(value) {
@@ -732,25 +762,35 @@ async function processVideo(video) {
       { kind: 'cta', text: String(script.callToAction || '').trim() },
     ];
     const completeNarration = narrationSegments.map((segment) => segment.text).filter(Boolean).join('\n\n');
-    const totalDuration = await generateVoiceover(completeNarration, combinedAudioPath, wordBoundariesPath);
+    const rawNarrationDuration = await generateVoiceover(completeNarration, combinedAudioPath, wordBoundariesPath);
     if (!fs.existsSync(combinedAudioPath) || fs.statSync(combinedAudioPath).size < 1000) {
       throw new Error('A narração contínua não foi produzida corretamente.');
     }
+    const totalDuration = normalizeNarrationLoudness(combinedAudioPath, rawNarrationDuration);
     fs.mkdirSync(path.dirname(publicAudioPath), { recursive: true });
     fs.copyFileSync(combinedAudioPath, publicAudioPath);
 
-    // Proporcionalizar os intervalos por quantidade de palavras para sincronizar a narração única com cenas/legendas.
-    const weights = narrationSegments.map((segment) => Math.max(1, segment.text.split(/\s+/).filter(Boolean).length));
-    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-    let accumulatedSeconds = 0;
-    const narrationTimings = narrationSegments.map((segment, index) => {
-      const start = accumulatedSeconds;
-      const duration = index === narrationSegments.length - 1
-        ? Math.max(0.1, totalDuration - accumulatedSeconds)
-        : totalDuration * weights[index] / totalWeight;
-      accumulatedSeconds += duration;
-      return { ...segment, start, end: accumulatedSeconds, duration };
-    });
+    // Cenas e legendas seguem as palavras realmente faladas (WordBoundary do Edge TTS), então
+    // o corte visual cai junto com a fala. Só se as fronteiras não casarem 1:1 com o roteiro
+    // usamos a estimativa proporcional por quantidade de palavras.
+    const edgeWordBoundaries = loadEdgeWordBoundaries(wordBoundariesPath);
+    let narrationTimings = buildNarrationTimings(narrationSegments, edgeWordBoundaries, totalDuration);
+    if (narrationTimings) {
+      console.log('[TIMING] Cenas sincronizadas pelas palavras faladas (' + edgeWordBoundaries.length + ' eventos WordBoundary).');
+    } else {
+      console.warn('[TIMING] WordBoundary não casou 1:1 com o roteiro; usando estimativa proporcional por palavras.');
+      const weights = narrationSegments.map((segment) => Math.max(1, segment.text.split(/\s+/).filter(Boolean).length));
+      const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+      let accumulatedSeconds = 0;
+      narrationTimings = narrationSegments.map((segment, index) => {
+        const start = accumulatedSeconds;
+        const duration = index === narrationSegments.length - 1
+          ? Math.max(0.1, totalDuration - accumulatedSeconds)
+          : totalDuration * weights[index] / totalWeight;
+        accumulatedSeconds += duration;
+        return { ...segment, start, end: accumulatedSeconds, duration };
+      });
+    }
     const hookDuration = narrationTimings[0]?.duration || Math.min(3, totalDuration);
 
     processingStage = 'renderização Remotion';
@@ -802,7 +842,7 @@ async function processVideo(video) {
       audioUrl: `tmp/video-${video.id}.mp3`,
       hookDuration,
       subtitleEntries: (() => {
-        const wordBoundaries = loadEdgeWordBoundaries(wordBoundariesPath);
+        const wordBoundaries = edgeWordBoundaries;
         const timed = buildTimedCaptionEntries(narrationSegments, wordBoundaries, {
           maxWords: videoFormat === "long" ? 9 : 10,
           maxLineChars: videoFormat === "long" ? 48 : 34,

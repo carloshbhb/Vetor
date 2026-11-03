@@ -298,7 +298,7 @@ const LongCaptions: React.FC<{
   if (!entry) return null;
   const progress = Math.max(0, Math.min(1, (time - entry.start) / Math.max(.01, entry.end - entry.start)));
   const opacity = interpolate(progress, [0, .06, .92, 1], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  return <KineticCaption variant="landscape" text={entry.text} progress={progress} opacity={opacity} />;
+  return <KineticCaption variant="landscape" text={entry.text} progress={progress} opacity={opacity} words={entry.words} time={time} fps={fps} />;
 };
 
 export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) => {

@@ -4,15 +4,22 @@ import {
   Audio,
   Img,
   Sequence,
-  Loop,
-  OffthreadVideo,
   interpolate,
+  spring,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
 import type { CalculateMetadataFunction } from 'remotion';
-import { KineticCaption } from '../components/KineticCaption';
-import { createSceneVisualPlan, extractPrimaryMetric, type SceneVisualPlan } from '../utils/visual-storyboard';
+import { KineticCaption, type CaptionWord } from '../components/KineticCaption';
+import { BeatStage, BeatWipe, STAGE } from '../components/BeatStage';
+import {
+  createSceneVisualPlan,
+  extractPrimaryMetric,
+  planSceneBeats,
+  type SceneVisualPlan,
+} from '../utils/visual-storyboard';
+import { fonts } from '../styles/fonts';
 
 export type EditorialScene = {
   id: number;
@@ -28,6 +35,8 @@ export type EditorialSubtitle = {
   start: number;
   end: number;
   text: string;
+  /** Real per-word timings from the TTS; drives the active-word highlight. */
+  words?: CaptionWord[];
 };
 
 export type EditorialReviewProps = {
@@ -45,6 +54,8 @@ export type EditorialReviewProps = {
   totalDuration: number;
   fps: number;
   hookDuration?: number;
+  /** Optional background music (low volume under the narration). */
+  musicUrl?: string;
 };
 
 const colors = {
@@ -58,8 +69,9 @@ const colors = {
   amber: '#FFB85C',
 };
 
-const font = 'Inter, DM Sans, Arial, sans-serif';
 const HookFrames = 3;
+/** Shorts text column: 70px left, 170px right keeps clear of the YouTube Shorts button column. */
+const TEXT = { left: 70, right: 170 } as const;
 
 export const calculateEditorialMetadata: CalculateMetadataFunction<EditorialReviewProps> = ({ props }) => ({
   durationInFrames: Math.max(1, Math.ceil(props.totalDuration * props.fps)),
@@ -71,7 +83,7 @@ const Background: React.FC<{ children: React.ReactNode }> = ({ children }) => (
       overflow: 'hidden',
       background: 'radial-gradient(ellipse at 52% 43%, #1B2D4C 0%, #0F1623 48%, #080C14 100%)',
       color: colors.paper,
-      fontFamily: font,
+      fontFamily: fonts.body,
     }}
   >
     <AbsoluteFill
@@ -94,9 +106,9 @@ const Eyebrow: React.FC<{ children: React.ReactNode; color?: string }> = ({ chil
   <div
     style={{
       color,
-      fontSize: 25,
+      fontSize: 30,
       fontWeight: 850,
-      letterSpacing: 4.5,
+      letterSpacing: 5,
       lineHeight: 1.15,
       textTransform: 'uppercase',
     }}
@@ -105,27 +117,14 @@ const Eyebrow: React.FC<{ children: React.ReactNode; color?: string }> = ({ chil
   </div>
 );
 
-const ProductImage: React.FC<{ src: string; style?: React.CSSProperties }> = ({ src, style }) => (
-  <Img
-    src={src}
-    style={{
-      width: 820,
-      height: 660,
-      objectFit: 'contain',
-      filter: 'drop-shadow(0 34px 48px rgba(0,0,0,.52))',
-      ...style,
-    }}
-  />
-);
-
 const AccentLine: React.FC = () => (
   <div
     style={{
       position: 'absolute',
       bottom: 405,
-      left: 190,
-      right: 190,
-      height: 3,
+      left: TEXT.left,
+      right: TEXT.right,
+      height: 4,
       borderRadius: 10,
       background: 'rgba(255,255,255,.12)',
       overflow: 'hidden',
@@ -135,6 +134,34 @@ const AccentLine: React.FC = () => (
   </div>
 );
 
+/** Headline size by length so short claims go huge and long ones still fit in 3 lines. */
+const headlineSize = (text: string, huge: number): number => {
+  if (text.length <= 18) return huge;
+  if (text.length <= 34) return Math.round(huge * 0.86);
+  if (text.length <= 52) return Math.round(huge * 0.74);
+  return Math.round(huge * 0.62);
+};
+
+const StageImage: React.FC<{ src: string; scale?: number; y?: number }> = ({ src, scale = 1, y = 0 }) => (
+  <Img
+    src={src}
+    style={{
+      position: 'absolute',
+      left: STAGE.left,
+      top: STAGE.top,
+      width: STAGE.width,
+      height: STAGE.height,
+      objectFit: 'contain',
+      transform: `translateY(${y}px) scale(${scale})`,
+      filter: 'drop-shadow(0 38px 52px rgba(0,0,0,.55))',
+    }}
+  />
+);
+
+/**
+ * The hook is on screen, fully visible, from frame 0: Shorts viewers decide in the first
+ * second, so there is no fade-in from nothing. The headline lands with a spring punch.
+ */
 const OpeningScene: React.FC<{
   title: string;
   category: string;
@@ -143,65 +170,53 @@ const OpeningScene: React.FC<{
 }> = ({ title, category, hook, imageUrl }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const opacity = interpolate(frame, [0, 18], [0, 1], { extrapolateRight: 'clamp' });
-  const rise = interpolate(frame, [0, 22], [54, 0], { extrapolateRight: 'clamp' });
-  const scale = interpolate(frame, [0, 3 * fps], [0.96, 1.06], { extrapolateRight: 'clamp' });
+  const punch = spring({ frame, fps, durationInFrames: 18, config: { damping: 12, stiffness: 180, mass: 0.7 } });
+  const scale = interpolate(punch, [0, 1], [1.14, 1]);
+  const rise = interpolate(punch, [0, 1], [30, 0]);
+  const productScale = interpolate(frame, [0, 3 * fps], [0.96, 1.08], { extrapolateRight: 'clamp' });
 
   return (
     <Background>
       <div
         style={{
           position: 'absolute',
-          top: 250,
-          left: 190,
-          right: 190,
-          opacity,
-          transform: `translateY(${rise}px)`,
+          top: 240,
+          left: TEXT.left,
+          right: TEXT.right,
+          transformOrigin: 'left top',
+          transform: `translateY(${rise}px) scale(${scale})`,
         }}
       >
         <Eyebrow>Vetor • {category}</Eyebrow>
         <div
           style={{
-            marginTop: 30,
-            fontSize: 76,
+            marginTop: 26,
+            fontFamily: fonts.heading,
+            fontSize: headlineSize(hook, 116),
             lineHeight: 1.02,
-            fontWeight: 900,
-            letterSpacing: -3.5,
-            maxWidth: 700,
+            fontWeight: 800,
+            letterSpacing: -4,
             overflowWrap: 'anywhere',
-            textShadow: '0 10px 34px rgba(0,0,0,.38)',
+            textShadow: '0 10px 34px rgba(0,0,0,.45)',
           }}
         >
           {hook}
         </div>
+        <div
+          style={{
+            marginTop: 22,
+            color: colors.muted,
+            fontSize: 34,
+            fontWeight: 750,
+            letterSpacing: 2.4,
+            textTransform: 'uppercase',
+            opacity: interpolate(frame, [8, 20], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
+          }}
+        >
+          {title}
+        </div>
       </div>
-      <ProductImage
-        src={imageUrl}
-        style={{
-          position: 'absolute',
-          left: 210,
-          top: 720,
-          width: 660,
-          height: 560,
-          transform: `scale(${scale})`,
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 430,
-          left: 190,
-          right: 190,
-          color: colors.muted,
-          fontSize: 28,
-          fontWeight: 750,
-          letterSpacing: 2.2,
-          textTransform: 'uppercase',
-          opacity: interpolate(frame, [18, 34], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
-        }}
-      >
-        {title}
-      </div>
+      <StageImage src={imageUrl} scale={productScale} y={60} />
       <AccentLine />
     </Background>
   );
@@ -212,192 +227,113 @@ const FeatureScene: React.FC<{
   index: number;
   count: number;
   category: string;
-  imageUrl: string;
+  images: string[];
   brollUrl?: string;
   visual: SceneVisualPlan;
-}> = ({ scene, index, count, category, imageUrl, brollUrl, visual }) => {
+  seed: string;
+}> = ({ scene, index, count, category, images, brollUrl, visual, seed }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const durationFrames = Math.max(1, scene.endFrame - scene.startFrame);
   const progress = Math.max(0, Math.min(1, frame / durationFrames));
-  const phaseFrames = Math.max(1, durationFrames / 3);
-  const phase = Math.min(2, Math.floor(frame / phaseFrames));
-  const phaseProgress = Math.max(0, Math.min(1, (frame - phase * phaseFrames) / phaseFrames));
-  const enter = interpolate(frame, [0, 20], [48, 0], { extrapolateRight: 'clamp' });
   const label = (scene.visualCue || category).replace(/[.!?]+$/, '');
-  const metric = visual.mode === 'specification' ? extractPrimaryMetric(scene.text) : null;
-  const showBroll = Boolean(brollUrl) && (phase === 1 || (visual.mode === 'lifestyle' && phase === 2));
-  const isLeftMove = visual.motion === 'pan-left' || visual.motion === 'tilt-left';
-  const isRightMove = visual.motion === 'pan-right' || visual.motion === 'tilt-right';
-  const drift = isLeftMove
-    ? interpolate(progress, [0, 1], [24, -24])
-    : isRightMove
-      ? interpolate(progress, [0, 1], [-24, 24])
-      : visual.motion === 'float'
-        ? Math.sin(progress * Math.PI * 2) * 18
-        : 0;
-  const zoom = visual.motion === 'push-in'
-    ? interpolate(progress, [0, 1], [1.01, 1.08])
-    : visual.motion === 'float'
-      ? interpolate(progress, [0, 1], [1.03, 1.06])
-      : interpolate(progress, [0, 1], [1.06, 1.02]);
-  const tilt = visual.motion === 'tilt-left' ? -2.2 : visual.motion === 'tilt-right' ? 2.2 : 0;
-  const imageLayout = phase === 0
-    ? { left: 210, top: 720, width: 660, height: 560 }
-    : phase === 1
-      ? { left: showBroll ? 410 : 230, top: 700, width: showBroll ? 500 : 620, height: 610 }
-      : { left: 220, top: 720, width: 640, height: 570 };
-  const visualLabel = visual.mode === 'price-check'
+  const metric = visual.mode === 'price-check' || visual.mode === 'tradeoff' ? null : extractPrimaryMetric(scene.text);
+  const warning = visual.mode === 'tradeoff';
+  const eyebrow = visual.mode === 'price-check'
     ? 'CONFIRA O PREÇO ATUAL'
-    : visual.mode === 'tradeoff'
+    : warning
       ? 'PONTO DE ATENÇÃO'
       : visual.label;
+  const accent = warning ? colors.amber : colors.cyan;
+
+  const beats = React.useMemo(
+    () =>
+      planSceneBeats(durationFrames, {
+        fps,
+        hasBroll: Boolean(brollUrl),
+        hasMetric: Boolean(metric),
+        imageCount: images.length,
+        seed: seed + ':' + scene.id,
+      }),
+    [durationFrames, fps, brollUrl, metric, images.length, seed, scene.id],
+  );
+
+  const enter = spring({ frame, fps, durationInFrames: 18, config: { damping: 14, stiffness: 160, mass: 0.7 } });
+  const lift = interpolate(enter, [0, 1], [46, 0]);
 
   return (
     <Background>
-      <AbsoluteFill style={{ opacity: showBroll ? (visual.mode === 'lifestyle' ? 0.82 : 0.56) : 0 }}>
-        {brollUrl ? (
-          <Loop durationInFrames={durationFrames}>
-            <OffthreadVideo
-              src={brollUrl}
-              muted
-              delayRenderTimeoutInMilliseconds={90000}
-              delayRenderRetries={1}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                filter: 'saturate(.82) brightness(.76)',
-              }}
-            />
-          </Loop>
-        ) : null}
-      </AbsoluteFill>
-      <AbsoluteFill
-        style={{
-          background: showBroll
-            ? 'linear-gradient(180deg,rgba(8,12,20,.72) 0%,rgba(8,12,20,.18) 44%,rgba(8,12,20,.74) 100%)'
-            : 'radial-gradient(ellipse at 50% 55%,rgba(66,133,244,.10),transparent 46%)',
-        }}
-      />
+      {beats.map((beat, beatIndex) => (
+        <Sequence
+          key={beatIndex}
+          from={beat.startFrame}
+          durationInFrames={Math.max(1, beat.endFrame - beat.startFrame)}
+          premountFor={beat.kind === 'broll' ? fps : 0}
+        >
+          <BeatStage
+            beat={beat}
+            images={images}
+            brollUrl={brollUrl}
+            metric={metric}
+            metricLabel="ESPECIFICAÇÃO CITADA"
+            accent={accent}
+          />
+          <BeatWipe strength={beatIndex === 0 ? 0.8 : 0.4} />
+          {beat.kind === 'callout' ? <Audio src={staticFile('sfx/pop.mp3')} volume={0.5} /> : null}
+        </Sequence>
+      ))}
+
       <div
         style={{
           position: 'absolute',
-          top: 250,
-          left: 190,
-          right: 190,
-          transform: `translateY(${enter}px)`,
-          opacity: interpolate(frame, [0, 14], [0, 1], { extrapolateRight: 'clamp' }),
+          top: 240,
+          left: TEXT.left,
+          right: TEXT.right,
+          transform: `translateY(${lift}px)`,
+          opacity: interpolate(frame, [0, 6], [0, 1], { extrapolateRight: 'clamp' }),
         }}
       >
-        <Eyebrow color={visual.mode === 'tradeoff' ? colors.amber : colors.cyan}>
-          {visualLabel || category}
-        </Eyebrow>
+        <Eyebrow color={accent}>{eyebrow || category}</Eyebrow>
         <div
           style={{
-            marginTop: 24,
-            fontSize: 60,
-            lineHeight: 1.04,
-            fontWeight: 900,
-            letterSpacing: -2.6,
-            maxWidth: 700,
+            marginTop: 22,
+            fontFamily: fonts.heading,
+            fontSize: headlineSize(label, 104),
+            lineHeight: 1.02,
+            fontWeight: 800,
+            letterSpacing: -3.4,
             overflowWrap: 'anywhere',
-            textShadow: '0 8px 28px rgba(0,0,0,.5)',
+            textShadow: '0 8px 28px rgba(0,0,0,.6)',
           }}
         >
           {label}
         </div>
       </div>
 
-      {visual.mode === 'specification' && metric ? (
-        <div
-          style={{
-            position: 'absolute',
-            top: 590,
-            left: 190,
-            minWidth: 300,
-            padding: '22px 28px',
-            borderRadius: 22,
-            background: 'rgba(15,22,35,.94)',
-            border: '1px solid rgba(112,196,255,.44)',
-            boxShadow: '0 18px 44px rgba(0,0,0,.28)',
-            opacity: interpolate(frame, [phaseFrames * .2, phaseFrames * .55], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
-            transform: `translateY(${interpolate(frame, [phaseFrames * .2, phaseFrames * .55], [22, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}px)`,
-          }}
-        >
-          <div style={{ fontSize: 66, fontWeight: 900, lineHeight: 1, letterSpacing: -2 }}>{metric}</div>
-          <div style={{ marginTop: 12, color: colors.cyan, fontSize: 22, fontWeight: 800, letterSpacing: 2 }}>
-            ESPECIFICAÇÃO CITADA
-          </div>
-        </div>
-      ) : null}
-
-      {visual.mode === 'price-check' ? (
-        <div
-          style={{
-            position: 'absolute',
-            top: 610,
-            left: 190,
-            padding: '22px 28px',
-            borderRadius: 22,
-            background: 'rgba(15,22,35,.94)',
-            border: '1px solid rgba(66,133,244,.5)',
-            boxShadow: '0 18px 44px rgba(0,0,0,.28)',
-            opacity: interpolate(frame, [phaseFrames * .16, phaseFrames * .48], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
-          }}
-        >
-          <div style={{ fontSize: 24, fontWeight: 850, letterSpacing: 2, color: colors.cyan }}>VALOR E CONDIÇÕES</div>
-          <div style={{ marginTop: 8, fontSize: 38, fontWeight: 900 }}>Confira o anúncio atualizado</div>
-        </div>
-      ) : null}
-
-      {showBroll && brollUrl ? (
-        <div
-          style={{
-            position: 'absolute',
-            top: 680,
-            left: 160,
-            right: 160,
-            bottom: 540,
-            border: '1px solid rgba(255,255,255,.18)',
-            borderRadius: 28,
-            background: 'linear-gradient(135deg,rgba(20,40,160,.20),rgba(8,12,20,.10))',
-            opacity: interpolate(phaseProgress, [0, .16, .85, 1], [0, 1, 1, 0], { extrapolateRight: 'clamp' }),
-          }}
-        />
-      ) : null}
-
-      <ProductImage
-        src={imageUrl}
-        style={{
-          position: 'absolute',
-          ...imageLayout,
-          transform: `translateX(${drift}px) scale(${zoom}) rotate(${tilt}deg)`,
-          opacity: showBroll && visual.mode === 'lifestyle' ? 1 : 0.98,
-        }}
-      />
-
       <div
         style={{
           position: 'absolute',
-          bottom: 365,
-          left: 190,
-          right: 190,
+          bottom: 360,
+          left: TEXT.left,
+          right: TEXT.right,
           display: 'flex',
           alignItems: 'center',
-          gap: 20,
+          gap: 22,
           color: colors.muted,
-          opacity: interpolate(frame, [10, 22], [0, .92], { extrapolateRight: 'clamp' }),
+          opacity: interpolate(frame, [8, 20], [0, 0.95], { extrapolateRight: 'clamp' }),
         }}
       >
-        <div style={{ fontSize: 22, fontWeight: 900, color: colors.blue }}>{String(index + 1).padStart(2, '0')}</div>
-        <div style={{ flex: 1, height: 3, borderRadius: 8, background: 'rgba(255,255,255,.16)', overflow: 'hidden' }}>
+        <div style={{ fontSize: 28, fontWeight: 900, color: colors.blue }}>{String(index + 1).padStart(2, '0')}</div>
+        <div style={{ flex: 1, height: 5, borderRadius: 8, background: 'rgba(255,255,255,.16)', overflow: 'hidden' }}>
           <div style={{ width: `${progress * 100}%`, height: '100%', background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
         </div>
-        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 2 }}>
+        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 2 }}>
           {String(index + 1).padStart(2, '0')} / {String(count).padStart(2, '0')}
         </div>
       </div>
       <AccentLine />
+      {/* Scene-change sound: starts with the scene, sits well below the narration. */}
+      <Audio src={staticFile('sfx/whoosh.mp3')} volume={0.32} />
     </Background>
   );
 };
@@ -407,47 +343,49 @@ const ClosingScene: React.FC<{
   score: number;
   callToAction: string;
   imageUrl: string;
-}> = ({ title, score, callToAction, imageUrl }) => {
+}> = ({ title, score, imageUrl }) => {
   const frame = useCurrentFrame();
-  const scale = interpolate(frame, [0, 48], [0.94, 1.08], { extrapolateRight: 'clamp' });
-  const opacity = interpolate(frame, [0, 24], [0, 1], { extrapolateRight: 'clamp' });
+  const { fps } = useVideoConfig();
+  const enter = spring({ frame, fps, durationInFrames: 20, config: { damping: 13, stiffness: 150, mass: 0.8 } });
+  const scale = interpolate(frame, [0, 60], [0.96, 1.07], { extrapolateRight: 'clamp' });
+  const question = 'Vale a pena para o seu uso?';
 
   return (
     <Background>
-      <div style={{ position: 'absolute', top: 260, left: 190, right: 190, opacity }}>
-        <Eyebrow>{score > 0 ? `NOTA EDITORIAL • ${score.toFixed(1)} / 10` : 'VEREDITO EDITORIAL'}</Eyebrow>
-        <div style={{ marginTop: 28, fontSize: 70, lineHeight: 1.02, fontWeight: 900, letterSpacing: -3, maxWidth: 700 }}>
-          Vale a pena para o seu uso?
-        </div>
-      </div>
-      <ProductImage
-        src={imageUrl}
-        style={{ position: 'absolute', left: 210, top: 720, width: 660, height: 560, transform: `scale(${scale})` }}
-      />
       <div
         style={{
           position: 'absolute',
-          bottom: 430,
-          left: 190,
-          right: 190,
-          textAlign: 'center',
-          fontSize: 34,
-          fontWeight: 750,
-          lineHeight: 1.18,
-          color: colors.muted,
+          top: 240,
+          left: TEXT.left,
+          right: TEXT.right,
+          opacity: interpolate(enter, [0, 1], [0.15, 1]),
+          transform: `translateY(${interpolate(enter, [0, 1], [34, 0])}px)`,
         }}
       >
-        {callToAction}
+        <Eyebrow>{score > 0 ? `NOTA EDITORIAL • ${score.toFixed(1)} / 10` : 'VEREDITO EDITORIAL'}</Eyebrow>
+        <div
+          style={{
+            marginTop: 26,
+            fontFamily: fonts.heading,
+            fontSize: headlineSize(question, 104),
+            lineHeight: 1.02,
+            fontWeight: 800,
+            letterSpacing: -3.6,
+          }}
+        >
+          {question}
+        </div>
       </div>
+      <StageImage src={imageUrl} scale={scale} y={30} />
+      {/* The CTA is spoken and shown by the caption; repeating it here made the two overlap. */}
       <div
         style={{
           position: 'absolute',
           bottom: 365,
-          left: 190,
-          right: 190,
-          textAlign: 'center',
+          left: TEXT.left,
+          right: TEXT.right,
           color: colors.cyan,
-          fontSize: 22,
+          fontSize: 26,
           fontWeight: 850,
           letterSpacing: 3,
         }}
@@ -469,47 +407,64 @@ const SubtitleOverlay: React.FC<{
   if (!entry) return null;
 
   const progress = Math.max(0, Math.min(1, (time - entry.start) / Math.max(0.01, entry.end - entry.start)));
-  const opacity = interpolate(progress, [0, .06, .92, 1], [0, 1, 1, 0], {
+  const opacity = interpolate(progress, [0, 0.04, 0.94, 1], [0, 1, 1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
 
-  return <KineticCaption text={entry.text} progress={progress} opacity={opacity} />;
+  return (
+    <KineticCaption
+      text={entry.text}
+      progress={progress}
+      opacity={opacity}
+      words={entry.words}
+      time={time}
+      fps={fps}
+    />
+  );
 };
 
 export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const image = props.productImages?.[0] || props.imageUrl;
-  const hookFrames = (props.hookDuration ?? HookFrames) * fps;
+  const gallery = props.productImages && props.productImages.length ? props.productImages : [props.imageUrl];
+  const image = gallery[0] || props.imageUrl;
+  const hookFrames = Math.round((props.hookDuration ?? HookFrames) * fps);
   const scenesEndFrame = props.scenes.reduce((max, scene) => Math.max(max, scene.endFrame), hookFrames);
-  const closingDuration = Math.max(1, props.totalDuration * fps - scenesEndFrame);
+  const closingDuration = Math.max(1, Math.round(props.totalDuration * fps) - scenesEndFrame);
   const visualPlan = createSceneVisualPlan(props.scenes, props.title + '|' + props.category);
 
   return (
     <AbsoluteFill style={{ backgroundColor: colors.ink }}>
       <Audio src={props.audioUrl} volume={0.96} />
+      {props.musicUrl ? <Audio src={props.musicUrl} volume={0.07} loop /> : null}
       <Sequence from={0} durationInFrames={hookFrames} premountFor={fps}>
         <OpeningScene title={props.title} category={props.category} hook={props.hook} imageUrl={image} />
       </Sequence>
-      {props.scenes.map((scene, index) => (
-        <Sequence
-          key={scene.id}
-          from={scene.startFrame}
-          durationInFrames={Math.max(1, scene.endFrame - scene.startFrame)}
-          premountFor={fps}
-        >
-          <FeatureScene
-            scene={scene}
-            index={index}
-            count={props.scenes.length}
-            category={props.category}
-            imageUrl={props.productImages?.[index % Math.max(1, props.productImages.length)] || image}
-            brollUrl={props.brollVideos?.[index]}
-            visual={visualPlan[index]}
-          />
-        </Sequence>
-      ))}
+      {props.scenes.map((scene, index) => {
+        // Each scene leads with a different photo so consecutive scenes do not look alike.
+        const offset = index % gallery.length;
+        const images = [...gallery.slice(offset), ...gallery.slice(0, offset)];
+        return (
+          <Sequence
+            key={scene.id}
+            from={scene.startFrame}
+            durationInFrames={Math.max(1, scene.endFrame - scene.startFrame)}
+            premountFor={fps}
+          >
+            <FeatureScene
+              scene={scene}
+              index={index}
+              count={props.scenes.length}
+              category={props.category}
+              images={images}
+              brollUrl={props.brollVideos?.[index] || undefined}
+              visual={visualPlan[index]}
+              seed={props.title}
+            />
+          </Sequence>
+        );
+      })}
       <Sequence from={scenesEndFrame} durationInFrames={closingDuration} premountFor={fps}>
         <ClosingScene title={props.title} score={props.score} callToAction={props.callToAction} imageUrl={image} />
       </Sequence>

@@ -1,18 +1,16 @@
 import { Config } from '@remotion/cli/config';
 
+// Applies to `remotion studio` / `remotion render` (CLI). The worker renders through
+// src/utils/renderVideo.ts, which repeats the encode options explicitly.
 Config.setVideoImageFormat('jpeg');
-Config.setOverwriteOutput(true);
 Config.setJpegQuality(95);
-Config.setConcurrency(4);
-
-export const remotionConfig = {
-  // Enable hardware acceleration for faster encoding
-  enableHardwareAcceleration: true,
-  // Better video quality
-  crf: 18,
-  // Use H.264 High Profile for better quality
-  codecOptions: {
-    profile: 'high',
-    level: '4.2',
-  },
-};
+Config.setOverwriteOutput(true);
+Config.setCodec('h264');
+// Limited-range BT.709 4:2:0: what YouTube and every phone decode correctly.
+// (Without this, JPEG frames produced full-range yuvj420p files.)
+Config.setPixelFormat('yuv420p');
+Config.setColorSpace('bt709');
+Config.setCrf(18);
+Config.setX264Preset('medium');
+Config.setAudioBitrate('192k');
+Config.setConcurrency(2);

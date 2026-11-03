@@ -102,13 +102,10 @@ function normalizeBoundaryToken(value) {
 }
 
 /**
- * Convert Edge TTS word boundaries (100ns ticks) to caption cues.
- * Return null if the returned words do not align one-to-one with the script;
- * the caller then uses the deterministic word-count timing fallback.
+ * Validate Edge TTS word boundaries against the script, one boundary per script word.
+ * Returns { expected, boundaries } or null when the words do not align 1:1.
  */
-export function buildTimedCaptionEntries(segments, wordBoundaries, options = {}) {
-  const maxWords = Math.max(2, Math.min(12, Math.floor(Number(options.maxWords) || 5)));
-  const maxLineChars = Math.max(18, Math.min(52, Math.floor(Number(options.maxLineChars) || 36)));
+function alignWordBoundaries(segments, wordBoundaries) {
   const sourceSegments = Array.isArray(segments) ? segments : [];
   const boundaries = (Array.isArray(wordBoundaries) ? wordBoundaries : [])
     .filter((item) => item && String(item.type || "WordBoundary") === "WordBoundary")
@@ -136,6 +133,63 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
     }
     if (index > 0 && boundaries[index].offset < boundaries[index - 1].offset) return null;
   }
+  return { expected, boundaries };
+}
+
+/**
+ * Exact per-segment timing (seconds) from Edge TTS word boundaries.
+ *
+ * Each segment starts when its first word is spoken. A segment ends when the next
+ * segment starts, so the pause between paragraphs belongs to the scene that just
+ * finished and scenes tile the timeline with no gaps. The first segment starts at 0
+ * and the last one ends at totalDuration. Segments without words get a zero-length
+ * span. Returns null when the boundaries do not align with the script, so the caller
+ * can fall back to the proportional estimate.
+ */
+export function buildNarrationTimings(segments, wordBoundaries, totalDuration) {
+  const sourceSegments = Array.isArray(segments) ? segments : [];
+  const aligned = alignWordBoundaries(sourceSegments, wordBoundaries);
+  const total = Number(totalDuration);
+  if (!aligned || !Number.isFinite(total) || total <= 0) return null;
+
+  const firstWordStart = new Map();
+  aligned.expected.forEach((item, index) => {
+    if (!firstWordStart.has(item.segmentIndex)) {
+      firstWordStart.set(item.segmentIndex, aligned.boundaries[index].offset / 10_000_000);
+    }
+  });
+
+  // Backward pass: a segment with no words starts where the next one starts (zero length).
+  const starts = new Array(sourceSegments.length).fill(total);
+  let nextStart = total;
+  for (let index = sourceSegments.length - 1; index >= 1; index -= 1) {
+    const spoken = firstWordStart.get(index);
+    starts[index] = Math.min(total, spoken ?? nextStart);
+    nextStart = starts[index];
+  }
+  if (sourceSegments.length) starts[0] = 0;
+  for (let index = 1; index < starts.length; index += 1) {
+    starts[index] = Math.max(starts[index - 1], starts[index]);
+  }
+  return sourceSegments.map((segment, index) => {
+    const start = starts[index];
+    const end = index === sourceSegments.length - 1 ? total : starts[index + 1];
+    return { ...segment, start, end: Math.max(start, end), duration: Math.max(0, end - start) };
+  });
+}
+
+/**
+ * Convert Edge TTS word boundaries (100ns ticks) to caption cues.
+ * Return null if the returned words do not align one-to-one with the script;
+ * the caller then uses the deterministic word-count timing fallback.
+ */
+export function buildTimedCaptionEntries(segments, wordBoundaries, options = {}) {
+  const maxWords = Math.max(2, Math.min(12, Math.floor(Number(options.maxWords) || 5)));
+  const maxLineChars = Math.max(18, Math.min(52, Math.floor(Number(options.maxLineChars) || 36)));
+  const sourceSegments = Array.isArray(segments) ? segments : [];
+  const aligned = alignWordBoundaries(sourceSegments, wordBoundaries);
+  if (!aligned) return null;
+  const { expected, boundaries } = aligned;
 
   const result = [];
   let cursor = 0;
@@ -150,11 +204,22 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
       const start = firstBoundary.offset / 10_000_000;
       const end = (lastBoundary.offset + lastBoundary.duration) / 10_000_000;
       if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+      // Per-word timings let the renderer highlight the word actually being spoken.
+      const cueWords = [];
+      for (let position = wordIndex; position < next; position += 1) {
+        const boundary = boundaries[cursor + position];
+        cueWords.push({
+          text: words[position],
+          start: boundary.offset / 10_000_000,
+          end: (boundary.offset + boundary.duration) / 10_000_000,
+        });
+      }
       result.push({
         start,
         end,
         text: wrapCaptionWords(words.slice(wordIndex, next), maxLineChars),
         segmentKind,
+        words: cueWords,
       });
     }
     cursor += words.length;
@@ -202,6 +267,7 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
 
     if (canMergePrevious) {
       previous.end = Math.max(previous.end, cue.end);
+      previous.words = [...(previous.words || []), ...(cue.words || [])];
       previous.text = wrapCaptionWords(
         (previous.text + " " + cue.text).replace(/\s+/g, " ").trim().split(" "),
         maxLineChars
@@ -212,6 +278,7 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
     }
     if (canMergeNext) {
       next.start = Math.min(next.start, cue.start);
+      next.words = [...(cue.words || []), ...(next.words || [])];
       next.text = wrapCaptionWords(
         (cue.text + " " + next.text).replace(/\s+/g, " ").trim().split(" "),
         maxLineChars

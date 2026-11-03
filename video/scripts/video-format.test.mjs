@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildCaptionEntries,
+  buildNarrationTimings,
   buildTimedCaptionEntries,
   buildCtaComment,
   buildVideoDescription,
@@ -169,5 +170,49 @@ assert.ok(!shortComment.includes(reviewUrl));
 assert.ok(shortComment.includes("Vetor"));
 assert.ok(buildVideoTitle({ format: longFormat, productTitle: "Produto X", hook: "Vale a pena?" }).length <= 100);
 assert.ok(buildVideoTitle({ format: shortFormat, productTitle: "Produto X", hook: "Esse detalhe muda a compra?" }).includes("#Shorts"));
+
+// Per-word timings drive the caption highlight; merged cues must keep every word, in order.
+assert.ok(shortTailCaptions[0].words.length === 8, "merged cue keeps all words");
+assert.deepEqual(
+  shortTailCaptions[0].words.map((word) => word.text),
+  ["Confira", "a", "porção", "da", "pipoca", "milho", "por", "ciclo."]
+);
+assert.ok(shortTailCaptions[0].words.every((word, index, list) =>
+  word.end > word.start && (index === 0 || word.start >= list[index - 1].start)));
+assert.ok(Math.abs(exactCaptions[0].words[0].start - exactCaptions[0].start) < 0.000001);
+
+// Scene timing comes from the spoken words, not from a word-count proportion.
+const timingSegments = [
+  { kind: "hook", text: "Olá mundo" },
+  { kind: "scene", text: "Primeira cena tem cinco palavras" },
+  { kind: "scene", text: "Segunda" },
+  { kind: "cta", text: "Fim" },
+];
+const timingWords = [
+  ["Olá", 0.2, 0.3], ["mundo", 0.55, 0.4],
+  ["Primeira", 2.0, 0.5], ["cena", 2.6, 0.3], ["tem", 3.0, 0.2], ["cinco", 3.3, 0.4], ["palavras", 3.8, 0.6],
+  ["Segunda", 6.0, 0.6],
+  ["Fim", 8.0, 0.4],
+].map(([text, seconds, length]) => ({
+  type: "WordBoundary", offset: Math.round(seconds * 10_000_000), duration: Math.round(length * 10_000_000), text,
+}));
+const timings = buildNarrationTimings(timingSegments, timingWords, 9);
+assert.equal(timings.length, 4);
+assert.equal(timings[0].start, 0);
+assert.ok(Math.abs(timings[0].end - 2.0) < 1e-9, "hook ends where the first scene starts speaking");
+assert.ok(Math.abs(timings[1].start - 2.0) < 1e-9 && Math.abs(timings[1].end - 6.0) < 1e-9);
+assert.ok(Math.abs(timings[2].start - 6.0) < 1e-9 && Math.abs(timings[2].end - 8.0) < 1e-9);
+assert.equal(timings[3].end, 9, "last segment ends at the narration duration");
+assert.ok(timings.every((item, index) => index === 0 || item.start === timings[index - 1].end), "segments tile with no gaps");
+assert.equal(timings[1].kind, "scene", "segment fields are preserved");
+assert.equal(buildNarrationTimings(timingSegments, timingWords.slice(1), 9), null, "misaligned boundaries -> null");
+assert.equal(buildNarrationTimings(timingSegments, timingWords, 0), null, "invalid duration -> null");
+const withEmptySegment = buildNarrationTimings(
+  [{ kind: "hook", text: "Olá" }, { kind: "scene", text: "" }, { kind: "cta", text: "Fim" }],
+  [{ type: "WordBoundary", offset: 0, duration: 4_000_000, text: "Olá" }, { type: "WordBoundary", offset: 30_000_000, duration: 4_000_000, text: "Fim" }],
+  4
+);
+assert.equal(withEmptySegment[1].duration, 0, "segment without words has zero length");
+assert.ok(Math.abs(withEmptySegment[0].end - 3.0) < 1e-9);
 
 console.log("video-format contract: all assertions passed");
