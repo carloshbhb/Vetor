@@ -180,9 +180,11 @@ async function main(): Promise<void> {
           batch.processed += result.processed;
           batch.remaining = result.remaining;
           batch.results.push(...(result.results || []));
+          const batchErrors = (result.results || []).filter((item) => item.ok === false).length;
           console.log(
             '[refill] lote ' + batch.batches + ': processados=' + result.processed +
             ' restantes=' + result.remaining +
+            ' erros=' + batchErrors +
             (result.message ? ' (' + result.message + ')' : '')
           );
 

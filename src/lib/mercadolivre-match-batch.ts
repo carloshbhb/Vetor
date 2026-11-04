@@ -57,6 +57,93 @@ function isSearchEligible(link: {
 }
 
 /**
+ * Errored candidates are retried on a later run instead of inside the same
+ * batch loop. Without this cooldown the loop keeps selecting the same failing
+ * subset forever and the remaining candidates are never matched.
+ */
+export const MATCH_ERROR_RETRY_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
+type MatchHistoryRow = {
+  affiliate_link_id: string;
+  checked_at: string | null;
+  match_status: string | null;
+};
+
+const FINAL_MATCH_STATUSES = ["matched", "review", "no_match"];
+
+export type BatchSelection = {
+  selected: SearchEligibleLink[];
+  checkedIds: Set<string>;
+  errorIds: Set<string>;
+};
+
+/**
+ * Picks the next candidates for a matching batch. Pure function so the
+ * selection rules (including the error cooldown) can be regression tested
+ * without touching the Mercado Livre API.
+ */
+export function selectBatchCandidates(
+  eligibleLinks: SearchEligibleLink[],
+  matches: MatchHistoryRow[],
+  options: {
+    limit: number;
+    refresh?: boolean;
+    now?: number;
+    errorCooldownMs?: number;
+  }
+): BatchSelection {
+  const refresh = Boolean(options.refresh);
+  const now = options.now ?? Date.now();
+  const errorCooldownMs = options.errorCooldownMs ?? MATCH_ERROR_RETRY_COOLDOWN_MS;
+  const eligibleLinkIds = new Set(eligibleLinks.map((link) => String(link.id)));
+
+  const checkedIds = new Set<string>();
+  const errorIds = new Set<string>();
+  const matchByLinkId = new Map<string, MatchHistoryRow>();
+
+  for (const row of matches || []) {
+    const linkId = String(row.affiliate_link_id || "");
+    if (!linkId || !eligibleLinkIds.has(linkId)) continue;
+    matchByLinkId.set(linkId, row);
+    if (!row.checked_at) continue;
+
+    const status = String(row.match_status || "");
+    if (FINAL_MATCH_STATUSES.includes(status)) {
+      checkedIds.add(linkId);
+      continue;
+    }
+    if (status === "error") {
+      const checkedAt = Date.parse(String(row.checked_at)) || 0;
+      // Recent failures stay out of this run so the batch moves forward; they
+      // become eligible again once the cooldown expires.
+      if (checkedAt > 0 && now - checkedAt < errorCooldownMs) {
+        checkedIds.add(linkId);
+        errorIds.add(linkId);
+      }
+    }
+  }
+
+  const selected = eligibleLinks
+    .filter((link) => refresh || !checkedIds.has(String(link.id)))
+    .sort((a, b) => {
+      if (refresh) {
+        const aCheckedAt = Date.parse(String(matchByLinkId.get(String(a.id))?.checked_at || "")) || 0;
+        const bCheckedAt = Date.parse(String(matchByLinkId.get(String(b.id))?.checked_at || "")) || 0;
+        if (aCheckedAt !== bCheckedAt) return aCheckedAt - bCheckedAt;
+      }
+      const pendingPriority =
+        Number(isPendingComparisonProduct(b)) - Number(isPendingComparisonProduct(a));
+      if (pendingPriority !== 0) return pendingPriority;
+      const priorityDifference = Number(b.priority || 0) - Number(a.priority || 0);
+      if (priorityDifference !== 0) return priorityDifference;
+      return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR");
+    })
+    .slice(0, Math.max(Number(options.limit) || 0, 0));
+
+  return { selected, checkedIds, errorIds };
+}
+
+/**
  * Runs one Mercado Livre matching batch. Shared by the admin route and the
  * GitHub Actions refill workflow so both use the same eligibility rules.
  */
@@ -83,36 +170,10 @@ export async function runMercadoLivreMatchBatch(
   if (matchesError) throw new Error(matchesError.message);
 
   const eligibleLinks = ((links || []) as SearchEligibleLink[]).filter(isSearchEligible);
-  const eligibleLinkIds = new Set(eligibleLinks.map((link) => String(link.id)));
-  const checkedIds = new Set(
-    (matches || [])
-      .filter((row) =>
-        Boolean(row.checked_at) &&
-        ["matched", "review", "no_match"].includes(String(row.match_status || "")) &&
-        eligibleLinkIds.has(String(row.affiliate_link_id))
-      )
-      .map((row) => String(row.affiliate_link_id))
-  );
-  const matchByLinkId = new Map(
-    (matches || []).map((row) => [String(row.affiliate_link_id), row])
-  );
-
-  const selected = eligibleLinks
-    .filter((link) => refresh || !checkedIds.has(String(link.id)))
-    .sort((a, b) => {
-      if (refresh) {
-        const aCheckedAt = Date.parse(String(matchByLinkId.get(String(a.id))?.checked_at || "")) || 0;
-        const bCheckedAt = Date.parse(String(matchByLinkId.get(String(b.id))?.checked_at || "")) || 0;
-        if (aCheckedAt !== bCheckedAt) return aCheckedAt - bCheckedAt;
-      }
-      const pendingPriority =
-        Number(isPendingComparisonProduct(b)) - Number(isPendingComparisonProduct(a));
-      if (pendingPriority !== 0) return pendingPriority;
-      const priorityDifference = Number(b.priority || 0) - Number(a.priority || 0);
-      if (priorityDifference !== 0) return priorityDifference;
-      return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR");
-    })
-    .slice(0, limit);
+  const { selected, checkedIds } = selectBatchCandidates(eligibleLinks, matches || [], {
+    limit,
+    refresh,
+  });
 
   if (!selected.length) {
     return {
