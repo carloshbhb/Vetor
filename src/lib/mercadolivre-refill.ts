@@ -20,6 +20,8 @@ type SocialListImportResult = {
   catalogTotal: number;
   alreadyImported: number;
   inserted: number;
+  existingTotal: number;
+  existingSample: Array<{ source_ref: string | null; product_url: string | null; slug: string | null }>;
   dryRun: boolean;
 };
 
@@ -39,8 +41,11 @@ type PromotionResult = {
   promoted: number;
   skippedExisting: number;
   skippedUnsafe: number;
+  skippedAccessory: number;
+  duplicateMatches: number;
   errors: number;
   candidates: Array<{ name: string; matchedTitle: string | null; score: number | null }>;
+  accessoryCandidates: Array<{ name: string; matchedTitle: string | null; score: number | null }>;
   dryRun: boolean;
 };
 
@@ -71,6 +76,61 @@ function uniqueTags(current: unknown, additions: string[]): string[] {
   const tags = Array.isArray(current) ? current.map((tag) => String(tag)).filter(Boolean) : [];
   for (const tag of additions) if (tag && !tags.includes(tag)) tags.push(tag);
   return tags;
+}
+
+// Accessory terms are almost never the product itself unless the source name
+// already declares that type. Blocking them prevents a laptop from being linked
+// to a mouse, a watch to a strap, or a robot vacuum to a replacement filter.
+const ACCESSORY_TERMS = [
+  "pulseira", "bracelete", "correia", "carregador", "carregamento", "cabo",
+  "conector", "adaptador", "fonte", "cesta", "botao", "peca", "reposicao",
+  "capa", "pelicula", "protetor", "bolsa", "mochila", "pasta", "pedestal",
+  "base para", "vidro", "filme", "refil", "filtro", "escova", "mop",
+  "reservatorio", "saco", "transmissor", "transmitter", "receptor", "receiver",
+  "sensor anti-queda", "sensor antiqueda", "anti-queda", "antiqueda",
+  "compativel", "compatible", "dlveer",
+];
+
+const ACCESSORY_TYPE_TERMS = ["mouse", "teclado", "controle", "gamepad", "joystick"];
+const REPLACEMENT_SCREEN_PATTERNS = [
+  /tela\s+(?:display|touch|lcd|oled|amoled)/,
+  /display\s+(?:touch|lcd|oled|amoled)/,
+  /tela\s+(?:de|para)\s/,
+];
+
+function normalizeMatchText(value: unknown): string {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** True when the matched ML item looks like an accessory for the source product. */
+export function isAccessoryMatch(sourceName: string, matchedTitle: string): boolean {
+  const source = normalizeMatchText(sourceName);
+  const matched = normalizeMatchText(matchedTitle);
+  if (!source || !matched) return false;
+
+  const sourceHasAccessoryTerm = ACCESSORY_TERMS.some((term) => source.includes(term));
+  if (!sourceHasAccessoryTerm && ACCESSORY_TERMS.some((term) => matched.includes(term))) {
+    return true;
+  }
+  if (!sourceHasAccessoryTerm && REPLACEMENT_SCREEN_PATTERNS.some((pattern) => pattern.test(matched))) {
+    return true;
+  }
+
+  const hasCompatibilitySignal = /(?:^|\s)(?:para|p\/)\s/.test(matched) ||
+    matched.includes("compativel") ||
+    matched.includes("compatible");
+  if (hasCompatibilitySignal) {
+    const sourceHasType = ACCESSORY_TYPE_TERMS.some((term) => source.includes(term));
+    const matchedHasOtherType = ACCESSORY_TYPE_TERMS.some((term) => matched.includes(term) && !source.includes(term));
+    if (!sourceHasType && matchedHasOtherType) return true;
+  }
+
+  return false;
 }
 
 /**
@@ -190,15 +250,60 @@ export async function importSocialList(
 
   const { data: existing, error: existingError } = await supabase
     .from("affiliate_links")
-    .select("source_ref")
+    .select("id,source_ref,product_url,slug")
     .eq("source_type", "social_list")
-    .like("source_ref", "ml_social_list:" + ML_SOCIAL_LIST_ID + ":%");
+    .limit(2000);
 
   if (existingError) throw new Error(existingError.message);
 
-  const existingRefs = new Set((existing || []).map((row) => String(row.source_ref)));
+  const normalizeUrl = (value: unknown): string => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    try {
+      const url = new URL(raw);
+      url.search = "";
+      url.hash = "";
+      return url.toString().replace(/\/+$/, "").toLowerCase();
+    } catch {
+      return raw.toLowerCase();
+    }
+  };
+  const normalizeItemId = (value: unknown): string => {
+    const match = String(value || "").match(/MLB-?(\d+)/i);
+    return match ? "MLB" + match[1] : "";
+  };
+
+  const existingRefs = new Set<string>();
+  const existingItemIds = new Set<string>();
+  const existingUrls = new Set<string>();
+  for (const row of existing || []) {
+    const ref = String(row.source_ref || "").trim();
+    if (ref) {
+      existingRefs.add(ref);
+      const refTail = ref.split(":").pop() || "";
+      const refId = normalizeItemId(refTail) || normalizeItemId(ref);
+      if (refId) existingItemIds.add(refId);
+    }
+    const url = normalizeUrl(row.product_url);
+    if (url) existingUrls.add(url);
+    const slugId = normalizeItemId(row.slug);
+    if (slugId) existingItemIds.add(slugId);
+    const urlId = normalizeItemId(row.product_url);
+    if (urlId) existingItemIds.add(urlId);
+  }
+
+  const isAlreadyImported = (item: (typeof products)[number]): boolean => {
+    const fullRef = "ml_social_list:" + ML_SOCIAL_LIST_ID + ":" + item.item_id;
+    if (existingRefs.has(fullRef)) return true;
+    const itemId = normalizeItemId(item.item_id);
+    if (itemId && existingItemIds.has(itemId)) return true;
+    const url = normalizeUrl(item.product_url);
+    if (url && existingUrls.has(url)) return true;
+    return false;
+  };
+
   const toInsert = products
-    .filter((item) => !existingRefs.has("ml_social_list:" + ML_SOCIAL_LIST_ID + ":" + item.item_id))
+    .filter((item) => !isAlreadyImported(item))
     .map((item) => ({
       slug: "ml-lista-" + slugifyAffiliateName(item.title) + "-" + item.item_id.toLowerCase(),
       name: item.title,
@@ -235,8 +340,14 @@ export async function importSocialList(
   return {
     ok: true,
     catalogTotal: products.length,
-    alreadyImported: existingRefs.size,
+    alreadyImported: products.length - toInsert.length,
     inserted: dryRun ? toInsert.length : inserted,
+    existingTotal: existing?.length || 0,
+    existingSample: (existing || []).slice(0, 5).map((row) => ({
+      source_ref: row.source_ref == null ? null : String(row.source_ref),
+      product_url: row.product_url == null ? null : String(row.product_url),
+      slug: row.slug == null ? null : String(row.slug),
+    })),
     dryRun,
   };
 }
@@ -444,10 +555,17 @@ export async function promoteMatchedAffiliates(
     promoted: 0,
     skippedExisting: 0,
     skippedUnsafe: 0,
+    skippedAccessory: 0,
+    duplicateMatches: 0,
     errors: 0,
     candidates: [],
+    accessoryCandidates: [],
     dryRun,
   };
+
+  // The join can return more than one match row per affiliate link. Rows are
+  // ordered by score, so the first appearance is always the best one.
+  const seenLinks = new Set<string>();
 
   for (const row of rows) {
     const source = row.affiliate_links;
@@ -456,6 +574,13 @@ export async function promoteMatchedAffiliates(
       continue;
     }
 
+    const sourceId = String(source.id || row.affiliate_link_id || "").trim();
+    if (sourceId && seenLinks.has(sourceId)) {
+      result.duplicateMatches += 1;
+      continue;
+    }
+    if (sourceId) seenLinks.add(sourceId);
+
     const sourceType = String(source.source_type || "");
     const sourceStatus = String(source.status || "");
     const destination = String(source.destination_url || "").trim();
@@ -463,6 +588,7 @@ export async function promoteMatchedAffiliates(
     const matchedItemId = String(row.matched_item_id || "").trim();
     const score = Number(row.match_score || 0);
     const name = String(source.name || "").trim();
+    const matchedTitle = row.matched_title == null ? "" : String(row.matched_title);
 
     if (sourceStatus === "archived" || !["social_list", "comparison_product"].includes(sourceType)) {
       result.skippedUnsafe += 1;
@@ -479,6 +605,17 @@ export async function promoteMatchedAffiliates(
       score < 0.9
     ) {
       result.skippedUnsafe += 1;
+      continue;
+    }
+    if (isAccessoryMatch(name, matchedTitle)) {
+      result.skippedAccessory += 1;
+      if (result.accessoryCandidates.length < 10) {
+        result.accessoryCandidates.push({
+          name,
+          matchedTitle: matchedTitle || null,
+          score: Number.isFinite(score) ? score : null,
+        });
+      }
       continue;
     }
 

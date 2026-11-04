@@ -77,6 +77,7 @@ jobs:
       - name: Run Mercado Livre guardrail tests
         run: |
           npx tsx scripts/mercadolivre-social-list.test.ts
+          npx tsx scripts/mercadolivre-refill.test.ts
           npm run test:mercadolivre-search
 
       - name: Type-check source
