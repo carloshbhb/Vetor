@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - 'video/scripts/process-video.mjs'
+      - 'video/scripts/video-format.mjs'
+      - 'video/scripts/video-format.test.mjs'
+      - 'video/scripts/tts-alignment-fixture.json'
+      - 'video/scripts/validate-tts-alignment.mjs'
       - 'scripts/tts.py'
       - 'src/lib/tts.ts'
       - '.github/workflows/create-remotion-edge-video.yml'
@@ -35,7 +39,9 @@ jobs:
           python-version: '3.12'
 
       - name: Validate JavaScript syntax
-        run: node --check video/scripts/process-video.mjs
+        run: |
+          node --check video/scripts/process-video.mjs
+          node --check video/scripts/validate-tts-alignment.mjs
 
       - name: Install FFmpeg and Edge TTS
         run: |
@@ -58,6 +64,28 @@ jobs:
           print("PASS: Python wrapper generated Edge TTS pt-BR-FranciscaNeural.")
           PY
           ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 /tmp/vetor-edge-wrapper.mp3
+
+      - name: Validate real Edge TTS alignment on a production-shaped script
+        run: |
+          set -euo pipefail
+          mkdir -p tts-alignment-evidence
+          SCRIPT="$(node -e 'const f=require("./video/scripts/tts-alignment-fixture.json"); process.stdout.write(f.segments.map((segment) => segment.text).join(" "))')"
+          EDGE_TTS_BOUNDARIES_PATH=tts-alignment-evidence/boundaries.jsonl \
+            python scripts/tts.py "$SCRIPT" tts-alignment-evidence/audio.mp3 \
+            > tts-alignment-evidence/metadata.json
+          node video/scripts/validate-tts-alignment.mjs \
+            video/scripts/tts-alignment-fixture.json \
+            tts-alignment-evidence/audio.mp3 \
+            tts-alignment-evidence/boundaries.jsonl \
+            tts-alignment-evidence/metadata.json
+
+      - name: Preserve TTS alignment evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tts-alignment-evidence
+          path: tts-alignment-evidence/
+          if-no-files-found: ignore
 
       - name: Test the only configured neural voice
         run: TTS_SMOKE_TEST=true node video/scripts/process-video.mjs

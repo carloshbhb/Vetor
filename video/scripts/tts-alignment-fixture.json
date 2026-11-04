@@ -1,0 +1,17 @@
+{
+  "description": "Production-shaped pt-BR script used to verify real Edge TTS WordBoundary alignment. Keep model codes, decimals and the spoken CTA in the same shape as the video pipeline.",
+  "segments": [
+    {
+      "kind": "hook",
+      "text": "ASUS Vivobook 15 X1504VA contra Dell Inspiron I15-i1300-a15p: qual compensa mais?"
+    },
+    {
+      "kind": "scene",
+      "text": "A tela de 15,6 polegadas com 120 Hz facilita o trabalho e o estudo."
+    },
+    {
+      "kind": "cta",
+      "text": "Acesse o comparativo completo no link da descrição e confira as condições atuais, ficha técnica oficial e garantia para decidir com segurança."
+    }
+  ]
+}
