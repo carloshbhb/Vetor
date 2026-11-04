@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  createDeadlineGuard,
   isAccessoryMatch,
   isSocialListSourceRef,
   SOCIAL_LIST_IMPORT_SOURCE_TYPE,
@@ -73,3 +74,15 @@ for (const ref of [null, undefined, "", "   ", "manual:MLB1", "ml_social_listing
 
 console.log("Mercado Livre refill accessory guard: OK");
 console.log("Mercado Livre refill social-list source guard: OK");
+
+// The matching batch is rate limited. The deadline guard must stop the loop
+// before the CI job timeout so promotion and cleanup still run in the same job.
+const guard = createDeadlineGuard(10, 0);
+assert.equal(guard.deadlineAt, 10 * 60_000);
+assert.equal(guard.isExpired(9 * 60_000), false);
+assert.equal(guard.isExpired(10 * 60_000), true);
+assert.equal(guard.remainingMs(0), 10 * 60_000);
+assert.equal(guard.remainingMs(30 * 60_000), 0);
+assert.equal(createDeadlineGuard(0, 0).deadlineAt, 60_000, "invalid minutes fall back to 1 minute");
+
+console.log("Mercado Livre refill deadline guard: OK");

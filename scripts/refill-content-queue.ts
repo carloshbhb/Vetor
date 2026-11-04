@@ -4,6 +4,7 @@ import { runMercadoLivreMatchBatch } from '../src/lib/mercadolivre-match-batch';
 import {
   archiveLandingPageCoveredProducts,
   boostAffiliatePriorityFromSeo,
+  createDeadlineGuard,
   importSocialList,
   promoteMatchedAffiliates,
   syncSocialList,
@@ -37,6 +38,9 @@ const skipPromote = flag('skip-promote', 'REFILL_SKIP_PROMOTE');
 const skipCleanup = flag('skip-cleanup', 'REFILL_SKIP_CLEANUP');
 const maxBatches = Math.min(Math.max(numberEnv('REFILL_MAX_BATCHES', 15), 1), 30);
 const batchSize = Math.min(Math.max(numberEnv('REFILL_BATCH_SIZE', 20), 1), 20);
+// The matching batch is rate limited and can be slower than the CI job budget.
+// The deadline keeps enough room for promotion and cleanup to still run.
+const deadlineMinutes = Math.min(Math.max(numberEnv('REFILL_DEADLINE_MINUTES', 32), 1), 120);
 
 type BatchSummary = {
   batches: number;
@@ -96,6 +100,7 @@ async function main(): Promise<void> {
     dryRun,
     maxBatches,
     batchSize,
+    deadlineMinutes,
     startedAt: new Date().toISOString(),
     socialList: null,
     import: null,
@@ -159,7 +164,16 @@ async function main(): Promise<void> {
       console.log('[refill] dry-run: lote de matching ignorado (grava affiliate_link_ml_matches).');
     } else {
       const batch: BatchSummary = { batches: 0, processed: 0, remaining: null, results: [] };
+      const deadline = createDeadlineGuard(deadlineMinutes);
       for (let index = 0; index < maxBatches; index += 1) {
+        if (deadline.isExpired()) {
+          const message =
+            'matching: deadline de ' + deadlineMinutes + ' min atingido apos ' +
+            batch.processed + ' candidatos processados; os restantes ficam para a proxima execucao.';
+          warnings.push(message);
+          console.warn('[refill] ' + message);
+          break;
+        }
         try {
           const result = await runMercadoLivreMatchBatch(supabase, { limit: batchSize });
           batch.batches += 1;

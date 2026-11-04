@@ -91,6 +91,28 @@ export function isSocialListSourceRef(value: unknown): boolean {
   return String(value || "").trim().startsWith(SOCIAL_LIST_SOURCE_REF_PREFIX);
 }
 
+export type DeadlineGuard = {
+  deadlineAt: number;
+  isExpired: (at?: number) => boolean;
+  remainingMs: (at?: number) => number;
+};
+
+/**
+ * Time budget for the matching loop. The matching batch is the slowest step and
+ * runs against a rate-limited public API, so it must stop before the CI job
+ * timeout. Whatever was matched still reaches promotion and cleanup, and the
+ * remaining candidates are picked up by the next refill.
+ */
+export function createDeadlineGuard(minutes: number, now = Date.now()): DeadlineGuard {
+  const safeMinutes = Math.min(Math.max(Number(minutes) || 0, 1), 120);
+  const deadlineAt = now + safeMinutes * 60_000;
+  return {
+    deadlineAt,
+    isExpired: (at = Date.now()) => at >= deadlineAt,
+    remainingMs: (at = Date.now()) => Math.max(0, deadlineAt - at),
+  };
+}
+
 function isPromotableSource(sourceType: string, sourceRef: unknown): boolean {
   if (sourceType === "comparison_product") return true;
   // Accept the dedicated type if the database constraint is relaxed later.

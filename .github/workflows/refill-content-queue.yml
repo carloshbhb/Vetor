@@ -33,7 +33,7 @@ concurrency:
 jobs:
   refill:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://jcfbkwnkruncefrnnwqv.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -43,6 +43,7 @@ jobs:
       ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
       ML_TRACKING_ID: carloshbhb
       REFILL_MAX_BATCHES: ${{ inputs.max_batches || '15' }}
+      REFILL_DEADLINE_MINUTES: '40'
       REFILL_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
     steps:
       - name: Checkout main
