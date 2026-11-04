@@ -1,7 +1,9 @@
 import React from 'react';
-import { interpolate } from 'remotion';
+import { interpolate, useVideoConfig } from 'remotion';
 import { theme } from '../styles/theme';
 import { fonts } from '../styles/fonts';
+import { selectCaptionWindow } from '../utils/caption-window';
+import { SHORTS_CAPTION_BAND } from '../utils/shorts-safe-zone';
 
 export type CaptionWord = { text: string; start: number; end: number };
 
@@ -15,9 +17,15 @@ type KineticCaptionProps = {
   /** Current video time in seconds; required together with `words`. */
   time?: number;
   fps?: number;
+  /**
+   * Renders a rolling window of at most this many words inside a fixed-height
+   * band. Without it the legacy full-cue behavior is preserved (ComparisonVideo).
+   */
+  maxVisibleWords?: number;
 };
 
 const HIGHLIGHT = '#FFD43B';
+const LANDSCAPE_BAND_HEIGHT = 104;
 const OUTLINE =
   '0 0 0 #000, 3px 0 0 #050912, -3px 0 0 #050912, 0 3px 0 #050912, 0 -3px 0 #050912, 2px 2px 0 #050912, -2px 2px 0 #050912, 2px -2px 0 #050912, -2px -2px 0 #050912, 0 6px 14px rgba(0,0,0,.55)';
 
@@ -32,10 +40,10 @@ const withBreakOpportunities = (word: string) =>
 /**
  * Word-highlight captions.
  *
- * Portrait (Shorts): large outlined text on a soft dark panel, kept inside the YouTube
- * Shorts safe zone (60px left, 160px right, well above the bottom UI). The word being
- * spoken pops in yellow. With per-word timings the highlight is exact; without them it
- * falls back to a linear estimate over the cue.
+ * Portrait (Shorts): large outlined text on a soft dark panel inside a fixed band
+ * (1236..1486) below the media stage, so a long cue can never grow into the image.
+ * With `maxVisibleWords` the cue becomes a rolling window of stable height; the word
+ * being spoken pops in yellow. Without it the legacy full-cue panel is kept.
  */
 export const KineticCaption: React.FC<KineticCaptionProps> = ({
   text,
@@ -45,16 +53,14 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
   words: timedWords,
   time,
   fps = 30,
+  maxVisibleWords,
 }) => {
+  const { height: compositionHeight } = useVideoConfig();
   const landscape = variant === 'landscape';
   const timed = Boolean(timedWords && timedWords.length && typeof time === 'number');
-  const tokens = timed
+  const allTokens = timed
     ? (timedWords as CaptionWord[]).map((word) => word.text)
     : text.trim().split(/\s+/).filter(Boolean);
-
-  const fontSize = landscape
-    ? tokens.length > 12 ? 29 : 34
-    : tokens.length > 8 ? 50 : 56;
 
   let activeIndex: number;
   if (timed) {
@@ -66,25 +72,64 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
     }
   } else {
     activeIndex = Math.min(
-      Math.max(0, tokens.length - 1),
-      Math.floor(interpolate(progress, [0, 1], [0, tokens.length], {
+      Math.max(0, allTokens.length - 1),
+      Math.floor(interpolate(progress, [0, 1], [0, allTokens.length], {
         extrapolateLeft: 'clamp',
         extrapolateRight: 'clamp',
       })),
     );
   }
 
+  const windowed = Boolean(maxVisibleWords && maxVisibleWords > 0);
+  const { start, end } = windowed
+    ? selectCaptionWindow(allTokens.length, activeIndex, maxVisibleWords as number)
+    : { start: 0, end: allTokens.length };
+  const tokens = windowed ? allTokens.slice(start, end) : allTokens;
+  const activeVisibleIndex = activeIndex - start;
+
+  const windowChars = tokens.reduce((total, token) => total + token.length + 1, 0);
+  const fontSize = windowed
+    ? landscape
+      ? windowChars > 64 ? 28 : 34
+      : windowChars > 44 ? 44 : windowChars > 30 ? 50 : 54
+    : landscape
+      ? tokens.length > 12 ? 29 : 34
+      : tokens.length > 8 ? 50 : 56;
+
+  let chunkOpacity = 1;
+  if (windowed) {
+    if (timed && activeIndex >= 0) {
+      const chunkStart = (timedWords as CaptionWord[])[start].start;
+      chunkOpacity = interpolate(((time as number) - chunkStart) * fps, [0, 3], [0.35, 1], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+    } else {
+      // Without word timings, approximate the age of the chunk from cue progress.
+      const chunkAge = progress * Math.max(1, allTokens.length) - start;
+      chunkOpacity = interpolate(chunkAge, [0, 0.5], [0.35, 1], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+    }
+  }
+
+  const bandHeight = landscape ? LANDSCAPE_BAND_HEIGHT : SHORTS_CAPTION_BAND.height;
+  const bandBottom = landscape ? 105 : compositionHeight - SHORTS_CAPTION_BAND.bottom;
+
   return (
     <div
       style={{
         position: 'absolute',
-        bottom: landscape ? 105 : 420,
+        bottom: windowed ? bandBottom : landscape ? 105 : 420,
+        height: windowed ? bandHeight : undefined,
         left: landscape ? 135 : 70,
         right: landscape ? 390 : 170,
         zIndex: 100,
-        opacity,
+        opacity: opacity * chunkOpacity,
         display: 'flex',
         justifyContent: 'center',
+        alignItems: windowed ? 'center' : undefined,
         minWidth: 0,
         pointerEvents: 'none',
       }}
@@ -96,8 +141,13 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
           borderRadius: landscape ? 18 : 30,
           padding: landscape ? '14px 22px' : '20px 28px 24px',
           width: '100%',
+          height: windowed ? '100%' : undefined,
           maxWidth: landscape ? 1160 : 840,
           minWidth: 0,
+          boxSizing: 'border-box',
+          display: windowed ? 'flex' : undefined,
+          alignItems: windowed ? 'center' : undefined,
+          justifyContent: windowed ? 'center' : undefined,
           textAlign: 'center',
           overflowWrap: 'break-word',
           wordBreak: 'normal',
@@ -117,7 +167,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
             fontWeight: landscape ? 850 : 900,
             color: theme.text,
             fontFamily: fonts.body,
-            lineHeight: 1.16,
+            lineHeight: windowed ? 1.12 : 1.16,
             letterSpacing: landscape ? 0 : -1,
             overflowWrap: 'break-word',
             wordBreak: 'normal',
@@ -125,11 +175,12 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
           }}
         >
           {tokens.map((word, index) => {
-            const isActive = index === activeIndex;
-            const isPast = index < activeIndex;
+            const tokenIndex = start + index;
+            const isActive = index === activeVisibleIndex;
+            const isPast = index < activeVisibleIndex;
             let pop = 1;
             if (isActive && timed && !landscape) {
-              const startedAgo = ((time as number) - (timedWords as CaptionWord[])[index].start) * fps;
+              const startedAgo = ((time as number) - (timedWords as CaptionWord[])[tokenIndex].start) * fps;
               pop = interpolate(startedAgo, [0, 3, 8], [1, 1.08, 1.04], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
@@ -143,7 +194,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
             if (landscape) {
               return (
                 <span
-                  key={index}
+                  key={tokenIndex}
                   style={{
                     display: 'inline-block',
                     maxWidth: '100%',
@@ -166,7 +217,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
             }
             return (
               <span
-                key={index}
+                key={tokenIndex}
                 style={{
                   display: 'inline-block',
                   maxWidth: '100%',

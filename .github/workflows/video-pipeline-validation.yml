@@ -58,6 +58,9 @@ jobs:
         working-directory: video
         run: |
           node --import tsx scripts/visual-storyboard.test.mjs
+          node --import tsx scripts/shorts-safe-zone-layout.test.mjs
+          node --import tsx scripts/caption-window.test.mjs
+          node --import tsx scripts/scene-headline.test.mjs
           node scripts/media-source.test.mjs
 
       - name: Validate format, affiliate-link and chapter contracts

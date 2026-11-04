@@ -113,8 +113,8 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
     return (
       <ProductBox
         src={src}
-        scale={interpolate(slide, [0, 1], [0.9, 1]) * interpolate(progress, [0, 1], [1.0, 1.05])}
-        rotate={interpolate(slide, [0, 1], [-3, 0])}
+        scale={interpolate(slide, [0, 1], [0.92, 1]) * interpolate(progress, [0, 1], [1.0, 1.03])}
+        rotate={interpolate(slide, [0, 1], [-1.5, 0])}
         opacity={interpolate(frame, [0, 6], [0, 1], { extrapolateRight: 'clamp' })}
       />
     );
@@ -127,8 +127,8 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
       <>
         <ProductBox
           src={main}
-          scale={interpolate(progress, [0, 1], [0.8, 0.86])}
-          y={150}
+          scale={interpolate(progress, [0, 1], [0.72, 0.78])}
+          y={72}
           opacity={interpolate(frame, [0, 6], [0, 0.92], { extrapolateRight: 'clamp' })}
         />
         <div
@@ -206,7 +206,7 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
         </div>
         <ProductBox
           src={main}
-          box={{ left: 90, top: 840, width: 520, height: 470 }}
+          box={{ left: 90, top: 700, width: 520, height: 420 }}
           scale={interpolate(land, [0, 1], [0.7, 1])}
           y={interpolate(progress, [0, 1], [0, -16])}
         />
@@ -218,8 +218,8 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
   return (
     <ProductBox
       src={main}
-      scale={interpolate(land, [0, 1], [1.1, 1]) * interpolate(progress, [0, 1], [1, 1.04])}
-      y={Math.sin(progress * Math.PI) * -14}
+      scale={interpolate(land, [0, 1], [1.03, 1]) * interpolate(progress, [0, 1], [1, 1.01])}
+      y={Math.sin(progress * Math.PI) * -10}
     />
   );
 };

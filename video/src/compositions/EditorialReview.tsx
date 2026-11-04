@@ -21,6 +21,7 @@ import {
 } from '../utils/visual-storyboard';
 import { fonts } from '../styles/fonts';
 import { resolveMediaSource } from '../utils/media-source';
+import { fitHeadlineSize, headlineFromText, toHeadline, truncateHeadline } from '../utils/scene-headline';
 
 export type EditorialScene = {
   id: number;
@@ -135,13 +136,9 @@ const AccentLine: React.FC = () => (
   </div>
 );
 
-/** Headline size by length so short claims go huge and long ones still fit in 3 lines. */
-const headlineSize = (text: string, huge: number): number => {
-  if (text.length <= 18) return huge;
-  if (text.length <= 34) return Math.round(huge * 0.86);
-  if (text.length <= 52) return Math.round(huge * 0.74);
-  return Math.round(huge * 0.62);
-};
+/** Headline size that fits the fixed 220..480 header band without touching the media stage. */
+const HEADER_TEXT_WIDTH = 740;
+const HEADER_TEXT_HEIGHT = 200;
 
 const StageImage: React.FC<{ src: string; scale?: number; y?: number }> = ({ src, scale = 1, y = 0 }) => (
   <Img
@@ -168,20 +165,26 @@ const OpeningScene: React.FC<{
   category: string;
   hook: string;
   imageUrl: string;
-}> = ({ title, category, hook, imageUrl }) => {
+}> = ({ category, hook, imageUrl }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const punch = spring({ frame, fps, durationInFrames: 18, config: { damping: 12, stiffness: 180, mass: 0.7 } });
   const scale = interpolate(punch, [0, 1], [1.14, 1]);
   const rise = interpolate(punch, [0, 1], [30, 0]);
-  const productScale = interpolate(frame, [0, 3 * fps], [0.96, 1.08], { extrapolateRight: 'clamp' });
+  const productScale = interpolate(frame, [0, 3 * fps], [0.94, 1.0], { extrapolateRight: 'clamp' });
+  const hookSize = fitHeadlineSize(hook, {
+    width: HEADER_TEXT_WIDTH,
+    maxHeight: HEADER_TEXT_HEIGHT,
+    maxSize: 96,
+    minSize: 42,
+  });
 
   return (
     <Background>
       <div
         style={{
           position: 'absolute',
-          top: 240,
+          top: 220,
           left: TEXT.left,
           right: TEXT.right,
           transformOrigin: 'left top',
@@ -191,33 +194,20 @@ const OpeningScene: React.FC<{
         <Eyebrow>Vetor • {category}</Eyebrow>
         <div
           style={{
-            marginTop: 26,
+            marginTop: 18,
             fontFamily: fonts.heading,
-            fontSize: headlineSize(hook, 116),
+            fontSize: hookSize,
             lineHeight: 1.02,
             fontWeight: 800,
-            letterSpacing: -4,
+            letterSpacing: hookSize < 60 ? -2 : -4,
             overflowWrap: 'anywhere',
             textShadow: '0 10px 34px rgba(0,0,0,.45)',
           }}
         >
           {hook}
         </div>
-        <div
-          style={{
-            marginTop: 22,
-            color: colors.muted,
-            fontSize: 34,
-            fontWeight: 750,
-            letterSpacing: 2.4,
-            textTransform: 'uppercase',
-            opacity: interpolate(frame, [8, 20], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
-          }}
-        >
-          {title}
-        </div>
       </div>
-      <StageImage src={imageUrl} scale={productScale} y={60} />
+      <StageImage src={imageUrl} scale={productScale} y={10} />
       <AccentLine />
     </Background>
   );
@@ -237,7 +227,13 @@ const FeatureScene: React.FC<{
   const { fps } = useVideoConfig();
   const durationFrames = Math.max(1, scene.endFrame - scene.startFrame);
   const progress = Math.max(0, Math.min(1, frame / durationFrames));
-  const label = (scene.visualCue || category).replace(/[.!?]+$/, '');
+  const label = toHeadline(scene.visualCue, headlineFromText(scene.text, category));
+  const labelSize = fitHeadlineSize(label, {
+    width: HEADER_TEXT_WIDTH,
+    maxHeight: HEADER_TEXT_HEIGHT,
+    maxSize: 96,
+    minSize: 44,
+  });
   const metric = visual.mode === 'price-check' || visual.mode === 'tradeoff' ? null : extractPrimaryMetric(scene.text);
   const warning = visual.mode === 'tradeoff';
   const eyebrow = visual.mode === 'price-check'
@@ -287,7 +283,7 @@ const FeatureScene: React.FC<{
       <div
         style={{
           position: 'absolute',
-          top: 240,
+          top: 220,
           left: TEXT.left,
           right: TEXT.right,
           transform: `translateY(${lift}px)`,
@@ -297,12 +293,12 @@ const FeatureScene: React.FC<{
         <Eyebrow color={accent}>{eyebrow || category}</Eyebrow>
         <div
           style={{
-            marginTop: 22,
+            marginTop: 18,
             fontFamily: fonts.heading,
-            fontSize: headlineSize(label, 104),
+            fontSize: labelSize,
             lineHeight: 1.02,
             fontWeight: 800,
-            letterSpacing: -3.4,
+            letterSpacing: labelSize < 60 ? -2 : -3.4,
             overflowWrap: 'anywhere',
             textShadow: '0 8px 28px rgba(0,0,0,.6)',
           }}
@@ -348,15 +344,22 @@ const ClosingScene: React.FC<{
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({ frame, fps, durationInFrames: 20, config: { damping: 13, stiffness: 150, mass: 0.8 } });
-  const scale = interpolate(frame, [0, 60], [0.96, 1.07], { extrapolateRight: 'clamp' });
+  const scale = interpolate(frame, [0, 60], [0.94, 1.0], { extrapolateRight: 'clamp' });
   const question = 'Vale a pena para o seu uso?';
+  const questionSize = fitHeadlineSize(question, {
+    width: HEADER_TEXT_WIDTH,
+    maxHeight: 160,
+    maxSize: 96,
+    minSize: 48,
+  });
+  const shortTitle = truncateHeadline(title, 52);
 
   return (
     <Background>
       <div
         style={{
           position: 'absolute',
-          top: 240,
+          top: 220,
           left: TEXT.left,
           right: TEXT.right,
           opacity: interpolate(enter, [0, 1], [0.15, 1]),
@@ -366,33 +369,31 @@ const ClosingScene: React.FC<{
         <Eyebrow>{score > 0 ? `NOTA EDITORIAL • ${score.toFixed(1)} / 10` : 'VEREDITO EDITORIAL'}</Eyebrow>
         <div
           style={{
-            marginTop: 26,
+            marginTop: 12,
+            color: colors.muted,
+            fontSize: 24,
+            fontWeight: 750,
+            letterSpacing: 2,
+            whiteSpace: 'nowrap',
+            textTransform: 'uppercase',
+          }}
+        >
+          {shortTitle}
+        </div>
+        <div
+          style={{
+            marginTop: 16,
             fontFamily: fonts.heading,
-            fontSize: headlineSize(question, 104),
+            fontSize: questionSize,
             lineHeight: 1.02,
             fontWeight: 800,
-            letterSpacing: -3.6,
+            letterSpacing: -3.2,
           }}
         >
           {question}
         </div>
       </div>
-      <StageImage src={imageUrl} scale={scale} y={30} />
-      {/* The CTA is spoken and shown by the caption; repeating it here made the two overlap. */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 365,
-          left: TEXT.left,
-          right: TEXT.right,
-          color: colors.cyan,
-          fontSize: 26,
-          fontWeight: 850,
-          letterSpacing: 3,
-        }}
-      >
-        {title}
-      </div>
+      <StageImage src={imageUrl} scale={scale} />
       <AccentLine />
     </Background>
   );
@@ -421,6 +422,7 @@ const SubtitleOverlay: React.FC<{
       words={entry.words}
       time={time}
       fps={fps}
+      maxVisibleWords={6}
     />
   );
 };

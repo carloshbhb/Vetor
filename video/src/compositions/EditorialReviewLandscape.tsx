@@ -14,6 +14,7 @@ import type { EditorialReviewProps, EditorialScene } from './EditorialReview';
 import { KineticCaption } from '../components/KineticCaption';
 import { resolveMediaSource } from '../utils/media-source';
 import { createSceneVisualPlan, extractPrimaryMetric, type SceneVisualPlan } from '../utils/visual-storyboard';
+import { fitHeadlineSize, headlineFromText, toHeadline } from '../utils/scene-headline';
 
 const palette = {
   background: '#080C14',
@@ -86,9 +87,15 @@ const Opening: React.FC<{
   imageUrl: string;
 }> = ({ title, category, hook, imageUrl }) => {
   const frame = useCurrentFrame();
-  const scale = interpolate(frame, [0, 100], [0.94, 1.08], { extrapolateRight: 'clamp' });
+  const scale = interpolate(frame, [0, 100], [0.94, 1.06], { extrapolateRight: 'clamp' });
   const opacity = interpolate(frame, [0, 18], [0, 1], { extrapolateRight: 'clamp' });
   const rise = interpolate(frame, [0, 24], [38, 0], { extrapolateRight: 'clamp' });
+  const hookSize = fitHeadlineSize(hook, {
+    width: 830,
+    maxHeight: 300,
+    maxSize: 76,
+    minSize: 46,
+  });
 
   return (
     <Background>
@@ -96,19 +103,19 @@ const Opening: React.FC<{
         <Eyebrow>Vetor • {category} • Análise completa</Eyebrow>
         <div
           style={{
-            marginTop: 28,
-            maxWidth: 850,
-            fontSize: 76,
+            marginTop: 24,
+            maxWidth: 830,
+            fontSize: hookSize,
             lineHeight: 1.02,
             fontWeight: 900,
-            letterSpacing: -3.2,
+            letterSpacing: hookSize < 60 ? -1.6 : -3.2,
             overflowWrap: 'anywhere',
             textShadow: '0 10px 34px rgba(0,0,0,.42)',
           }}
         >
           {hook}
         </div>
-        <div style={{ marginTop: 28, color: palette.muted, fontSize: 29, fontWeight: 750, letterSpacing: 1.2 }}>
+        <div style={{ marginTop: 24, color: palette.muted, fontSize: 29, fontWeight: 750, letterSpacing: 1.2 }}>
           {title}
         </div>
       </div>
@@ -116,7 +123,7 @@ const Opening: React.FC<{
         src={imageUrl}
         style={{
           position: 'absolute',
-          right: 350,
+          right: 320,
           top: 190,
           width: 610,
           height: 560,
@@ -164,7 +171,13 @@ const LongFeature: React.FC<{
   const label = visual.mode === 'price-check'
     ? 'DECISÃO DE COMPRA'
     : warning ? 'PONTO DE ATENÇÃO' : visual.label;
-  const title = String(scene.visualCue || category).replace(/[.!?]+$/, '');
+  const title = toHeadline(scene.visualCue, headlineFromText(scene.text, category));
+  const titleSize = fitHeadlineSize(title, {
+    width: 790,
+    maxHeight: 280,
+    maxSize: 56,
+    minSize: 38,
+  });
   const showBroll = Boolean(brollUrl) && (phase === 1 || (visual.mode === 'lifestyle' && phase === 2));
 
   return (
@@ -175,7 +188,7 @@ const LongFeature: React.FC<{
             left: 1010,
             right: 360,
             top: 205,
-            bottom: 250,
+            bottom: 290,
             overflow: 'hidden',
             border: '1px solid rgba(112,196,255,.34)',
             borderRadius: 28,
@@ -200,7 +213,7 @@ const LongFeature: React.FC<{
         }}
       >
         <Eyebrow warning={warning}>{label}</Eyebrow>
-        <div style={{ marginTop: 26, maxWidth: 790, fontSize: 56, lineHeight: 1.06, fontWeight: 900, letterSpacing: -2.2 }}>
+        <div style={{ marginTop: 22, maxWidth: 790, fontSize: titleSize, lineHeight: 1.06, fontWeight: 900, letterSpacing: titleSize < 46 ? -1.2 : -2.2 }}>
           {title}
         </div>
         <div style={{ marginTop: 23, maxWidth: 780, color: palette.muted, fontSize: 32, lineHeight: 1.26, fontWeight: 650 }}>
@@ -238,7 +251,7 @@ const LongFeature: React.FC<{
         src={imageUrl}
         style={{
           position: 'absolute',
-          right: 340,
+          right: 320,
           top: 245,
           width: 620,
           height: 520,
@@ -282,7 +295,7 @@ const LongEnd: React.FC<{
           CONSULTE O REVIEW COMPLETO
         </div>
       </div>
-      <Product src={imageUrl} style={{ position: 'absolute', right: 340, top: 210, width: 620, height: 550, transform: 'scale(' + scale + ')' }} />
+      <Product src={imageUrl} style={{ position: 'absolute', right: 320, top: 210, width: 620, height: 550, transform: 'scale(' + scale + ')' }} />
       <div style={{ position: 'absolute', left: 130, right: 390, bottom: 225, height: 3, background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
       <div style={{ position: 'absolute', left: 130, bottom: 250, color: palette.muted, fontSize: 19, letterSpacing: 2 }}>{title}</div>
     </Background>
@@ -299,7 +312,7 @@ const LongCaptions: React.FC<{
   if (!entry) return null;
   const progress = Math.max(0, Math.min(1, (time - entry.start) / Math.max(.01, entry.end - entry.start)));
   const opacity = interpolate(progress, [0, .06, .92, 1], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  return <KineticCaption variant="landscape" text={entry.text} progress={progress} opacity={opacity} words={entry.words} time={time} fps={fps} />;
+  return <KineticCaption variant="landscape" text={entry.text} progress={progress} opacity={opacity} words={entry.words} time={time} fps={fps} maxVisibleWords={6} />;
 };
 
 export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) => {
