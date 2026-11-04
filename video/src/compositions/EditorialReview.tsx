@@ -170,7 +170,8 @@ const OpeningScene: React.FC<{
   const { fps } = useVideoConfig();
   const punch = spring({ frame, fps, durationInFrames: 18, config: { damping: 12, stiffness: 180, mass: 0.7 } });
   const scale = interpolate(punch, [0, 1], [1.14, 1]);
-  const rise = interpolate(punch, [0, 1], [30, 0]);
+  // Spring overshoot must not lift the header above its 220px safe boundary.
+  const rise = interpolate(punch, [0, 1], [30, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const productScale = interpolate(frame, [0, 3 * fps], [0.94, 1.0], { extrapolateRight: 'clamp' });
   const hookSize = fitHeadlineSize(hook, {
     width: HEADER_TEXT_WIDTH,
@@ -256,7 +257,8 @@ const FeatureScene: React.FC<{
   );
 
   const enter = spring({ frame, fps, durationInFrames: 18, config: { damping: 14, stiffness: 160, mass: 0.7 } });
-  const lift = interpolate(enter, [0, 1], [46, 0]);
+  // Clamped: the overshoot would push the eyebrow 4px above the 220px safe top.
+  const lift = interpolate(enter, [0, 1], [46, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <Background>
@@ -362,8 +364,8 @@ const ClosingScene: React.FC<{
           top: 220,
           left: TEXT.left,
           right: TEXT.right,
-          opacity: interpolate(enter, [0, 1], [0.15, 1]),
-          transform: `translateY(${interpolate(enter, [0, 1], [34, 0])}px)`,
+          opacity: interpolate(enter, [0, 1], [0.15, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
+          transform: `translateY(${interpolate(enter, [0, 1], [34, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}px)`,
         }}
       >
         <Eyebrow>{score > 0 ? `NOTA EDITORIAL • ${score.toFixed(1)} / 10` : 'VEREDITO EDITORIAL'}</Eyebrow>
