@@ -1,0 +1,41 @@
+{
+  "description": "Sanitized production script from the ASUS Vivobook vs Dell Inspiron comparison. It reproduces the long model codes, numbers and CTA shape that used to break Edge TTS word alignment.",
+  "segments": [
+    {
+      "kind": "hook",
+      "text": "ASUS Vivobook 15 X1504VA ou Dell Inspiron I15-i1300-a15p? Qual notebook de entrada realmente compensa em 2026?"
+    },
+    {
+      "kind": "scene",
+      "text": "O ASUS Vivobook 15 X1504VA chega como opção moderna para quem busca design atual e portabilidade no dia a dia."
+    },
+    {
+      "kind": "scene",
+      "text": "Já o Dell Inspiron I15-i1300-a15p mantém o foco na confiabilidade tradicional da marca para tarefas básicas e estudos."
+    },
+    {
+      "kind": "scene",
+      "text": "Ambos atendem ao público de entrada, mas a escolha depende de qual design e ecologia de acessórios combina mais com seu estilo."
+    },
+    {
+      "kind": "scene",
+      "text": "Verifique se o ASUS Vivobook 15 X1504VA oferece as portas e a autonomia que você precisa para seu trabalho ou estudo."
+    },
+    {
+      "kind": "scene",
+      "text": "No Dell Inspiron I15-i1300-a15p, confira se o layout de conexões e o peso atendem à sua rotina de mobilidade."
+    },
+    {
+      "kind": "scene",
+      "text": "Pense também no suporte, garantia e na disponibilidade de serviços técnicos nas suas regiões antes de decidir."
+    },
+    {
+      "kind": "scene",
+      "text": "Compare o conteúdo da caixa, acessórios inclusos e o estado do hardware na ficha oficial do ASUS Vivobook 15 X1504VA."
+    },
+    {
+      "kind": "cta",
+      "text": "Acesse o comparativo completo no link da descrição e confira as condições atuais, ficha técnica oficial e garantia para decidir com segurança."
+    }
+  ]
+}

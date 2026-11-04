@@ -8,6 +8,7 @@ on:
       - 'video/scripts/video-format.mjs'
       - 'video/scripts/video-format.test.mjs'
       - 'video/scripts/tts-alignment-fixture.json'
+      - 'video/scripts/tts-alignment-asus.json'
       - 'video/scripts/validate-tts-alignment.mjs'
       - 'scripts/tts.py'
       - 'src/lib/tts.ts'
@@ -65,19 +66,19 @@ jobs:
           PY
           ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 /tmp/vetor-edge-wrapper.mp3
 
-      - name: Validate real Edge TTS alignment on a production-shaped script
+      - name: Validate real Edge TTS alignment on production-shaped scripts
         run: |
           set -euo pipefail
-          mkdir -p tts-alignment-evidence
-          SCRIPT="$(node -e 'const f=require("./video/scripts/tts-alignment-fixture.json"); process.stdout.write(f.segments.map((segment) => segment.text).join(" "))')"
-          EDGE_TTS_BOUNDARIES_PATH=tts-alignment-evidence/boundaries.jsonl \
-            python scripts/tts.py "$SCRIPT" tts-alignment-evidence/audio.mp3 \
-            > tts-alignment-evidence/metadata.json
-          node video/scripts/validate-tts-alignment.mjs \
-            video/scripts/tts-alignment-fixture.json \
-            tts-alignment-evidence/audio.mp3 \
-            tts-alignment-evidence/boundaries.jsonl \
-            tts-alignment-evidence/metadata.json
+          for FIXTURE in video/scripts/tts-alignment-fixture.json video/scripts/tts-alignment-asus.json; do
+            NAME="$(basename "$FIXTURE" .json)"
+            OUT="tts-alignment-evidence/$NAME"
+            mkdir -p "$OUT"
+            SCRIPT="$(FIXTURE="$FIXTURE" node -e 'const fs=require("fs"); const f=JSON.parse(fs.readFileSync(process.env.FIXTURE,"utf8")); process.stdout.write(f.segments.map((segment) => segment.text).join(" "))')"
+            EDGE_TTS_BOUNDARIES_PATH="$OUT/boundaries.jsonl" \
+              python scripts/tts.py "$SCRIPT" "$OUT/audio.mp3" > "$OUT/metadata.json"
+            node video/scripts/validate-tts-alignment.mjs \
+              "$FIXTURE" "$OUT/audio.mp3" "$OUT/boundaries.jsonl" "$OUT/metadata.json"
+          done
 
       - name: Preserve TTS alignment evidence on failure
         if: failure()
