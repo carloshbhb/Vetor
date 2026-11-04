@@ -100,3 +100,17 @@ Ao adaptar template Remotion para pipeline externo, manter caminhos de assets co
 - - -   R E F   L A Y O U T   R E G I S T R A D A   ( 2 0 2 6 - 1 0 - 1 3 )   - - -  
  L a y o u t   l a n d i n g   p a g e   S a m s u n g   G a l a x y   A 1 7 :   S F   S y m b o l s   b a n n e r ,   l i q u i d - g l a s s   C S S / G S A P ,   c o m p a r e _ t a b l e   R e v i e w C o m p a r e T a b l e   ( c o l u m n s = [ ' P r o d u t o ' , ' N o t a ' , ' I d e a l   p a r a ' ] ,   w i n n e r C o l ) .   I n s e r i d o   n o   s u p e r   p r o m p t   t m p / g e n e r a t e - 2 - l a n d i n g - p a g e s . t s   +   c o m e n t � r i o   n o   c o n t e n t .   P i p e l i n e   ( 2   L P s / d i a ,   0 3 : 0 0 )   i n t a c t o .  
  
+### 2026-11-04 · content-generation · #18
+Edge TTS pt-BR com EDGE_TTS_RATE=+5% e alinhamento por WordBoundary mantem legendas exatas em Shorts de cerca de 74s; remover URLs do CTA falado evita explosao de boundaries e reduz a duracao sem perder sincronia.
+  Evidência: GitHub Actions 41827029997: rate=+5%, 74.11s, 174 WordBoundary, legendas exatas, QA pass, upload biGUps5le2I; ASUS antigo 132.096s deletado.
+  Confiança: 0.90 · sucesso
+
+### 2026-11-04 · code-quality · #19
+Na tabela video_queue, voiceover_url e NOT NULL; ao resetar um item concluido para reprocessar, nao envie voiceover_url null. Limpe apenas campos nullable: status, youtube_video_id, youtube_url, completed_at, started_at e error_message.
+  Evidência: API update retornou erro 23502 not-null violation ao tentar voiceover_url null; reset minimo funcionou e reprocessou o ASUS.
+  Confiança: 0.90 · sucesso
+
+### 2026-11-04 · content-generation · #20
+Para substituir um video do YouTube sem duplicata publica: subir a nova versao pela fila, confirmar que esta publica, atualizar a referencia no banco e so entao apagar o video antigo via DELETE /youtube/v3/videos; antes, verificar se paginas publicas ainda referenciam o ID antigo.
+  Evidência: ASUS 747Glfla104 substituido por biGUps5le2I; DELETE retornou 204; /comparativos/asus-vivobook-15-vs-dell-inspiron nao referenciava os IDs.
+  Confiança: 0.85 · sucesso
