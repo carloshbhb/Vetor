@@ -51,7 +51,7 @@ export function isValidViralModelResponse(
     const content = typeof parsed.content === 'string' ? parsed.content.trim() : '';
     const meta = seo(title, description);
 
-    return generatedViralQualitySchema.safeParse({
+    const result = generatedViralQualitySchema.safeParse({
       slug: slugifyEditorialTitle(title),
       title,
       description,
@@ -60,8 +60,18 @@ export function isValidViralModelResponse(
       products: topic.comparisonProducts,
       seo_title: meta.title,
       seo_description: meta.description,
-    }).success;
-  } catch {
+    });
+
+    if (!result.success) {
+      const issues = result.error.issues
+        .slice(0, 8)
+        .map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`);
+      console.warn('[viral-generator] quality gate rejected candidate: ' + issues.join(' | '));
+    }
+
+    return result.success;
+  } catch (error) {
+    console.warn('[viral-generator] validation could not parse candidate: ' + (error instanceof Error ? error.message : String(error)));
     return false;
   }
 }
@@ -84,10 +94,11 @@ export async function generateViralArticle(topic: {
         'Você é um editor de comparativos do vetor.blog. Responda APENAS em JSON válido, sem texto adicional.',
       userPrompt: prompt,
       temperature: 0.55,
-      maxTokens: 6500,
-      timeoutMs: 23000,
-      deadlineMs: 47000,
+      maxTokens: 9000,
+      timeoutMs: 45000,
+      deadlineMs: 220000,
       maxAttemptsPerModel: 2,
+      providerTimeouts: { groq: 45000, nvidia: 60000 },
       validateResponse: (candidate) => isValidViralModelResponse(candidate, topic),
       responseFormat: { type: 'json_object' },
     });

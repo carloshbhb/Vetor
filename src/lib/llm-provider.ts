@@ -27,8 +27,14 @@ export const OPENROUTER_FREE_MODEL_PRIORITY = [
 
 const OPENROUTER_FREE_CATALOG_TTL_MS = 5 * 60_000;
 const OPENROUTER_FREE_CATALOG_TIMEOUT_MS = 3_500;
-const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
-const DEFAULT_NVIDIA_MODEL = 'nvidia/nemotron-3.5-lightning-30b-a3b';
+const DEFAULT_GROQ_MODEL = 'qwen/qwen3.8-27b';
+const DEFAULT_GROQ_FALLBACK_MODEL = 'openai/gpt-oss-120b';
+const DEFAULT_NVIDIA_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b';
+const DEFAULT_NVIDIA_FALLBACK_MODELS = [
+  'deepseek-ai/deepseek-v4.1-flash',
+  'nvidia/llama-3.1-nemotron-ultra-253b-v1',
+  'z-ai/glm-5.3-flash',
+];
 
 let cachedProviders: LLMProvider[] | null = null;
 let cachedOpenRouterFreeModels: { expiresAt: number; models: string[] } | null = null;
@@ -104,6 +110,15 @@ async function getOpenRouterFreeModels(apiKey: string): Promise<string[]> {
   }
 }
 
+function uniqueModels(values: Array<string | undefined>): string[] {
+  const models: string[] = [];
+  for (const value of values) {
+    const model = String(value || '').trim();
+    if (model && !models.includes(model)) models.push(model);
+  }
+  return models;
+}
+
 function configuredProviders(): LLMProvider[] {
   if (cachedProviders) return cachedProviders;
 
@@ -111,6 +126,18 @@ function configuredProviders(): LLMProvider[] {
   const groqKey = process.env.GROQ_API_KEY?.trim();
   const nvidiaKey = process.env.NVIDIA_API_KEY?.trim();
   const order = buildLLMProviderOrder(Boolean(openRouterKey), Boolean(groqKey), Boolean(nvidiaKey));
+  const groqModels = uniqueModels([
+    process.env.GROQ_MODEL,
+    process.env.GROQ_FALLBACK_MODEL,
+    DEFAULT_GROQ_MODEL,
+    DEFAULT_GROQ_FALLBACK_MODEL,
+  ]);
+  const nvidiaModels = uniqueModels([
+    DEFAULT_NVIDIA_MODEL,
+    process.env.NVIDIA_MODEL,
+    process.env.NVIDIA_FALLBACK_MODEL,
+    ...DEFAULT_NVIDIA_FALLBACK_MODELS,
+  ]);
 
   const providers: LLMProvider[] = [];
   for (const provider of order) {
@@ -130,27 +157,31 @@ function configuredProviders(): LLMProvider[] {
         }),
       });
     } else if (provider === 'groq' && groqKey) {
-      providers.push({
-        provider,
-        model: DEFAULT_GROQ_MODEL,
-        client: new OpenAI({
-          apiKey: groqKey,
-          baseURL: 'https://api.groq.com/openai/v1',
-          timeout: 45_000,
-          maxRetries: 0,
-        }),
-      });
+      for (const model of groqModels) {
+        providers.push({
+          provider,
+          model,
+          client: new OpenAI({
+            apiKey: groqKey,
+            baseURL: 'https://api.groq.com/openai/v1',
+            timeout: 45_000,
+            maxRetries: 0,
+          }),
+        });
+      }
     } else if (provider === 'nvidia' && nvidiaKey) {
-      providers.push({
-        provider,
-        model: DEFAULT_NVIDIA_MODEL,
-        client: new OpenAI({
-          apiKey: nvidiaKey,
-          baseURL: 'https://integrate.api.nvidia.com/v1',
-          timeout: 65_000,
-          maxRetries: 0,
-        }),
-      });
+      for (const model of nvidiaModels) {
+        providers.push({
+          provider,
+          model,
+          client: new OpenAI({
+            apiKey: nvidiaKey,
+            baseURL: 'https://integrate.api.nvidia.com/v1',
+            timeout: 65_000,
+            maxRetries: 0,
+          }),
+        });
+      }
     }
   }
 
@@ -289,7 +320,7 @@ export async function chatCompletion(params: {
               // GPT-OSS requires an explicit reasoning format when JSON mode is enabled.
               createParams.reasoning_format = 'hidden';
             }
-            if (model === DEFAULT_GROQ_MODEL) createParams.reasoning_effort = 'low';
+            if (model.startsWith('openai/gpt-oss')) createParams.reasoning_effort = 'low';
           } else if (provider.provider === 'nvidia' && params.responseFormat) {
             createParams.response_format = params.responseFormat;
           }

@@ -33,8 +33,8 @@ jobs:
       ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
       ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
-      NVIDIA_MODEL: ${{ vars.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b' }}
-      NVIDIA_FALLBACK_MODEL: 'nvidia/nemotron-3.5-super-vl-120b-a12b'
+      NVIDIA_MODEL: nvidia/nemotron-3-ultra-550b-a55b
+      NVIDIA_FALLBACK_MODEL: deepseek-ai/deepseek-v4.1-flash
       REVIEW_GENERATION_MAX_ATTEMPTS: '4'
       # Scheduled runs generate a draft; manual dispatch defaults to dry-run unless deliberately disabled.
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}

@@ -251,6 +251,7 @@ export async function getNextReviewProductLink(): Promise<ProductLink | null> {
       .from('product_links')
       .select('*')
       .eq('has_review', false)
+      .is('landing_page_slug', null)
       .neq('status', 'reviewed')
       .neq('status', 'archived')
       // Never return queue entries that lack the real product, purchase URL, or image.

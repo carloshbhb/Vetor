@@ -8,6 +8,8 @@ import { VIRAL_TOPICS } from '@/lib/seed-data';
 import { buildComparativeIndexNowTargets, buildContentUrl, pingNewContent } from '@/lib/indexnow';
 import { revalidateComparativeSurfaces } from '@/lib/revalidate-content';
 
+export const maxDuration = 300;
+
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }

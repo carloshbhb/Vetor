@@ -1,0 +1,104 @@
+name: Refill Content Queue
+
+on:
+  schedule:
+    # 02:30 UTC, before the 04:15 UTC daily review generation.
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Read-only: sync, import counts, SEO candidates and promotion candidates; no writes or matching batch'
+        required: true
+        default: false
+        type: boolean
+      max_batches:
+        description: 'Maximum Mercado Livre matching batches (20 candidates each)'
+        required: true
+        default: '15'
+        type: string
+      review_runs:
+        description: 'How many draft review runs to queue after the refill (1-3)'
+        required: true
+        default: '1'
+        type: string
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: refill-content-queue
+  cancel-in-progress: false
+
+jobs:
+  refill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://jcfbkwnkruncefrnnwqv.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_KEY }}
+      ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
+      ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
+      ML_TRACKING_ID: carloshbhb
+      REFILL_MAX_BATCHES: ${{ inputs.max_batches || '15' }}
+      REFILL_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate required credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${NEXT_PUBLIC_SUPABASE_ANON_KEY:?NEXT_PUBLIC_SUPABASE_ANON_KEY secret is required}"
+          if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}${SUPABASE_SERVICE_KEY:-}" ]; then
+            echo "::error::Configure SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY."
+            exit 1
+          fi
+          if [ -z "${ML_CLIENT_ID:-}" ] || [ -z "${ML_CLIENT_SECRET:-}" ]; then
+            echo "::warning::ML_CLIENT_ID/ML_CLIENT_SECRET are missing; matching will rely on the existing OAuth token in Supabase."
+          fi
+          echo "Supabase secrets are present; values are not displayed."
+
+      - name: Run Mercado Livre guardrail tests
+        run: |
+          npx tsx scripts/mercadolivre-social-list.test.ts
+          npm run test:mercadolivre-search
+
+      - name: Type-check source
+        run: npx tsc --noEmit
+
+      - name: Refill the content queue
+        shell: bash
+        run: npx tsx scripts/refill-content-queue.ts
+
+      - name: Dispatch daily review generation
+        if: success() && (github.event_name != 'workflow_dispatch' || inputs.dry_run == false)
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_RUNS: ${{ inputs.review_runs || '1' }}
+        run: |
+          set -euo pipefail
+          runs="${REVIEW_RUNS:-1}"
+          if [ "$runs" -gt 3 ]; then runs=3; fi
+          for i in $(seq 1 "$runs"); do
+            echo "Dispatching draft review run $i of $runs"
+            gh workflow run generate-daily-review.yml --ref main -f dry_run=false
+            sleep 3
+          done

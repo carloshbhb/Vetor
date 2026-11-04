@@ -93,6 +93,7 @@ function isEligibleProduct(link: ProductLink): boolean {
     link.status !== 'archived' &&
     link.status !== 'reviewed' &&
     !link.has_review &&
+    !link.landing_page_slug &&
     isHttpUrl(link.product_url) &&
     isHttpUrl(link.affiliate_url) &&
     isHttpUrl(link.image_url) &&
@@ -571,7 +572,7 @@ async function discoverAffiliateBackedProducts(
       video_id: null,
       price: Number.isFinite(priceValue) && priceValue > 0 ? String(priceValue) : null,
       score: Number(row.match_score || 0),
-      priority: 75,
+      priority: Math.max(75, Number(source.priority || 0)),
       notes,
       tags: ['affiliate-discovery', 'mercadolivre-matched'],
     };
@@ -626,6 +627,7 @@ async function main(): Promise<void> {
       .from('product_links')
       .select('*')
       .eq('has_review', false)
+      .is('landing_page_slug', null)
       .neq('status', 'reviewed')
       .neq('status', 'archived')
       .not('product_url', 'is', null)
