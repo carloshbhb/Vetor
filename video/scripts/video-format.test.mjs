@@ -8,6 +8,7 @@ import {
   buildVideoTitle,
   formatYouTubeTimestamp,
   resolveVideoFormat,
+  stripSpokenUrls,
 } from "./video-format.mjs";
 
 const purchaseUrl = "https://www.vetor.blog/go/produto/";
@@ -214,5 +215,67 @@ const withEmptySegment = buildNarrationTimings(
 );
 assert.equal(withEmptySegment[1].duration, 0, "segment without words has zero length");
 assert.ok(Math.abs(withEmptySegment[0].end - 3.0) < 1e-9);
+
+// Edge TTS emits URLs as several WordBoundary events. Alignment must use the
+// spoken alphanumeric units, not one boundary per whitespace-delimited word.
+const urlSegments = [
+  { kind: "hook", text: "Acesse o comparativo completo em" },
+  { kind: "cta", text: "https://www.vetor.blog/comparativos/produto/" },
+];
+const urlTokens = ["Acesse", "o", "comparativo", "completo", "em", "https", "www", "vetor", "blog", "comparativos", "produto"];
+const urlBoundaries = urlTokens.map((text, index) => ({
+  type: "WordBoundary",
+  offset: Math.round(index * 0.5 * 10_000_000),
+  duration: Math.round(0.4 * 10_000_000),
+  text,
+}));
+const urlTimings = buildNarrationTimings(urlSegments, urlBoundaries, 6);
+assert.ok(urlTimings, "URL split into boundary units must still align");
+assert.ok(Math.abs(urlTimings[1].start - 2.5) < 1e-9, "CTA starts on the https boundary");
+const urlCaptions = buildTimedCaptionEntries(urlSegments, urlBoundaries, { maxWords: 6, maxLineChars: 52 });
+assert.ok(urlCaptions, "URL split captions must not fall back to segment timing");
+const urlWord = urlCaptions.flatMap((cue) => cue.words).find((word) => word.text.startsWith("https://"));
+assert.ok(urlWord, "URL word is preserved in the caption timeline");
+assert.ok(Math.abs(urlWord.start - 2.5) < 1e-9 && Math.abs(urlWord.end - 5.4) < 1e-9, "URL word spans every spoken URL unit");
+
+const modelSegments = [{ kind: "scene", text: "O Dell I15-i1300-a15p chega" }];
+const modelBoundaries = ["O", "Dell", "I15", "i1300", "a15p", "chega"].map((text, index) => ({
+  type: "WordBoundary",
+  offset: Math.round(index * 0.5 * 10_000_000),
+  duration: Math.round(0.4 * 10_000_000),
+  text,
+}));
+const modelCaptions = buildTimedCaptionEntries(modelSegments, modelBoundaries, { maxWords: 8 });
+assert.ok(modelCaptions, "hyphenated model code must align");
+const modelWord = modelCaptions.flatMap((cue) => cue.words).find((word) => word.text === "I15-i1300-a15p");
+assert.ok(modelWord);
+assert.ok(Math.abs(modelWord.start - 1.0) < 1e-9 && Math.abs(modelWord.end - 2.4) < 1e-9);
+
+// If Edge expands or drops a token, approximate alignment keeps script text but
+// anchors the surrounding words to their real timings.
+const approxSegments = [{ kind: "scene", text: "Tela AMOLED de 120 Hz" }];
+const approxBoundaries = ["Tela", "AMOLED", "com", "120", "Hz"].map((text, index) => ({
+  type: "WordBoundary",
+  offset: Math.round(index * 0.5 * 10_000_000),
+  duration: Math.round(0.4 * 10_000_000),
+  text,
+}));
+assert.equal(buildTimedCaptionEntries(approxSegments, approxBoundaries, { maxWords: 5 }), null, "strict mode still rejects a changed token");
+const approxCaptions = buildTimedCaptionEntries(approxSegments, approxBoundaries, { maxWords: 5, allowApproximate: true });
+assert.ok(approxCaptions, "approximate mode recovers from a changed token");
+const approxWord = approxCaptions.flatMap((cue) => cue.words).find((word) => word.text === "de");
+assert.ok(approxWord && approxWord.start >= 1.0 && approxWord.end <= 1.5, "unmatched word is interpolated between anchors");
+assert.ok(approxCaptions.flatMap((cue) => cue.words).every((word) => word.end > word.start), "approximate words keep positive durations");
+assert.equal(buildNarrationTimings(approxSegments, approxBoundaries, 3), null, "strict narration timing rejects a changed token");
+const approxTimings = buildNarrationTimings(approxSegments, approxBoundaries, 3, { allowApproximate: true });
+assert.ok(approxTimings, "approximate narration timing recovers from a changed token");
+assert.equal(approxTimings[0].start, 0);
+assert.equal(approxTimings[0].end, 3);
+
+assert.equal(
+  stripSpokenUrls("Acesse o comparativo completo em https://www.vetor.blog/comparativos/produto/ e confira."),
+  "Acesse o comparativo completo no link da descrição e confira."
+);
+assert.equal(stripSpokenUrls("Veja em www.vetor.blog/reviews/produto/."), "Veja no link da descrição");
 
 console.log("video-format contract: all assertions passed");

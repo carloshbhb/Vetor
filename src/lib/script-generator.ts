@@ -1,4 +1,5 @@
 import { chatCompletion, getLLMProvider } from './llm-provider';
+import { stripSpokenUrls } from '../../video/scripts/video-format.mjs';
 
 export interface VideoScript {
   hook: string;
@@ -57,7 +58,8 @@ function buildScriptPrompt(product: ProductInfo): string {
     "ABERTURAS RECENTES A NÃO IMITAR:\n" + hooks,
     "TOM E PRECISÃO: seja conversacional, idiomático e seguro. Varie cadência e construção. Evite propaganda, superlativos vazios, listas mecânicas e frases burocráticas. Não alegue testes ou experiências pessoais. Não invente especificações, compatibilidade, autonomia, desempenho, acessórios, avaliações ou preços. Se um dado faltar, diga exatamente o que o comprador deve confirmar. Cada cena acrescenta uma ideia nova e concreta.",
     instructions,
-    'Retorne somente JSON válido com esta estrutura: {"hook":"abertura específica e curiosa","scenes":[{"id":1,"text":"narração factual e natural","duration":' + (isLong ? "32" : "9") + ',"visualCue":"ação ou capítulo visual único","brollKeywords":["termo visual concreto em inglês"]}],"callToAction":"convite para consultar review e preço atualizado"}'
+    'Retorne somente JSON válido com esta estrutura: {"hook":"abertura específica e curiosa","scenes":[{"id":1,"text":"narração factual e natural","duration":' + (isLong ? "32" : "9") + ',"visualCue":"ação ou capítulo visual único","brollKeywords":["termo visual concreto em inglês"]}],"callToAction":"convite para consultar review e preço atualizado"}',
+    'Não escreva URLs, domínios nem endereços no callToAction: diga apenas "no link da descrição".'
   ].join("\n\n");
 }
 
@@ -176,9 +178,8 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     hook: parsed.hook.trim(),
     scenes: scenes as VideoScene[],
     totalDuration: computedDuration,
-    callToAction: typeof parsed.callToAction === "string" && parsed.callToAction.trim()
-      ? parsed.callToAction.trim()
-      : "Veja o review completo e confira a oferta atual na descrição.",
+    callToAction: stripSpokenUrls(parsed.callToAction) ||
+      "Veja o review completo e confira a oferta atual na descrição.",
     generationVersion: 3,
     videoFormat: product.videoFormat || "short",
     creativeAngle: product.creativeAngle || "Ângulo editorial definido pelo gerador.",
@@ -276,6 +277,7 @@ export async function generateComparisonVideoScript(input: {
     "- Quando faltar informação, apresente como pergunta ou critério a conferir, nunca como fato.",
     "- Use os nomes completos de ambos os produtos ao menos uma vez na narração.",
     "- As cenas devem ter visualCue distintos e brollKeywords concretos, sem sugerir teste que não ocorreu.",
+    "- Não escreva URLs, domínios nem endereços no callToAction: diga apenas \"no link da descrição\".",
     "- O total, somando 8 segundos de abertura/encerramento à duração das cenas, deve ficar entre 60 e 90 segundos.",
     "- CTA sem preço, desconto ou estoque não confirmado. Peça para consultar o comparativo e verificar as condições atuais.",
     "- Responda em português brasileiro natural e somente em JSON válido.",
@@ -305,7 +307,8 @@ export async function generateComparisonVideoScript(input: {
       hook: parsed.hook.trim(),
       scenes,
       totalDuration,
-      callToAction: parsed.callToAction.trim(),
+      callToAction: stripSpokenUrls(parsed.callToAction) ||
+        "Veja o comparativo completo e confira os dados oficiais no link da descrição.",
       generationVersion: 3,
       videoFormat: "short",
       creativeAngle: "Comparação factual: nomes e categoria confirmados; demais características devem ser conferidas nas fichas oficiais.",

@@ -175,6 +175,7 @@ jobs:
           VIDEO_ID: ${{ github.event.inputs.video_id || '' }}
           MANUAL_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
           MAX_VIDEOS: '5'
+          EDGE_TTS_RATE: "${{ vars.EDGE_TTS_RATE || '+5%' }}"
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           VIDEO_RENDER_ENGINE: remotion
           HYPERFRAMES_REMOTION_FALLBACK: 'true'

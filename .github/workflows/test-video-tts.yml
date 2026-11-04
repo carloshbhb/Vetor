@@ -53,6 +53,7 @@ jobs:
           result = json.loads(Path("/tmp/vetor-edge-wrapper.json").read_text())
           audio = Path("/tmp/vetor-edge-wrapper.mp3")
           assert result.get("voice") == "pt-BR-FranciscaNeural", result
+          assert result.get("rate") == "+5%", result
           assert audio.exists() and audio.stat().st_size > 1000, "Edge TTS wrapper did not create a valid MP3"
           print("PASS: Python wrapper generated Edge TTS pt-BR-FranciscaNeural.")
           PY

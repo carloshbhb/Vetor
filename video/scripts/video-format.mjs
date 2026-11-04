@@ -93,47 +93,285 @@ function wrapCaptionWords(words, maxLineChars) {
   return lines.join("\n");
 }
 
-function normalizeBoundaryToken(value) {
+/**
+ * Split a script word or an Edge TTS boundary into the alphanumeric units that
+ * are actually spoken. URLs, model codes and decimals are often emitted as
+ * several WordBoundary events ("https", "www", "vetor", ...), so comparing one
+ * whitespace-delimited script word against one boundary is too strict.
+ */
+function splitAlignmentUnits(value) {
   return String(value || "")
-    .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "");
+    .toLowerCase()
+    .replace(/([a-z])([0-9])/g, "$1 $2")
+    .replace(/([0-9])([a-z])/g, "$1 $2")
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
+function buildAlignmentModel(segments, wordBoundaries) {
+  const sourceSegments = Array.isArray(segments) ? segments : [];
+  const words = [];
+  const expectedUnits = [];
+
+  sourceSegments.forEach((segment, segmentIndex) => {
+    const tokens = String(segment?.text || "").trim().split(/\s+/).filter(Boolean);
+    for (const word of tokens) {
+      const wordIndex = words.length;
+      const units = splitAlignmentUnits(word);
+      words.push({
+        word,
+        segmentIndex,
+        kind: String(segment.kind || "scene"),
+        unitStart: expectedUnits.length,
+        unitCount: units.length,
+      });
+      for (const unit of units) expectedUnits.push({ text: unit, wordIndex });
+    }
+  });
+
+  const actualUnits = [];
+  const boundaries = Array.isArray(wordBoundaries) ? wordBoundaries : [];
+  boundaries.forEach((item) => {
+    if (!item || String(item.type || "WordBoundary") !== "WordBoundary") return;
+    const offset = Number(item.offset);
+    const duration = Number(item.duration);
+    if (!Number.isFinite(offset) || !Number.isFinite(duration) || duration <= 0) return;
+    const units = splitAlignmentUnits(item.text);
+    if (!units.length) return;
+    const weights = units.map((unit) => Math.max(1, unit.length));
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    let cursor = offset;
+    units.forEach((unit, index) => {
+      const span = (duration * weights[index]) / totalWeight;
+      actualUnits.push({
+        text: unit,
+        start: cursor / 10_000_000,
+        end: (cursor + span) / 10_000_000,
+      });
+      cursor += span;
+    });
+  });
+
+  return { words, expectedUnits, actualUnits };
+}
+
+function longestCommonSubsequencePairs(left, right) {
+  const n = left.length;
+  const m = right.length;
+  if (!n || !m) return [];
+  // Word boundaries for a long video are in the low thousands. Keep the DP
+  // bounded so a malformed audio track cannot exhaust the runner's memory.
+  if ((n + 1) * (m + 1) > 4_000_000) return [];
+  const width = m + 1;
+  const dp = new Uint32Array((n + 1) * width);
+  for (let i = n - 1; i >= 0; i -= 1) {
+    for (let j = m - 1; j >= 0; j -= 1) {
+      dp[i * width + j] = left[i] === right[j]
+        ? dp[(i + 1) * width + j + 1] + 1
+        : Math.max(dp[(i + 1) * width + j], dp[i * width + j + 1]);
+    }
+  }
+  const pairs = [];
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (left[i] === right[j]) {
+      pairs.push([i, j]);
+      i += 1;
+      j += 1;
+    } else if (dp[(i + 1) * width + j] >= dp[i * width + j + 1]) {
+      i += 1;
+    } else {
+      j += 1;
+    }
+  }
+  return pairs;
+}
+
+function mapExpectedUnitIndices(expectedCount, actualCount, anchors) {
+  const mapped = new Array(expectedCount).fill(0);
+  if (!expectedCount || !actualCount) return mapped;
+  if (!anchors.length) {
+    for (let index = 0; index < expectedCount; index += 1) {
+      mapped[index] = expectedCount === 1
+        ? 0
+        : Math.round((index * (actualCount - 1)) / (expectedCount - 1));
+    }
+    return mapped;
+  }
+
+  const first = anchors[0];
+  for (let index = 0; index < first[0]; index += 1) {
+    mapped[index] = Math.round((index * first[1]) / Math.max(1, first[0]));
+  }
+  for (let anchorIndex = 0; anchorIndex < anchors.length; anchorIndex += 1) {
+    const [expectedIndex, actualIndex] = anchors[anchorIndex];
+    mapped[expectedIndex] = actualIndex;
+    const next = anchors[anchorIndex + 1];
+    if (!next || next[0] <= expectedIndex) continue;
+    const expectedSpan = next[0] - expectedIndex;
+    const actualSpan = next[1] - actualIndex;
+    for (let index = expectedIndex + 1; index < next[0]; index += 1) {
+      mapped[index] = Math.round(actualIndex + ((index - expectedIndex) * actualSpan) / expectedSpan);
+    }
+  }
+  const last = anchors[anchors.length - 1];
+  const remainingExpected = expectedCount - 1 - last[0];
+  const remainingActual = actualCount - 1 - last[1];
+  for (let index = last[0] + 1; index < expectedCount; index += 1) {
+    mapped[index] = Math.round(last[1] + ((index - last[0]) * remainingActual) / Math.max(1, remainingExpected));
+  }
+  for (let index = 0; index < mapped.length; index += 1) {
+    mapped[index] = Math.min(actualCount - 1, Math.max(index > 0 ? mapped[index - 1] : 0, mapped[index]));
+  }
+  return mapped;
+}
+
+function allocateUnitTimings(expectedUnits, actualUnits, mappedIndices) {
+  const groups = new Map();
+  expectedUnits.forEach((unit, index) => {
+    const actualIndex = mappedIndices[index];
+    if (!Number.isInteger(actualIndex) || actualIndex < 0 || actualIndex >= actualUnits.length) return;
+    if (!groups.has(actualIndex)) groups.set(actualIndex, []);
+    groups.get(actualIndex).push({ index, weight: Math.max(1, unit.text.length) });
+  });
+
+  const timings = new Array(expectedUnits.length).fill(null);
+  for (const [actualIndex, items] of groups) {
+    const actual = actualUnits[actualIndex];
+    if (!Number.isFinite(actual.start) || !Number.isFinite(actual.end) || actual.end <= actual.start) continue;
+    const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+    let cursor = actual.start;
+    for (const item of items.sort((left, right) => left.index - right.index)) {
+      const span = ((actual.end - actual.start) * item.weight) / totalWeight;
+      timings[item.index] = { start: cursor, end: cursor + span };
+      cursor += span;
+    }
+  }
+  return timings;
+}
+
+function fillMissingWordTimings(wordTimings, words) {
+  let lastEnd = 0;
+  for (let index = 0; index < wordTimings.length; index += 1) {
+    const timing = wordTimings[index];
+    if (!timing || !Number.isFinite(timing.start) || !Number.isFinite(timing.end) || timing.end <= timing.start) {
+      wordTimings[index] = null;
+      continue;
+    }
+    timing.start = Math.max(timing.start, lastEnd);
+    timing.end = Math.max(timing.end, timing.start + 0.01);
+    lastEnd = timing.end;
+  }
+
+  let index = 0;
+  while (index < wordTimings.length) {
+    if (wordTimings[index]) {
+      index += 1;
+      continue;
+    }
+    let endIndex = index;
+    while (endIndex < wordTimings.length && !wordTimings[endIndex]) endIndex += 1;
+    const previous = index > 0 ? wordTimings[index - 1] : null;
+    const next = endIndex < wordTimings.length ? wordTimings[endIndex] : null;
+    const count = endIndex - index;
+    const weights = [];
+    let totalWeight = 0;
+    for (let position = index; position < endIndex; position += 1) {
+      const weight = Math.max(1, String(words[position]?.word || "").length);
+      weights.push(weight);
+      totalWeight += weight;
+    }
+    const start = previous ? previous.end : next ? Math.max(0, next.start - count * 0.2) : 0;
+    const end = next ? next.start : start + count * 0.2;
+    let cursor = start;
+    for (let position = index; position < endIndex; position += 1) {
+      const span = ((Math.max(start + 0.01 * count, end) - start) * weights[position - index]) / totalWeight;
+      wordTimings[position] = { start: cursor, end: cursor + span };
+      cursor += span;
+    }
+    index = endIndex;
+  }
+
+  lastEnd = 0;
+  for (const timing of wordTimings) {
+    if (!timing) continue;
+    timing.start = Math.max(timing.start, lastEnd);
+    timing.end = Math.max(timing.end, timing.start + 0.01);
+    lastEnd = timing.end;
+  }
 }
 
 /**
- * Validate Edge TTS word boundaries against the script, one boundary per script word.
- * Returns { expected, boundaries } or null when the words do not align 1:1.
+ * Align Edge TTS boundaries with script words.
+ *
+ * Boundary text is split into alphanumeric units, which keeps URLs and model
+ * codes aligned even when Edge emits one event per URL component. With
+ * `allowApproximate`, a longest-common-subsequence anchor pass keeps captions
+ * usable when the TTS engine also expands numbers or drops a token.
  */
-function alignWordBoundaries(segments, wordBoundaries) {
-  const sourceSegments = Array.isArray(segments) ? segments : [];
-  const boundaries = (Array.isArray(wordBoundaries) ? wordBoundaries : [])
-    .filter((item) => item && String(item.type || "WordBoundary") === "WordBoundary")
-    .map((item) => ({
-      offset: Number(item.offset),
-      duration: Number(item.duration),
-      text: String(item.text || ""),
-    }));
+function alignWordBoundaries(segments, wordBoundaries, options = {}) {
+  const model = buildAlignmentModel(segments, wordBoundaries);
+  const { words, expectedUnits, actualUnits } = model;
+  if (!words.length || !expectedUnits.length || !actualUnits.length) return null;
 
-  const expected = sourceSegments.flatMap((segment, segmentIndex) =>
-    String(segment?.text || "").trim().split(/\s+/).filter(Boolean).map((word) => ({
-      word,
-      segmentIndex,
-      kind: String(segment.kind || "scene"),
-    }))
-  );
-  if (!expected.length || boundaries.length !== expected.length) return null;
-
-  for (let index = 0; index < expected.length; index += 1) {
-    const actualToken = normalizeBoundaryToken(boundaries[index].text);
-    const expectedToken = normalizeBoundaryToken(expected[index].word);
-    if (!actualToken || !expectedToken || actualToken !== expectedToken) return null;
-    if (!Number.isFinite(boundaries[index].offset) || !Number.isFinite(boundaries[index].duration) || boundaries[index].duration <= 0) {
-      return null;
+  let mappedIndices;
+  let exact = expectedUnits.length === actualUnits.length;
+  if (exact) {
+    for (let index = 0; index < expectedUnits.length; index += 1) {
+      if (expectedUnits[index].text !== actualUnits[index].text) {
+        exact = false;
+        break;
+      }
     }
-    if (index > 0 && boundaries[index].offset < boundaries[index - 1].offset) return null;
   }
-  return { expected, boundaries };
+
+  if (exact) {
+    mappedIndices = expectedUnits.map((_, index) => index);
+  } else {
+    if (options.allowApproximate !== true) return null;
+    const anchors = longestCommonSubsequencePairs(
+      expectedUnits.map((unit) => unit.text),
+      actualUnits.map((unit) => unit.text)
+    );
+    mappedIndices = mapExpectedUnitIndices(expectedUnits.length, actualUnits.length, anchors);
+  }
+
+  const unitTimings = allocateUnitTimings(expectedUnits, actualUnits, mappedIndices);
+  const wordTimings = words.map((word) => {
+    if (!word.unitCount) return null;
+    const first = unitTimings[word.unitStart];
+    const last = unitTimings[word.unitStart + word.unitCount - 1];
+    if (!first || !last || last.end <= first.start) return null;
+    return { start: first.start, end: last.end };
+  });
+  fillMissingWordTimings(wordTimings, words);
+  if (wordTimings.some((timing) => !timing)) return null;
+
+  return {
+    expected: words.map(({ word, segmentIndex, kind }) => ({ word, segmentIndex, kind })),
+    boundaries: wordTimings.map((timing, index) => ({
+      offset: Math.round(timing.start * 10_000_000),
+      duration: Math.max(1, Math.round((timing.end - timing.start) * 10_000_000)),
+      text: words[index].word,
+    })),
+    exact,
+  };
+}
+
+export function stripSpokenUrls(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return text
+    .replace(/https?:\/\/[^\s]+/gi, "no link da descrição")
+    .replace(/\bwww\.[^\s]+/gi, "no link da descrição")
+    .replace(/\b[a-z0-9-]+\.(?:com|com\.br|blog|net|io|app|br)(?:\/[^\s]*)?/gi, "no link da descrição")
+    .replace(/\b(?:em|no|na|pelo|pela)\s+no link da descrição/gi, "no link da descrição")
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.;!?])/g, "$1")
+    .trim();
 }
 
 /**
@@ -146,9 +384,9 @@ function alignWordBoundaries(segments, wordBoundaries) {
  * span. Returns null when the boundaries do not align with the script, so the caller
  * can fall back to the proportional estimate.
  */
-export function buildNarrationTimings(segments, wordBoundaries, totalDuration) {
+export function buildNarrationTimings(segments, wordBoundaries, totalDuration, options = {}) {
   const sourceSegments = Array.isArray(segments) ? segments : [];
-  const aligned = alignWordBoundaries(sourceSegments, wordBoundaries);
+  const aligned = alignWordBoundaries(sourceSegments, wordBoundaries, options);
   const total = Number(totalDuration);
   if (!aligned || !Number.isFinite(total) || total <= 0) return null;
 
@@ -187,7 +425,7 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
   const maxWords = Math.max(2, Math.min(12, Math.floor(Number(options.maxWords) || 5)));
   const maxLineChars = Math.max(18, Math.min(52, Math.floor(Number(options.maxLineChars) || 36)));
   const sourceSegments = Array.isArray(segments) ? segments : [];
-  const aligned = alignWordBoundaries(sourceSegments, wordBoundaries);
+  const aligned = alignWordBoundaries(sourceSegments, wordBoundaries, options);
   if (!aligned) return null;
   const { expected, boundaries } = aligned;
 

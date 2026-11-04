@@ -149,7 +149,7 @@ async function generateVoiceover(script: any, outputDir: string): Promise<{ audi
     const child = spawn('edge-tts', [
       '--text', fullText,
       '--voice', 'pt-BR-ThiagoNeural',
-      '--rate', '+0%',
+      '--rate', process.env.EDGE_TTS_RATE || '+5%',
       '--write-media', outputPath,
     ]);
 

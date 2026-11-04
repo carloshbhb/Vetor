@@ -615,7 +615,7 @@ export async function POST(request: NextRequest) {
         const script = {
           type: "comparison",
           hook: `Antes de escolher entre ${first.name} e ${second.name}, compare os recursos documentados e as condições atuais.`,
-          callToAction: `Veja o comparativo completo em ${comparisonUrl} e confira os anúncios dos produtos.`,
+          callToAction: "Veja o comparativo completo e confira os anúncios dos produtos no link da descrição.",
         };
 
         const { data: inserted, error: insertError } = await supabase

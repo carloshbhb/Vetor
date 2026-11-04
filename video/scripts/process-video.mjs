@@ -1,11 +1,12 @@
 import { execFileSync, execSync, spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { buildCaptionEntries, buildNarrationTimings, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat } from './video-format.mjs';
+import { buildCaptionEntries, buildNarrationTimings, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat, stripSpokenUrls } from './video-format.mjs';
 import { renderWithHyperFrames } from '../hyperframes/render-video.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
+const EDGE_TTS_RATE = process.env.EDGE_TTS_RATE || '+5%';
 
 async function verifyYouTubeOAuth() {
   const result = await queueApi("youtubeOAuthCheck");
@@ -220,10 +221,10 @@ async function generateVoiceover(text, outputPath, wordBoundariesPath = null) {
         stdio: 'pipe',
         timeout: 180000,
         maxBuffer: 2 * 1024 * 1024,
-        env: { ...process.env, EDGE_TTS_BOUNDARIES_PATH: wordBoundariesPath },
+        env: { ...process.env, EDGE_TTS_BOUNDARIES_PATH: wordBoundariesPath, EDGE_TTS_RATE },
       });
     } else {
-      execFileSync('edge-tts', ['--voice', voice, '--file', textFile, '--write-media', tempFile], {
+      execFileSync('edge-tts', ['--voice', voice, '--rate', EDGE_TTS_RATE, '--file', textFile, '--write-media', tempFile], {
         stdio: 'pipe',
         timeout: 120000,
       });
@@ -237,6 +238,7 @@ async function generateVoiceover(text, outputPath, wordBoundariesPath = null) {
       ? fs.statSync(wordBoundariesPath).size
       : 0;
     console.log('   [TTS] Provider=Edge TTS neural; voz=' + voice +
+      '; rate=' + EDGE_TTS_RATE +
       '; duração=' + duration.toFixed(2) + 's' +
       (boundarySize ? '; word-boundaries=' + boundarySize + ' bytes.' : '.'));
     return duration;
@@ -756,10 +758,19 @@ async function processVideo(video) {
     fs.mkdirSync(audioDir, { recursive: true });
     const combinedAudioPath = path.join(audioDir, 'combined.mp3');
     const wordBoundariesPath = path.join(audioDir, 'combined.word-boundaries.jsonl');
+    // Never read a URL aloud: Edge TTS splits it into many word boundaries, which
+    // used to force the caption timeline back to a coarse per-segment estimate.
+    const spokenHook = stripSpokenUrls(script.hook) || String(script.hook || '').trim();
+    const spokenScenes = (Array.isArray(script.scenes) ? script.scenes : []).map((scene) => ({
+      ...scene,
+      text: stripSpokenUrls(scene.text) || String(scene.text || '').trim(),
+    }));
+    const spokenCallToAction = stripSpokenUrls(script.callToAction) ||
+      'Confira os detalhes e as condições atuais no link da descrição.';
     const narrationSegments = [
-      { kind: 'hook', text: String(script.hook || '').trim() },
-      ...script.scenes.map((scene) => ({ kind: 'scene', scene, text: String(scene.text || '').trim() })),
-      { kind: 'cta', text: String(script.callToAction || '').trim() },
+      { kind: 'hook', text: spokenHook },
+      ...spokenScenes.map((scene) => ({ kind: 'scene', scene, text: scene.text })),
+      { kind: 'cta', text: spokenCallToAction },
     ];
     const completeNarration = narrationSegments.map((segment) => segment.text).filter(Boolean).join('\n\n');
     const rawNarrationDuration = await generateVoiceover(completeNarration, combinedAudioPath, wordBoundariesPath);
@@ -771,14 +782,21 @@ async function processVideo(video) {
     fs.copyFileSync(combinedAudioPath, publicAudioPath);
 
     // Cenas e legendas seguem as palavras realmente faladas (WordBoundary do Edge TTS), então
-    // o corte visual cai junto com a fala. Só se as fronteiras não casarem 1:1 com o roteiro
-    // usamos a estimativa proporcional por quantidade de palavras.
+    // o corte visual cai junto com a fala. Quando a contagem não é 1:1 (URLs, códigos de modelo,
+    // números expandidos), ancoramos as palavras conhecidas e interpolamos apenas as ausentes.
     const edgeWordBoundaries = loadEdgeWordBoundaries(wordBoundariesPath);
     let narrationTimings = buildNarrationTimings(narrationSegments, edgeWordBoundaries, totalDuration);
     if (narrationTimings) {
       console.log('[TIMING] Cenas sincronizadas pelas palavras faladas (' + edgeWordBoundaries.length + ' eventos WordBoundary).');
     } else {
-      console.warn('[TIMING] WordBoundary não casou 1:1 com o roteiro; usando estimativa proporcional por palavras.');
+      narrationTimings = buildNarrationTimings(narrationSegments, edgeWordBoundaries, totalDuration, { allowApproximate: true });
+      if (narrationTimings) {
+        console.warn('[TIMING] WordBoundary exato indisponível; cenas sincronizadas por âncoras aproximadas (' +
+          edgeWordBoundaries.length + ' eventos WordBoundary).');
+      }
+    }
+    if (!narrationTimings) {
+      console.warn('[TIMING] WordBoundary não casou com o roteiro; usando estimativa proporcional por palavras.');
       const weights = narrationSegments.map((segment) => Math.max(1, segment.text.split(/\s+/).filter(Boolean).length));
       const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
       let accumulatedSeconds = 0;
@@ -799,7 +817,7 @@ async function processVideo(video) {
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
     const fps = 30;
-    const scenesWithFrames = script.scenes.map((scene, index) => {
+    const scenesWithFrames = spokenScenes.map((scene, index) => {
       const timing = narrationTimings[index + 1];
       const startFrame = Math.max(0, Math.round((timing?.start || 0) * fps));
       const endFrame = Math.max(startFrame + 1, Math.round((timing?.end || 0) * fps));
@@ -836,22 +854,32 @@ async function processVideo(video) {
       imageUrl: productImageSource,
       score: Number.isFinite(Number(script.score)) && Number(script.score) > 0 && Number(script.score) <= 10 ? Number(script.score) : 0,
       category: video.product_category,
-      hook: script.hook,
+      hook: spokenHook,
       scenes: scenesWithFrames,
-      callToAction: script.callToAction,
+      callToAction: spokenCallToAction,
       audioUrl: `tmp/video-${video.id}.mp3`,
       hookDuration,
       subtitleEntries: (() => {
         const wordBoundaries = edgeWordBoundaries;
-        const timed = buildTimedCaptionEntries(narrationSegments, wordBoundaries, {
+        const captionOptions = {
           maxWords: videoFormat === "long" ? 9 : 10,
           maxLineChars: videoFormat === "long" ? 48 : 34,
-        });
-        if (timed) {
+        };
+        const exactTimed = buildTimedCaptionEntries(narrationSegments, wordBoundaries, captionOptions);
+        if (exactTimed) {
           console.log("[CAPTIONS] Sincronização exata com " + wordBoundaries.length + " eventos WordBoundary do Edge TTS.");
-          return timed;
+          return exactTimed;
         }
-        console.warn("[CAPTIONS] Edge TTS não retornou sequência 1:1 de palavras; fallback de temporização por segmento.");
+        const approximateTimed = buildTimedCaptionEntries(narrationSegments, wordBoundaries, {
+          ...captionOptions,
+          allowApproximate: true,
+        });
+        if (approximateTimed) {
+          console.warn("[CAPTIONS] WordBoundary exato indisponível; legendas sincronizadas por âncoras aproximadas (" +
+            wordBoundaries.length + " eventos).");
+          return approximateTimed;
+        }
+        console.warn("[CAPTIONS] Edge TTS não retornou palavras utilizáveis; fallback de temporização por segmento.");
         return buildCaptionEntries(narrationTimings, videoFormat === "long" ? 9 : 10, { maxLineChars: videoFormat === "long" ? 48 : 34 });
       })(),
       productImages,
@@ -894,7 +922,7 @@ async function processVideo(video) {
       throw new Error('Link de compra/afiliado ausente ou inválido; upload bloqueado.');
     }
 
-    const ytTitle = buildVideoTitle({ format: videoFormat, productTitle: video.product_title, hook: script.hook });
+    const ytTitle = buildVideoTitle({ format: videoFormat, productTitle: video.product_title, hook: spokenHook });
     const chapters = videoFormat === "long"
       ? [
           { time: 0, title: "Introdução e decisão de compra" },
@@ -910,9 +938,9 @@ async function processVideo(video) {
       category: video.product_category,
       purchaseUrl,
       reviewUrl,
-      hook: script.hook,
-      highlights: (script.scenes || []).map((scene) => scene.text),
-      callToAction: script.callToAction,
+      hook: spokenHook,
+      highlights: spokenScenes.map((scene) => scene.text),
+      callToAction: spokenCallToAction,
       chapters,
     });
     const ytCommentText = buildCtaComment({

@@ -15,7 +15,10 @@ async def generate_tts(text: str, output_path: str, boundaries_path: Optional[st
     """Generate the fixed Brazilian Portuguese neural voice and optional timed words."""
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     boundary = "WordBoundary" if boundaries_path else "SentenceBoundary"
-    communicate = edge_tts.Communicate(text, VOICE, rate="-30%", boundary=boundary)
+    # The old -30% made Shorts feel sluggish (~132s for a 7-scene script).
+    # +5% is 1.5x the old speaking speed and keeps the same 60-90s target.
+    rate = os.environ.get("EDGE_TTS_RATE", "+5%")
+    communicate = edge_tts.Communicate(text, VOICE, rate=rate, boundary=boundary)
 
     if boundaries_path:
         os.makedirs(os.path.dirname(os.path.abspath(boundaries_path)), exist_ok=True)
@@ -36,6 +39,7 @@ async def generate_tts(text: str, output_path: str, boundaries_path: Optional[st
         "path": output_path,
         "size": os.path.getsize(output_path),
         "voice": VOICE,
+        "rate": rate,
         "wordBoundaries": word_count,
         "boundariesPath": boundaries_path,
     }

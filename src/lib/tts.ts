@@ -47,6 +47,10 @@ export async function generateVoiceover(
   return new Promise((resolve, reject) => {
     const child = spawn('python', args, {
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        EDGE_TTS_RATE: options.rate || process.env.EDGE_TTS_RATE || '+5%',
+      },
     });
 
     let stdout = '';
