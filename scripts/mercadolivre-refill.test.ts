@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
-import { isAccessoryMatch } from "../src/lib/mercadolivre-refill";
+import {
+  isAccessoryMatch,
+  isSocialListSourceRef,
+  SOCIAL_LIST_IMPORT_SOURCE_TYPE,
+  SOCIAL_LIST_SOURCE_REF_PREFIX,
+} from "../src/lib/mercadolivre-refill";
 
 // Real cases observed in the 2026-11-04 refill dry run. The matcher gave these
 // accessory listings a >= 0.9 score, so promotion must reject them explicitly.
@@ -51,4 +56,20 @@ for (const [source, matched] of productCases) {
   );
 }
 
+// The production affiliate_links check constraint does not allow a dedicated
+// social_list type. Imports use an allowed type and must stay identifiable by
+// the source_ref prefix so promotion cannot touch unrelated product_link rows.
+assert.equal(SOCIAL_LIST_IMPORT_SOURCE_TYPE, "product_link");
+assert.equal(SOCIAL_LIST_SOURCE_REF_PREFIX, "ml_social_list:");
+for (const ref of [
+  "ml_social_list:MLB123:MLB456",
+  " ml_social_list:mlb1:mlb2 ",
+]) {
+  assert.equal(isSocialListSourceRef(ref), true, `expected social-list ref: ${ref}`);
+}
+for (const ref of [null, undefined, "", "   ", "manual:MLB1", "ml_social_listing:1"]) {
+  assert.equal(isSocialListSourceRef(ref), false, `expected non-social-list ref: ${String(ref)}`);
+}
+
 console.log("Mercado Livre refill accessory guard: OK");
+console.log("Mercado Livre refill social-list source guard: OK");

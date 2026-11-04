@@ -45,6 +45,45 @@ type BatchSummary = {
   results: Array<Record<string, unknown>>;
 };
 
+/**
+ * Checks the client pair against the token endpoint without printing it. A
+ * dummy refresh token returns invalid_grant when the pair is valid, and
+ * invalid_client when the pair is wrong. Only the latter blocks token refresh.
+ */
+async function checkMercadoLivreCredentials(): Promise<string | null> {
+  const clientId = process.env.ML_CLIENT_ID?.trim();
+  const clientSecret = process.env.ML_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) {
+    return 'ML_CLIENT_ID/ML_CLIENT_SECRET ausentes; o refresh dependerá do token salvo no Supabase.';
+  }
+
+  try {
+    const response = await fetch('https://api.mercadolibre.com/oauth/token', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + Buffer.from(clientId + ':' + clientSecret).toString('base64'),
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: 'refill-preflight-token',
+      }).toString(),
+    });
+    const payload = await response.json().catch(() => ({})) as { error?: string };
+    if (payload.error === 'invalid_client') {
+      return 'ML_CLIENT_ID/ML_CLIENT_SECRET inválidos (invalid_client); o refresh do token falhará. Atualize os secrets do GitHub com as credenciais do app Mercado Livre.';
+    }
+    return null;
+  } catch (error) {
+    return 'preflight ML indisponível: ' + (error instanceof Error ? error.message : String(error));
+  }
+}
+
+function isMercadoLivreAuthError(value: unknown): boolean {
+  return /invalid_client|invalid_grant|failed to refresh|refresh token|oauth/i.test(String(value || ''));
+}
+
 async function main(): Promise<void> {
   const supabase = getSupabaseServiceKeyClient();
   if (!supabase) {
@@ -70,6 +109,14 @@ async function main(): Promise<void> {
 
   const criticalErrors = summary.criticalErrors as string[];
   const warnings = summary.warnings as string[];
+
+  const credentialWarning = await checkMercadoLivreCredentials();
+  if (credentialWarning) {
+    warnings.push('ml-auth: ' + credentialWarning);
+    console.warn('[refill] ' + credentialWarning);
+  } else {
+    console.log('[refill] credenciais ML válidas (preflight).');
+  }
 
   if (!skipSync) {
     try {
@@ -124,6 +171,13 @@ async function main(): Promise<void> {
             ' restantes=' + result.remaining +
             (result.message ? ' (' + result.message + ')' : '')
           );
+
+          const authFailures = (result.results || []).filter((item) => isMercadoLivreAuthError(item.error)).length;
+          if (authFailures > 0 && authFailures === result.processed) {
+            criticalErrors.push('matching: todas as buscas do lote falharam na autenticação do Mercado Livre. Verifique ML_CLIENT_ID/ML_CLIENT_SECRET e reautorize o app se o refresh token estiver revogado.');
+            break;
+          }
+
           if (result.processed === 0 || result.remaining === 0) break;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);

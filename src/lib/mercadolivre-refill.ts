@@ -78,6 +78,26 @@ function uniqueTags(current: unknown, additions: string[]): string[] {
   return tags;
 }
 
+// The production affiliate_links check constraint only allows review,
+// comparison_product, product_link and manual. The public social list is
+// therefore imported as product_link and identified by this source_ref prefix.
+// Promotion converts the row to comparison_product, which is the source_type
+// the daily review discovery accepts.
+export const SOCIAL_LIST_SOURCE_REF_PREFIX = "ml_social_list:";
+export const SOCIAL_LIST_IMPORT_SOURCE_TYPE = "product_link";
+
+/** True for rows created by importSocialList, including legacy social_list rows. */
+export function isSocialListSourceRef(value: unknown): boolean {
+  return String(value || "").trim().startsWith(SOCIAL_LIST_SOURCE_REF_PREFIX);
+}
+
+function isPromotableSource(sourceType: string, sourceRef: unknown): boolean {
+  if (sourceType === "comparison_product") return true;
+  // Accept the dedicated type if the database constraint is relaxed later.
+  if (sourceType === "social_list") return true;
+  return sourceType === SOCIAL_LIST_IMPORT_SOURCE_TYPE && isSocialListSourceRef(sourceRef);
+}
+
 // Accessory terms are almost never the product itself unless the source name
 // already declares that type. Blocking them prevents a laptop from being linked
 // to a mouse, a watch to a strap, or a robot vacuum to a replacement filter.
@@ -251,7 +271,7 @@ export async function importSocialList(
   const { data: existing, error: existingError } = await supabase
     .from("affiliate_links")
     .select("id,source_ref,product_url,slug")
-    .eq("source_type", "social_list")
+    .like("source_ref", SOCIAL_LIST_SOURCE_REF_PREFIX + "%")
     .limit(2000);
 
   if (existingError) throw new Error(existingError.message);
@@ -293,7 +313,7 @@ export async function importSocialList(
   }
 
   const isAlreadyImported = (item: (typeof products)[number]): boolean => {
-    const fullRef = "ml_social_list:" + ML_SOCIAL_LIST_ID + ":" + item.item_id;
+    const fullRef = SOCIAL_LIST_SOURCE_REF_PREFIX + ML_SOCIAL_LIST_ID + ":" + item.item_id;
     if (existingRefs.has(fullRef)) return true;
     const itemId = normalizeItemId(item.item_id);
     if (itemId && existingItemIds.has(itemId)) return true;
@@ -309,12 +329,12 @@ export async function importSocialList(
       name: item.title,
       marketplace: "Mercado Livre",
       category: "Lista social",
-      source_type: "social_list",
-      source_ref: "ml_social_list:" + ML_SOCIAL_LIST_ID + ":" + item.item_id,
+      source_type: SOCIAL_LIST_IMPORT_SOURCE_TYPE,
+      source_ref: SOCIAL_LIST_SOURCE_REF_PREFIX + ML_SOCIAL_LIST_ID + ":" + item.item_id,
       destination_url: "",
       product_url: item.product_url,
       status: "active",
-      priority: 5,
+      priority: 50,
       notes: "Importado da lista pública Minhas recomendações do perfil Vetor Blog. Link de afiliado ainda não gerado.",
       tags: ["lista-social", "mercado-livre"],
       health_status: "unknown",
@@ -428,9 +448,9 @@ export async function boostAffiliatePriorityFromSeo(
 
   const { data: links, error: linksError } = await supabase
     .from("affiliate_links")
-    .select("id,name,priority,status,source_type")
+    .select("id,name,priority,status,source_type,source_ref")
     .neq("status", "archived")
-    .in("source_type", ["social_list", "comparison_product"])
+    .in("source_type", [SOCIAL_LIST_IMPORT_SOURCE_TYPE, "social_list", "comparison_product"])
     .limit(1000);
 
   if (linksError) {
@@ -459,6 +479,11 @@ export async function boostAffiliatePriorityFromSeo(
   const matches: Array<{ id: string; name: string; keyword: string; score: number; priority: number }> = [];
 
   for (const link of links || []) {
+    // product_link is shared with other features. Only the social-list imports
+    // (identified by source_ref) are eligible for the SEO priority boost.
+    if (String(link.source_type || "") === SOCIAL_LIST_IMPORT_SOURCE_TYPE && !isSocialListSourceRef(link.source_ref)) {
+      continue;
+    }
     const nameTokens = new Set(seoTokens(String(link.name || "")));
     if (!nameTokens.size) continue;
     let best: { keyword: string; score: number } | null = null;
@@ -527,7 +552,7 @@ export async function promoteMatchedAffiliates(
 
   const { data, error } = await supabase
     .from("affiliate_link_ml_matches")
-    .select("affiliate_link_id,matched_item_id,matched_product_id,matched_title,matched_url,match_score,match_status,affiliate_links!inner(id,name,category,slug,destination_url,product_url,image_url,source_type,status,priority,tags,notes,affiliate_tag)")
+    .select("affiliate_link_id,matched_item_id,matched_product_id,matched_title,matched_url,match_score,match_status,affiliate_links!inner(id,name,category,slug,destination_url,product_url,image_url,source_type,source_ref,status,priority,tags,notes,affiliate_tag)")
     .eq("match_status", "matched")
     .gte("match_score", 0.9)
     .order("match_score", { ascending: false })
@@ -590,7 +615,7 @@ export async function promoteMatchedAffiliates(
     const name = String(source.name || "").trim();
     const matchedTitle = row.matched_title == null ? "" : String(row.matched_title);
 
-    if (sourceStatus === "archived" || !["social_list", "comparison_product"].includes(sourceType)) {
+    if (sourceStatus === "archived" || !isPromotableSource(sourceType, source.source_ref)) {
       result.skippedUnsafe += 1;
       continue;
     }
