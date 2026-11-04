@@ -22,6 +22,14 @@ const OUTLINE =
   '0 0 0 #000, 3px 0 0 #050912, -3px 0 0 #050912, 0 3px 0 #050912, 0 -3px 0 #050912, 2px 2px 0 #050912, -2px 2px 0 #050912, 2px -2px 0 #050912, -2px -2px 0 #050912, 0 6px 14px rgba(0,0,0,.55)';
 
 /**
+ * URLs and model codes are single tokens. Insert zero-width break opportunities after
+ * punctuation so the browser wraps at `/`, `.` or `-` instead of splitting a word in half.
+ * `overflow-wrap: break-word` still handles tokens that have no punctuation at all.
+ */
+const withBreakOpportunities = (word: string) =>
+  word.replace(/([/._\-?&=#])/g, '$1\u200B');
+
+/**
  * Word-highlight captions.
  *
  * Portrait (Shorts): large outlined text on a soft dark panel, kept inside the YouTube
@@ -77,6 +85,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
         opacity,
         display: 'flex',
         justifyContent: 'center',
+        minWidth: 0,
         pointerEvents: 'none',
       }}
     >
@@ -88,7 +97,10 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
           padding: landscape ? '14px 22px' : '20px 28px 24px',
           width: '100%',
           maxWidth: landscape ? 1160 : 840,
+          minWidth: 0,
           textAlign: 'center',
+          overflowWrap: 'break-word',
+          wordBreak: 'normal',
           boxShadow: landscape ? '0 12px 38px rgba(0,0,0,0.48), 0 0 24px rgba(37,99,235,0.20)' : '0 18px 50px rgba(0,0,0,.35)',
         }}
       >
@@ -97,6 +109,8 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
             display: 'flex',
             flexWrap: 'wrap',
             justifyContent: 'center',
+            width: '100%',
+            minWidth: 0,
             columnGap: landscape ? 8 : 20,
             rowGap: landscape ? 5 : 8,
             fontSize,
@@ -105,6 +119,8 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
             fontFamily: fonts.body,
             lineHeight: 1.16,
             letterSpacing: landscape ? 0 : -1,
+            overflowWrap: 'break-word',
+            wordBreak: 'normal',
             textShadow: landscape ? '0 2px 8px rgba(0,0,0,0.65)' : OUTLINE,
           }}
         >
@@ -121,12 +137,21 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
             } else if (isActive) {
               pop = 1.04;
             }
+            // A long unbreakable token (URL, model code) fills the whole caption width.
+            // Scaling it would push the text past the safe-zone edge, so keep it at 1.
+            if (word.length > 32) pop = 1;
             if (landscape) {
               return (
                 <span
                   key={index}
                   style={{
                     display: 'inline-block',
+                    maxWidth: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'normal',
+                    whiteSpace: 'normal',
                     color: isActive ? '#FFFFFF' : isPast ? '#BFDBFE' : '#E5E7EB',
                     background: isActive ? '#2563EB' : 'transparent',
                     borderRadius: 7,
@@ -135,7 +160,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
                     transformOrigin: 'center',
                   }}
                 >
-                  {word}
+                  {withBreakOpportunities(word)}
                 </span>
               );
             }
@@ -144,12 +169,18 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
                 key={index}
                 style={{
                   display: 'inline-block',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                  overflowWrap: 'break-word',
+                  wordBreak: 'normal',
+                  whiteSpace: 'normal',
                   color: isActive ? HIGHLIGHT : '#FFFFFF',
                   transform: `scale(${pop})`,
                   transformOrigin: 'center bottom',
                 }}
               >
-                {word}
+                {withBreakOpportunities(word)}
               </span>
             );
           })}
