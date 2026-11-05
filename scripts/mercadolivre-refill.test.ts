@@ -3,6 +3,7 @@ import {
   createDeadlineGuard,
   isAccessoryMatch,
   isSocialListSourceRef,
+  promoteMatchedAffiliates,
   SOCIAL_LIST_IMPORT_SOURCE_TYPE,
   SOCIAL_LIST_SOURCE_REF_PREFIX,
 } from "../src/lib/mercadolivre-refill";
@@ -39,6 +40,28 @@ const productCases: Array<[string, string]> = [
   ["TP-Link Tapo C310", "Câmera De Segurança TP-Link Tapo C310"],
   ["Xiaomi Robot Vacuum S10", "Aspirador Robô Xiaomi Robot Vacuum S10"],
   ["Sensor Intelbras", "Sensor Intelbras Infravermelho Sem Fio"],
+  // Regressão de 2026-11-04: o próprio anúncio do celular era rejeitado como
+  // "tela de reposição" por causa da especificação "Tela de 6.7".
+  [
+    "Celular Samsung Galaxy A17 Com Ia, 128gb, 4gb Ram, Câm De 50mp, Tela De 6.7, Nfc, Ip54 - Cinza",
+    "Celular Samsung Galaxy A17 Com Ia, 128gb, 4gb Ram, Câm De 50mp, Tela De 6.7, Nfc, Ip54 - Cinza",
+  ],
+  [
+    "Celular Samsung Galaxy A17 Com Ia, 128gb, 4gb Ram, Câm De 50mp, Tela De 6.7, Nfc, Ip54 - Cinza",
+    "Celular Samsung Galaxy A17 Com IA 4gb Ram 128gb Cinza",
+  ],
+  [
+    "Samsung Galaxy A57 5G 128gb 8gb Ram",
+    "Smartphone Samsung Galaxy A57 5G 128GB 8GB RAM Tela Super Amoled 6.7 Câmera 50mp",
+  ],
+];
+
+// Peças de reposição que continuam precisam ser rejeitadas.
+const replacementScreenCases: Array<[string, string]> = [
+  ["Moto G84 5G", "Tela Display Touch Preto Moto G84 5G XT2347 Incell"],
+  ["Samsung Galaxy S21", "Tela Display Touch Incell Para Samsung Galaxy S21"],
+  ["Samsung Galaxy S21", "Tela Oled Para Samsung Galaxy S21 Preto"],
+  ["Samsung Galaxy S21", "Display Touch Para Motorola G54"],
 ];
 
 for (const [source, matched] of accessoryCases) {
@@ -46,6 +69,14 @@ for (const [source, matched] of accessoryCases) {
     isAccessoryMatch(source, matched),
     true,
     `expected accessory rejection: ${source} -> ${matched}`
+  );
+}
+
+for (const [source, matched] of replacementScreenCases) {
+  assert.equal(
+    isAccessoryMatch(source, matched),
+    true,
+    `expected replacement part rejection: ${source} -> ${matched}`
   );
 }
 
@@ -86,3 +117,136 @@ assert.equal(guard.remainingMs(30 * 60_000), 0);
 assert.equal(createDeadlineGuard(0, 0).deadlineAt, 60_000, "invalid minutes fall back to 1 minute");
 
 console.log("Mercado Livre refill deadline guard: OK");
+
+// A Lista Social expõe o mesmo produto em vários item ids. A promoção deve
+// promover uma única linha por produto, senão a fila de reviews enche de
+// duplicatas do mesmo anúncio.
+type FakeUpdate = { id: string; patch: Record<string, unknown> };
+
+function createFakeSupabase(matchRows: unknown[]) {
+  const updates: FakeUpdate[] = [];
+  const client = {
+    from(table: string) {
+      return {
+        select(_columns?: string) {
+          const builder: Record<string, unknown> = {};
+          builder.eq = () => builder;
+          builder.gte = () => builder;
+          builder.order = () => builder;
+          builder.limit = () => builder;
+          builder.then = (resolve: (value: unknown) => unknown) =>
+            Promise.resolve({
+              data: table === "affiliate_link_ml_matches" ? matchRows : [],
+              error: null,
+            }).then(resolve);
+          return builder;
+        },
+        update(patch: Record<string, unknown>) {
+          return {
+            eq(_column: string, value: string) {
+              updates.push({ id: value, patch });
+              return Promise.resolve({ data: null, error: null });
+            },
+          };
+        },
+      };
+    },
+  };
+  return { client: client as never, updates };
+}
+
+function socialListSource(id: string, name: string, itemId: string) {
+  return {
+    id,
+    name,
+    category: "Lista Social",
+    slug: "ml-lista-" + id,
+    destination_url: "",
+    product_url: "https://www.mercadolivre.com.br/p/" + itemId,
+    image_url: null,
+    source_type: "product_link",
+    source_ref: "ml_social_list:list:" + itemId,
+    status: "active",
+    priority: 50,
+    tags: [],
+    notes: "",
+    affiliate_tag: null,
+  };
+}
+
+const echoDot = "Echo Dot 5ª Geração Branco Amazon Smart Speaker Com Alexa Controle Por Voz";
+
+const promotionRows = [
+  {
+    affiliate_link_id: "link-1",
+    matched_item_id: "MLB111111",
+    matched_product_id: null,
+    matched_title: echoDot,
+    matched_url: "https://www.mercadolivre.com.br/echo-dot-5/p/MLB111111",
+    match_score: 1,
+    match_status: "matched",
+    affiliate_links: socialListSource("link-1", echoDot, "MLB111111"),
+  },
+  {
+    // Mesmo nome de produto em outro item id: é o mesmo produto.
+    affiliate_link_id: "link-2",
+    matched_item_id: "MLB222222",
+    matched_product_id: null,
+    matched_title: echoDot,
+    matched_url: "https://www.mercadolivre.com.br/echo-dot-5/p/MLB222222",
+    match_score: 0.95,
+    match_status: "matched",
+    affiliate_links: socialListSource("link-2", echoDot, "MLB222222"),
+  },
+  {
+    // Nome diferente, mesmo item do Mercado Livre: também é o mesmo produto.
+    affiliate_link_id: "link-3",
+    matched_item_id: "MLB111111",
+    matched_product_id: null,
+    matched_title: "Amazon Echo Dot 5ª Geração Com Alexa Controle Por Voz",
+    matched_url: "https://www.mercadolivre.com.br/echo-dot-5/p/MLB111111",
+    match_score: 0.92,
+    match_status: "matched",
+    affiliate_links: socialListSource("link-3", "Amazon Echo Dot 5ª Geração Com Alexa Controle Por Voz", "MLB333333"),
+  },
+  {
+    affiliate_link_id: "link-4",
+    matched_item_id: "MLB444444",
+    matched_product_id: null,
+    matched_title: "Controle Gamesir G7 Pro Sem Fio Para Xbox, Pc E Android Prateado",
+    matched_url: "https://www.mercadolivre.com.br/gamesir-g7-pro/p/MLB444444",
+    match_score: 0.9,
+    match_status: "matched",
+    affiliate_links: socialListSource(
+      "link-4",
+      "Controle Gamesir G7 Pro Sem Fio Para Xbox, Pc E Android Prateado",
+      "MLB444444"
+    ),
+  },
+];
+
+async function runPromotionDedupCheck(): Promise<void> {
+  const fake = createFakeSupabase(promotionRows);
+  const promotion = await promoteMatchedAffiliates(fake.client, { dryRun: false });
+
+  assert.equal(promotion.promoted, 2, "one promotion per product, not per social-list row");
+  assert.equal(promotion.duplicateMatches, 2, "duplicate rows must be reported");
+  assert.equal(promotion.errors, 0);
+  assert.equal(fake.updates.length, 2, "only the promoted rows are written");
+  assert.deepEqual(
+    fake.updates.map((entry) => entry.id).sort(),
+    ["link-1", "link-4"]
+  );
+  for (const entry of fake.updates) {
+    assert.equal(entry.patch.source_type, "comparison_product");
+    assert.equal(entry.patch.status, "active");
+    assert.ok(String(entry.patch.destination_url).startsWith("https://"));
+  }
+
+  console.log("Mercado Livre refill promotion dedup: OK");
+}
+
+runPromotionDedupCheck().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

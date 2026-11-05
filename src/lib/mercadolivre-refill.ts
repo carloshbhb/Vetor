@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ML_SOCIAL_LIST_ID, fetchPublicSocialList } from "@/lib/mercadolivre-social-list";
 import { slugifyAffiliateName, validateAffiliateDestination } from "@/lib/affiliate-links";
 import { generateAffiliateUrl } from "@/lib/product-extractor";
+import { canonicalProductName } from "@/lib/product-name";
 
 type SocialListSyncResult = {
   ok: boolean;
@@ -134,10 +135,17 @@ const ACCESSORY_TERMS = [
 ];
 
 const ACCESSORY_TYPE_TERMS = ["mouse", "teclado", "controle", "gamepad", "joystick"];
+// A replacement screen is a part, not the device. It is listed starting with
+// the part noun ("Tela Display Touch ...", "Display Touch Para ...").
+const SCREEN_NOUN_START = /^(?:tela|display|vidro|glass)\b/;
+// A device listing starts with the device noun ("Celular ...", "Tablet ...").
+// Its screen wording is a specification, not a replacement part.
+const DEVICE_NOUN_START =
+  /^(?:celular|smartphone|tablet|ipad|notebook|laptop|monitor|televisor|smart tv|smartwatch|relogio|watch|console|playstation|xbox|camera|fone|headset|arcondicionado|airfryer|aspirador|rob|vacuum)\b/;
 const REPLACEMENT_SCREEN_PATTERNS = [
-  /tela\s+(?:display|touch|lcd|oled|amoled)/,
-  /display\s+(?:touch|lcd|oled|amoled)/,
-  /tela\s+(?:de|para)\s/,
+  /\btela\s+(?:display|touch)\b/,
+  /\bdisplay\s+touch\b/,
+  /\b(?:tela|display)\s+(?:de|para)\s+(?:reposicao|substituta|replacement|original)\b/,
 ];
 
 function normalizeMatchText(value: unknown): string {
@@ -155,17 +163,26 @@ export function isAccessoryMatch(sourceName: string, matchedTitle: string): bool
   const matched = normalizeMatchText(matchedTitle);
   if (!source || !matched) return false;
 
+  // The same listing can never be an accessory of itself. Without this rule a
+  // phone listing such as "Celular ... Tela de 6.7" was rejected as a
+  // replacement screen because of its own screen specification.
+  if (source === matched) return false;
+
   const sourceHasAccessoryTerm = ACCESSORY_TERMS.some((term) => source.includes(term));
   if (!sourceHasAccessoryTerm && ACCESSORY_TERMS.some((term) => matched.includes(term))) {
-    return true;
-  }
-  if (!sourceHasAccessoryTerm && REPLACEMENT_SCREEN_PATTERNS.some((pattern) => pattern.test(matched))) {
     return true;
   }
 
   const hasCompatibilitySignal = /(?:^|\s)(?:para|p\/)\s/.test(matched) ||
     matched.includes("compativel") ||
     matched.includes("compatible");
+
+  // Replacement screens and similar parts.
+  if (!DEVICE_NOUN_START.test(matched)) {
+    if (SCREEN_NOUN_START.test(matched) && hasCompatibilitySignal) return true;
+    if (REPLACEMENT_SCREEN_PATTERNS.some((pattern) => pattern.test(matched))) return true;
+  }
+
   if (hasCompatibilitySignal) {
     const sourceHasType = ACCESSORY_TYPE_TERMS.some((term) => source.includes(term));
     const matchedHasOtherType = ACCESSORY_TYPE_TERMS.some((term) => matched.includes(term) && !source.includes(term));
@@ -613,6 +630,11 @@ export async function promoteMatchedAffiliates(
   // The join can return more than one match row per affiliate link. Rows are
   // ordered by score, so the first appearance is always the best one.
   const seenLinks = new Set<string>();
+  // The social list exposes the same product through several item ids. Two
+  // source rows that resolve to the same Mercado Livre item or to the same
+  // canonical product name are the same product and must be promoted once.
+  const claimedNames = new Set<string>();
+  const claimedMatchedItems = new Set<string>();
 
   for (const row of rows) {
     const source = row.affiliate_links;
@@ -636,12 +658,26 @@ export async function promoteMatchedAffiliates(
     const score = Number(row.match_score || 0);
     const name = String(source.name || "").trim();
     const matchedTitle = row.matched_title == null ? "" : String(row.matched_title);
+    const nameKey = canonicalProductName(name);
+
+    if (nameKey && claimedNames.has(nameKey)) {
+      result.duplicateMatches += 1;
+      continue;
+    }
+    if (matchedItemId && claimedMatchedItems.has(matchedItemId)) {
+      result.duplicateMatches += 1;
+      continue;
+    }
 
     if (sourceStatus === "archived" || !isPromotableSource(sourceType, source.source_ref)) {
       result.skippedUnsafe += 1;
       continue;
     }
     if (isHttpsUrl(destination)) {
+      // The product already has an affiliate destination: claim it so a later
+      // duplicate row does not create a second entry for the same product.
+      if (nameKey) claimedNames.add(nameKey);
+      if (matchedItemId) claimedMatchedItems.add(matchedItemId);
       result.skippedExisting += 1;
       continue;
     }
@@ -704,6 +740,8 @@ export async function promoteMatchedAffiliates(
       }
     }
 
+    if (nameKey) claimedNames.add(nameKey);
+    if (matchedItemId) claimedMatchedItems.add(matchedItemId);
     result.promoted += 1;
     result.candidates.push({
       name,
