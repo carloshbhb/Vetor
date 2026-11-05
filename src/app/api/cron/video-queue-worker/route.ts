@@ -9,7 +9,7 @@ import { buildVideoDescription, resolveVideoFormat } from "../../../../../video/
 export const runtime = "nodejs";
 export const maxDuration = 15;
 
-const MAX_DAILY_PUBLICATIONS = 15;
+const MAX_DAILY_PUBLICATIONS = 10;
 type SupabaseServiceClient = NonNullable<ReturnType<typeof getSupabaseServiceKeyClient>>;
 
 function getSaoPauloDayStartIso(now = new Date()) {
@@ -473,18 +473,20 @@ export async function POST(request: NextRequest) {
         !existingUrls.has(`https://www.vetor.blog/reviews/${item.slug}/`)
       ).slice(0, limit);
 
-      // Reserve 5 long-form slots and 10 Shorts in each day of 15 automatic slots.
+      // Quota gate: 10 long videos/day, no Shorts. Count completed + pending/processing
+      // automatic items (no scheduled_at filter) and skip all candidates once full.
       const [{ count: doneToday, error: doneError }, { count: pendingCount, error: pendingError }] = await Promise.all([
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .eq("status", "completed").eq("publication_mode", "automatic")
           .gte("completed_at", getSaoPauloDayStartIso()),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
-          .in("status", ["pending", "processing"]).eq("publication_mode", "automatic")
-          .lte("scheduled_at", new Date().toISOString()),
+          .in("status", ["pending", "processing"]).eq("publication_mode", "automatic"),
       ]);
       if (doneError) throw doneError;
       if (pendingError) throw pendingError;
-      let slotCursor = (doneToday || 0) + (pendingCount || 0);
+      if ((doneToday || 0) + (pendingCount || 0) >= MAX_DAILY_PUBLICATIONS) {
+        return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true });
+      }
 
       const { data: managedLinks, error: managedError } = await supabase
         .from("affiliate_links").select("slug,source_ref")
@@ -498,15 +500,13 @@ export async function POST(request: NextRequest) {
 
       const queued = [];
       for (const item of candidates) {
+        if ((doneToday || 0) + (pendingCount || 0) + queued.length >= MAX_DAILY_PUBLICATIONS) break;
         const category = typeof item.category === "string" && item.category.trim()
           ? item.category.trim()
           : "Tecnologia";
         const title = item.product.trim();
         const reviewUrl = `https://www.vetor.blog/reviews/${item.slug}/`;
-        const batch = Math.floor(slotCursor / 5);
-        const position = slotCursor % 5;
-        const videoFormat = position < (batch >= 2 ? 1 : 2) ? "long" : "short";
-        slotCursor += 1;
+        const videoFormat = "long";
         const queueId = randomUUID();
         const managedSlug = managedSlugByReview.get(item.slug) || item.slug;
         const trackedPurchaseUrl = buildTrackedAffiliateUrl(
@@ -516,6 +516,15 @@ export async function POST(request: NextRequest) {
             contentId: queueId, term: videoFormat, placement: "description",
           }
         );
+
+        let trackedPurchase: URL | null = null;
+        try { trackedPurchase = new URL(trackedPurchaseUrl); } catch {}
+        const safePurchase = Boolean(
+          trackedPurchase && trackedPurchase.protocol === "https:" &&
+          (trackedPurchase.hostname === "meli.la" || trackedPurchase.hostname.endsWith(".meli.la") ||
+            (trackedPurchase.hostname === "www.vetor.blog" && trackedPurchase.pathname.startsWith("/go/")))
+        );
+        if (!safePurchase) continue;
 
         const { data: inserted, error: insertError } = await supabase
           .from("video_queue")
