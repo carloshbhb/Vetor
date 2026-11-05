@@ -98,7 +98,7 @@ Ao adaptar template Remotion para pipeline externo, manter caminhos de assets co
   Evidência: process-video.ts copiava assets para public/assets na raiz do Next, mas o renderer usa video/public; mudança alinha cópia e props sob video/public/assets e duração passa a ser hook + cenas + CTA.
   Confiança: 0.70 · sucesso
 - - -   R E F   L A Y O U T   R E G I S T R A D A   ( 2 0 2 6 - 1 0 - 1 3 )   - - -  
- L a y o u t   l a n d i n g   p a g e   S a m s u n g   G a l a x y   A 1 7 :   S F   S y m b o l s   b a n n e r ,   l i q u i d - g l a s s   C S S / G S A P ,   c o m p a r e _ t a b l e   R e v i e w C o m p a r e T a b l e   ( c o l u m n s = [ ' P r o d u t o ' , ' N o t a ' , ' I d e a l   p a r a ' ] ,   w i n n e r C o l ) .   I n s e r i d o   n o   s u p e r   p r o m p t   t m p / g e n e r a t e - 2 - l a n d i n g - p a g e s . t s   +   c o m e n t � r i o   n o   c o n t e n t .   P i p e l i n e   ( 2   L P s / d i a ,   0 3 : 0 0 )   i n t a c t o .  
+ L a y o u t   l a n d i n g   p a g e   S a m s u n g   G a l a x y   A 1 7 :   S F   S y m b o l s   b a n n e r ,   l i q u i d - g l a s s   C S S / G S A P ,   c o m p a r e _ t a b l e   R e v i e w C o m p a r e T a b l e   ( c o l u m n s = [ ' P r o d u t o ' , ' N o t a ' , ' I d e a l   p a r a ' ] ,   w i n n e r C o l ) .   I n s e r i d o   n o   s u p e r   p r o m p t   t m p / g e n e r a t e - 2 - l a n d i n g - p a g e s . t s   +   c o m e n t � r i o   n o   c o n t e n t .   P i p e l i n e   ( 2   L P s / d i a ,   0 3 : 0 0 )   i n t a c t o .  
  
 ### 2026-11-04 · content-generation · #18
 Edge TTS pt-BR com EDGE_TTS_RATE=+5% e alinhamento por WordBoundary mantem legendas exatas em Shorts de cerca de 74s; remover URLs do CTA falado evita explosao de boundaries e reduz a duracao sem perder sincronia.
@@ -114,3 +114,38 @@ Na tabela video_queue, voiceover_url e NOT NULL; ao resetar um item concluido pa
 Para substituir um video do YouTube sem duplicata publica: subir a nova versao pela fila, confirmar que esta publica, atualizar a referencia no banco e so entao apagar o video antigo via DELETE /youtube/v3/videos; antes, verificar se paginas publicas ainda referenciam o ID antigo.
   Evidência: ASUS 747Glfla104 substituido por biGUps5le2I; DELETE retornou 204; /comparativos/asus-vivobook-15-vs-dell-inspiron nao referenciava os IDs.
   Confiança: 0.85 · sucesso
+
+### 2026-11-05 · mercadolivre-affiliate · #28
+Candidato com match_status=error nao pode entrar em checkedIds do lote: o run re-selecionava os mesmos candidatos em loop e a fila travava. Tratar erro como ja verificado com cooldown de 6h.
+  Evidência: run 41921926159 restantes travou em 425; run 41928856153 processou 240 candidatos; commit 25b135c
+  Confiança: 0.70 · sucesso
+
+### 2026-11-05 · mercadolivre-affiliate · #35
+A Lista Social do Mercado Livre expoe o mesmo produto em varios item ids. A promocao precisa reivindicar o nome canonico E o item do Mercado Livre, senao a fila de reviews enche de duplicatas do mesmo anuncio.
+  Evidência: run 41928856153 promoveu 77 linhas com duplicatas (Echo Dot, Intelbras iM5, JBL Tune 520BT); correcao no commit 2571ed9 com teste de regressao
+  Confiança: 0.70 · sucesso
+
+### 2026-11-05 · mercadolivre-affiliate · #36
+Guard de acessorio por palavra rejeita o proprio anuncio: um celular com a especificacao Tela de 6.7 foi tratado como tela de reposicao. Use regra estrutural - anuncio de peca comeca por Tela ou Display, anuncio de dispositivo comeca por Celular, Tablet ou Notebook - e nunca trate source igual a matched como acessorio.
+  Evidência: logs do run 41928856153 marcaram o Galaxy A17 como skippedAccessory; teste red-green em scripts/mercadolivre-refill.test.ts
+  Confiança: 0.70 · sucesso
+
+### 2026-11-05 · content-generation · #37
+Rotulo de origem do link de afiliado (Lista Social) nunca pode virar categoria editorial de review: cria hub fino sem intencao de busca. Inferir a categoria pelo nome do produto e nunca aceitar rotulo de origem no fallback.
+  Evidência: draft console-sony-playstation-5-edicao-slim-disk-1tb-branco foi gravado com category Lista social e normalizado para Acessorios para Games no run 41942751756
+  Confiança: 0.70 · sucesso
+
+### 2026-11-05 · seo-optimization · #38
+Zero sessoes organicas com GA4 coletando normalmente e gargalo de indexacao e ranking, nao de instrumentacao. Antes de mexer no tracking, compare o total da propriedade com o recorte por canal na mesma propriedade.
+  Evidência: ga4-channel-diagnostic run 41939494072: 10 sessoes em 28d e 160 em 90d, canais AI Assistant (9) e Direct (1), zero organico
+  Confiança: 0.70 · sucesso
+
+### 2026-11-05 · code-quality · #39
+supabase-js exige Node 22 ou superior (WebSocket nativo) em scripts com service role, e o schema de producao diverge do supabase/schema.sql: reviews nao tem title nem notes (produto em product, corpo em sections JSONB) e landing_page_slug pertence a product_links, nao a affiliate_links.
+  Evidência: runs 41939497568, 41939625902 e 41939902965 falharam ate a versao do Node e as colunas serem corrigidas
+  Confiança: 0.70 · sucesso
+
+### 2026-11-05 · code-quality · #40
+No PowerShell 5.1 o redirecionamento de saida grava em UTF-16 e o git apply falha com No valid patches in input. Use git diff --output=arquivo para escrever patch em UTF-8. Ao passar textos com aspas para um CLI via PowerShell, prefira um script Node em vez de interpolacao de string.
+  Evidência: patch de src/lib/mercadolivre-refill.ts foi perdido no ciclo red-green e reaplicado manualmente; licoes #21-#34 ficaram truncadas e foram removidas
+  Confiança: 0.70 · sucesso

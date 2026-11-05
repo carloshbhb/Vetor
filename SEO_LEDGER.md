@@ -180,12 +180,22 @@ Canonical: `https://www.vetor.blog` Â· GSC configurado âœ“
 - `src/app/sitemap.ts` passou a revalidar a cada 5 minutos para que novas reviews/comparativos do Supabase sejam refletidos sem depender de um novo conteÃºdo manual no sitemap.
 - PrÃ³ximo passo operacional: submissÃ£o do sitemap e URLs ao Google Search Console/IndexNow e inspeÃ§Ã£o das duas URLs.
 
-### Ciclo 13 — 2026-10-13 (Pipeline landing page — Samsung Galaxy A17 / 2 LPs/dia)
+### Ciclo 13 ï¿½ 2026-10-13 (Pipeline landing page ï¿½ Samsung Galaxy A17 / 2 LPs/dia)
 - **Item:** Pipeline generate-2-landing-pages executado (teste completo).
-- **Resultado:** 2 landing pages geradas (8bitdo-ultimate-2c, xiaomi-mi-home-security-camera-2k-cam-seg); compare_table corrigido para ReviewCompareTable; referência layout (SF Symbols banner / liquid-glass CSS / GSAP / compare_table schema) inserida no super prompt.
+- **Resultado:** 2 landing pages geradas (8bitdo-ultimate-2c, xiaomi-mi-home-security-camera-2k-cam-seg); compare_table corrigido para ReviewCompareTable; referï¿½ncia layout (SF Symbols banner / liquid-glass CSS / GSAP / compare_table schema) inserida no super prompt.
 - **IndexNow:** aceito (ccepted: 1 por URL).
 - **Gate:** 
 pm run build ? (244/244); 
 pm run lint ? (0 warnings).
-- **Outcome:** improved — pipeline operando com referência de layout registrada e compilação limpa; próximo: acompanhar 7d para gentdb train (confiança =0.85 após 3 ocorrências).
-- **Arquivos:** 	mp/generate-2-landing-pages.ts (ref layout + tipos corrigidos), LEARNINGS.md, commit d872c1 (push main).
+- **Outcome:** improved ï¿½ pipeline operando com referï¿½ncia de layout registrada e compilaï¿½ï¿½o limpa; prï¿½ximo: acompanhar 7d para gentdb train (confianï¿½a =0.85 apï¿½s 3 ocorrï¿½ncias).
+- **Arquivos:** 	mp/generate-2-landing-pages.ts (ref layout + tipos corrigidos), LEARNINGS.md, commit d872c1 (push main).
+
+### Ciclo 14 - 2026-11-04 (Pipeline de conteudo restaurado + diagnostico GA4)
+- **Causa raiz do travamento:** a Lista Social do ML era importada em `affiliate_links` como `source_type='social_list'` (rejeitado pelo check constraint de producao) e com `destination_url=""`; nada promovia esses registros para `comparison_product`, e 3 produtos com `landing_page_slug` travavam a fila -> zero reviews novos.
+- **Pipeline no ar:** `scripts/refill-content-queue.ts` + `.github/workflows/refill-content-queue.yml` (02:30 UTC + dispatch) fazem sync -> import -> boost de `seo_keywords` -> matching com deadline -> promocao -> limpeza de LP -> dispatch do `generate-daily-review` (04:15 UTC).
+- **Run de producao `41928856153` (45m07s, sucesso):** sync 249/291 (parcial), import 0 inseridos/397 ja importados (dedup ok), SEO 120 keywords/613 links, matching 12 lotes x 20 = 240 candidatos, **promocao 77** produtos para `comparison_product` + destino HTTPS com `matt_*`.
+- **Primeiro draft apos a quebra:** `console-sony-playstation-5-edicao-slim-disk-1tb-branco` (2.136 palavras, 6 headings, FAQ 5, specs 5, veredito 8 "Recomendado"), `status=draft`, sem publicacao automatica.
+- **Estado da fila (inspecao read-only):** 735 `affiliate_links` (173 `comparison_product/active`, 125 `comparison_product/paused`, 315 `product_link/active` aguardando matching) e 548 matches (238 `matched`, 255 `review`, 55 `error`).
+- **GA4 - questao fechada:** o zero organico **nao e falha de instrumentacao**. Na mesma propriedade (`458038617`) ha 10 sessoes em 28d e 160 em 90d, todas em canais `AI Assistant` (9) e `Direct` (1), com zero organico. Conclusao: a tag coleta; o gargalo e indexacao/ranking, nao tracking. Workflow novo `ga4-channel-diagnostic.yml` mantem essa comparacao acessivel.
+- **Qualidade de fila corrigida:** guard de acessorio refeito (falso positivo descartava celulares legitimos por "Tela de 6.7"), promocao passou a gerar 1 registro por produto (a Lista Social repete o mesmo produto em varios item ids) e a categoria editorial nunca mais herda rotulo de origem ("Lista Social" viraria hub fino).
+- **Decisao de escopo mantida:** `tmp/generate-8-articles.ts` continua manual; a escala diaria e `generate-daily-review` (drafts) + cron viral (1 comparativo/dia com quality gate). Nada foi publicado automaticamente. commit d872c1 (push main).
