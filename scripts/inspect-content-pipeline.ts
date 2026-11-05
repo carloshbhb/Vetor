@@ -16,9 +16,16 @@ function countWords(value: unknown): number {
   return value.split(/\s+/).filter(Boolean).length;
 }
 
-function countHeadings(value: unknown): number {
-  if (typeof value !== 'string') return 0;
-  return (value.match(/^#{2,3}\s/gm) || []).length;
+type Section = { heading?: unknown; content?: unknown };
+
+function sectionWords(value: unknown): number {
+  if (!Array.isArray(value)) return 0;
+  return (value as Section[]).reduce((sum, section) => sum + countWords(section?.content), 0);
+}
+
+function sectionHeadings(value: unknown): number {
+  if (!Array.isArray(value)) return 0;
+  return (value as Section[]).filter((section) => typeof section?.heading === 'string' && section.heading.trim()).length;
 }
 
 async function main() {
@@ -27,10 +34,12 @@ async function main() {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY ausente: a inspeção precisa da service role.');
   }
 
+  // A tabela de produção não tem "title" nem "notes": o produto fica em
+  // "product" e o corpo do review em "sections" (JSONB).
   const { data: reviews, error: reviewsError } = await supabase
     .from('reviews')
     .select(
-      'slug,title,status,content_type,product,created_at,updated_at,content,meta_title,meta_description,hero_lead,faq,specs,pros,cons,sections,notes,affiliate_url'
+      'slug,status,content_type,product,category,marketplace,created_at,updated_at,meta_title,meta_description,hero_lead,faq,specs,pros,cons,sections,hero_bars,verdict_score,verdict_label,affiliate_url,price_new,image_url'
     )
     .order('updated_at', { ascending: false })
     .limit(5);
@@ -79,23 +88,28 @@ async function main() {
 
   const latest = ((reviews || []) as Row[]).map((row) => ({
     slug: row.slug,
-    title: row.title,
+    product: row.product,
     status: row.status,
     contentType: row.content_type,
-    product: row.product,
+    category: row.category,
+    marketplace: row.marketplace,
     updatedAt: row.updated_at,
     createdAt: row.created_at,
-    words: countWords(row.content),
-    headings: countHeadings(row.content),
+    words: sectionWords(row.sections),
+    headings: sectionHeadings(row.sections),
     heroLeadChars: typeof row.hero_lead === 'string' ? row.hero_lead.length : 0,
     metaTitleChars: typeof row.meta_title === 'string' ? row.meta_title.length : 0,
     metaDescriptionChars: typeof row.meta_description === 'string' ? row.meta_description.length : 0,
     faqItems: Array.isArray(row.faq) ? row.faq.length : 0,
     specs: Array.isArray(row.specs) ? row.specs.length : 0,
+    heroBars: Array.isArray(row.hero_bars) ? row.hero_bars.length : 0,
     pros: Array.isArray(row.pros) ? row.pros.length : 0,
     cons: Array.isArray(row.cons) ? row.cons.length : 0,
+    verdictScore: row.verdict_score,
+    verdictLabel: row.verdict_label,
+    price: row.price_new,
+    hasImage: Boolean(row.image_url),
     hasAffiliateUrl: Boolean(row.affiliate_url),
-    notes: typeof row.notes === 'string' ? row.notes.slice(0, 300) : null,
   }));
 
   const report = {
