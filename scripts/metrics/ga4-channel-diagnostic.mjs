@@ -33,9 +33,10 @@ async function main() {
 
   const token = await getAccessToken(sa);
   const today = new Date();
-  const endDate = isoDate(today);
-  const startDate = addDays(today, -WINDOW_DAYS + 1);
-  const longStartDate = addDays(today, -LONG_WINDOW_DAYS + 1);
+  const todayIso = isoDate(today);
+  const endDate = todayIso;
+  const startDate = addDays(todayIso, -(WINDOW_DAYS - 1));
+  const longStartDate = addDays(todayIso, -(LONG_WINDOW_DAYS - 1));
 
   // 1) Total sem filtro de canal
   const totalReport = await runReport({
