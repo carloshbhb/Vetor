@@ -7,14 +7,40 @@ assert.equal(isSourceLabelCategory('lista social'), true);
 assert.equal(isSourceLabelCategory('Mercado Livre Frete Grátis'), true);
 assert.equal(isSourceLabelCategory('Acessórios para Games'), false);
 
-// Um review de PS5 não pode ficar em "Lista Social".
+// Um review de PS5 não pode ficar em "Lista Social" nem virar acessório.
 assert.equal(
   inferProductCategory('Console Sony Playstation 5 Edição Slim Disk 1tb Branco', '', 'Lista Social'),
-  'Acessórios para Games',
+  'Consoles',
+);
+assert.equal(
+  inferProductCategory('Xbox Series S 512gb Ssd', '', 'Lista Social'),
+  'Consoles',
 );
 assert.equal(
   inferProductCategory('Controle Gamesir G7 Pro Sem Fio Para Xbox, Pc E Android Prateado', '', 'Lista Social'),
   'Acessórios para Games',
+);
+// "Celular Hall" descreve o joystick, não o produto: não pode virar Smartphones.
+assert.equal(
+  inferProductCategory('Controle Gamesir Nova Lite 2 Sem Fio Pc Switch Celular Hall - Branco', '', 'Lista Social'),
+  'Acessórios para Games',
+);
+assert.equal(
+  inferProductCategory('Controle Sem Fio Para Playstation 5 Dualsense', '', 'Lista Social'),
+  'Acessórios para Games',
+);
+// Controle remoto não é acessório de games.
+assert.equal(
+  inferProductCategory('Controle Remoto Universal Para Smart Tv', '', 'Lista Social'),
+  'Geral',
+);
+assert.equal(
+  inferProductCategory('Sensor Magnético Intelbras Mibo Asa 3001 Sem Fio', '', 'Lista Social'),
+  'Casa Inteligente',
+);
+assert.equal(
+  inferProductCategory('Echo Dot 5ª Geração Branco Amazon Smart Speaker Com Alexa Controle Por Voz', '', 'Lista Social'),
+  'Casa Inteligente',
 );
 assert.equal(
   inferProductCategory('Fone Headphone Jbl Tune 520bt Bluetooth Branco', '', 'Lista Social'),

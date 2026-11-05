@@ -105,6 +105,22 @@ async function main() {
     matchCounts[key] = (matchCounts[key] || 0) + 1;
   }
 
+  // Os virais vivem em outra tabela e não aparecem em reviews. Sem esta leitura
+  // é impossível saber se o cron das 06:00 UTC publicou ou falhou no quality gate.
+  const { data: viralRows, error: viralError } = await supabase
+    .from('viral_articles')
+    .select('slug,title,category,published_at,created_at,updated_at')
+    .order('published_at', { ascending: false })
+    .limit(5);
+
+  if (viralError) throw new Error(`viral_articles: ${viralError.message}`);
+
+  const { count: viralTotal, error: viralCountError } = await supabase
+    .from('viral_articles')
+    .select('id', { count: 'exact', head: true });
+
+  if (viralCountError) throw new Error(`viral_articles count: ${viralCountError.message}`);
+
   const latest = ((reviews || []) as Row[]).map((row) => ({
     slug: row.slug,
     product: row.product,
@@ -151,6 +167,17 @@ async function main() {
     mlMatches: {
       total: (matchRows || []).length,
       matchCounts,
+    },
+    viralArticles: {
+      total: viralTotal ?? null,
+      latest: ((viralRows || []) as Row[]).map((row) => ({
+        slug: row.slug,
+        title: row.title,
+        category: row.category,
+        publishedAt: row.published_at,
+        updatedAt: row.updated_at,
+        createdAt: row.created_at,
+      })),
     },
   };
 

@@ -66,6 +66,7 @@ export const MATCH_ERROR_RETRY_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 type MatchHistoryRow = {
   affiliate_link_id: string;
   checked_at: string | null;
+  updated_at?: string | null;
   match_status: string | null;
 };
 
@@ -105,15 +106,19 @@ export function selectBatchCandidates(
     const linkId = String(row.affiliate_link_id || "");
     if (!linkId || !eligibleLinkIds.has(linkId)) continue;
     matchByLinkId.set(linkId, row);
-    if (!row.checked_at) continue;
 
     const status = String(row.match_status || "");
     if (FINAL_MATCH_STATUSES.includes(status)) {
+      // Final states never need a retry, even when the row has no checked_at.
       checkedIds.add(linkId);
       continue;
     }
     if (status === "error") {
-      const checkedAt = Date.parse(String(row.checked_at)) || 0;
+      // Fall back to updated_at so an error row created without a valid
+      // checked_at (null or malformed) is not selected forever.
+      const parsedCheckedAt = Date.parse(String(row.checked_at || "")) || 0;
+      const checkedAt =
+        parsedCheckedAt || Date.parse(String(row.updated_at || "")) || 0;
       // Recent failures stay out of this run so the batch moves forward; they
       // become eligible again once the cooldown expires.
       if (checkedAt > 0 && now - checkedAt < errorCooldownMs) {
@@ -149,7 +154,12 @@ export function selectBatchCandidates(
  */
 export async function runMercadoLivreMatchBatch(
   supabase: SupabaseClient,
-  options: { limit?: number; refresh?: boolean } = {}
+  options: {
+    limit?: number;
+    refresh?: boolean;
+    /** Stop before starting another candidate when the job budget is exhausted. */
+    deadline?: { isExpired: (at?: number) => boolean };
+  } = {}
 ): Promise<MercadoLivreMatchBatchResult> {
   const limit = Math.min(Math.max(Number(options.limit || 8), 1), 20);
   const refresh = Boolean(options.refresh);
@@ -190,6 +200,7 @@ export async function runMercadoLivreMatchBatch(
   const seenQuery = new Map<string, Awaited<ReturnType<typeof searchMercadoLivreProduct>>>();
 
   for (const link of selected) {
+    if (options.deadline?.isExpired()) break;
     const searchQuery = String(link.name || "").trim();
     const sourceUrl = String(
       link.product_url ||

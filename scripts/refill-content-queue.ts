@@ -2,7 +2,6 @@ import { config } from 'dotenv';
 import { getSupabaseServiceKeyClient } from '../src/lib/supabase';
 import { runMercadoLivreMatchBatch } from '../src/lib/mercadolivre-match-batch';
 import {
-  archiveLandingPageCoveredProducts,
   boostAffiliatePriorityFromSeo,
   createDeadlineGuard,
   importSocialList,
@@ -35,7 +34,6 @@ const skipImport = flag('skip-import', 'REFILL_SKIP_IMPORT');
 const skipSeo = flag('skip-seo', 'REFILL_SKIP_SEO');
 const skipBatch = flag('skip-batch', 'REFILL_SKIP_BATCH');
 const skipPromote = flag('skip-promote', 'REFILL_SKIP_PROMOTE');
-const skipCleanup = flag('skip-cleanup', 'REFILL_SKIP_CLEANUP');
 const maxBatches = Math.min(Math.max(numberEnv('REFILL_MAX_BATCHES', 15), 1), 30);
 const batchSize = Math.min(Math.max(numberEnv('REFILL_BATCH_SIZE', 20), 1), 20);
 // The matching batch is rate limited and can be slower than the CI job budget.
@@ -107,7 +105,6 @@ async function main(): Promise<void> {
     seoBoost: null,
     batch: null,
     promotion: null,
-    cleanup: null,
     criticalErrors: [] as string[],
     warnings: [] as string[],
   };
@@ -175,7 +172,10 @@ async function main(): Promise<void> {
           break;
         }
         try {
-          const result = await runMercadoLivreMatchBatch(supabase, { limit: batchSize });
+          const result = await runMercadoLivreMatchBatch(supabase, {
+            limit: batchSize,
+            deadline,
+          });
           batch.batches += 1;
           batch.processed += result.processed;
           batch.remaining = result.remaining;
@@ -215,18 +215,6 @@ async function main(): Promise<void> {
       const message = error instanceof Error ? error.message : String(error);
       criticalErrors.push('promotion: ' + message);
       console.error('[refill] promoção falhou:', message);
-    }
-  }
-
-  if (!skipCleanup) {
-    try {
-      console.log('[refill] arquivando product_links cobertos por landing page...');
-      summary.cleanup = await archiveLandingPageCoveredProducts(supabase, { dryRun });
-      console.log('[refill] limpeza LP:', JSON.stringify(summary.cleanup));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      warnings.push('lp-cleanup: ' + message);
-      console.warn('[refill] limpeza LP falhou:', message);
     }
   }
 

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       fix_source_label_categories:
-        description: 'Corrigir a categoria de drafts que herdaram um rotulo de origem'
+        description: 'Recalcular a categoria editorial de todos os drafts (nunca altera publicados)'
         type: boolean
         default: false
 
@@ -35,7 +35,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-      - name: Normalize draft categories (only drafts with source-label categories)
+      - name: Normalize draft categories (inference-based, drafts only)
         if: inputs.fix_source_label_categories == true
         run: npx tsx scripts/normalize-review-categories.ts
         env:

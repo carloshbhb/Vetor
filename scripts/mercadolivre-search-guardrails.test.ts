@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { getMercadoLivreCandidateMismatchReason } from "../src/lib/mercadolivre-search";
+import {
+  getMercadoLivreCandidateMismatchReason,
+  resolveSearchOutcomeWithoutCandidate,
+} from "../src/lib/mercadolivre-search";
 
 function mustReview(query: string, title: string, expectedReason: RegExp): void {
   const reason = getMercadoLivreCandidateMismatchReason(query, title);
@@ -94,4 +97,65 @@ mustMatch(
   "GameSir Nova Lite Hall Effect Bluetooth Switch PC Ash Grey",
 );
 
+// HTTP 403 na busca de anúncios ativos é limitação permanente de permissão.
+const forbiddenWithoutCatalog = resolveSearchOutcomeWithoutCandidate({
+  catalogWarnings: [],
+  detailWarnings: [],
+  listingWarnings: [
+    "Mercado Livre /sites/MLB/search HTTP 403 (forbidden / forbidden)",
+  ],
+  listingForbidden: true,
+});
+assert.equal(
+  forbiddenWithoutCatalog.matchStatus,
+  "no_match",
+  "403 na busca de anúncios não pode virar erro com retry infinito",
+);
+assert.deepEqual(forbiddenWithoutCatalog.blockingDiagnostics, []);
+
+// Erro real no catálogo continua sendo erro, mesmo com a busca bloqueada.
+const forbiddenWithCatalogError = resolveSearchOutcomeWithoutCandidate({
+  catalogWarnings: ["Mercado Livre catalog search HTTP 500 (server error)"],
+  detailWarnings: [],
+  listingWarnings: [
+    "Mercado Livre /sites/MLB/search HTTP 403 (forbidden / forbidden)",
+  ],
+  listingForbidden: true,
+});
+assert.equal(forbiddenWithCatalogError.matchStatus, "error");
+assert.deepEqual(forbiddenWithCatalogError.blockingDiagnostics, [
+  "Mercado Livre catalog search HTTP 500 (server error)",
+]);
+
+// Sem 403, uma falha na busca de anúncios continua sendo erro.
+const transientListingError = resolveSearchOutcomeWithoutCandidate({
+  catalogWarnings: [],
+  detailWarnings: [],
+  listingWarnings: ["Mercado Livre /sites/MLB/search HTTP 429 (rate limit)"],
+  listingForbidden: false,
+});
+assert.equal(transientListingError.matchStatus, "error");
+assert.equal(transientListingError.blockingDiagnostics.length, 1);
+
+// Nenhum aviso: a busca terminou sem candidato, não falhou.
+const emptySearch = resolveSearchOutcomeWithoutCandidate({
+  catalogWarnings: [],
+  detailWarnings: [],
+  listingWarnings: [],
+  listingForbidden: true,
+});
+assert.equal(emptySearch.matchStatus, "no_match");
+assert.deepEqual(emptySearch.blockingDiagnostics, []);
+
+// Diagnósticos repetidos/espaços não podem multiplicar o relatório.
+const deduped = resolveSearchOutcomeWithoutCandidate({
+  catalogWarnings: ["  falha A  ", "falha A"],
+  detailWarnings: ["falha B"],
+  listingWarnings: [],
+  listingForbidden: false,
+});
+assert.equal(deduped.matchStatus, "error");
+assert.deepEqual(deduped.blockingDiagnostics, ["falha A", "falha B"]);
+
+console.log("mercadolivre-search 403 outcome: all assertions passed");
 console.log("mercadolivre-search guardrails: all assertions passed");

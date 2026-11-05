@@ -602,7 +602,33 @@ function catalogSearchVariants(query: string): string[] {
 type ActiveListingSearchBatch = {
   candidates: MLMatchCandidate[];
   diagnostics: string[];
+  forbidden: boolean;
 };
+
+/**
+ * Decide o status final quando nenhum candidato foi selecionado.
+ *
+ * HTTP 403 na busca de anúncios ativos é uma limitação permanente de permissão
+ * do app, não uma falha transitória: ela não pode transformar 100% dos casos
+ * sem catálogo em `match_status='error'` (o que ainda consome retries).
+ */
+export function resolveSearchOutcomeWithoutCandidate(input: {
+  catalogWarnings: string[];
+  detailWarnings: string[];
+  listingWarnings: string[];
+  listingForbidden: boolean;
+}): { blockingDiagnostics: string[]; matchStatus: "error" | "no_match" } {
+  const blocking = input.listingForbidden
+    ? [...input.catalogWarnings, ...input.detailWarnings]
+    : [...input.catalogWarnings, ...input.detailWarnings, ...input.listingWarnings];
+  const blockingDiagnostics = Array.from(
+    new Set(blocking.map((item) => item.trim()).filter(Boolean))
+  );
+  return {
+    blockingDiagnostics,
+    matchStatus: blockingDiagnostics.length ? "error" : "no_match",
+  };
+}
 
 async function searchActiveListingCandidates(
   query: string,
@@ -611,6 +637,7 @@ async function searchActiveListingCandidates(
   const uniqueItems = new Map<string, NonNullable<MLItemSearchResponse["results"]>[number]>();
   const diagnostics: string[] = [];
   let successfulVariants = 0;
+  let forbidden = false;
 
   for (const variant of catalogSearchVariants(query).slice(0, 3)) {
     const params = new URLSearchParams({ q: variant, limit: "50" });
@@ -629,6 +656,7 @@ async function searchActiveListingCandidates(
 
       if (!response.ok) {
         const body = await response.text().catch(() => "");
+        if (response.status === 403) forbidden = true;
         let detail = "";
         try {
           const payload = JSON.parse(body) as Record<string, unknown>;
@@ -694,7 +722,7 @@ async function searchActiveListingCandidates(
   if (successfulVariants === 0 && diagnostics.length === 0) {
     diagnostics.push("A busca de anúncios ativos não retornou resposta válida.");
   }
-  return { candidates, diagnostics: Array.from(new Set(diagnostics)) };
+  return { candidates, diagnostics: Array.from(new Set(diagnostics)), forbidden };
 }
 
 type CatalogSearchBatch = {

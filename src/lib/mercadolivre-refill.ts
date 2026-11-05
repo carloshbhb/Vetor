@@ -42,19 +42,13 @@ type PromotionResult = {
   promoted: number;
   skippedExisting: number;
   skippedUnsafe: number;
+  skippedInactive: number;
   skippedAccessory: number;
+  skippedConcurrent: number;
   duplicateMatches: number;
   errors: number;
   candidates: Array<{ name: string; matchedTitle: string | null; score: number | null }>;
   accessoryCandidates: Array<{ name: string; matchedTitle: string | null; score: number | null }>;
-  dryRun: boolean;
-};
-
-type CleanupResult = {
-  ok: boolean;
-  found: number;
-  archived: number;
-  items: Array<{ slug: string; product: string; landingPageSlug: string }>;
   dryRun: boolean;
 };
 
@@ -101,8 +95,8 @@ export type DeadlineGuard = {
 /**
  * Time budget for the matching loop. The matching batch is the slowest step and
  * runs against a rate-limited public API, so it must stop before the CI job
- * timeout. Whatever was matched still reaches promotion and cleanup, and the
- * remaining candidates are picked up by the next refill.
+ * timeout. Whatever was matched still reaches promotion, and the remaining
+ * candidates are picked up by the next refill.
  */
 export function createDeadlineGuard(minutes: number, now = Date.now()): DeadlineGuard {
   const safeMinutes = Math.min(Math.max(Number(minutes) || 0, 1), 120);
@@ -134,18 +128,37 @@ const ACCESSORY_TERMS = [
   "compativel", "compatible", "dlveer",
 ];
 
-const ACCESSORY_TYPE_TERMS = ["mouse", "teclado", "controle", "gamepad", "joystick"];
+// Product types that commonly appear as an accessory of another product
+// ("headset para notebook", "bateria para celular"). Type matching must use
+// whole tokens: substring matching turned "capacitor" into "capa" and
+// "pastel" into "pasta", blocking legitimate products.
+const ACCESSORY_TYPE_TERMS = [
+  "mouse", "teclado", "controle", "gamepad", "joystick",
+  "headset", "fone", "earphone", "webcam", "microfone", "bateria",
+  "dongle", "suporte", "carregador", "cabo", "adaptador", "fonte",
+];
+
+// Device categories used to detect "part for a different product type".
+const PRODUCT_TYPE_TERMS = [
+  "notebook", "laptop", "celular", "smartphone", "tablet", "ipad",
+  "monitor", "televisor", "smart tv", "console", "playstation", "xbox",
+  "fone", "headset", "camera", "aspirador", "robot vacuum", "smartwatch",
+  "relogio", "watch", "teclado", "mouse", "impressora", "projetor",
+];
+
 // A replacement screen is a part, not the device. It is listed starting with
 // the part noun ("Tela Display Touch ...", "Display Touch Para ...").
 const SCREEN_NOUN_START = /^(?:tela|display|vidro|glass)\b/;
 // A device listing starts with the device noun ("Celular ...", "Tablet ...").
 // Its screen wording is a specification, not a replacement part.
 const DEVICE_NOUN_START =
-  /^(?:celular|smartphone|tablet|ipad|notebook|laptop|monitor|televisor|smart tv|smartwatch|relogio|watch|console|playstation|xbox|camera|fone|headset|arcondicionado|airfryer|aspirador|rob|vacuum)\b/;
-const REPLACEMENT_SCREEN_PATTERNS = [
+  /^(?:celular|smartphone|iphone|tablet|ipad|notebook|laptop|monitor|televisor|smart tv|smartwatch|relogio|watch|console|playstation|xbox|camera|fone|headset|arcondicionado|airfryer|aspirador|rob|vacuum)\b/;
+const STRONG_REPLACEMENT_PATTERNS = [
+  /\b(?:tela|display)\s+(?:de|para)\s+(?:reposicao|substituta|replacement)\b/,
+];
+const SCREEN_SPEC_PATTERNS = [
   /\btela\s+(?:display|touch)\b/,
   /\bdisplay\s+touch\b/,
-  /\b(?:tela|display)\s+(?:de|para)\s+(?:reposicao|substituta|replacement|original)\b/,
 ];
 
 function normalizeMatchText(value: unknown): string {
@@ -155,6 +168,17 @@ function normalizeMatchText(value: unknown): string {
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Whole-token match; avoids "capa" matching "capacitor" and "pasta" matching "pastel". */
+function includesToken(haystack: string, term: string): boolean {
+  if (!term) return false;
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`, "i").test(haystack);
+}
+
+function productTypesIn(value: string): Set<string> {
+  return new Set(PRODUCT_TYPE_TERMS.filter((term) => includesToken(value, term)));
 }
 
 /** True when the matched ML item looks like an accessory for the source product. */
@@ -168,25 +192,48 @@ export function isAccessoryMatch(sourceName: string, matchedTitle: string): bool
   // replacement screen because of its own screen specification.
   if (source === matched) return false;
 
-  const sourceHasAccessoryTerm = ACCESSORY_TERMS.some((term) => source.includes(term));
-  if (!sourceHasAccessoryTerm && ACCESSORY_TERMS.some((term) => matched.includes(term))) {
+  const matchedIncludesSource = source.length >= 6 && matched.includes(source);
+
+  const sourceHasAccessoryTerm = ACCESSORY_TERMS.some((term) => includesToken(source, term));
+  if (!sourceHasAccessoryTerm && ACCESSORY_TERMS.some((term) => includesToken(matched, term))) {
     return true;
   }
 
-  const hasCompatibilitySignal = /(?:^|\s)(?:para|p\/)\s/.test(matched) ||
-    matched.includes("compativel") ||
-    matched.includes("compatible");
+  const hasCompatibilitySignal =
+    /(?:^|[^a-z0-9])para(?:[^a-z0-9]|$)/.test(matched) ||
+    /(?:^|[^a-z0-9])p\//.test(matched) ||
+    includesToken(matched, "compativel") ||
+    includesToken(matched, "compatible");
 
-  // Replacement screens and similar parts.
-  if (!DEVICE_NOUN_START.test(matched)) {
-    if (SCREEN_NOUN_START.test(matched) && hasCompatibilitySignal) return true;
-    if (REPLACEMENT_SCREEN_PATTERNS.some((pattern) => pattern.test(matched))) return true;
+  // A title that *starts* with a screen noun is a replacement part.
+  if (SCREEN_NOUN_START.test(matched)) return true;
+  if (STRONG_REPLACEMENT_PATTERNS.some((pattern) => pattern.test(matched))) return true;
+  // Brand-first titles may legitimately mention "display touch" as a spec, but
+  // only when they also name the source product or carry a device spec (storage).
+  const hasDeviceSpec = /\b\d+\s?(?:gb|tb)\b/.test(matched);
+  if (!DEVICE_NOUN_START.test(matched) && !matchedIncludesSource && !hasDeviceSpec &&
+      SCREEN_SPEC_PATTERNS.some((pattern) => pattern.test(matched))) {
+    return true;
   }
 
   if (hasCompatibilitySignal) {
-    const sourceHasType = ACCESSORY_TYPE_TERMS.some((term) => source.includes(term));
-    const matchedHasOtherType = ACCESSORY_TYPE_TERMS.some((term) => matched.includes(term) && !source.includes(term));
+    const sourceHasType = ACCESSORY_TYPE_TERMS.some((term) => includesToken(source, term));
+    const matchedHasOtherType = ACCESSORY_TYPE_TERMS.some(
+      (term) => includesToken(matched, term) && !includesToken(source, term)
+    );
     if (!sourceHasType && matchedHasOtherType) return true;
+
+    // A compatibility phrase ("para", "p/") combined with a different product
+    // type is an accessory even when the type is not in the list above.
+    const sourceTypes = productTypesIn(source);
+    const matchedTypes = productTypesIn(matched);
+    if (
+      sourceTypes.size &&
+      matchedTypes.size &&
+      ![...matchedTypes].some((type) => sourceTypes.has(type))
+    ) {
+      return true;
+    }
   }
 
   return false;
@@ -487,9 +534,9 @@ export async function boostAffiliatePriorityFromSeo(
 
   const { data: links, error: linksError } = await supabase
     .from("affiliate_links")
-    .select("id,name,priority,status,source_type,source_ref")
+    .select("id,name,priority,status,source_type,source_ref,notes")
+    .eq("source_type", SOCIAL_LIST_IMPORT_SOURCE_TYPE)
     .neq("status", "archived")
-    .in("source_type", [SOCIAL_LIST_IMPORT_SOURCE_TYPE, "social_list", "comparison_product"])
     .limit(1000);
 
   if (linksError) {
@@ -515,12 +562,20 @@ export async function boostAffiliatePriorityFromSeo(
     })
     .filter((row) => row.tokens.size > 0);
 
-  const matches: Array<{ id: string; name: string; keyword: string; score: number; priority: number }> = [];
+  const matches: Array<{
+    id: string;
+    name: string;
+    keyword: string;
+    score: number;
+    priority: number;
+    notes: unknown;
+  }> = [];
 
   for (const link of links || []) {
     // product_link is shared with other features. Only the social-list imports
-    // (identified by source_ref) are eligible for the SEO priority boost.
-    if (String(link.source_type || "") === SOCIAL_LIST_IMPORT_SOURCE_TYPE && !isSocialListSourceRef(link.source_ref)) {
+    // (identified by source_ref) are eligible for the SEO priority boost; the
+    // boost must never rewrite a curated comparison_product priority.
+    if (!isSocialListSourceRef(link.source_ref)) {
       continue;
     }
     const nameTokens = new Set(seoTokens(String(link.name || "")));
@@ -542,6 +597,7 @@ export async function boostAffiliatePriorityFromSeo(
         keyword: best.keyword,
         score: best.score,
         priority: Number(link.priority || 0),
+        notes: link.notes,
       });
     }
   }
@@ -553,9 +609,13 @@ export async function boostAffiliatePriorityFromSeo(
   for (const match of selected) {
     if (match.priority >= 85) continue;
     if (!dryRun) {
+      const notes = appendNote(
+        match.notes,
+        "Prioridade elevada para 85 pelo cruzamento com seo_keywords em " + new Date().toISOString().slice(0, 10) + "."
+      );
       const { error } = await supabase
         .from("affiliate_links")
-        .update({ priority: 85, updated_at: new Date().toISOString() })
+        .update({ priority: 85, notes, updated_at: new Date().toISOString() })
         .eq("id", match.id);
       if (error) continue;
     }
@@ -619,7 +679,9 @@ export async function promoteMatchedAffiliates(
     promoted: 0,
     skippedExisting: 0,
     skippedUnsafe: 0,
+    skippedInactive: 0,
     skippedAccessory: 0,
+    skippedConcurrent: 0,
     duplicateMatches: 0,
     errors: 0,
     candidates: [],
@@ -673,6 +735,11 @@ export async function promoteMatchedAffiliates(
       result.skippedUnsafe += 1;
       continue;
     }
+    // Never reactivate a row a human paused/archived on purpose.
+    if (sourceStatus !== "active") {
+      result.skippedInactive += 1;
+      continue;
+    }
     if (isHttpsUrl(destination)) {
       // The product already has an affiliate destination: claim it so a later
       // duplicate row does not create a second entry for the same product.
@@ -699,6 +766,22 @@ export async function promoteMatchedAffiliates(
           score: Number.isFinite(score) ? score : null,
         });
       }
+      // Mark the match for human review so the same accessory is not retried
+      // forever and the reason is visible in the database.
+      if (!dryRun) {
+        const { error: reviewError } = await supabase
+          .from("affiliate_link_ml_matches")
+          .update({
+            match_status: "review",
+            error_message:
+              "Promoção recusada: o anúncio parece acessório/peça do produto. " +
+              matchedTitle.slice(0, 180),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("affiliate_link_id", String(source.id))
+          .eq("matched_item_id", matchedItemId);
+        if (reviewError) result.errors += 1;
+      }
       continue;
     }
 
@@ -719,7 +802,7 @@ export async function promoteMatchedAffiliates(
     const tags = uniqueTags(source.tags, ["auto-promoted", "mercado-livre"]);
 
     if (!dryRun) {
-      const { error: updateError } = await supabase
+      const { data: updated, error: updateError } = await supabase
         .from("affiliate_links")
         .update({
           destination_url: trackingUrl,
@@ -733,9 +816,22 @@ export async function promoteMatchedAffiliates(
           tags,
           updated_at: now,
         })
-        .eq("id", String(source.id));
+        .eq("id", String(source.id))
+        // Optimistic lock: the row must still be exactly the one we read. If a
+        // human paused/archived it, changed its type or filled the destination
+        // between the read and this write, the update affects zero rows.
+        .eq("status", sourceStatus)
+        .eq("source_type", sourceType)
+        // Match the exact value read, not a normalized empty string: whitespace
+        // or a value written after the read must also fail the lock.
+        .eq("destination_url", String(source.destination_url ?? ""))
+        .select("id");
       if (updateError) {
         result.errors += 1;
+        continue;
+      }
+      if (!updated || updated.length === 0) {
+        result.skippedConcurrent += 1;
         continue;
       }
     }
@@ -747,61 +843,6 @@ export async function promoteMatchedAffiliates(
       name,
       matchedTitle: row.matched_title == null ? null : String(row.matched_title),
       score: Number.isFinite(score) ? score : null,
-    });
-  }
-
-  return result;
-}
-
-/**
- * Removes the landing-page deadlock: a product_links row whose slug already has
- * an LP is archived so the daily review generator cannot try to create the same
- * slug again. The LP itself is untouched.
- */
-export async function archiveLandingPageCoveredProducts(
-  supabase: SupabaseClient,
-  options: { dryRun?: boolean } = {}
-): Promise<CleanupResult> {
-  const dryRun = Boolean(options.dryRun);
-  const { data, error } = await supabase
-    .from("product_links")
-    .select("id,slug,product_name,status,has_review,landing_page_slug,notes")
-    .eq("has_review", false)
-    .not("landing_page_slug", "is", null)
-    .neq("status", "archived")
-    .limit(200);
-
-  if (error) throw new Error("Falha ao ler produtos cobertos por landing page: " + error.message);
-
-  const rows = (data || []).filter((row) => String(row.landing_page_slug || "").trim());
-  const result: CleanupResult = {
-    ok: true,
-    found: rows.length,
-    archived: 0,
-    items: [],
-    dryRun,
-  };
-
-  for (const row of rows) {
-    const landingPageSlug = String(row.landing_page_slug || "").trim();
-    const notes = appendNote(
-      row.notes,
-      "Arquivado da fila de reviews: o produto já é coberto pela landing page /" + landingPageSlug + "."
-    );
-
-    if (!dryRun) {
-      const { error: updateError } = await supabase
-        .from("product_links")
-        .update({ status: "archived", notes, updated_at: new Date().toISOString() })
-        .eq("id", String(row.id));
-      if (updateError) continue;
-    }
-
-    result.archived += 1;
-    result.items.push({
-      slug: String(row.slug || ""),
-      product: String(row.product_name || ""),
-      landingPageSlug,
     });
   }
 
