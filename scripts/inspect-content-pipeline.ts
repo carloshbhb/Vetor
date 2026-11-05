@@ -60,7 +60,7 @@ async function main() {
 
   const { data: linkRows, error: linkError } = await supabase
     .from('affiliate_links')
-    .select('id,name,source_type,status,destination_url,landing_page_slug,priority,updated_at');
+    .select('id,name,source_type,status,destination_url,priority,updated_at');
 
   if (linkError) throw new Error(`affiliate_links: ${linkError.message}`);
 
@@ -71,6 +71,25 @@ async function main() {
     queueCounts[key] = (queueCounts[key] || 0) + 1;
     if (row.source_type === 'comparison_product' && String(row.destination_url || '').startsWith('https://')) {
       promotedWithDestination += 1;
+    }
+  }
+
+  // A fila consumida pelo gerador de reviews vive em product_links.
+  const { data: productLinkRows, error: productLinkError } = await supabase
+    .from('product_links')
+    .select('id,product_name,status,has_review,landing_page_slug,notes,updated_at');
+
+  if (productLinkError) throw new Error(`product_links: ${productLinkError.message}`);
+
+  const productLinkCounts: Record<string, number> = {};
+  let eligibleForReview = 0;
+  let lockedByLandingPage = 0;
+  for (const row of (productLinkRows || []) as Row[]) {
+    const key = `${row.status || 'null'}/has_review=${row.has_review === true ? 'yes' : 'no'}`;
+    productLinkCounts[key] = (productLinkCounts[key] || 0) + 1;
+    if (String(row.landing_page_slug || '').trim()) lockedByLandingPage += 1;
+    if (row.status === 'active' && row.has_review !== true && !String(row.landing_page_slug || '').trim()) {
+      eligibleForReview += 1;
     }
   }
 
@@ -122,6 +141,12 @@ async function main() {
       total: (linkRows || []).length,
       promotedWithDestination,
       queueCounts,
+    },
+    reviewQueue: {
+      total: (productLinkRows || []).length,
+      eligibleForReview,
+      lockedByLandingPage,
+      productLinkCounts,
     },
     mlMatches: {
       total: (matchRows || []).length,
