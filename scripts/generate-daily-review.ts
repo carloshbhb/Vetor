@@ -9,6 +9,7 @@ import { searchProducts } from '../src/lib/mercadolivre-api';
 import { getValidAccessToken } from '../src/lib/mercadolivre-auth';
 import { extractProductData } from '../src/lib/product-extractor';
 import { canonicalProductName } from '../src/lib/product-name';
+import { inferProductCategory } from '../src/lib/product-category';
 
 type ExistingReview = {
   slug: string;
@@ -150,18 +151,6 @@ function normalizeProductImage(value: unknown): string | null {
     return null;
   }
 }
-
-function inferProductCategory(name: string, title: string, fallback: string | null): string {
-  const value = canonicalProductName(name + ' ' + title);
-  if (/\b(robot vacuum|robo aspirador|mi robot vacuum)\b/i.test(value)) return 'Robôs Aspiradores';
-  if (/\b(redmi note|smartphone|celular|iphone)\b/i.test(value)) return 'Smartphones';
-  if (/\b(intelbras im\d+|camera de seguranca|camera wifi)\b/i.test(value)) return 'Câmeras de Segurança';
-  if (/\b(m track|m audio|interface de audio|interface audio)\b/i.test(value)) return 'Áudio Profissional';
-  if (/\b(notebook|laptop|inspiron|vivobook|ideapad)\b/i.test(value)) return 'Notebooks';
-  if (/\b(fritadeira|air fryer|pfr\d+)\b/i.test(value)) return 'Eletroportáteis';
-  return String(fallback || '').trim() || 'Geral';
-}
-
 
 type ProductionMLProductDetails = {
   itemId: string;

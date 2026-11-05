@@ -80,6 +80,7 @@ jobs:
           npx tsx scripts/mercadolivre-social-list.test.ts
           npx tsx scripts/mercadolivre-refill.test.ts
           npx tsx scripts/mercadolivre-match-batch.test.ts
+          npx tsx scripts/product-category.test.ts
           npm run test:mercadolivre-search
 
       - name: Type-check source

@@ -2,6 +2,11 @@ name: Inspect Content Pipeline
 
 on:
   workflow_dispatch:
+    inputs:
+      fix_source_label_categories:
+        description: 'Corrigir a categoria de drafts que herdaram um rotulo de origem'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -26,6 +31,13 @@ jobs:
 
       - name: Inspect reviews, affiliate queue and match status
         run: npx tsx scripts/inspect-content-pipeline.ts
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Normalize draft categories (only drafts with source-label categories)
+        if: inputs.fix_source_label_categories == true
+        run: npx tsx scripts/normalize-review-categories.ts
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
