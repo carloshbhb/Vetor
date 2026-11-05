@@ -149,3 +149,13 @@ supabase-js exige Node 22 ou superior (WebSocket nativo) em scripts com service 
 No PowerShell 5.1 o redirecionamento de saida grava em UTF-16 e o git apply falha com No valid patches in input. Use git diff --output=arquivo para escrever patch em UTF-8. Ao passar textos com aspas para um CLI via PowerShell, prefira um script Node em vez de interpolacao de string.
   Evidência: patch de src/lib/mercadolivre-refill.ts foi perdido no ciclo red-green e reaplicado manualmente; licoes #21-#34 ficaram truncadas e foram removidas
   Confiança: 0.70 · sucesso
+
+### 2026-11-05 · code-quality · #41
+Run #209 do process-video-queue falhou com exit code 2 de proposito: fila de videos vazia (0 pending) e reposicao devolveu 0 porque os 120 reviews validos + 20 comparativos publicados ja possuem linha em video_queue (dedup inclui status failed, que bloqueia re-enfileiramento); retrySafeFailed nao recolheu as 2 falhas visiveis (uma tem video completed para a mesma review_url, a outra tem affiliate_url de pagina comparativo sem /go/ ou meli.la, falhando no safePurchase). Cota diaria nao era o problema (15/15 restantes).
+  Evidência: gh run view 42033613629: '[NO_UPLOADS_THIS_RUN] ... exit code 2', feeder 'reviews=0 comparatives=0', API next videos:[] remaining:15; queueFromReviews varre 124 reviews (limite 200) e retorna queued:0
+  Confiança: 0.80 · sucesso
+
+### 2026-11-05 · seo-optimization · #42
+Contagem de reviews nao prova falha do cron viral: virais ficam em viral_articles. Checar a tabela certa antes de concluir que o cron nao publicou.
+  Evidência: Inspect 42051850253: viral_articles total 22 e publicacao 2026-11-05T06:56Z; reviews seguiam 124 porque sao tabelas distintas
+  Confiança: 0.90 · sucesso
