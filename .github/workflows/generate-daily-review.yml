@@ -94,3 +94,5 @@ jobs:
             echo "Running scheduled daily review generation. New content is saved as a draft for editorial approval."
             npx tsx scripts/generate-daily-review.ts
           fi
+      - name: Publish ML-sourced review drafts
+        run: npx tsx scripts/publish-ml-reviews.ts
