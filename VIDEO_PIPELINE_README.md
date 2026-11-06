@@ -71,6 +71,7 @@ PEXELS_API_KEY
 YOUTUBE_CLIENT_ID
 YOUTUBE_CLIENT_SECRET
 YOUTUBE_REFRESH_TOKEN
+YOUTUBE_DATA_API_KEY
 NEXT_PUBLIC_SITE_URL
 GITHUB_ACTIONS_TOKEN (PAT com permissão repo)
 ```
@@ -166,6 +167,19 @@ curl -X POST https://seu-dominio.vercel.app/api/video/process \
 - Roda a cada 6 horas automaticamente
 - Processa até 3 vídeos pendentes por execução
 - Trigger manual: Actions > Render & Publish Videos > Run workflow
+
+### Pin manual do comentário CTA (YouTube)
+A YouTube Data API v3 não suporta fixação de comentários (não existe método de pin). O comentário CTA com o link de afiliado é postado automaticamente, mas o operador precisa fixá-lo manualmente após a publicação:
+
+1. Abra o YouTube Studio (studio.youtube.com).
+2. Vá em **Conteúdo** → selecione o vídeo → aba **Comentários**.
+3. Encontre o comentário CTA (contém o link de afiliado).
+4. Clique no menu de três pontos do comentário → **Fixar** (Pin).
+5. Confirme.
+
+Um clique por vídeo. O link de afiliado permanece visível no comentário e na descrição independentemente do pin. Automação futura exigiria a API não-pública do YouTube Studio (fora do escopo).
+
+Setup da chave `YOUTUBE_DATA_API_KEY`: ver `docs/YOUTUBE_DATA_API_KEY_SETUP.md`.
 
 ## 💰 Custos (Todos Free Tier)
 
