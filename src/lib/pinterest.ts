@@ -370,6 +370,98 @@ export async function queuePublishedReviewPins(limit = 10) {
   return { queued: inserted.length, examined: (reviews || []).length, ignored: (reviews || []).length - inserted.length };
 }
 
+/**
+ * Queue traffic-driving pins from viral_articles (comparatives, lists)
+ * These are broader, shareable pins to attract new visitors.
+ */
+export async function queueTrafficPins(limit = 10) {
+  const supabase = getSupabase();
+  const { data: articles, error: articlesError } = await supabase
+    .from("viral_articles")
+    .select("id,slug,title,category,image_url,meta_title,meta_description,updated_at")
+    .not("published_at", "is", null)
+    .order("published_at", { ascending: false })
+    .limit(150);
+  if (articlesError) throw new Error("Não foi possível consultar artigos virais publicados.");
+
+  const { data: existing, error: queueError } = await supabase
+    .from("pinterest_scheduled_pins")
+    .select("review_slug,status,scheduled_at,published_at")
+    .order("scheduled_at", { ascending: false })
+    .limit(500);
+  if (queueError) throw new Error("Não foi possível consultar a fila de Pins.");
+
+  const rows = existing || [];
+  const existingSlugs = new Set(rows.map((row) => String(row.review_slug || "")));
+  // Also check for traffic pins by slug prefix
+  const trafficSlugPrefix = "traffic-";
+  const existingTrafficSlugs = new Set(rows
+    .filter((r) => String(r.review_slug || "").startsWith(trafficSlugPrefix))
+    .map((r) => String(r.review_slug || "")));
+
+  const allowed = (articles || []).filter((article) => {
+    const trafficSlug = trafficSlugPrefix + article.slug;
+    if (existingSlugs.has(trafficSlug) || existingTrafficSlugs.has(trafficSlug)) return false;
+    if (typeof article.image_url !== "string" || !article.image_url.trim()) return false;
+    try {
+      const image = new URL(article.image_url);
+      if (image.protocol !== "https:") return false;
+    } catch {
+      return false;
+    }
+    return true;
+  });
+
+  const candidateLimit = Math.max(1, Math.min(limit, 25));
+  const candidates = allowed.slice(0, candidateLimit);
+  const nowMs = Date.now();
+  const PIN_INTERVAL_MS = 60 * 60 * 1000;
+  let lastTime = nowMs;
+  for (const row of rows) {
+    if (row.status === "pending" || row.status === "publishing") {
+      const timestamp = new Date(row.scheduled_at).getTime();
+      if (Number.isFinite(timestamp) && timestamp > lastTime) lastTime = timestamp;
+    }
+    if (row.status === "published" && row.published_at) {
+      const timestamp = new Date(row.published_at).getTime() + PIN_INTERVAL_MS;
+      if (Number.isFinite(timestamp) && timestamp > lastTime) lastTime = timestamp;
+    }
+  }
+
+  const inserted = candidates.map((article, index) => {
+    const trafficSlug = trafficSlugPrefix + article.slug;
+    const titleSource = typeof article.meta_title === "string" && article.meta_title.trim()
+      ? article.meta_title.trim()
+      : String(article.title || article.slug) + " | guia completo";
+    const descriptionSource = typeof article.meta_description === "string" && article.meta_description.trim()
+      ? article.meta_description.trim()
+      : "Confira o guia completo de " + String(article.title || article.slug) + " no Vetor.blog. Compare opções e tome a melhor decisão.";
+    const scheduledAt = new Date(lastTime + (index + 1) * PIN_INTERVAL_MS).toISOString();
+    return {
+      id: randomUUID(),
+      review_id: String(article.id || article.slug),
+      review_slug: trafficSlug,
+      content_type: "traffic",
+      title: titleSource.slice(0, 100),
+      description: descriptionSource.slice(0, 500),
+      image_url: String(article.image_url),
+      link_url: "https://www.vetor.blog/comparativos/" + encodeURIComponent(String(article.slug)) + "/",
+      scheduled_at: scheduledAt,
+      status: "pending",
+      attempts: 0,
+      updated_at: new Date().toISOString(),
+    };
+  });
+
+  if (inserted.length) {
+    const { error } = await supabase
+      .from("pinterest_scheduled_pins")
+      .upsert(inserted, { onConflict: "review_slug", ignoreDuplicates: true });
+    if (error) throw new Error("Não foi possível adicionar os Pins de tráfego à fila.");
+  }
+  return { queued: inserted.length, examined: (articles || []).length, ignored: (articles || []).length - inserted.length };
+}
+
 export async function publishDuePinterestPins(limit = 1) {
   const supabase = getSupabase();
   const now = new Date();

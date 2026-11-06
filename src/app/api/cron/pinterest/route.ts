@@ -4,6 +4,7 @@ import {
   getPinterestConnectionInfo,
   publishDuePinterestPins,
   queuePublishedReviewPins,
+  queueTrafficPins,
 } from "@/lib/pinterest";
 
 export const dynamic = "force-dynamic";
@@ -24,11 +25,16 @@ export async function GET(request: NextRequest) {
       }, { status: 200 });
     }
 
-    const queued = await queuePublishedReviewPins(15);
-    const published = await publishDuePinterestPins(15);
+    const queuedReviews = await queuePublishedReviewPins(15);
+    const queuedTraffic = await queueTrafficPins(15);
+    const published = await publishDuePinterestPins(30);
     return NextResponse.json({
       success: true,
-      queued: queued.queued,
+      queued: {
+        reviews: queuedReviews.queued,
+        traffic: queuedTraffic.queued,
+        total: queuedReviews.queued + queuedTraffic.queued,
+      },
       processed: published.processed,
       results: published.results,
       ranAt: new Date().toISOString(),
