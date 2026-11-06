@@ -1,6 +1,7 @@
 import { execFileSync, execSync, spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { buildCaptionEntries, buildNarrationTimings, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat, stripSpokenUrls } from './video-format.mjs';
 import { renderWithHyperFrames } from '../hyperframes/render-video.mjs';
 
@@ -463,7 +464,72 @@ function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId)
   if (fs.existsSync(framesDir)) fs.rmSync(framesDir, { recursive: true, force: true });
 }
 
-async function uploadToYouTube(videoPath, title, description, tags, commentText) {
+export function computePublishSlot(usedPublishAts = [], now = new Date(), slotsEnv = process.env.PUBLISH_SLOTS) {
+  const slots = String(slotsEnv || '10:00,11:30,13:00,14:30,16:00,17:30,19:00,20:30,21:30,22:30')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const brtParts = (date) => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(date);
+    const get = (type) => parts.find((part) => part.type === type)?.value || '00';
+    let hour = get('hour');
+    if (hour === '24') hour = '00';
+    return {
+      year: get('year'), month: get('month'), day: get('day'),
+      hour, minute: get('minute'),
+    };
+  };
+
+  const slotMinutes = (slot) => {
+    const [hour, minute] = String(slot).split(':').map((value) => Number(value));
+    return (Number.isFinite(hour) ? hour : 0) * 60 + (Number.isFinite(minute) ? minute : 0);
+  };
+
+  const today = brtParts(now instanceof Date ? now : new Date(now));
+  const todayKey = `${today.year}-${today.month}-${today.day}`;
+  const nowMinutes = Number(today.hour) * 60 + Number(today.minute);
+
+  const usedToday = new Set();
+  for (const iso of (Array.isArray(usedPublishAts) ? usedPublishAts : [])) {
+    try {
+      const parts = brtParts(new Date(iso));
+      const key = `${parts.year}-${parts.month}-${parts.day}`;
+      if (key === todayKey) {
+        usedToday.add(`${parts.hour.padStart(2, '0')}:${parts.minute.padStart(2, '0')}`);
+      }
+    } catch {
+      // ignore invalid entries
+    }
+  }
+
+  let chosenDate = todayKey;
+  let chosenTime = null;
+  for (const slot of slots) {
+    if (usedToday.has(slot)) continue;
+    if (slotMinutes(slot) <= nowMinutes) continue;
+    chosenTime = slot;
+    break;
+  }
+
+  if (!chosenTime) {
+    const tomorrow = brtParts(new Date((now instanceof Date ? now : new Date(now)).getTime() + 24 * 60 * 60 * 1000));
+    chosenDate = `${tomorrow.year}-${tomorrow.month}-${tomorrow.day}`;
+    chosenTime = slots.length ? slots[0] : '10:00';
+  }
+
+  const [hour, minute] = String(chosenTime).split(':');
+  const paddedHour = String(hour).padStart(2, '0');
+  const paddedMinute = String(minute).padStart(2, '0');
+  return new Date(`${chosenDate}T${paddedHour}:${paddedMinute}:00-03:00`).toISOString();
+}
+
+export async function uploadToYouTube(videoPath, title, description, tags, commentText, publishAtIso) {
+  const resolvedPublishAt = String(publishAtIso || '').trim() || new Date().toISOString();
 
   try {
     const youtube = await createYouTubeClient();
@@ -480,7 +546,8 @@ async function uploadToYouTube(videoPath, title, description, tags, commentText)
           defaultAudioLanguage: 'pt',
         },
         status: {
-          privacyStatus: 'public',
+          privacyStatus: 'private',
+          publishAt: resolvedPublishAt,
           selfDeclaredMadeForKids: false,
         },
       },
@@ -494,23 +561,23 @@ async function uploadToYouTube(videoPath, title, description, tags, commentText)
       throw new Error('A API do YouTube não retornou ID para o vídeo enviado.');
     }
 
-    // Confirma na API que o recurso existe e está público; não confiar apenas no upload request.
-    let confirmedPublicVideo = null;
+    // Confirma na API que o recurso existe e está privado com publishAt agendado; não confiar apenas no upload request.
+    let confirmedPrivateVideo = null;
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       const listing = await youtube.videos.list({
         part: ['id', 'status'],
         id: [videoId],
       });
-      confirmedPublicVideo = (listing.data.items || []).find(
-        (item) => item.id === videoId && item.status?.privacyStatus === 'public'
+      confirmedPrivateVideo = (listing.data.items || []).find(
+        (item) => item.id === videoId && item.status?.privacyStatus === 'private' && item.status?.publishAt
       ) || null;
-      if (confirmedPublicVideo) break;
+      if (confirmedPrivateVideo) break;
       if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 2000));
     }
-    if (!confirmedPublicVideo) {
+    if (!confirmedPrivateVideo) {
       throw new Error(
         'Upload aceito, mas a API do YouTube não confirmou o vídeo ' + videoId +
-        ' com privacyStatus=public após três consultas.'
+        ' com privacyStatus=private e publishAt após três consultas.'
       );
     }
 
@@ -524,7 +591,7 @@ async function uploadToYouTube(videoPath, title, description, tags, commentText)
       commentError = (error instanceof Error ? error.message : String(error)).slice(0, 3000);
       console.warn('[CTA_COMMENT_PENDING] video_id=' + videoId + ' reason=' + commentError.slice(0, 700));
     }
-    console.log('   📤 YouTube confirmado como público: ' + videoUrl);
+    console.log('   📤 YouTube confirmado como privado com publishAt=' + resolvedPublishAt + ': ' + videoUrl);
     return { videoId, videoUrl, commentId, commentError };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -963,7 +1030,21 @@ async function processVideo(video) {
       ...terms,
     ])].filter(Boolean).slice(0, 30);
 
-    const ytResult = await uploadToYouTube(videoPath, ytTitle, ytDescription, ytTags, ytCommentText);
+    const usedPublishAts = await (async () => {
+      try {
+        const result = await queueApi('publishSlots');
+        return Array.isArray(result.publish_at) ? result.publish_at : [];
+      } catch (error) {
+        console.warn('[PUBLISH_SLOT] Não foi possível consultar slots existentes; assumindo nenhum em uso: ' +
+          (error instanceof Error ? error.message : String(error)));
+        return [];
+      }
+    })();
+    const publishAtIso = computePublishSlot(usedPublishAts);
+    await updateVideoStatus(video.id, { publish_at: publishAtIso });
+    console.log('[PUBLISH_SLOT] queue_id=' + video.id + ' publishAt=' + publishAtIso);
+
+    const ytResult = await uploadToYouTube(videoPath, ytTitle, ytDescription, ytTags, ytCommentText, publishAtIso);
     if (!ytResult?.videoId || !ytResult?.videoUrl) {
       throw new Error('O YouTube não confirmou a criação do vídeo; item não marcado como concluído.');
     }
@@ -1140,7 +1221,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}

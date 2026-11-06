@@ -59,6 +59,7 @@ const UPDATABLE_FIELDS = new Set([
   "publication_mode",
   "affiliate_url",
   "shortened_affiliate_url",
+  "publish_at",
 ]);
 
 
@@ -910,6 +911,19 @@ export async function POST(request: NextRequest) {
         .limit(limit);
       if (error) throw error;
       return NextResponse.json({ success: true, videos: data || [] });
+    }
+
+    if (action === "publishSlots") {
+      const dayStart = getSaoPauloDayStartIso();
+      const dayEnd = new Date(new Date(dayStart).getTime() + 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase
+        .from("video_queue")
+        .select("publish_at")
+        .gte("publish_at", dayStart)
+        .lt("publish_at", dayEnd);
+      if (error) throw error;
+      const slots = (data || []).map((row: any) => row.publish_at).filter(Boolean);
+      return NextResponse.json({ success: true, publish_at: slots });
     }
 
     if (action === "recent") {
