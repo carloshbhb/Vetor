@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       run_mode:
-        description: 'Batch publishes up to 5 queued videos; single retries one specific queue item.'
+        description: 'Batch publishes up to 10 queued videos; single retries one specific queue item.'
         required: true
         default: batch
         type: choice
@@ -155,7 +155,7 @@ jobs:
           pending="$(jq -r '(.videos // []) | length' batch-peek.json)"
           slots=$((remaining - pending))
           if [ "$slots" -le 0 ]; then
-            echo "Batch already full or daily 15-video quota reached; no new queue entries created."
+            echo "Batch already full or daily 10-video quota reached; no new queue entries created."
             exit 0
           fi
 
@@ -179,6 +179,8 @@ jobs:
           MAX_VIDEOS: '10'
           EDGE_TTS_RATE: "${{ vars.EDGE_TTS_RATE || '+5%' }}"
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}
+          GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
           VIDEO_RENDER_ENGINE: remotion
           HYPERFRAMES_REMOTION_FALLBACK: 'true'
           HYPERFRAMES_BIN: hyperframes

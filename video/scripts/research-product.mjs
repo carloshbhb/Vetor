@@ -100,6 +100,10 @@ export async function researchProduct({ title, category } = {}) {
   const googleKey = getEnv('GOOGLE_AI_API_KEY');
   const youtubeKey = getEnv('YOUTUBE_DATA_API_KEY');
 
+  if (!googleKey && !youtubeKey) {
+    throw new Error('No research API keys configured (GOOGLE_AI_API_KEY or YOUTUBE_DATA_API_KEY).');
+  }
+
   let serp = null;
   let youtube = null;
 
@@ -119,6 +123,13 @@ export async function researchProduct({ title, category } = {}) {
     );
   }
   await Promise.all(tasks);
+
+  const hasSerpFindings = serp && !serp.error && (extractSerpText(serp) || '').length > 0;
+  const hasYouTubeFindings = youtube && !youtube.error && extractYouTubeItems(youtube).length > 0;
+
+  if (!hasSerpFindings && !hasYouTubeFindings) {
+    throw new Error('Research produced no usable findings (SERP and YouTube both empty or errored).');
+  }
 
   const brief = buildBrief(productTitle, productCategory, serp, youtube);
   return {

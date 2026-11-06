@@ -1190,7 +1190,7 @@ async function main() {
   const videoId = process.env.VIDEO_ID;
   const requestedLimit = videoId
     ? 1
-    : Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 5, manualRun ? 5 : Number(quota.remaining));
+    : Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 10, manualRun ? 10 : Number(quota.remaining));
   // Recover only render-timeout failures that definitely did not upload to YouTube.
   if (!videoId && requestedLimit > 0) {
     const remotionRecovery = await queueApi('retryRemotionTimeouts', { limit: requestedLimit });

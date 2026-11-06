@@ -95,4 +95,5 @@ jobs:
             npx tsx scripts/generate-daily-review.ts
           fi
       - name: Publish ML-sourced review drafts
+        if: always()
         run: npx tsx scripts/publish-ml-reviews.ts
