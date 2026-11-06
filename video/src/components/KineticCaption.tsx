@@ -4,6 +4,7 @@ import { theme } from '../styles/theme';
 import { fonts } from '../styles/fonts';
 import { selectCaptionWindow } from '../utils/caption-window';
 import { SHORTS_CAPTION_BAND } from '../utils/shorts-safe-zone';
+import { LANDSCAPE_CAPTION_BAND } from '../utils/landscape-safe-zone';
 
 export type CaptionWord = { text: string; start: number; end: number };
 
@@ -25,7 +26,6 @@ type KineticCaptionProps = {
 };
 
 const HIGHLIGHT = '#FFD43B';
-const LANDSCAPE_BAND_HEIGHT = 104;
 const OUTLINE =
   '0 0 0 #000, 3px 0 0 #050912, -3px 0 0 #050912, 0 3px 0 #050912, 0 -3px 0 #050912, 2px 2px 0 #050912, -2px 2px 0 #050912, 2px -2px 0 #050912, -2px -2px 0 #050912, 0 6px 14px rgba(0,0,0,.55)';
 
@@ -114,17 +114,17 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
     }
   }
 
-  const bandHeight = landscape ? LANDSCAPE_BAND_HEIGHT : SHORTS_CAPTION_BAND.height;
-  const bandBottom = landscape ? 105 : compositionHeight - SHORTS_CAPTION_BAND.bottom;
+  const bandHeight = landscape ? LANDSCAPE_CAPTION_BAND.height : SHORTS_CAPTION_BAND.height;
+  const bandBottom = landscape ? LANDSCAPE_CAPTION_BAND.bottom : compositionHeight - SHORTS_CAPTION_BAND.bottom;
 
   return (
     <div
       style={{
         position: 'absolute',
-        bottom: windowed ? bandBottom : landscape ? 105 : 420,
+        bottom: windowed ? bandBottom : landscape ? LANDSCAPE_CAPTION_BAND.bottom : 420,
         height: windowed ? bandHeight : undefined,
-        left: landscape ? 135 : 70,
-        right: landscape ? 390 : 170,
+        left: landscape ? LANDSCAPE_CAPTION_BAND.left : 70,
+        right: landscape ? LANDSCAPE_CAPTION_BAND.right : 170,
         zIndex: 100,
         opacity: opacity * chunkOpacity,
         display: 'flex',
@@ -142,7 +142,7 @@ export const KineticCaption: React.FC<KineticCaptionProps> = ({
           padding: landscape ? '14px 22px' : '20px 28px 24px',
           width: '100%',
           height: windowed ? '100%' : undefined,
-          maxWidth: landscape ? 1160 : 840,
+          maxWidth: landscape ? LANDSCAPE_CAPTION_BAND.maxWidth : 840,
           minWidth: 0,
           boxSizing: 'border-box',
           display: windowed ? 'flex' : undefined,

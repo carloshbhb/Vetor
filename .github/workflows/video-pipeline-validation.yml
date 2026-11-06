@@ -59,6 +59,7 @@ jobs:
         run: |
           node --import tsx scripts/visual-storyboard.test.mjs
           node --import tsx scripts/shorts-safe-zone-layout.test.mjs
+          node --import tsx scripts/landscape-safe-zone-layout.test.mjs
           node --import tsx scripts/caption-window.test.mjs
           node --import tsx scripts/scene-headline.test.mjs
           node scripts/media-source.test.mjs
@@ -137,7 +138,7 @@ jobs:
             ],
             "callToAction": "Confira a análise completa.",
             "subtitleEntries": [{"start": 2, "end": 11, "text": "Tela ampla e autonomia para a rotina. Compare as especificações e limitações com seu perfil de uso antes de decidir.", "segmentKind": "scene"}],
-            "brollVideos": [],
+            "brollVideos": ["/smoke-broll.mp4"],
             "totalDuration": 12,
             "fps": 30
           }
