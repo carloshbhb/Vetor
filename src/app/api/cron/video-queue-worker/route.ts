@@ -926,6 +926,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, publish_at: slots });
     }
 
+    if (action === "getReviewResearch" || action === "reviewResearchGet") {
+      const slug = typeof body.slug === "string" ? body.slug.trim() : "";
+      if (!slug) return NextResponse.json({ success: false, error: "slug é obrigatório." }, { status: 400 });
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("research")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (error) throw error;
+      return NextResponse.json({ success: true, research: data?.research ?? null });
+    }
+
+    if (action === "setReviewResearch" || action === "reviewResearchSet") {
+      const slug = typeof body.slug === "string" ? body.slug.trim() : "";
+      if (!slug) return NextResponse.json({ success: false, error: "slug é obrigatório." }, { status: 400 });
+      const research = body.research ?? null;
+      const { error } = await supabase
+        .from("reviews")
+        .update({ research })
+        .eq("slug", slug);
+      if (error) throw error;
+      return NextResponse.json({ success: true });
+    }
+
     if (action === "recent") {
       const { data, error } = await supabase
         .from("video_queue")

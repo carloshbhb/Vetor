@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildCaptionEntries, buildNarrationTimings, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat, stripSpokenUrls } from './video-format.mjs';
 import { renderWithHyperFrames } from '../hyperframes/render-video.mjs';
+import { researchProduct } from './research-product.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -464,6 +465,15 @@ function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId)
   if (fs.existsSync(framesDir)) fs.rmSync(framesDir, { recursive: true, force: true });
 }
 
+export function isResearchExpired(research, maxAgeDays = 30) {
+  if (!research || typeof research !== 'object') return true;
+  const fetchedAt = research.fetched_at;
+  if (typeof fetchedAt !== 'string' || !fetchedAt.trim()) return true;
+  const ts = Date.parse(fetchedAt);
+  if (!Number.isFinite(ts)) return true;
+  return (Date.now() - ts) > maxAgeDays * 24 * 60 * 60 * 1000;
+}
+
 export function computePublishSlot(usedPublishAts = [], now = new Date(), slotsEnv = process.env.PUBLISH_SLOTS) {
   const slots = String(slotsEnv || '10:00,11:30,13:00,14:30,16:00,17:30,19:00,20:30,21:30,22:30')
     .split(',')
@@ -761,6 +771,16 @@ async function fetchPexelsBroll(scenes, category, videoId, videoFormat = "short"
   console.log("[BROLL] " + downloaded + " clipes únicos associados a cenas; limite=5.");
   return alignedSources;
 }
+export function deriveReviewSlug(reviewUrl) {
+  try {
+    const pathname = new URL(String(reviewUrl || '')).pathname;
+    const match = pathname.match(/^\/reviews\/([^/]+)\/?$/);
+    return match ? decodeURIComponent(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function processVideo(video) {
   console.log(`\n🎬 Processando: ${video.product_title}`);
   console.log(`   ID: ${video.id}`);
@@ -772,6 +792,35 @@ async function processVideo(video) {
   let temporaryVisualAssets = [];
   let processingStage = 'roteiro';
   console.log("   Formato: " + (videoFormat === "long" ? "vídeo longo 16:9" : "Short vertical"));
+
+  let researchBrief = null;
+  const reviewSlug = deriveReviewSlug(video.review_url);
+  if (reviewSlug) {
+    let research = null;
+    try {
+      const cached = await queueApi('getReviewResearch', { slug: reviewSlug });
+      research = cached && typeof cached === 'object' ? cached.research : null;
+    } catch (error) {
+      console.warn('[RESEARCH] Nao foi possivel ler cache de research: ' +
+        (error instanceof Error ? error.message : String(error)).slice(0, 240));
+    }
+    const expired = isResearchExpired(research);
+    if (expired) {
+      try {
+        research = await researchProduct({ title: video.product_title, category: video.product_category });
+        await queueApi('setReviewResearch', { slug: reviewSlug, research });
+        console.log('[RESEARCH] Pesquisa gerada e cacheada para slug=' + reviewSlug);
+      } catch (error) {
+        const message = (error instanceof Error ? error.message : String(error)).slice(0, 500);
+        console.error('[RESEARCH_FAILED] slug=' + reviewSlug + ' reason=' + message);
+        await updateVideoStatus(video.id, { status: 'pending', error_message: '[RESEARCH_FAILED] ' + message });
+        return false;
+      }
+    } else {
+      console.log('[RESEARCH] Cache valido reutilizado para slug=' + reviewSlug);
+    }
+    researchBrief = research && typeof research.brief === 'string' ? research.brief : null;
+  }
 
   try {
     let script = null;
@@ -786,7 +835,7 @@ async function processVideo(video) {
           'Authorization': 'Bearer ' + cronSecret,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ videoId: video.id }),
+        body: JSON.stringify({ videoId: video.id, researchBrief }),
         signal: AbortSignal.timeout(55000),
       });
       const payload = await response.json().catch(() => ({}));

@@ -297,6 +297,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const researchBrief = typeof body.researchBrief === "string" ? body.researchBrief : undefined;
     const script = await generateVideoScript({
       title: String(video.product_title || reviewFacts?.product || "Produto de tecnologia"),
       category: String(reviewFacts?.category || video.product_category || "Tecnologia"),
@@ -311,6 +312,7 @@ export async function POST(request: NextRequest) {
       creativeAngle,
       recentHooksToAvoid,
       videoFormat,
+      researchBrief,
     });
     const minScenes = videoFormat === "long" ? 8 : 6;
     const maxScenes = videoFormat === "long" ? 10 : 7;
