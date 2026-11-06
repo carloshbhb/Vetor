@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 
-const API_BASE = "https://api.pinterest.com/v5";
-const TOKEN_URL = "https://api.pinterest.com/v5/oauth/token";
+const API_BASE = process.env.PINTEREST_API_BASE?.trim() || "https://api.pinterest.com/v5";
+const TOKEN_URL = process.env.PINTEREST_TOKEN_URL?.trim() || "https://api.pinterest.com/v5/oauth/token";
 const ACCESS_TOKEN_LIFETIME_SECONDS = 30 * 24 * 60 * 60;
 const TOKEN_REFRESH_SKEW_MS = 5 * 60 * 1000;
 const LEGACY_TOKEN_MAX_AGE_MS = 25 * 24 * 60 * 60 * 1000;
