@@ -20,7 +20,7 @@ export interface VideoScene {
   brollKeywords: string[];
 }
 
-interface ProductInfo {
+export interface ProductInfo {
   title: string;
   category: string;
   price: string;
@@ -30,9 +30,10 @@ interface ProductInfo {
   creativeAngle?: string;
   recentHooksToAvoid?: string[];
   videoFormat?: "short" | "long";
+  researchBrief?: string;
 }
 
-function buildScriptPrompt(product: ProductInfo): string {
+export function buildScriptPrompt(product: ProductInfo): string {
   const isLong = product.videoFormat === "long";
   const specs = product.specifications && Object.keys(product.specifications).length
     ? Object.entries(product.specifications).map(([key, value]) => "- " + key + ": " + value).join("\n")
@@ -53,7 +54,7 @@ function buildScriptPrompt(product: ProductInfo): string {
     "Formato: " + (isLong ? "Vídeo longo" : "Short"),
     "ESPECIFICAÇÕES DOCUMENTADAS:\n" + specs,
     "CONTEXTO EDITORIAL REAL:\n" + context,
-    "ÂNGULO NARRATIVO OBRIGATÓRIO:\n" + (product.creativeAngle || "Escolha o ângulo mais específico para este produto."),
+    "PESQUISA SERP + YOUTUBE:\n" + (product.researchBrief || "Não disponível."),    "ÂNGULO NARRATIVO OBRIGATÓRIO:\n" + (product.creativeAngle || "Escolha o ângulo mais específico para este produto."),
     "Esse ângulo deve guiar a abertura, ordem dos argumentos, exemplos e conclusão; não troque apenas o nome do produto num roteiro padrão.",
     "ABERTURAS RECENTES A NÃO IMITAR:\n" + hooks,
     "TOM E PRECISÃO: seja conversacional, idiomático e seguro. Varie cadência e construção. Evite propaganda, superlativos vazios, listas mecânicas e frases burocráticas. Não alegue testes ou experiências pessoais. Não invente especificações, compatibilidade, autonomia, desempenho, acessórios, avaliações ou preços. Se um dado faltar, diga exatamente o que o comprador deve confirmar. Cada cena acrescenta uma ideia nova e concreta.",
