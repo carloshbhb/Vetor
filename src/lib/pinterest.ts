@@ -378,11 +378,11 @@ export async function queueTrafficPins(limit = 10) {
   const supabase = getSupabase();
   const { data: articles, error: articlesError } = await supabase
     .from("viral_articles")
-    .select("id,slug,title,category,image_url,meta_title,meta_description,updated_at")
+    .select("slug,title,description,category,hero,seo_title,seo_description,updated_at,published_at")
     .not("published_at", "is", null)
     .order("published_at", { ascending: false })
     .limit(150);
-  if (articlesError) throw new Error("Não foi possível consultar artigos virais publicados.");
+  if (articlesError) throw new Error("Não foi possível consultar artigos virais publicados: " + articlesError.message);
 
   const { data: existing, error: queueError } = await supabase
     .from("pinterest_scheduled_pins")
@@ -399,12 +399,15 @@ export async function queueTrafficPins(limit = 10) {
     .filter((r) => String(r.review_slug || "").startsWith(trafficSlugPrefix))
     .map((r) => String(r.review_slug || "")));
 
+  // Extract image from hero.imageUrl
   const allowed = (articles || []).filter((article) => {
     const trafficSlug = trafficSlugPrefix + article.slug;
     if (existingSlugs.has(trafficSlug) || existingTrafficSlugs.has(trafficSlug)) return false;
-    if (typeof article.image_url !== "string" || !article.image_url.trim()) return false;
+    const hero = article.hero as { imageUrl?: string } | null;
+    const imageUrl = hero?.imageUrl;
+    if (!imageUrl || typeof imageUrl !== "string" || !imageUrl.trim()) return false;
     try {
-      const image = new URL(article.image_url);
+      const image = new URL(imageUrl);
       if (image.protocol !== "https:") return false;
     } catch {
       return false;
@@ -430,21 +433,23 @@ export async function queueTrafficPins(limit = 10) {
 
   const inserted = candidates.map((article, index) => {
     const trafficSlug = trafficSlugPrefix + article.slug;
-    const titleSource = typeof article.meta_title === "string" && article.meta_title.trim()
-      ? article.meta_title.trim()
+    const hero = article.hero as { imageUrl?: string } | null;
+    const imageUrl = hero?.imageUrl || "";
+    const titleSource = typeof article.seo_title === "string" && article.seo_title.trim()
+      ? article.seo_title.trim()
       : String(article.title || article.slug) + " | guia completo";
-    const descriptionSource = typeof article.meta_description === "string" && article.meta_description.trim()
-      ? article.meta_description.trim()
+    const descriptionSource = typeof article.seo_description === "string" && article.seo_description.trim()
+      ? article.seo_description.trim()
       : "Confira o guia completo de " + String(article.title || article.slug) + " no Vetor.blog. Compare opções e tome a melhor decisão.";
     const scheduledAt = new Date(lastTime + (index + 1) * PIN_INTERVAL_MS).toISOString();
     return {
       id: randomUUID(),
-      review_id: String(article.id || article.slug),
+      review_id: String(article.slug),
       review_slug: trafficSlug,
       content_type: "traffic",
       title: titleSource.slice(0, 100),
       description: descriptionSource.slice(0, 500),
-      image_url: String(article.image_url),
+      image_url: imageUrl,
       link_url: "https://www.vetor.blog/comparativos/" + encodeURIComponent(String(article.slug)) + "/",
       scheduled_at: scheduledAt,
       status: "pending",
@@ -457,7 +462,7 @@ export async function queueTrafficPins(limit = 10) {
     const { error } = await supabase
       .from("pinterest_scheduled_pins")
       .upsert(inserted, { onConflict: "review_slug", ignoreDuplicates: true });
-    if (error) throw new Error("Não foi possível adicionar os Pins de tráfego à fila.");
+    if (error) throw new Error("Não foi possível adicionar os Pins de tráfego à fila: " + error.message);
   }
   return { queued: inserted.length, examined: (articles || []).length, ignored: (articles || []).length - inserted.length };
 }
