@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
       }, { status: 200 });
     }
 
-    const queued = await queuePublishedReviewPins(1);
-    const published = await publishDuePinterestPins(1);
+    const queued = await queuePublishedReviewPins(15);
+    const published = await publishDuePinterestPins(15);
     return NextResponse.json({
       success: true,
       queued: queued.queued,

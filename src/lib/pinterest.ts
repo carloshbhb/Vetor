@@ -323,14 +323,16 @@ export async function queuePublishedReviewPins(limit = 10) {
   const candidateLimit = Math.max(1, Math.min(limit, 25));
   const candidates = allowed.slice(0, candidateLimit);
   const nowMs = Date.now();
-  let lastTime = nowMs - 24 * 60 * 60 * 1000;
+  // Space pins 1 hour apart (not 1 day) to allow 15 pins/day distribution.
+  const PIN_INTERVAL_MS = 60 * 60 * 1000;
+  let lastTime = nowMs;
   for (const row of rows) {
     if (row.status === "pending" || row.status === "publishing") {
       const timestamp = new Date(row.scheduled_at).getTime();
       if (Number.isFinite(timestamp) && timestamp > lastTime) lastTime = timestamp;
     }
     if (row.status === "published" && row.published_at) {
-      const timestamp = new Date(row.published_at).getTime() + 24 * 60 * 60 * 1000;
+      const timestamp = new Date(row.published_at).getTime() + PIN_INTERVAL_MS;
       if (Number.isFinite(timestamp) && timestamp > lastTime) lastTime = timestamp;
     }
   }
@@ -342,7 +344,7 @@ export async function queuePublishedReviewPins(limit = 10) {
     const descriptionSource = typeof review.meta_description === "string" && review.meta_description.trim()
       ? review.meta_description.trim()
       : "Confira a análise de " + String(review.product || review.slug) + " no Vetor.blog. Compare especificações e confirme preço, estoque e condições atuais antes de comprar.";
-    const scheduledAt = new Date(lastTime + (index + 1) * 24 * 60 * 60 * 1000).toISOString();
+    const scheduledAt = new Date(lastTime + (index + 1) * PIN_INTERVAL_MS).toISOString();
     return {
       id: randomUUID(),
       review_id: String(review.id || review.slug),
@@ -384,7 +386,7 @@ export async function publishDuePinterestPins(limit = 1) {
     .eq("status", "pending")
     .lte("scheduled_at", now.toISOString())
     .order("scheduled_at", { ascending: true })
-    .limit(Math.max(1, Math.min(limit, 3)));
+    .limit(Math.max(1, Math.min(limit, 15)));
   if (error) throw new Error("Não foi possível buscar Pins prontos para publicação.");
 
   const results: Array<{ slug: string; status: string; pinId?: string; error?: string }> = [];
