@@ -1,5 +1,5 @@
 name: Process Video Queue
-run-name: Publish video batch — up to 5 videos
+run-name: Publish video batch — up to 10 videos
 
 concurrency:
   group: vetor-production-video-queue
@@ -176,7 +176,7 @@ jobs:
           VETOR_SITE_URL: https://www.vetor.blog
           VIDEO_ID: ${{ github.event.inputs.video_id || '' }}
           MANUAL_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
-          MAX_VIDEOS: '5'
+          MAX_VIDEOS: '10'
           EDGE_TTS_RATE: "${{ vars.EDGE_TTS_RATE || '+5%' }}"
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           VIDEO_RENDER_ENGINE: remotion

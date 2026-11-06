@@ -17,9 +17,9 @@ on:
         default: '15'
         type: string
       review_runs:
-        description: 'How many draft review runs to queue after the refill (1-3)'
+        description: 'How many draft review runs to queue after the refill (~12/day)'
         required: true
-        default: '1'
+        default: '12'
         type: string
 
 permissions:
@@ -96,11 +96,11 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          REVIEW_RUNS: ${{ inputs.review_runs || '1' }}
+          REVIEW_RUNS: ${{ inputs.review_runs || '12' }}
         run: |
           set -euo pipefail
-          runs="${REVIEW_RUNS:-1}"
-          if [ "$runs" -gt 3 ]; then runs=3; fi
+          runs="${REVIEW_RUNS:-12}"
+          if [ "$runs" -gt 20 ]; then runs=20; fi
           for i in $(seq 1 "$runs"); do
             echo "Dispatching draft review run $i of $runs"
             gh workflow run generate-daily-review.yml --ref main -f dry_run=false
