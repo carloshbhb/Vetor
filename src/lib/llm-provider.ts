@@ -31,13 +31,43 @@ const DEFAULT_GROQ_MODEL = 'qwen/qwen3.8-27b';
 const DEFAULT_GROQ_FALLBACK_MODEL = 'openai/gpt-oss-120b';
 const DEFAULT_NVIDIA_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b';
 const DEFAULT_NVIDIA_FALLBACK_MODELS = [
+  'nvidia/nemotron-3.5-lightning-30b-a3b',
   'deepseek-ai/deepseek-v4.1-flash',
-  'nvidia/llama-3.1-nemotron-ultra-253b-v1',
   'z-ai/glm-5.3-flash',
 ];
 
 let cachedProviders: LLMProvider[] | null = null;
 let cachedOpenRouterFreeModels: { expiresAt: number; models: string[] } | null = null;
+const groqNextAllowedAtByModel = new Map<string, number>();
+
+export type GroqRequestPolicy = {
+  maxTokens: number;
+  minimumIntervalMs: number;
+};
+
+export function getGroqRequestPolicy(model: string, requestedMaxTokens: number): GroqRequestPolicy {
+  const requested = Math.max(1, Math.floor(Number(requestedMaxTokens) || 1));
+  if (model.startsWith('qwen/')) {
+    return { maxTokens: Math.min(requested, 900), minimumIntervalMs: 60_000 };
+  }
+  if (model.startsWith('openai/gpt-oss')) {
+    return { maxTokens: Math.min(requested, 1_300), minimumIntervalMs: 60_000 };
+  }
+  return { maxTokens: requested, minimumIntervalMs: 30_000 };
+}
+
+async function waitForGroqRequestSlot(model: string, deadline: number): Promise<boolean> {
+  const policy = getGroqRequestPolicy(model, Number.MAX_SAFE_INTEGER);
+  const nextAllowedAt = groqNextAllowedAtByModel.get(model) || 0;
+  const waitMs = Math.max(0, nextAllowedAt - Date.now());
+  if (Date.now() + waitMs > deadline - 5_000) return false;
+  if (waitMs > 0) {
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+  }
+  if (Date.now() >= deadline - 2_000) return false;
+  groqNextAllowedAtByModel.set(model, Date.now() + policy.minimumIntervalMs);
+  return true;
+}
 
 function isZeroPrice(value: string | number | undefined): boolean {
   return value !== undefined && Number(value) === 0;
@@ -296,11 +326,20 @@ export async function chatCompletion(params: {
       }
 
       for (let attempt = 0; attempt < requestedAttempts; attempt += 1) {
+        if (provider.provider === 'groq' && !(await waitForGroqRequestSlot(model, deadline))) {
+          lastFailure = 'Groq/' + model + ' sem janela de tokens disponível antes do limite desta geração';
+          console.warn('[LLM] ' + lastFailure + '; tentando o próximo fallback.');
+          break;
+        }
         const requestRemainingMs = deadline - Date.now();
         const timeoutMs = Math.floor(Math.min(requestTimeoutMs, requestRemainingMs - safetyReserve));
         if (timeoutMs < 2_000) break;
 
         try {
+          const groqPolicy = provider.provider === 'groq'
+            ? getGroqRequestPolicy(model, params.maxTokens ?? 3_000)
+            : null;
+          const requestedOutputTokens = groqPolicy?.maxTokens ?? (params.maxTokens ?? 3_000);
           const createParams: Record<string, unknown> = {
             model,
             messages: [
@@ -308,12 +347,12 @@ export async function chatCompletion(params: {
               { role: 'user', content: attempt === 0 ? params.userPrompt : correctionPrompt(params.userPrompt) },
             ],
             temperature: params.temperature ?? 0.6,
-            max_tokens: params.maxTokens ?? 3_000,
+            max_tokens: requestedOutputTokens,
           };
 
           if (provider.provider === 'groq') {
             // Groq's GPT-OSS endpoint uses max_completion_tokens (max_tokens is deprecated).
-            createParams.max_completion_tokens = params.maxTokens ?? 3_000;
+            createParams.max_completion_tokens = requestedOutputTokens;
             delete createParams.max_tokens;
             if (params.responseFormat) {
               createParams.response_format = params.responseFormat;

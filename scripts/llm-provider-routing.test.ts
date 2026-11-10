@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   buildLLMProviderOrder,
   OPENROUTER_FREE_MODEL_PRIORITY,
+  getGroqRequestPolicy,
   rankOpenRouterFreeModels,
 } from "../src/lib/llm-provider";
 
@@ -78,6 +80,21 @@ assert.ok(
 );
 
 assert.deepEqual(
+  getGroqRequestPolicy("qwen/qwen3.8-27b", 2600),
+  { maxTokens: 900, minimumIntervalMs: 60_000 },
+  "Qwen output must stay below the observed 1000-token-per-minute ceiling"
+);
+assert.deepEqual(
+  getGroqRequestPolicy("openai/gpt-oss-120b", 2600),
+  { maxTokens: 1_300, minimumIntervalMs: 60_000 },
+  "GPT-OSS output must be bounded and paced under the observed Groq TPM ceiling"
+);
+assert.deepEqual(
+  getGroqRequestPolicy("other/model", 2600),
+  { maxTokens: 2600, minimumIntervalMs: 30_000 },
+  "unknown Groq models keep caller output budgets with a conservative pacing interval"
+);
+assert.deepEqual(
   buildLLMProviderOrder(true, true, true),
   ["openrouter", "groq", "nvidia"],
   "fallback order must be OpenRouter, then Groq, then NVIDIA"
@@ -92,5 +109,9 @@ assert.deepEqual(
   ["nvidia"],
   "NVIDIA remains the final available fallback"
 );
+
+const llmProviderSource = readFileSync("src/lib/llm-provider.ts", "utf8");
+assert.match(llmProviderSource, /'nvidia\/nemotron-3\.5-lightning-30b-a3b'/);
+assert.doesNotMatch(llmProviderSource, /'nvidia\/llama-3\.1-nemotron-ultra-253b-v1'/);
 
 console.log("LLM provider routing tests passed");

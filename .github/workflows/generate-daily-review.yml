@@ -35,7 +35,7 @@ jobs:
       ML_TRACKING_ID: carloshbhb
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
       NVIDIA_MODEL: nvidia/nemotron-3-ultra-550b-a55b
-      NVIDIA_FALLBACK_MODEL: deepseek-ai/deepseek-v4.1-flash
+      NVIDIA_FALLBACK_MODEL: nvidia/nemotron-3.5-lightning-30b-a3b
       REVIEW_GENERATION_MAX_ATTEMPTS: '4'
       # Scheduled runs generate a draft; manual dispatch defaults to dry-run unless deliberately disabled.
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}

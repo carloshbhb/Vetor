@@ -551,7 +551,22 @@ export async function generateReview(product: {
       .replace(/&nbsp;/gi, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    const visibleContent = visibleText(generatedContent);
+    let visibleContent = visibleText(generatedContent);
+    const normalizeEditorialIdentity = (value: string) =>
+      value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const normalizedProductTitle = normalizeEditorialIdentity(product.title.trim());
+    if (normalizedProductTitle && !normalizeEditorialIdentity(visibleContent).includes(normalizedProductTitle)) {
+      const safeProductTitle = product.title
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+      generatedContent = '<p>Este review analisa ' + safeProductTitle +
+        ', considerando as características documentadas do modelo, os critérios de escolha e os pontos que o comprador deve conferir antes de decidir.</p>\n' +
+        generatedContent;
+      visibleContent = visibleText(generatedContent);
+    }
     const visibleWordCount = visibleContent ? visibleContent.split(/\s+/).length : 0;
     const headingCount = (generatedContent.match(/<h[23]\b/gi) ?? []).length;
     const paragraphCount = (generatedContent.match(/<p\b/gi) ?? []).length;
