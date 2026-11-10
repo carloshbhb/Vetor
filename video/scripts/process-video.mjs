@@ -1229,25 +1229,15 @@ async function main() {
 
     if (videos.length < limit && limit > 0) {
       const slotsNeeded = limit - videos.length;
-      console.log('Fila abaixo do lote solicitado (' + videos.length + '/' + limit + '); completando com reviews e comparativos publicados.');
+      console.log('Fila abaixo do lote solicitado (' + videos.length + '/' + limit + '); completando exclusivamente com reviews da Lista Social do Mercado Livre.');
       let queuedFromReviews = 0;
       try {
         const refill = await queueApi('queueFromReviews', { limit: slotsNeeded });
         queuedFromReviews = Math.min(slotsNeeded, Math.max(0, Number(refill.queued) || 0));
-        console.log(`Reposição da fila: ${queuedFromReviews} review(s) adicionado(s).`);
+        console.log(`Reposição da fila: ${queuedFromReviews} vídeo(s) longo(s) da Lista Social adicionado(s).`);
       } catch (error) {
         console.warn('[QUEUE_REFILL] Não foi possível adicionar reviews: ' +
           (error instanceof Error ? error.message : String(error)));
-      }
-      const comparisonLimit = Math.max(0, slotsNeeded - queuedFromReviews);
-      if (comparisonLimit > 0) {
-        try {
-          const refill = await queueApi('queueFromComparatives', { limit: comparisonLimit });
-          console.log(`Reposição da fila: ${Number(refill.queued) || 0} comparativo(s) adicionado(s).`);
-        } catch (error) {
-          console.warn('[QUEUE_REFILL] Não foi possível adicionar comparativos: ' +
-            (error instanceof Error ? error.message : String(error)));
-        }
       }
       videos = await getPendingVideos(limit, manualRun);
     }

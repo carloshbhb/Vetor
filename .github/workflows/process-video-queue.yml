@@ -1,5 +1,5 @@
 name: Process Video Queue
-run-name: Publish video batch — up to 10 videos
+run-name: Publish video batch — up to 5 videos
 
 concurrency:
   group: vetor-production-video-queue
@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       run_mode:
-        description: 'Batch publishes up to 10 queued videos; single retries one specific queue item.'
+        description: 'Batch publishes up to 5 queued videos; single retries one specific queue item.'
         required: true
         default: batch
         type: choice
@@ -150,6 +150,11 @@ jobs:
             fi
           }
 
+          # Retry failed items only when no completed upload of the same format exists.
+          call_api "retrySafeFailed" 5 retry-safe-failed.json
+          retried_failed="$(jq -r '.retried // 0' retry-safe-failed.json)"
+          echo "Safe failed retries restored: $retried_failed"
+
           # Peek without changing status. Existing due items consume the five-slot batch first.
           call_api "next" 5 batch-peek.json
           remaining="$(jq -r 'if (.remaining // 0) > 0 then ([5, (.remaining|tonumber)] | min) else 0 end' batch-peek.json)"
@@ -162,22 +167,15 @@ jobs:
 
           call_api "queueFromReviews" "$slots" queue-reviews.json
           queued_reviews="$(jq -r '.queued // 0' queue-reviews.json)"
-          slots=$((slots - queued_reviews))
 
-          queued_comparatives=0
-          if [ "$slots" -gt 0 ]; then
-            call_api "queueFromComparatives" "$slots" queue-comparatives.json
-            queued_comparatives="$(jq -r '.queued // 0' queue-comparatives.json)"
-          fi
-
-          echo "Queue feeder: reviews=$queued_reviews comparatives=$queued_comparatives; total=$((queued_reviews + queued_comparatives)); batch cap=5; daily cap=15."
+          echo "Social List long-form queue: $queued_reviews item(s); batch cap=5; daily cap=15."
       - name: Render, describe, and upload videos
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
           VIDEO_ID: ${{ github.event.inputs.video_id || '' }}
           MANUAL_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
-          MAX_VIDEOS: '10'
+          MAX_VIDEOS: '5'
           EDGE_TTS_RATE: "${{ vars.EDGE_TTS_RATE || '+5%' }}"
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}

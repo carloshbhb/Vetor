@@ -16,6 +16,9 @@ type ExistingReview = {
   product: string | null;
   status: string | null;
   content_type: string | null;
+  category?: string | null;
+  price_new?: string | null;
+  image_url?: string | null;
 };
 
 function isHttpUrl(value: unknown): value is string {
@@ -104,6 +107,7 @@ type AffiliateMatchSource = {
     slug: string | null;
     destination_url: string | null;
     source_type: string | null;
+    source_ref: string | null;
     status: string | null;
     priority: number | null;
   } | null;
@@ -118,6 +122,38 @@ type DiscoveryResult = {
   skippedUnsafe: number;
   detailErrors: number;
 };
+
+const REVIEW_FAILURE_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
+function socialListItemId(value: unknown): string {
+  const match = String(value || '').match(/MLB-?(\d+)/i);
+  return match ? 'MLB' + match[1] : '';
+}
+
+function isReviewFailureCoolingDown(notes: unknown, now = Date.now()): boolean {
+  const match = String(notes || '').match(/\[review-gen-failed-at=([^\]]+)\]/i);
+  if (!match) return false;
+  const failedAt = Date.parse(match[1]);
+  return Number.isFinite(failedAt) && now - failedAt < REVIEW_FAILURE_COOLDOWN_MS;
+}
+
+async function recordReviewGenerationFailure(
+  supabase: NonNullable<ReturnType<typeof getSupabaseServiceKeyClient>>,
+  link: ProductLink,
+  reason: string
+): Promise<void> {
+  const cleaned = String(link.notes || '').replace(/\[review-gen-failed-at=[^\]]+\]/gi, '').trim();
+  const notes = [cleaned, '[review-gen-failed-at=' + new Date().toISOString() + ']'].filter(Boolean).join(' ');
+  const { error } = await supabase.from('product_links')
+    .update({ notes, updated_at: new Date().toISOString() })
+    .eq('id', link.id);
+  if (error) {
+    console.warn('[review-generation] could not persist retry cooldown for ' + link.product_name + ': ' + error.message);
+  } else {
+    link.notes = notes;
+    console.warn('[review-generation] cooldown registered for ' + link.product_name + ': ' + reason.slice(0, 240));
+  }
+}
 
 function isHttpsUrl(value: unknown): value is string {
   if (!isHttpUrl(value)) return false;
@@ -378,7 +414,7 @@ async function discoverAffiliateBackedProducts(
 
   const { data, error } = await supabase
     .from('affiliate_link_ml_matches')
-    .select('affiliate_link_id,matched_item_id,matched_product_id,matched_title,matched_url,match_score,match_status,affiliate_links!inner(id,name,category,slug,destination_url,source_type,status,priority)')
+    .select('affiliate_link_id,matched_item_id,matched_product_id,matched_title,matched_url,match_score,match_status,affiliate_links!inner(id,name,category,slug,destination_url,source_type,source_ref,status,priority)')
     .eq('match_status', 'matched')
     .order('match_score', { ascending: false })
     .limit(500);
@@ -415,17 +451,73 @@ async function discoverAffiliateBackedProducts(
   }
 
   for (const row of unique.values()) {
-    if (result.candidates.length >= candidateLimit) break;
     const source = row.affiliate_links;
     if (!source) continue;
 
     const name = String(source.name || '').trim();
     const expectedSlug = slugifyEditorialTitle(name);
+    const key = canonicalProductName(name);
+    const existingLink = existingProductLinks.find((link) =>
+      link.status !== 'archived' && canonicalProductName(link.product_name) === key
+    );
+    const sourceRef = String(source.source_ref || '');
+    const isSocialListSource = /^ml_social_list:/i.test(sourceRef) || /^ml-lista-/i.test(String(source.slug || ''));
+    const socialItemId = isSocialListSource ? (socialListItemId(sourceRef) || socialListItemId(source.slug)) : '';
+    const socialTags = isSocialListSource
+      ? ['ml-social-list', ...(socialItemId ? ['ml-social-item:' + socialItemId] : [])]
+      : [];
     const existingReview = existingPages.find((page) =>
       page.content_type === 'review' &&
       (page.slug === expectedSlug || isSameProductPage(name, page))
     );
     if (existingReview) {
+      if (isSocialListSource && isHttpsUrl(source.destination_url) && isHttpsUrl(row.matched_url)) {
+        const tags = [...new Set([...(Array.isArray(existingLink?.tags) ? existingLink.tags : []), ...socialTags])];
+        const notes = [String(existingLink?.notes || '').trim(), 'Origem: ' + String(source.slug || source.id), 'ml_social_list:' + (sourceRef || socialItemId)].filter(Boolean).join(' ');
+        if (existingLink) {
+          if (!dryRun) {
+            const { error: linkError } = await supabase.from('product_links')
+              .update({ has_review: true, review_slug: existingReview.slug, status: 'reviewed', tags, notes, updated_at: new Date().toISOString() })
+              .eq('id', existingLink.id);
+            if (linkError) console.warn('[review-generation] could not map existing Social List review ' + name + ': ' + linkError.message);
+          }
+          existingLink.has_review = true;
+          existingLink.review_slug = existingReview.slug;
+          existingLink.status = 'reviewed';
+          existingLink.tags = tags;
+          existingLink.notes = notes;
+        } else if (isHttpsUrl(existingReview.image_url)) {
+          const socialProductLink = {
+            slug: expectedSlug,
+            product_name: name,
+            category: existingReview.category || inferProductCategory(name, String(row.matched_title || ''), source.category),
+            product_url: row.matched_url,
+            affiliate_url: source.destination_url,
+            image_url: existingReview.image_url,
+            marketplace: 'mercadolivre',
+            status: 'reviewed',
+            source: 'api',
+            has_review: true,
+            has_video: false,
+            review_slug: existingReview.slug,
+            video_id: null,
+            price: existingReview.price_new || null,
+            score: Number(row.match_score || 0),
+            priority: Math.max(75, Number(source.priority || 0)),
+            notes,
+            tags: ['affiliate-discovery', 'mercadolivre-matched', ...socialTags],
+          };
+          if (!dryRun) {
+            const { data: inserted, error: insertError } = await supabase.from('product_links')
+              .insert(socialProductLink).select('*').single();
+            if (insertError || !inserted) {
+              console.warn('[review-generation] could not create Social List review link for ' + name + ': ' + (insertError?.message || 'row not returned'));
+            } else {
+              existingProductLinks.push(inserted as ProductLink);
+            }
+          }
+        }
+      }
       result.skippedExisting += 1;
       continue;
     }
@@ -436,14 +528,20 @@ async function discoverAffiliateBackedProducts(
       continue;
     }
 
-    const key = canonicalProductName(name);
-    const existingLink = existingProductLinks.find((link) =>
-      link.status !== 'archived' && canonicalProductName(link.product_name) === key
-    );
-
     if (existingLink && isEligibleProduct(existingLink)) {
-      // The normal queue already contains this product; let its regular path
-      // process it exactly once.
+      if (isSocialListSource) {
+        const tags = [...new Set([...(Array.isArray(existingLink.tags) ? existingLink.tags : []), ...socialTags])];
+        const notes = [String(existingLink.notes || '').trim(), 'ml_social_list:' + (sourceRef || socialItemId)].filter(Boolean).join(' ');
+        if (!dryRun) {
+          const { error: tagError } = await supabase.from('product_links')
+            .update({ tags, notes, updated_at: new Date().toISOString() })
+            .eq('id', existingLink.id);
+          if (tagError) console.warn('[review-generation] could not tag Social List product ' + name + ': ' + tagError.message);
+        }
+        existingLink.tags = tags;
+        existingLink.notes = notes;
+      }
+      // The normal queue already contains this product; let its regular path process it exactly once.
       continue;
     }
     if (existingLink && (
@@ -455,6 +553,8 @@ async function discoverAffiliateBackedProducts(
       result.skippedExisting += 1;
       continue;
     }
+
+    if (result.candidates.length >= candidateLimit) break;
 
     let productDetail: ProductionMLProductDetails;
     try {
@@ -488,6 +588,7 @@ async function discoverAffiliateBackedProducts(
       'Importado automaticamente da Central de Afiliados.',
       'Correspondência Mercado Livre aprovada; score ' + Number(row.match_score || 0).toFixed(2) + '.',
       'Origem: ' + String(source.slug || source.id),
+      ...(isSocialListSource ? ['ml_social_list:' + (sourceRef || socialItemId)] : []),
       'Anúncio: ' + String(row.matched_title || name),
     ].join(' ');
 
@@ -495,6 +596,10 @@ async function discoverAffiliateBackedProducts(
       // Fill only invalid/missing fields; preserve any existing affiliate
       // destination and valid product data already configured by the editor.
       const patch: Record<string, unknown> = {};
+      if (isSocialListSource) patch.tags = [...new Set([...(Array.isArray(existingLink.tags) ? existingLink.tags : []), ...socialTags])];
+      if (isSocialListSource && !String(existingLink.notes || '').includes('ml_social_list:')) {
+        patch.notes = [String(existingLink.notes || '').trim(), 'ml_social_list:' + (sourceRef || socialItemId)].filter(Boolean).join(' ');
+      }
       if (!isHttpsUrl(existingLink.product_url)) patch.product_url = productUrl;
       if (!isHttpsUrl(existingLink.affiliate_url)) patch.affiliate_url = affiliateUrl;
       if (!isHttpsUrl(existingLink.image_url)) patch.image_url = imageUrl;
@@ -549,7 +654,7 @@ async function discoverAffiliateBackedProducts(
       score: Number(row.match_score || 0),
       priority: Math.max(75, Number(source.priority || 0)),
       notes,
-      tags: ['affiliate-discovery', 'mercadolivre-matched'],
+      tags: ['affiliate-discovery', 'mercadolivre-matched', ...socialTags],
     };
 
     let insertedRow: ProductLink;
@@ -616,7 +721,7 @@ async function main(): Promise<void> {
       .limit(500),
     supabase
       .from('reviews')
-      .select('slug,product,status,content_type')
+      .select('slug,product,status,content_type,category,price_new,image_url')
       .limit(2000),
     supabase
       .from('product_links')
@@ -676,11 +781,16 @@ async function main(): Promise<void> {
   );
   eligible.push(...discovery.candidates.filter(isEligibleProduct));
 
+  const coolingDown = eligible.filter((link) => isReviewFailureCoolingDown(link.notes)).length;
+  const readyEligible = eligible.filter((link) => !isReviewFailureCoolingDown(link.notes));
+  eligible.splice(0, eligible.length, ...readyEligible);
+
   console.log(JSON.stringify({
     event: 'daily-review-queue-inspected',
     dryRun,
     totalRowsRead: (rawLinks || []).length,
     eligibleProducts: eligible.length,
+    coolingDownProducts: coolingDown,
     reconciledExistingReviews: reconciled,
     skippedExistingPages: skippedExisting,
     maxAttempts,
@@ -693,6 +803,10 @@ async function main(): Promise<void> {
   }));
 
   if (eligible.length === 0) {
+    if (coolingDown > 0) {
+      console.log('[review-generation] no eligible product: ' + coolingDown + ' candidate(s) are in the six-hour failure cooldown.');
+      return;
+    }
     const message = 'Nenhum produto novo elegível após deduplicação; a fila contém itens sem imagem/URL válida ou produtos que já possuem review.';
     if (dryRun) {
       console.warn('[review-generation] ' + message + ' Nenhum dado foi alterado.');
@@ -735,6 +849,7 @@ async function main(): Promise<void> {
             ? outcome.error
             : outcome.error;
         failures.push({ product: link.product_name, error });
+        await recordReviewGenerationFailure(supabase, link, error);
         console.error('[review-generation] rejected: ' + link.product_name + ' — ' + error);
         continue;
       }
@@ -751,6 +866,7 @@ async function main(): Promise<void> {
           error: 'A pipeline reportou criação, mas a verificação da persistência falhou: ' + (verifyError?.message || 'registro não encontrado'),
         });
         console.error('[review-generation] persistence verification failed for ' + outcome.slug);
+        await recordReviewGenerationFailure(supabase, link, 'Falha ao verificar a persistência do review.');
         continue;
       }
 
@@ -760,6 +876,7 @@ async function main(): Promise<void> {
           error: 'Persistência incompatível: content_type=' + saved.content_type + ', status=' + saved.status,
         });
         console.error('[review-generation] unexpected persisted state for ' + outcome.slug);
+        await recordReviewGenerationFailure(supabase, link, 'Estado de persistência incompatível para o review.');
         continue;
       }
 
@@ -791,6 +908,7 @@ async function main(): Promise<void> {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failures.push({ product: link.product_name, error: message });
+      await recordReviewGenerationFailure(supabase, link, message);
       console.error('[review-generation] failed: ' + link.product_name + ' — ' + message);
     }
   }

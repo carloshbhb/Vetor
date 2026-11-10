@@ -9,7 +9,24 @@ import { buildVideoDescription, resolveVideoFormat } from "../../../../../video/
 export const runtime = "nodejs";
 export const maxDuration = 15;
 
-const MAX_DAILY_PUBLICATIONS = 10;
+const MAX_DAILY_PUBLICATIONS = 15;
+
+function normalizeMercadoLivreItemId(value: unknown): string {
+  const match = String(value || '').match(/MLB-?(\d+)/i);
+  return match ? 'MLB' + match[1] : '';
+}
+
+function getPublicationFormat(mediaAssets: unknown): 'long' | 'short' | 'unknown' {
+  if (!Array.isArray(mediaAssets)) return 'unknown';
+  const marker = mediaAssets.find((item: any) => item?.type === 'publication_format');
+  return marker?.format === 'long' || marker?.format === 'short' ? marker.format : 'unknown';
+}
+
+function isSocialListProductLink(row: { tags?: unknown; notes?: unknown }): boolean {
+  const tags = Array.isArray(row.tags) ? row.tags.map(String) : [];
+  const notes = String(row.notes || '');
+  return tags.includes('ml-social-list') || /ml_social_list:|Origem:\s*ml-lista-/i.test(notes);
+}
 type SupabaseServiceClient = NonNullable<ReturnType<typeof getSupabaseServiceKeyClient>>;
 
 function getSaoPauloDayStartIso(now = new Date()) {
@@ -448,34 +465,43 @@ export async function POST(request: NextRequest) {
 
     if (action === "queueFromReviews") {
       const limit = Math.min(Math.max(Number(body.limit || 1), 1), 15);
-      const { data: reviews, error: reviewError } = await supabase
-        .from("reviews")
-        .select("slug,product,category,price_new,image_url,affiliate_url,updated_at")
-        .eq("status", "published")
-        .eq("content_type", "review")
-        .not("affiliate_url", "is", null)
-        .not("image_url", "is", null)
-        .order("updated_at", { ascending: false })
-        .limit(200);
+      const [{ data: listItems, error: listError }, { data: reviews, error: reviewError }, { data: linkedProducts, error: linksError }, { data: existing, error: existingError }] = await Promise.all([
+        supabase.from("ml_social_list_items").select("item_id").limit(1000),
+        supabase.from("reviews").select("slug,product,category,price_new,image_url,affiliate_url,updated_at")
+          .eq("status", "published").eq("content_type", "review")
+          .not("affiliate_url", "is", null).not("image_url", "is", null)
+          .order("updated_at", { ascending: false }).limit(2000),
+        supabase.from("product_links").select("review_slug,tags,notes")
+          .not("review_slug", "is", null).limit(2000),
+        supabase.from("video_queue").select("review_url,status,media_assets")
+          .in("status", ["pending", "processing", "completed", "failed"]).limit(2000),
+      ]);
+      if (listError) throw listError;
       if (reviewError) throw reviewError;
-
-      const { data: existing, error: existingError } = await supabase
-        .from("video_queue")
-        .select("review_url,status")
-        .in("status", ["pending", "processing", "completed", "failed"]);
+      if (linksError) throw linksError;
       if (existingError) throw existingError;
 
-      const existingUrls = new Set((existing || []).map((item) => item.review_url).filter(Boolean));
-      const candidates = (reviews || []).filter((item) =>
-        typeof item.slug === "string" &&
-        typeof item.product === "string" && item.product.trim().length > 0 &&
-        typeof item.affiliate_url === "string" && /^https?:\/\//i.test(item.affiliate_url) &&
-        typeof item.image_url === "string" && /^https?:\/\//i.test(item.image_url) &&
-        !existingUrls.has(`https://www.vetor.blog/reviews/${item.slug}/`)
-      ).slice(0, limit);
+      const listItemIds = new Set((listItems || []).map((item) => normalizeMercadoLivreItemId(item.item_id)).filter(Boolean));
+      const socialReviewSlugs = new Set((linkedProducts || [])
+        .filter((row) => isSocialListProductLink(row))
+        .map((row) => String(row.review_slug || '').trim())
+        .filter(Boolean));
+      const existingLongUrls = new Set((existing || [])
+        .filter((row) => getPublicationFormat(row.media_assets) === 'long')
+        .map((row) => String(row.review_url || '').trim())
+        .filter(Boolean));
 
-      // Quota gate: 10 long videos/day, no Shorts. Count completed + pending/processing
-      // automatic items (no scheduled_at filter) and skip all candidates once full.
+      const candidates = (reviews || []).filter((item) => {
+        if (typeof item.slug !== "string" || !item.slug.trim()) return false;
+        if (typeof item.product !== "string" || !item.product.trim()) return false;
+        if (typeof item.affiliate_url !== "string" || !/^https?:\/\//i.test(item.affiliate_url)) return false;
+        if (typeof item.image_url !== "string" || !/^https?:\/\//i.test(item.image_url)) return false;
+        const itemId = normalizeMercadoLivreItemId(item.slug) || normalizeMercadoLivreItemId(item.affiliate_url);
+        const belongsToSocialList = (itemId && listItemIds.has(itemId)) || socialReviewSlugs.has(item.slug);
+        const reviewUrl = "https://www.vetor.blog/reviews/" + item.slug + "/";
+        return belongsToSocialList && !existingLongUrls.has(reviewUrl);
+      }).slice(0, limit);
+
       const [{ count: doneToday, error: doneError }, { count: pendingCount, error: pendingError }] = await Promise.all([
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .eq("status", "completed").eq("publication_mode", "automatic")
@@ -506,14 +532,14 @@ export async function POST(request: NextRequest) {
           ? item.category.trim()
           : "Tecnologia";
         const title = item.product.trim();
-        const reviewUrl = `https://www.vetor.blog/reviews/${item.slug}/`;
+        const reviewUrl = "https://www.vetor.blog/reviews/" + item.slug + "/";
         const videoFormat = "long";
         const queueId = randomUUID();
         const managedSlug = managedSlugByReview.get(item.slug) || item.slug;
         const trackedPurchaseUrl = buildTrackedAffiliateUrl(
-          `https://www.vetor.blog/go/${encodeURIComponent(managedSlug)}/`,
+          "https://www.vetor.blog/go/" + encodeURIComponent(managedSlug) + "/",
           {
-            source: "youtube", medium: "video", campaign: `review-${item.slug}`,
+            source: "youtube", medium: "video", campaign: "review-" + item.slug,
             contentId: queueId, term: videoFormat, placement: "description",
           }
         );
@@ -539,7 +565,7 @@ export async function POST(request: NextRequest) {
             affiliate_url: item.affiliate_url,
             shortened_affiliate_url: trackedPurchaseUrl,
             script_text: "",
-            script_hook: `Preparando vídeo ${videoFormat === "long" ? "completo" : "curto"} para ${title}`,
+            script_hook: "Preparando vídeo completo para " + title,
             voiceover_url: "",
             voiceover_duration: 0,
             media_assets: [{ type: "publication_format", format: videoFormat }],
@@ -552,9 +578,9 @@ export async function POST(request: NextRequest) {
           .single();
         if (insertError) throw insertError;
         queued.push(inserted);
-        existingUrls.add(reviewUrl);
+        existingLongUrls.add(reviewUrl);
       }
-      return NextResponse.json({ success: true, queued: queued.length, videos: queued });
+      return NextResponse.json({ success: true, queued: queued.length, videos: queued, source: "ml_social_list_items", format: "long" });
     }
 
     if (action === "queueFromComparatives") {
@@ -643,7 +669,7 @@ export async function POST(request: NextRequest) {
             script_hook: script.hook,
             voiceover_url: "",
             voiceover_duration: 0,
-            media_assets: [],
+            media_assets: [{ type: "publication_format", format: "short" }],
             status: "pending",
             publication_mode: "automatic",
             review_url: comparisonUrl,
@@ -663,7 +689,7 @@ export async function POST(request: NextRequest) {
       const retryBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data: failed, error: failedError } = await supabase
         .from("video_queue")
-        .select("id,product_title,review_url,affiliate_url,shortened_affiliate_url,product_image_url,youtube_video_id,youtube_url,updated_at")
+        .select("id,product_title,review_url,affiliate_url,shortened_affiliate_url,product_image_url,youtube_video_id,youtube_url,media_assets,updated_at")
         .eq("status", "failed")
         .is("youtube_video_id", null)
         .is("youtube_url", null)
@@ -672,12 +698,14 @@ export async function POST(request: NextRequest) {
         .limit(100);
       if (failedError) throw failedError;
 
-      const seenUrls = new Set<string>();
+      const seenFormatKeys = new Set<string>();
       const eligible = [];
       for (const item of failed || []) {
         const reviewUrl = String(item.review_url || "").trim();
-        if (!reviewUrl || seenUrls.has(reviewUrl)) continue;
-        seenUrls.add(reviewUrl);
+        const format = getPublicationFormat(item.media_assets);
+        const formatKey = reviewUrl + "|" + format;
+        if (!reviewUrl || seenFormatKeys.has(formatKey)) continue;
+        seenFormatKeys.add(formatKey);
 
         const purchaseUrl = String(item.shortened_affiliate_url || item.affiliate_url || "").trim();
         const imageUrl = String(item.product_image_url || "").trim();
@@ -699,13 +727,13 @@ export async function POST(request: NextRequest) {
 
         const { data: completed, error: completedError } = await supabase
           .from("video_queue")
-          .select("id")
+          .select("id,media_assets")
           .eq("review_url", reviewUrl)
           .eq("status", "completed")
           .not("youtube_video_id", "is", null)
-          .limit(1);
+          .limit(20);
         if (completedError) throw completedError;
-        if ((completed || []).length) continue;
+        if ((completed || []).some((record) => getPublicationFormat(record.media_assets) === format)) continue;
         eligible.push(item);
         if (eligible.length >= limit) break;
       }

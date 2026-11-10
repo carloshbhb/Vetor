@@ -34,17 +34,19 @@ export function extractItemId(value: unknown): string {
 export function collectMlReviewSlugsToPublish(
   drafts: ReviewDraft[],
   listItems: MlSocialListItem[],
+  socialReviewSlugs: string[] = [],
 ): string[] {
   const listIds = new Set(
     (listItems || [])
       .map((item) => normalizeItemId(item?.item_id))
       .filter((id): id is string => Boolean(id)),
   );
+  const socialSlugs = new Set((socialReviewSlugs || []).filter(Boolean));
   const slugs: string[] = [];
   for (const review of drafts || []) {
     if (String(review?.status || '').toLowerCase() !== 'draft') continue;
     const itemId = extractItemIdFromReview(review);
-    if (itemId && listIds.has(itemId) && review?.slug) {
+    if (review?.slug && ((itemId && listIds.has(itemId)) || socialSlugs.has(String(review.slug)))) {
       slugs.push(String(review.slug));
     }
   }
@@ -76,15 +78,24 @@ export async function publishMlReviews(
     .select('item_id');
   if (listError) throw new Error('Failed to read ml_social_list_items: ' + listError.message);
 
-  const { data: draftRows, error: draftError } = await client
-    .from('reviews')
-    .select('slug,status,affiliate_url')
-    .eq('status', 'draft');
+  const [{ data: draftRows, error: draftError }, { data: linkedProducts, error: linksError }] = await Promise.all([
+    client.from('reviews').select('slug,status,affiliate_url').eq('status', 'draft'),
+    client.from('product_links').select('review_slug,tags,notes').not('review_slug', 'is', null).limit(2000),
+  ]);
   if (draftError) throw new Error('Failed to read draft reviews: ' + draftError.message);
+  if (linksError) throw new Error('Failed to read Social List review relationships: ' + linksError.message);
 
   const drafts = (draftRows || []) as ReviewDraft[];
   const listItems = (listRows || []) as MlSocialListItem[];
-  const slugsToPublish = collectMlReviewSlugsToPublish(drafts, listItems);
+  const socialReviewSlugs = (linkedProducts || [])
+    .filter((row: any) => {
+      const tags = Array.isArray(row.tags) ? row.tags.map(String) : [];
+      const notes = String(row.notes || '');
+      return tags.includes('ml-social-list') || /ml_social_list:|Origem:\s*ml-lista-/i.test(notes);
+    })
+    .map((row: any) => String(row.review_slug || '').trim())
+    .filter(Boolean);
+  const slugsToPublish = collectMlReviewSlugsToPublish(drafts, listItems, socialReviewSlugs);
 
   if (!dryRun) {
     for (const slug of slugsToPublish) {

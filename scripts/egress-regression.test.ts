@@ -18,6 +18,7 @@ const sitemap = read('src/app/sitemap.ts');
 const feedRoute = read('src/app/feed.xml/route.ts');
 const bestProducts = read('src/app/melhores/page.tsx');
 const videoQueueWorker = read('src/app/api/cron/video-queue-worker/route.ts');
+const contentPipeline = read('src/lib/content-pipeline.ts');
 const processVideo = read('video/scripts/process-video.mjs');
 const dailyReviewWorkflow = read('.github/workflows/generate-daily-review.yml');
 const remotionRenderWorkflow = read('.github/workflows/remotion-render.yml');
@@ -122,6 +123,11 @@ assert.ok(queueFromReviews, 'queueFromReviews action exists');
 assert.match(queueFromReviews[0], /script_text: ""/);
 assert.doesNotMatch(queueFromReviews[0], /script_text: null/);
 assert.match(videoQueueWorker, /function formatVideoQueueError\(error: unknown\)/);
+assert.match(videoQueueWorker, /from\("ml_social_list_items"\)/, 'video discovery is driven by the Mercado Livre Social List');
+assert.match(videoQueueWorker, /getPublicationFormat\(row\.media_assets\) === 'long'/, 'a Short must not suppress long-form generation');
+assert.match(videoQueueWorker, /MAX_DAILY_PUBLICATIONS = 15/);
+assert.match(contentPipeline, /buildGeneratedReviewContent/);
+assert.match(contentPipeline, /sectionsHtml/);
 assert.match(videoQueueWorker, /failed: action=\$\{action\}/);
 
 // Remotion runs from the video project root so the cached local Chrome is reused.

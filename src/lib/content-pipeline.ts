@@ -39,6 +39,36 @@ export function productLinkToPipelineInput(link: ProductLink): PipelineProductIn
   };
 }
 
+function escapeReviewTitle(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function buildGeneratedReviewContent(review: {
+  content?: unknown;
+  sections?: Array<{ heading?: unknown; content?: unknown }> | null;
+}, productTitle: string): string {
+  const primary = typeof review.content === 'string' ? review.content.trim() : '';
+  const sectionsHtml = Array.isArray(review.sections)
+    ? review.sections
+        .filter((section) => typeof section?.content === 'string' && section.content.trim())
+        .map((section) => {
+          const heading = typeof section.heading === 'string' ? section.heading.trim() : '';
+          return (heading ? '<h2>' + escapeReviewTitle(heading) + '</h2>' : '') + String(section.content).trim();
+        })
+        .join('\n')
+    : '';
+  let content = primary || sectionsHtml;
+  const normalizedTitle = productTitle.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const normalizedContent = content.replace(/<[^>]*>/g, ' ').normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (normalizedTitle && !normalizedContent.includes(normalizedTitle)) {
+    content = '<p>Este review analisa ' + escapeReviewTitle(productTitle) +
+      ', reunindo as características confirmadas do modelo e os critérios mais relevantes antes da compra.</p>\n' + content;
+  }
+  return content;
+}
+
 export async function runReviewPipeline(
   product: PipelineProductInput,
   source: 'admin' | 'cron',
@@ -92,7 +122,7 @@ export async function runReviewPipeline(
     category: review.category,
     price_new: review.price,
     image_url: review.image,
-    content: review.content,
+    content: buildGeneratedReviewContent(review, product.title),
     meta_title: review.seo_title,
     meta_description: review.seo_description,
     pros: review.pros,
