@@ -27,6 +27,46 @@ function isSocialListProductLink(row: { tags?: unknown; notes?: unknown }): bool
   const notes = String(row.notes || '');
   return tags.includes('ml-social-list') || /ml_social_list:|Origem:\s*ml-lista-/i.test(notes);
 }
+
+function socialListItemIdFromProductLink(row: { tags?: unknown; notes?: unknown }): string {
+  const tags = Array.isArray(row.tags) ? row.tags.map(String) : [];
+  const tagged = tags.find((tag) => /^ml-social-item:MLB-?\d+$/i.test(tag));
+  if (tagged) return normalizeMercadoLivreItemId(tagged);
+  const matches = Array.from(String(row.notes || '').matchAll(/MLB-?\d+/gi));
+  return matches.length ? normalizeMercadoLivreItemId(matches[matches.length - 1][0]) : '';
+}
+
+function socialListMarker(mediaAssets: unknown): { itemId: string; productLinkId: string } | null {
+  if (!Array.isArray(mediaAssets)) return null;
+  const marker = mediaAssets.find((item: any) => item?.type === 'ml-social-list-item');
+  if (!marker) return null;
+  const itemId = normalizeMercadoLivreItemId(marker.itemId);
+  const productLinkId = typeof marker.productLinkId === 'string' ? marker.productLinkId : '';
+  return itemId ? { itemId, productLinkId } : null;
+}
+
+function normalizeVideoProductTitle(value: unknown): string {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function isSafeMercadoLivreAffiliateUrl(value: unknown): boolean {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    return url.protocol === 'https:' &&
+      (host === 'meli.la' || host.endsWith('.meli.la') ||
+       host === 'mercadolivre.com.br' || host.endsWith('.mercadolivre.com.br') ||
+       host === 'mercadolibre.com' || host.endsWith('.mercadolibre.com'));
+  } catch {
+    return false;
+  }
+}
+
+function isSafeMercadoLivreProductUrl(value: unknown): boolean {
+  return isSafeMercadoLivreAffiliateUrl(value);
+}
 type SupabaseServiceClient = NonNullable<ReturnType<typeof getSupabaseServiceKeyClient>>;
 
 function getSaoPauloDayStartIso(now = new Date()) {
@@ -50,6 +90,7 @@ async function getDailyPublicationQuota(supabase: SupabaseServiceClient) {
     .select("id", { count: "exact", head: true })
     .eq("status", "completed")
     .eq("publication_mode", "automatic")
+    .contains("media_assets", [{ type: "publication_format", format: "long" }])
     .gte("completed_at", getSaoPauloDayStartIso());
   if (error) throw error;
   const completedToday = count || 0;
@@ -463,124 +504,183 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, ...quota, canPublish: quota.remaining > 0 });
     }
 
-    if (action === "queueFromReviews") {
-      const limit = Math.min(Math.max(Number(body.limit || 1), 1), 15);
-      const [{ data: listItems, error: listError }, { data: reviews, error: reviewError }, { data: linkedProducts, error: linksError }, { data: existing, error: existingError }] = await Promise.all([
-        supabase.from("ml_social_list_items").select("item_id").limit(1000),
-        supabase.from("reviews").select("slug,product,category,price_new,image_url,affiliate_url,updated_at")
-          .eq("status", "published").eq("content_type", "review")
-          .not("affiliate_url", "is", null).not("image_url", "is", null)
-          .order("updated_at", { ascending: false }).limit(2000),
-        supabase.from("product_links").select("review_slug,tags,notes")
-          .not("review_slug", "is", null).limit(2000),
-        supabase.from("video_queue").select("review_url,status,media_assets")
-          .in("status", ["pending", "processing", "completed", "failed"]).limit(2000),
-      ]);
-      if (listError) throw listError;
-      if (reviewError) throw reviewError;
-      if (linksError) throw linksError;
-      if (existingError) throw existingError;
-
-      const listItemIds = new Set((listItems || []).map((item) => normalizeMercadoLivreItemId(item.item_id)).filter(Boolean));
-      const socialReviewSlugs = new Set((linkedProducts || [])
-        .filter((row) => isSocialListProductLink(row))
-        .map((row) => String(row.review_slug || '').trim())
-        .filter(Boolean));
-      const existingLongUrls = new Set((existing || [])
-        .filter((row) => getPublicationFormat(row.media_assets) === 'long')
-        .map((row) => String(row.review_url || '').trim())
-        .filter(Boolean));
-
-      const candidates = (reviews || []).filter((item) => {
-        if (typeof item.slug !== "string" || !item.slug.trim()) return false;
-        if (typeof item.product !== "string" || !item.product.trim()) return false;
-        if (typeof item.affiliate_url !== "string" || !/^https?:\/\//i.test(item.affiliate_url)) return false;
-        if (typeof item.image_url !== "string" || !/^https?:\/\//i.test(item.image_url)) return false;
-        const itemId = normalizeMercadoLivreItemId(item.slug) || normalizeMercadoLivreItemId(item.affiliate_url);
-        const belongsToSocialList = (itemId && listItemIds.has(itemId)) || socialReviewSlugs.has(item.slug);
-        const reviewUrl = "https://www.vetor.blog/reviews/" + item.slug + "/";
-        return belongsToSocialList && !existingLongUrls.has(reviewUrl);
-      }).slice(0, limit);
-
-      const [{ count: doneToday, error: doneError }, { count: pendingCount, error: pendingError }] = await Promise.all([
+    if (action === "queueFromSocialList") {
+      const limit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
+      const [
+        { data: listItems, error: listError },
+        { data: productLinks, error: productLinksError },
+        { data: existing, error: existingError },
+        { count: doneToday, error: doneError },
+        { count: pendingCount, error: pendingError },
+      ] = await Promise.all([
+        supabase.from("ml_social_list_items")
+          .select("item_id,title,product_url,image_url,price,original_price,rating,review_count,highlight,last_seen_at")
+          .order("last_seen_at", { ascending: false }).limit(1000),
+        supabase.from("product_links")
+          .select("id,slug,product_name,category,product_url,affiliate_url,image_url,marketplace,status,has_video,video_id,price,priority,tags,notes,updated_at")
+          .neq("status", "archived")
+          .order("priority", { ascending: false }).order("updated_at", { ascending: false }).limit(2000),
+        supabase.from("video_queue")
+          .select("product_title,product_url,affiliate_url,media_assets,status,youtube_video_id")
+          .in("status", ["pending", "processing", "completed"]).limit(5000),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .eq("status", "completed").eq("publication_mode", "automatic")
+          .contains("media_assets", [{ type: "publication_format", format: "long" }])
           .gte("completed_at", getSaoPauloDayStartIso()),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
-          .in("status", ["pending", "processing"]).eq("publication_mode", "automatic"),
+          .in("status", ["pending", "processing"]).eq("publication_mode", "automatic")
+          .contains("media_assets", [{ type: "publication_format", format: "long" }]),
       ]);
+      if (listError) throw listError;
+      if (productLinksError) throw productLinksError;
+      if (existingError) throw existingError;
       if (doneError) throw doneError;
       if (pendingError) throw pendingError;
-      if ((doneToday || 0) + (pendingCount || 0) >= MAX_DAILY_PUBLICATIONS) {
-        return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true });
+
+      const completed = doneToday || 0;
+      const pending = pendingCount || 0;
+      const dailySlots = Math.max(0, MAX_DAILY_PUBLICATIONS - completed - pending);
+      if (dailySlots <= 0) {
+        return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true, completedToday: completed, pendingAutomaticLong: pending });
       }
 
-      const { data: managedLinks, error: managedError } = await supabase
-        .from("affiliate_links").select("slug,source_ref")
-        .eq("source_type", "review").eq("status", "active").limit(500);
-      if (managedError) console.warn("[video-queue-worker] affiliate registry lookup failed:", managedError.message);
-      const managedSlugByReview = new Map(
-        (managedLinks || [])
-          .filter((link) => typeof link.source_ref === "string" && typeof link.slug === "string")
-          .map((link) => [link.source_ref, link.slug])
-      );
+      const linksByItemId = new Map<string, any>();
+      const linksByTitle = new Map<string, any[]>();
+      for (const link of productLinks || []) {
+        if (!isSocialListProductLink(link)) continue;
+        const linkedItemId = socialListItemIdFromProductLink(link);
+        if (linkedItemId && !linksByItemId.has(linkedItemId)) linksByItemId.set(linkedItemId, link);
+        const titleKey = normalizeVideoProductTitle(link.product_name);
+        if (titleKey) {
+          const current = linksByTitle.get(titleKey) || [];
+          current.push(link);
+          linksByTitle.set(titleKey, current);
+        }
+      }
+
+      const queuedOrPublishedItemIds = new Set<string>();
+      const queuedOrPublishedTitles = new Set<string>();
+      for (const row of existing || []) {
+        const marker = socialListMarker(row.media_assets);
+        const itemId = marker?.itemId ||
+          normalizeMercadoLivreItemId(row.product_url) ||
+          normalizeMercadoLivreItemId(row.affiliate_url);
+        if (itemId) queuedOrPublishedItemIds.add(itemId);
+        const titleKey = normalizeVideoProductTitle(row.product_title);
+        if (titleKey) queuedOrPublishedTitles.add(titleKey);
+      }
+
+      const rankedItems = [...(listItems || [])].sort((a: any, b: any) => {
+        const aHighlight = String(a.highlight || "").toUpperCase() === "MAIS VENDIDO" ? 1 : 0;
+        const bHighlight = String(b.highlight || "").toUpperCase() === "MAIS VENDIDO" ? 1 : 0;
+        if (aHighlight !== bHighlight) return bHighlight - aHighlight;
+        const reviewsDiff = Number(b.review_count || 0) - Number(a.review_count || 0);
+        if (reviewsDiff) return reviewsDiff;
+        return Date.parse(String(b.last_seen_at || "")) - Date.parse(String(a.last_seen_at || ""));
+      });
+
+      const candidates: Array<{ item: any; link: any; itemId: string; title: string; imageUrl: string; affiliateUrl: string; productUrl: string }> = [];
+      let skippedUnmatched = 0;
+      let skippedUnsafe = 0;
+      let skippedAlreadyPublished = 0;
+      for (const item of rankedItems) {
+        const itemId = normalizeMercadoLivreItemId(item.item_id);
+        if (!itemId) { skippedUnsafe += 1; continue; }
+        let link = linksByItemId.get(itemId) || null;
+        if (!link) {
+          const titleMatches = linksByTitle.get(normalizeVideoProductTitle(item.title)) || [];
+          if (titleMatches.length === 1) link = titleMatches[0];
+        }
+        if (!link) { skippedUnmatched += 1; continue; }
+
+        const title = String(item.title || link.product_name || "").trim();
+        const titleKey = normalizeVideoProductTitle(title);
+        const affiliateUrl = String(link.affiliate_url || "").trim();
+        const productUrl = String(item.product_url || link.product_url || "").trim();
+        const imageUrl = String(item.image_url || link.image_url || "").trim();
+
+        if (link.has_video === true || link.video_id || queuedOrPublishedItemIds.has(itemId) ||
+            (titleKey && queuedOrPublishedTitles.has(titleKey))) {
+          skippedAlreadyPublished += 1;
+          continue;
+        }
+        if (!title || !isSafeMercadoLivreProductUrl(productUrl) ||
+            !isSafeMercadoLivreAffiliateUrl(affiliateUrl) ||
+            !/^https:\/\//i.test(imageUrl) || /vetor\.blog|\/og\.png(?:$|\?)/i.test(imageUrl)) {
+          skippedUnsafe += 1;
+          continue;
+        }
+        candidates.push({ item, link, itemId, title, imageUrl, affiliateUrl, productUrl });
+        if (candidates.length >= limit) break;
+      }
 
       const queued = [];
-      for (const item of candidates) {
-        if ((doneToday || 0) + (pendingCount || 0) + queued.length >= MAX_DAILY_PUBLICATIONS) break;
-        const category = typeof item.category === "string" && item.category.trim()
-          ? item.category.trim()
-          : "Tecnologia";
-        const title = item.product.trim();
-        const reviewUrl = "https://www.vetor.blog/reviews/" + item.slug + "/";
-        const videoFormat = "long";
+      for (const candidate of candidates) {
+        if (completed + pending + queued.length >= MAX_DAILY_PUBLICATIONS) break;
         const queueId = randomUUID();
-        const managedSlug = managedSlugByReview.get(item.slug) || item.slug;
-        const trackedPurchaseUrl = buildTrackedAffiliateUrl(
-          "https://www.vetor.blog/go/" + encodeURIComponent(managedSlug) + "/",
-          {
-            source: "youtube", medium: "video", campaign: "review-" + item.slug,
-            contentId: queueId, term: videoFormat, placement: "description",
-          }
-        );
-
-        let trackedPurchase: URL | null = null;
-        try { trackedPurchase = new URL(trackedPurchaseUrl); } catch {}
-        const safePurchase = Boolean(
-          trackedPurchase && trackedPurchase.protocol === "https:" &&
-          (trackedPurchase.hostname === "meli.la" || trackedPurchase.hostname.endsWith(".meli.la") ||
-            (trackedPurchase.hostname === "www.vetor.blog" && trackedPurchase.pathname.startsWith("/go/")))
-        );
-        if (!safePurchase) continue;
+        const priceValue = Number(candidate.item.price ?? candidate.link.price);
+        const price = Number.isFinite(priceValue) && priceValue > 0
+          ? "R$" + priceValue.toFixed(2).replace(".", ",")
+          : "Consulte o preço atual";
+        const categoryValue = String(candidate.link.category || "").trim();
+        const category = !categoryValue || /^lista social$/i.test(categoryValue) ? "Tecnologia" : categoryValue;
+        const purchase = new URL(candidate.affiliateUrl);
+        purchase.searchParams.set("utm_source", "youtube");
+        purchase.searchParams.set("utm_medium", "video");
+        purchase.searchParams.set("utm_campaign", "ml-social-list-long");
+        purchase.searchParams.set("utm_content", queueId);
+        purchase.searchParams.set("utm_term", "long");
+        purchase.searchParams.set("placement", "description");
+        const trackedPurchaseUrl = purchase.toString();
 
         const { data: inserted, error: insertError } = await supabase
           .from("video_queue")
           .insert({
             id: queueId,
-            product_url: item.affiliate_url,
-            product_title: title,
+            product_url: candidate.productUrl,
+            product_title: candidate.title,
             product_category: category,
-            product_price: item.price_new || "Consulte o preço atual",
-            product_image_url: item.image_url,
-            affiliate_url: item.affiliate_url,
+            product_price: price,
+            product_image_url: candidate.imageUrl,
+            affiliate_url: candidate.affiliateUrl,
             shortened_affiliate_url: trackedPurchaseUrl,
             script_text: "",
-            script_hook: "Preparando vídeo completo para " + title,
+            script_hook: "Análise completa: " + candidate.title + ".",
             voiceover_url: "",
             voiceover_duration: 0,
-            media_assets: [{ type: "publication_format", format: videoFormat }],
+            media_assets: [
+              { type: "publication_format", format: "long" },
+              { type: "ml-social-list-item", itemId: candidate.itemId, productLinkId: candidate.link.id },
+            ],
             status: "pending",
             publication_mode: "automatic",
-            review_url: reviewUrl,
+            review_url: null,
             scheduled_at: new Date().toISOString(),
           })
-          .select("id,product_title,status,review_url,affiliate_url")
+          .select("id,product_title,status,review_url,affiliate_url,product_url,media_assets")
           .single();
         if (insertError) throw insertError;
         queued.push(inserted);
-        existingLongUrls.add(reviewUrl);
+        queuedOrPublishedItemIds.add(candidate.itemId);
+        const titleKey = normalizeVideoProductTitle(candidate.title);
+        if (titleKey) queuedOrPublishedTitles.add(titleKey);
       }
-      return NextResponse.json({ success: true, queued: queued.length, videos: queued, source: "ml_social_list_items", format: "long" });
+
+      return NextResponse.json({
+        success: true,
+        queued: queued.length,
+        videos: queued,
+        source: "ml_social_list_items+verified_product_links",
+        format: "long",
+        independentOfReviews: true,
+        eligibleMatches: candidates.length,
+        skippedUnmatched,
+        skippedUnsafe,
+        skippedAlreadyPublished,
+        dailyLimit: MAX_DAILY_PUBLICATIONS,
+        completedToday: completed,
+        pendingAutomaticLong: pending,
+      });
     }
 
     if (action === "queueFromComparatives") {
@@ -687,66 +787,58 @@ export async function POST(request: NextRequest) {
     if (action === "retrySafeFailed") {
       const limit = Math.min(Math.max(Number(body.limit || 5), 1), 5);
       const retryBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: failed, error: failedError } = await supabase
-        .from("video_queue")
-        .select("id,product_title,review_url,affiliate_url,shortened_affiliate_url,product_image_url,youtube_video_id,youtube_url,media_assets,publication_mode,updated_at")
-        .eq("publication_mode", "automatic")
-        .eq("status", "failed")
-        .is("youtube_video_id", null)
-        .is("youtube_url", null)
-        .lte("updated_at", retryBefore)
-        .order("updated_at", { ascending: true })
-        .limit(100);
+      const [
+        { data: failed, error: failedError },
+        { data: completedRows, error: completedError },
+      ] = await Promise.all([
+        supabase.from("video_queue")
+          .select("id,product_title,review_url,affiliate_url,shortened_affiliate_url,product_url,product_image_url,youtube_video_id,youtube_url,media_assets,publication_mode,updated_at")
+          .eq("publication_mode", "automatic").eq("status", "failed")
+          .is("youtube_video_id", null).is("youtube_url", null)
+          .lte("updated_at", retryBefore).order("updated_at", { ascending: true }).limit(100),
+        supabase.from("video_queue")
+          .select("id,product_title,product_url,affiliate_url,media_assets")
+          .eq("status", "completed").not("youtube_video_id", "is", null).limit(5000),
+      ]);
       if (failedError) throw failedError;
+      if (completedError) throw completedError;
 
-      const seenFormatKeys = new Set<string>();
+      const completedKeys = new Set<string>();
+      for (const row of completedRows || []) {
+        const marker = socialListMarker(row.media_assets);
+        const itemId = marker?.itemId || normalizeMercadoLivreItemId(row.product_url) || normalizeMercadoLivreItemId(row.affiliate_url);
+        if (itemId) completedKeys.add("item:" + itemId);
+        const titleKey = normalizeVideoProductTitle(row.product_title);
+        if (titleKey) completedKeys.add("title:" + titleKey);
+      }
+
       const eligible = [];
+      const seenKeys = new Set<string>();
       for (const item of failed || []) {
-        const reviewUrl = String(item.review_url || "").trim();
-        const format = getPublicationFormat(item.media_assets);
-        if (format !== "long") {
-          console.log("[retrySafeFailed] skipping legacy/short/manual item " + item.id + " (format=" + format + ").");
-          continue;
-        }
-        const formatKey = reviewUrl + "|" + format;
-        if (!reviewUrl || seenFormatKeys.has(formatKey)) continue;
-        seenFormatKeys.add(formatKey);
+        if (getPublicationFormat(item.media_assets) !== "long") continue;
+        const marker = socialListMarker(item.media_assets);
+        const itemId = marker?.itemId || normalizeMercadoLivreItemId(item.product_url) || normalizeMercadoLivreItemId(item.affiliate_url);
+        const titleKey = normalizeVideoProductTitle(item.product_title);
+        const key = itemId ? "item:" + itemId : titleKey ? "title:" + titleKey : String(item.review_url || "").trim();
+        if (!key || seenKeys.has(key) || completedKeys.has(key) ||
+            (titleKey && completedKeys.has("title:" + titleKey))) continue;
+        seenKeys.add(key);
 
         const purchaseUrl = String(item.shortened_affiliate_url || item.affiliate_url || "").trim();
         const imageUrl = String(item.product_image_url || "").trim();
-        let purchase: URL | null = null;
+        const safePurchase = isSafeMercadoLivreAffiliateUrl(purchaseUrl);
         let image: URL | null = null;
-        try { purchase = new URL(purchaseUrl); } catch {}
         try { image = new URL(imageUrl); } catch {}
-        const safePurchase = Boolean(
-          purchase && purchase.protocol === "https:" &&
-          (purchase.hostname === "meli.la" || purchase.hostname.endsWith(".meli.la") ||
-            (purchase.hostname === "www.vetor.blog" && purchase.pathname.startsWith("/go/")))
-        );
-        const safeImage = Boolean(
-          image && image.protocol === "https:" &&
-          !image.hostname.endsWith("vetor.blog") &&
-          !/\/og\.png(?:$|\?)/i.test(image.pathname)
-        );
+        const safeImage = Boolean(image && image.protocol === "https:" &&
+          !image.hostname.endsWith("vetor.blog") && !/\/og\.png(?:$|\?)/i.test(image.pathname));
         if (!safePurchase || !safeImage) continue;
-
-        const { data: completed, error: completedError } = await supabase
-          .from("video_queue")
-          .select("id,media_assets")
-          .eq("review_url", reviewUrl)
-          .eq("status", "completed")
-          .not("youtube_video_id", "is", null)
-          .limit(20);
-        if (completedError) throw completedError;
-        if ((completed || []).some((record) => getPublicationFormat(record.media_assets) === format)) continue;
         eligible.push(item);
         if (eligible.length >= limit) break;
       }
 
       const retried = [];
       for (const item of eligible) {
-        const { data, error } = await supabase
-          .from("video_queue")
+        const { data, error } = await supabase.from("video_queue")
           .update({
             status: "pending",
             error_message: null,
@@ -754,11 +846,9 @@ export async function POST(request: NextRequest) {
             scheduled_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq("id", item.id)
-          .eq("status", "failed")
-          .is("youtube_video_id", null)
-          .is("youtube_url", null)
-          .select("id,product_title,status,review_url")
+          .eq("id", item.id).eq("status", "failed")
+          .is("youtube_video_id", null).is("youtube_url", null)
+          .select("id,product_title,status,review_url,product_url")
           .maybeSingle();
         if (error) throw error;
         if (data) retried.push(data);
@@ -767,7 +857,7 @@ export async function POST(request: NextRequest) {
         success: true,
         retried: retried.length,
         videos: retried,
-        policy: "one failed item per review URL and format; no completed YouTube upload of the same format; safe affiliate and product image; 24-hour cooldown",
+        policy: "one failed item per Social List product; no completed YouTube upload of the same product; safe Mercado Livre affiliate URL and external HTTPS image; 24-hour cooldown",
       });
     }
 
@@ -844,11 +934,15 @@ export async function POST(request: NextRequest) {
       // Automatic and manual runs are always limited to five videos per invocation.
       const requestedLimit = Math.min(Math.max(Number(body.limit || 1), 1), manualOverride ? 5 : 15);
       const limit = manualOverride ? requestedLimit : Math.min(requestedLimit, quota.remaining);
-      const { data, error } = await supabase
+      let pendingQuery = supabase
         .from("video_queue")
         .select("*")
         .eq("status", "pending")
-        .lte("scheduled_at", new Date().toISOString())
+        .lte("scheduled_at", new Date().toISOString());
+      if (!manualOverride) {
+        pendingQuery = pendingQuery.contains("media_assets", [{ type: "publication_format", format: "long" }]);
+      }
+      const { data, error } = await pendingQuery
         .order("scheduled_at", { ascending: true })
         .limit(limit);
       if (error) throw error;
@@ -894,35 +988,48 @@ export async function POST(request: NextRequest) {
 
       let linkedProducts = 0;
       let assetSyncWarning: string | null = null;
-      if (data.status === "completed" && data.youtube_video_id && data.youtube_url && data.review_url) {
-        let reviewSlug: string | null = null;
-        try {
-          const reviewPath = new URL(data.review_url).pathname;
-          reviewSlug = reviewPath.match(/^\/reviews\/([^/]+)\/?$/)?.[1] || null;
-        } catch {}
-        if (reviewSlug) {
-          const { data: product, error: productError } = await supabase
-            .from("product_links").select("id").eq("review_slug", reviewSlug)
-            .neq("status", "archived").order("updated_at", { ascending: false })
-            .limit(1).maybeSingle();
-          if (productError) assetSyncWarning = productError.message;
-          else if (product) {
-            const assets = Array.isArray(data.media_assets) ? data.media_assets : [];
-            const format = assets.find((asset: any) => asset?.type === "publication_format")?.format;
-            const videoType = format === "long" || format === "short" ? format : "unknown";
-            const { error: assetError } = await supabase.from("product_video_assets").upsert({
-              product_link_id: product.id, review_slug: reviewSlug,
-              youtube_video_id: data.youtube_video_id, youtube_url: data.youtube_url,
-              video_type: videoType, source_table: "video_queue", source_record_id: data.id,
-              published_at: data.completed_at || new Date().toISOString(),
-            }, { onConflict: "youtube_video_id" });
-            if (assetError) assetSyncWarning = assetError.message;
-            else {
-              const { error: productUpdateError } = await supabase.from("product_links")
-                .update({ has_video: true, video_id: data.youtube_video_id, updated_at: new Date().toISOString() })
-                .eq("id", product.id);
-              if (productUpdateError) assetSyncWarning = productUpdateError.message;
-              else linkedProducts = 1;
+      if (data.status === "completed" && data.youtube_video_id && data.youtube_url) {
+        const assets = Array.isArray(data.media_assets) ? data.media_assets : [];
+        const marker = socialListMarker(assets);
+        if (marker) {
+          let productUpdate = supabase.from("product_links")
+            .update({ has_video: true, video_id: data.youtube_video_id, updated_at: new Date().toISOString() });
+          if (marker.productLinkId) productUpdate = productUpdate.eq("id", marker.productLinkId);
+          else productUpdate = productUpdate.contains("tags", ["ml-social-item:" + marker.itemId]);
+          const { data: updatedProducts, error: productUpdateError } = await productUpdate.select("id");
+          if (productUpdateError) assetSyncWarning = productUpdateError.message;
+          else linkedProducts += (updatedProducts || []).length;
+        }
+
+        if (data.review_url) {
+          let reviewSlug: string | null = null;
+          try {
+            const reviewPath = new URL(data.review_url).pathname;
+            reviewSlug = reviewPath.match(/^\/reviews\/([^/]+)\/?$/)?.[1] || null;
+          } catch {}
+          if (reviewSlug) {
+            const { data: product, error: productError } = await supabase
+              .from("product_links").select("id").eq("review_slug", reviewSlug)
+              .neq("status", "archived").order("updated_at", { ascending: false })
+              .limit(1).maybeSingle();
+            if (productError) assetSyncWarning = productError.message;
+            else if (product) {
+              const format = assets.find((asset: any) => asset?.type === "publication_format")?.format;
+              const videoType = format === "long" || format === "short" ? format : "unknown";
+              const { error: assetError } = await supabase.from("product_video_assets").upsert({
+                product_link_id: product.id, review_slug: reviewSlug,
+                youtube_video_id: data.youtube_video_id, youtube_url: data.youtube_url,
+                video_type: videoType, source_table: "video_queue", source_record_id: data.id,
+                published_at: data.completed_at || new Date().toISOString(),
+              }, { onConflict: "youtube_video_id" });
+              if (assetError) assetSyncWarning = assetError.message;
+              else {
+                const { error: productUpdateError } = await supabase.from("product_links")
+                  .update({ has_video: true, video_id: data.youtube_video_id, updated_at: new Date().toISOString() })
+                  .eq("id", product.id);
+                if (productUpdateError) assetSyncWarning = productUpdateError.message;
+                else linkedProducts += 1;
+              }
             }
           }
         }
@@ -993,7 +1100,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, videos: data || [] });
     }
 
-    return NextResponse.json({ success: false, error: "Ação inválida. Use quota, queueFromReviews, queueFromComparatives, retryRemotionTimeouts, retryQuotaFailures, next, get, update, pendingComments ou recent." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Ação inválida. Use quota, queueFromSocialList, queueFromComparatives, retryRemotionTimeouts, retryQuotaFailures, next, get, update, pendingComments ou recent." }, { status: 400 });
   } catch (error: unknown) {
     const message = formatVideoQueueError(error);
     console.error(`[video-queue-worker] failed: action=${action} ${message}`);
