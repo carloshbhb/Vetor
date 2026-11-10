@@ -134,26 +134,31 @@ assert.match(appTts, /const BRAZILIAN_VOICES = \[DEFAULT_VOICE\]/);
 assert.match(pythonTts, /VOICE = "pt-BR-FranciscaNeural"/);
 assert.doesNotMatch(pythonTts, /sys\.argv\[3\]/, 'Python TTS does not accept alternate voices');
 assert.match(dailyReviewWorkflow, /github\.event_name == 'workflow_dispatch' && inputs\.dry_run/, 'manual review dispatch controls dry-run behavior');
-assert.match(processVideoQueueWorkflow, /\n  workflow_run:/, 'video queue follows a completed Social List review batch');
-assert.match(processVideoQueueWorkflow, /workflows: \["Generate Daily Review"\]/);
-assert.match(processVideoQueueWorkflow, /github\.event\.workflow_run\.conclusion == 'success'/, 'video processing only follows successful review generation');
+assert.match(processVideoQueueWorkflow, /\n  schedule:/, 'video batches have an independent daily schedule');
+assert.equal((processVideoQueueWorkflow.match(/^\s+- cron:/gm) || []).length, 3, 'three independent batches run daily');
+assert.match(processVideoQueueWorkflow, /queueFromSocialList/, 'video queue is filled directly from Mercado Livre Social List');
+assert.doesNotMatch(processVideoQueueWorkflow, /workflow_run|Generate Daily Review|queueFromReviews/, 'video production is independent of editorial review generation');
+assert.match(processVideoQueueWorkflow, /MAX_VIDEOS: '5'/, 'each scheduled invocation is limited to five videos');
 assert.match(processVideoQueueWorkflow, /\n  workflow_dispatch:/, 'video queue remains manually triggerable');
 assert.doesNotMatch(processVideoQueueWorkflow, /\n  push:/, 'code pushes must not render or publish queued videos');
-assert.doesNotMatch(processVideoQueueWorkflow, /\n  schedule:/, 'video batches are chained to reviews to prevent duplicate scheduled runs');
 assert.match(invalidation, /revalidateAffiliateLinkSurfaces/);
 assert.match(invalidation, /revalidateProductLinkSurfaces/);
 
-// Video queue contract: a published review can be queued without violating the
-// NOT NULL constraint on video_queue.script_text, and worker failures remain diagnosable.
-const queueFromReviews = videoQueueWorker.match(/if \(action === "queueFromReviews"\) \{[\s\S]*?\n    \}\n\n    if \(action === "queueFromComparatives"\)/);
-assert.ok(queueFromReviews, 'queueFromReviews action exists');
-assert.match(queueFromReviews[0], /script_text: ""/);
-assert.doesNotMatch(queueFromReviews[0], /script_text: null/);
+// Video queue contract: long-form videos are sourced directly from the Social List,
+// can be generated without a review URL, and remain protected against duplicates.
+const queueFromSocialList = videoQueueWorker.match(/if \(action === "queueFromSocialList"\) \{[\s\S]*?\n    \}\n\n    if \(action === "queueFromComparatives"\)/);
+assert.ok(queueFromSocialList, 'queueFromSocialList action exists');
+assert.match(queueFromSocialList[0], /script_text: ""/);
+assert.match(queueFromSocialList[0], /review_url: null/);
+assert.match(queueFromSocialList[0], /type: "publication_format", format: "long"/);
+assert.match(queueFromSocialList[0], /type: "ml-social-list-item"/);
+assert.match(queueFromSocialList[0], /independentOfReviews: true/);
+assert.match(queueFromSocialList[0], /isSafeMercadoLivreAffiliateUrl/);
 assert.match(videoQueueWorker, /function formatVideoQueueError\(error: unknown\)/);
 assert.match(videoQueueWorker, /from\("ml_social_list_items"\)/, 'video discovery is driven by the Mercado Livre Social List');
-assert.match(videoQueueWorker, /getPublicationFormat\(row\.media_assets\) === 'long'/, 'a Short must not suppress long-form generation');
+assert.match(videoQueueWorker, /function isLikelySameVideoProductTitle/);
 assert.match(videoQueueWorker, /MAX_DAILY_PUBLICATIONS = 15/);
-assert.match(videoQueueWorker, /if \(format !== "long"\)/);
+assert.match(videoQueueWorker, /if \(getPublicationFormat\(item\.media_assets\) !== "long"\)/);
 assert.match(videoQueueWorker, /\.eq\("publication_mode", "automatic"\)/);
 assert.match(contentPipeline, /buildGeneratedReviewContent/);
 assert.match(contentPipeline, /sectionsHtml/);
