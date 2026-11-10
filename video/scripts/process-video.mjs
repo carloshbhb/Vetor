@@ -118,7 +118,7 @@ async function retryPendingCtaComments() {
     const videoId = extractYouTubeVideoId(video);
     const purchaseUrl = String(video.shortened_affiliate_url || video.affiliate_url || '').trim();
     const reviewUrl = String(video.review_url || '').trim();
-    if (!videoId || !/^https?:\/\//i.test(purchaseUrl) || !/^https:\/\//i.test(reviewUrl)) {
+    if (!videoId || !/^https?:\/\//i.test(purchaseUrl)) {
       console.warn('[CTA_COMMENT_PENDING] queue_id=' + video.id + ' faltam ID do YouTube ou links válidos.');
       continue;
     }
@@ -820,6 +820,15 @@ async function processVideo(video) {
       console.log('[RESEARCH] Cache valido reutilizado para slug=' + reviewSlug);
     }
     researchBrief = research && typeof research.brief === 'string' ? research.brief : null;
+  } else {
+    try {
+      const research = await researchProduct({ title: video.product_title, category: video.product_category });
+      researchBrief = research && typeof research.brief === 'string' ? research.brief : null;
+      console.log('[RESEARCH] Pesquisa independente gerada para item da Lista Social: ' + video.product_title);
+    } catch (error) {
+      console.warn('[RESEARCH] Pesquisa externa indisponível; seguindo com dados verificados do anúncio: ' +
+        (error instanceof Error ? error.message : String(error)).slice(0, 300));
+    }
   }
 
   try {
@@ -1033,8 +1042,7 @@ async function processVideo(video) {
       ? video.review_url
       : '';
     const purchaseUrl = video.shortened_affiliate_url || video.affiliate_url;
-    if (!reviewUrl) throw new Error('review_url ausente: não publicar vídeo sem link do review.');
-    if (!purchaseUrl || !String(purchaseUrl).startsWith('http')) {
+    if (!purchaseUrl || !/^https:\/\//i.test(String(purchaseUrl))) {
       throw new Error('Link de compra/afiliado ausente ou inválido; upload bloqueado.');
     }
 
@@ -1114,7 +1122,8 @@ async function processVideo(video) {
     await updateVideoStatus(video.id, updates);
     console.log('[UPLOAD_CONFIRMED_THIS_RUN] queue_id=' + video.id + ' youtube_url=' + ytResult.videoUrl);
     console.log(`   ✅ Vídeo concluído: ${video.product_title}`);
-    console.log(`   📝 Review: ${reviewUrl}`);
+    if (reviewUrl) console.log(`   📝 Review: ${reviewUrl}`);
+    else console.log('   🛒 Vídeo independente da review editorial; origem: Lista Social do Mercado Livre.');
     console.log(`   🛒 Compra: ${purchaseUrl}`);
     console.log(`   📺 YouTube: ${ytResult.videoUrl}`);
     if (ytResult.commentId) {
@@ -1229,12 +1238,12 @@ async function main() {
 
     if (videos.length < limit && limit > 0) {
       const slotsNeeded = limit - videos.length;
-      console.log('Fila abaixo do lote solicitado (' + videos.length + '/' + limit + '); completando exclusivamente com reviews da Lista Social do Mercado Livre.');
-      let queuedFromReviews = 0;
+      console.log('Fila abaixo do lote solicitado (' + videos.length + '/' + limit + '); completando diretamente com produtos elegíveis da Lista Social do Mercado Livre.');
+      let queuedFromSocialList = 0;
       try {
-        const refill = await queueApi('queueFromReviews', { limit: slotsNeeded });
-        queuedFromReviews = Math.min(slotsNeeded, Math.max(0, Number(refill.queued) || 0));
-        console.log(`Reposição da fila: ${queuedFromReviews} vídeo(s) longo(s) da Lista Social adicionado(s).`);
+        const refill = await queueApi('queueFromSocialList', { limit: slotsNeeded });
+        queuedFromSocialList = Math.min(slotsNeeded, Math.max(0, Number(refill.queued) || 0));
+        console.log(`Reposição independente da fila: ${queuedFromSocialList} vídeo(s) longo(s) da Lista Social adicionado(s).`);
       } catch (error) {
         console.warn('[QUEUE_REFILL] Não foi possível adicionar reviews: ' +
           (error instanceof Error ? error.message : String(error)));
