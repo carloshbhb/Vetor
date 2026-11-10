@@ -1,1 +1,1 @@
-One-time bootstrap trigger for the independent long-form Mercado Livre Social List video queue.
+One-time bootstrap trigger for the independent long-form Mercado Livre Social List video queue. Retry after the Production JSONB filter fix.
