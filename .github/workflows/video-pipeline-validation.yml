@@ -19,8 +19,11 @@ on:
       - "video/**"
       - "scripts/tts.py"
       - "scripts/video-media-matching.test.ts"
+      - "scripts/video-queue-quota.test.ts"
       - "src/lib/video-media-matching.ts"
       - "src/app/api/cron/generate-video-script/route.ts"
+      - "src/app/api/cron/video-queue-worker/route.ts"
+      - ".github/workflows/process-video-queue.yml"
       - ".github/workflows/video-pipeline-validation.yml"
 
 permissions:
