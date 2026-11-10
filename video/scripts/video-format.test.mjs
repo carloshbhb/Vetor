@@ -145,6 +145,28 @@ assert.ok(longDescription.includes(reviewUrl));
 assert.ok(longDescription.includes("0:00 Introdução"));
 assert.ok(longDescription.includes("1:05 Limitações"));
 
+const standaloneLongDescription = buildVideoDescription({
+  format: "long",
+  productTitle: "Samsung Galaxy A07",
+  category: "Smartphones",
+  purchaseUrl,
+  reviewUrl: "",
+  hook: "O que conferir antes de comprar?",
+  chapters: [{ time: 0, title: "Introdução" }],
+});
+assert.ok(standaloneLongDescription.includes(purchaseUrl));
+assert.ok(!standaloneLongDescription.includes("/reviews/"));
+assert.ok(!standaloneLongDescription.includes("REVIEW COMPLETO"));
+assert.ok(standaloneLongDescription.includes("vídeo independente"));
+const standaloneLongComment = buildCtaComment({
+  format: "long",
+  productTitle: "Samsung Galaxy A07",
+  purchaseUrl,
+  reviewUrl: "",
+});
+assert.ok(standaloneLongComment.includes(purchaseUrl));
+assert.ok(!standaloneLongComment.includes("Review completo"));
+
 const shortDescription = buildVideoDescription({
   format: shortFormat,
   productTitle: "Produto X",
