@@ -118,7 +118,9 @@ assert.ok(reviewSuccessLogStart >= 0 && reviewFailureCatch > reviewSuccessLogSta
 assert.doesNotMatch(dailyReviewGenerator.slice(reviewSuccessLogStart, reviewFailureCatch), /\breturn\s*;/,
   'one successful review must not stop the rest of the batch');
 assert.match(dailyReviewWorkflow, /\n  workflow_dispatch:/, 'daily review remains manually triggerable');
-assert.doesNotMatch(dailyReviewWorkflow, /\n  push:/, 'code pushes must not run extra Supabase reads');
+assert.match(dailyReviewWorkflow, /\n  push:/, 'the one-time batch trigger is restricted to a dedicated marker');
+assert.match(dailyReviewWorkflow, /'.ops\/run-first-social-video-batch'/);
+assert.match(dailyReviewWorkflow, /github\.event\.head_commit\.message == 'run-first-social-video-batch'/, 'only the explicit one-time commit may start a push-triggered review batch');
 assert.match(remotionRenderWorkflow, /\n  workflow_dispatch:/, 'manual Remotion renders remain available');
 assert.doesNotMatch(remotionRenderWorkflow, /\n  push:/, 'code pushes must not start extra video renders');
 assert.match(socialVideoWorkflow, /\n  workflow_dispatch:/, 'manual Remotion/Edge TTS social-video renders remain available');
@@ -132,10 +134,12 @@ assert.match(appTts, /const BRAZILIAN_VOICES = \[DEFAULT_VOICE\]/);
 assert.match(pythonTts, /VOICE = "pt-BR-FranciscaNeural"/);
 assert.doesNotMatch(pythonTts, /sys\.argv\[3\]/, 'Python TTS does not accept alternate voices');
 assert.match(dailyReviewWorkflow, /github\.event_name == 'workflow_dispatch' && inputs\.dry_run/, 'manual review dispatch controls dry-run behavior');
-assert.match(processVideoQueueWorkflow, /\n  schedule:/, 'video queue remains scheduled');
+assert.match(processVideoQueueWorkflow, /\n  workflow_run:/, 'video queue follows a completed Social List review batch');
+assert.match(processVideoQueueWorkflow, /workflows: \["Generate Daily Review"\]/);
+assert.match(processVideoQueueWorkflow, /github\.event\.workflow_run\.conclusion == 'success'/, 'video processing only follows successful review generation');
 assert.match(processVideoQueueWorkflow, /\n  workflow_dispatch:/, 'video queue remains manually triggerable');
 assert.doesNotMatch(processVideoQueueWorkflow, /\n  push:/, 'code pushes must not render or publish queued videos');
-assert.equal((processVideoQueueWorkflow.match(/^\s+- cron:/gm) || []).length, 3, 'video queue retains exactly three scheduled batches');
+assert.doesNotMatch(processVideoQueueWorkflow, /\n  schedule:/, 'video batches are chained to reviews to prevent duplicate scheduled runs');
 assert.match(invalidation, /revalidateAffiliateLinkSurfaces/);
 assert.match(invalidation, /revalidateProductLinkSurfaces/);
 
