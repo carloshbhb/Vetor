@@ -55,7 +55,7 @@ function isLikelySameVideoProductTitle(leftValue: unknown, rightValue: unknown):
   const right = normalizeVideoProductTitle(rightValue).split(' ').filter(Boolean);
   if (left.length < 2 || right.length < 2) return false;
 
-  const variantWords = new Set(['active', 'pro', 'lite', 'plus', 'ultra', 'max', 'mini', 'se', 'fe', 'edge', 'kids', 'classic', 'neo', 'fold', 'flip', 'prime', 'air']);
+  const variantWords = new Set(['active', 'pro', 'lite', 'plus', 'ultra', 'max', 'mini', 'se', 'fe', 'edge', 'kids', 'classic', 'neo', 'fold', 'flip', 'prime', 'air', 'kit', 'combo', 'pack']);
   const leftVariants = left.filter((token) => variantWords.has(token));
   const rightVariants = right.filter((token) => variantWords.has(token));
   if (leftVariants.some((token) => !rightVariants.includes(token)) ||
@@ -67,12 +67,19 @@ function isLikelySameVideoProductTitle(leftValue: unknown, rightValue: unknown):
   if (leftBrands.length && rightBrands.length &&
       !leftBrands.some((token) => rightBrands.includes(token))) return false;
 
-  const isModelCode = (token: string) =>
-    /^(?:[a-z]{1,8}\d+[a-z0-9]*|\d{1,3})$/.test(token);
-  const leftCodes = left.filter(isModelCode);
-  const rightCodes = right.filter(isModelCode);
+  const isStrictModelCode = (token: string) =>
+    /^(?:[a-z]{1,8}\d+[a-z0-9]*|\d+[a-z]{1,4})$/.test(token) &&
+    !/^(?:[2-5]g|wifi\d+|bluetooth\d+|\d+gb|\d+mp)$/.test(token);
+  const leftCodes = left.filter(isStrictModelCode);
+  const rightCodes = right.filter(isStrictModelCode);
   if (leftCodes.length && rightCodes.length &&
       !leftCodes.some((token) => rightCodes.includes(token))) return false;
+  if (!leftCodes.length || !rightCodes.length) {
+    const leftNumbers = left.filter((token) => /^\d{1,2}$/.test(token));
+    const rightNumbers = right.filter((token) => /^\d{1,2}$/.test(token));
+    if (leftNumbers.length && rightNumbers.length &&
+        !leftNumbers.some((token) => rightNumbers.includes(token))) return false;
+  }
 
   const ignored = new Set(['de', 'da', 'do', 'das', 'dos', 'para', 'com', 'sem', 'por', 'e', 'ou', 'cor', 'preto', 'branco', 'cinza', 'azul', 'vermelho', 'grafite', 'prata', 'unissex', 'original', 'produto', 'modelo', 'novo', 'nova', 'polegadas', 'ram', 'tela']);
   const leftTokens = new Set(left.filter((token) => !ignored.has(token)));
@@ -978,7 +985,9 @@ export async function POST(request: NextRequest) {
         .eq("status", "pending")
         .lte("scheduled_at", new Date().toISOString());
       if (!manualOverride) {
-        pendingQuery = pendingQuery.contains("media_assets", [{ type: "publication_format", format: "long" }]);
+        pendingQuery = pendingQuery
+          .eq("publication_mode", "automatic")
+          .contains("media_assets", [{ type: "publication_format", format: "long" }]);
       }
       const { data, error } = await pendingQuery
         .order("scheduled_at", { ascending: true })
