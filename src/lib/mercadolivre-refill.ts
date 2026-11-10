@@ -643,7 +643,7 @@ export async function boostAffiliatePriorityFromSeo(
  */
 export async function promoteMatchedAffiliates(
   supabase: SupabaseClient,
-  options: { dryRun?: boolean; limit?: number } = {}
+  options: { dryRun?: boolean; limit?: number; socialListOnly?: boolean } = {}
 ): Promise<PromotionResult> {
   const dryRun = Boolean(options.dryRun);
   const limit = Math.min(Math.max(Number(options.limit || 500), 1), 500);
@@ -673,9 +673,12 @@ export async function promoteMatchedAffiliates(
       ? row.affiliate_links[0] || null
       : row.affiliate_links,
   }));
+  const candidateRows = options.socialListOnly
+    ? rows.filter((row) => isSocialListSourceRef(row.affiliate_links?.source_ref))
+    : rows;
   const result: PromotionResult = {
     ok: true,
-    considered: rows.length,
+    considered: candidateRows.length,
     promoted: 0,
     skippedExisting: 0,
     skippedUnsafe: 0,
@@ -698,7 +701,7 @@ export async function promoteMatchedAffiliates(
   const claimedNames = new Set<string>();
   const claimedMatchedItems = new Set<string>();
 
-  for (const row of rows) {
+  for (const row of candidateRows) {
     const source = row.affiliate_links;
     if (!source) {
       result.skippedUnsafe += 1;

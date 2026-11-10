@@ -10,6 +10,7 @@ import { getValidAccessToken } from '../src/lib/mercadolivre-auth';
 import { extractProductData } from '../src/lib/product-extractor';
 import { canonicalProductName } from '../src/lib/product-name';
 import { inferProductCategory } from '../src/lib/product-category';
+import { promoteMatchedAffiliates } from '../src/lib/mercadolivre-refill';
 
 type ExistingReview = {
   slug: string;
@@ -701,6 +702,25 @@ async function main(): Promise<void> {
   if (!process.env.OPENROUTER_API_KEY?.trim() && !process.env.GROQ_API_KEY?.trim() && !process.env.NVIDIA_API_KEY?.trim()) {
     throw new Error('Nenhuma credencial LLM disponível; configure OPENROUTER_API_KEY, GROQ_API_KEY ou NVIDIA_API_KEY.');
   }
+
+  const socialPromotion = await promoteMatchedAffiliates(supabase, {
+    dryRun,
+    limit: 500,
+    socialListOnly: true,
+  });
+  console.log(JSON.stringify({
+    event: 'daily-review-social-list-promotion',
+    considered: socialPromotion.considered,
+    promoted: socialPromotion.promoted,
+    skippedExisting: socialPromotion.skippedExisting,
+    skippedUnsafe: socialPromotion.skippedUnsafe,
+    skippedInactive: socialPromotion.skippedInactive,
+    skippedAccessory: socialPromotion.skippedAccessory,
+    skippedConcurrent: socialPromotion.skippedConcurrent,
+    duplicateMatches: socialPromotion.duplicateMatches,
+    errors: socialPromotion.errors,
+    dryRun,
+  }));
 
   const [{ data: rawLinks, error: linksError }, { data: existingRows, error: reviewsError }, { data: allProductRows, error: allProductLinksError }] = await Promise.all([
     supabase

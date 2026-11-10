@@ -762,7 +762,7 @@ export async function POST(request: NextRequest) {
         success: true,
         retried: retried.length,
         videos: retried,
-        policy: "one failed item per review URL; no prior YouTube upload; safe affiliate and product image; 24-hour cooldown",
+        policy: "one failed item per review URL and format; no completed YouTube upload of the same format; safe affiliate and product image; 24-hour cooldown",
       });
     }
 

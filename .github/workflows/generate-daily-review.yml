@@ -32,6 +32,7 @@ jobs:
       NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
       ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
       ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
+      ML_TRACKING_ID: carloshbhb
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
       NVIDIA_MODEL: nvidia/nemotron-3-ultra-550b-a55b
       NVIDIA_FALLBACK_MODEL: deepseek-ai/deepseek-v4.1-flash

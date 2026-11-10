@@ -19,6 +19,8 @@ const feedRoute = read('src/app/feed.xml/route.ts');
 const bestProducts = read('src/app/melhores/page.tsx');
 const videoQueueWorker = read('src/app/api/cron/video-queue-worker/route.ts');
 const contentPipeline = read('src/lib/content-pipeline.ts');
+const dailyReviewGenerator = read('scripts/generate-daily-review.ts');
+const affiliateRefill = read('src/lib/mercadolivre-refill.ts');
 const processVideo = read('video/scripts/process-video.mjs');
 const dailyReviewWorkflow = read('.github/workflows/generate-daily-review.yml');
 const remotionRenderWorkflow = read('.github/workflows/remotion-render.yml');
@@ -128,6 +130,10 @@ assert.match(videoQueueWorker, /getPublicationFormat\(row\.media_assets\) === 'l
 assert.match(videoQueueWorker, /MAX_DAILY_PUBLICATIONS = 15/);
 assert.match(contentPipeline, /buildGeneratedReviewContent/);
 assert.match(contentPipeline, /sectionsHtml/);
+assert.match(dailyReviewGenerator, /promoteMatchedAffiliates\(supabase,\s*\{/);
+assert.match(dailyReviewGenerator, /socialListOnly:\s*true/);
+assert.match(affiliateRefill, /options\.socialListOnly/);
+assert.match(affiliateRefill, /isSocialListSourceRef\(row\.affiliate_links\?\.source_ref\)/);
 assert.match(videoQueueWorker, /failed: action=\$\{action\}/);
 
 // Remotion runs from the video project root so the cached local Chrome is reused.
