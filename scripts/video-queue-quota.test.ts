@@ -27,6 +27,12 @@ assert.match(block, /ml-social-list-item/);
 assert.match(block, /isSafeMercadoLivreAffiliateUrl/);
 assert.match(route, /function isLikelySameVideoProductTitle/);
 assert.match(block, /titleAlreadyHasVideo/);
+assert.match(block, /from\("product_video_assets"\)/);
+assert.match(block, /\.eq\("video_type", "long"\)/);
+assert.match(block, /existingLongRows/);
+assert.match(block, /existingLongProductLinkIds/);
+assert.match(block, /getPublicationFormat\(row\.media_assets\) === "long"/);
+assert.doesNotMatch(block, /link\.has_video === true \|\| link\.video_id/);
 assert.doesNotMatch(block, /from\("reviews"\)/);
 
 assert.match(route, /pendingQuery = pendingQuery\s+\.eq\("publication_mode", "automatic"\)\s+\.contains\("media_assets", \[\{ type: "publication_format", format: "long" \}\]\)/);
@@ -37,6 +43,7 @@ const retryEnd = route.indexOf('if (action === "retryRemotionTimeouts")', retryS
 assert.ok(retryStart >= 0 && retryEnd > retryStart);
 assert.match(route.slice(retryStart, retryEnd), /getPublicationFormat\(item\.media_assets\) !== "long"/);
 assert.match(route.slice(retryStart, retryEnd), /completedKeys/);
+assert.match(route.slice(retryStart, retryEnd), /getPublicationFormat\(row\.media_assets\) !== "long"/);
 
 assert.equal((workflow.match(/^\s+- cron:/gm) || []).length, 3);
 assert.match(workflow, /MAX_VIDEOS: '5'/);
