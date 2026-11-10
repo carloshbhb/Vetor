@@ -47,7 +47,38 @@ function socialListMarker(mediaAssets: unknown): { itemId: string; productLinkId
 
 function normalizeVideoProductTitle(value: unknown): string {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    .toLowerCase().replace(/\+/g, ' plus ').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function isLikelySameVideoProductTitle(leftValue: unknown, rightValue: unknown): boolean {
+  const left = normalizeVideoProductTitle(leftValue).split(' ').filter(Boolean);
+  const right = normalizeVideoProductTitle(rightValue).split(' ').filter(Boolean);
+  if (left.length < 2 || right.length < 2) return false;
+
+  const variantWords = new Set(['active', 'pro', 'lite', 'plus', 'ultra', 'max', 'mini', 'se', 'fe', 'edge', 'kids', 'classic', 'neo', 'fold', 'flip', 'prime', 'air']);
+  const leftVariants = left.filter((token) => variantWords.has(token));
+  const rightVariants = right.filter((token) => variantWords.has(token));
+  if (leftVariants.some((token) => !rightVariants.includes(token)) ||
+      rightVariants.some((token) => !leftVariants.includes(token))) return false;
+
+  const brandWords = new Set(['samsung', 'xiaomi', 'redmi', 'huawei', 'apple', 'logitech', 'jbl', 'edifier', 'intelbras', 'sony', 'microsoft', 'amazon', 'lenovo', 'asus', 'acer', 'behringer', 'qcy', 'hollyland', 'mondial', 'philco', 'britania', 'wap', 'eufy', 'ilife', 'redragon', 'hyperx', 'gamesir', '8bitdo', 'tp', 'link']);
+  const leftBrands = left.filter((token) => brandWords.has(token));
+  const rightBrands = right.filter((token) => brandWords.has(token));
+  if (leftBrands.length && rightBrands.length &&
+      !leftBrands.some((token) => rightBrands.includes(token))) return false;
+
+  const isModelCode = (token: string) =>
+    /^(?:[a-z]{1,8}\d+[a-z0-9]*|\d{1,3})$/.test(token);
+  const leftCodes = left.filter(isModelCode);
+  const rightCodes = right.filter(isModelCode);
+  if (leftCodes.length && rightCodes.length &&
+      !leftCodes.some((token) => rightCodes.includes(token))) return false;
+
+  const ignored = new Set(['de', 'da', 'do', 'das', 'dos', 'para', 'com', 'sem', 'por', 'e', 'ou', 'cor', 'preto', 'branco', 'cinza', 'azul', 'vermelho', 'grafite', 'prata', 'unissex', 'original', 'produto', 'modelo', 'novo', 'nova', 'polegadas', 'ram', 'tela']);
+  const leftTokens = new Set(left.filter((token) => !ignored.has(token)));
+  const rightTokens = new Set(right.filter((token) => !ignored.has(token)));
+  const common = [...leftTokens].filter((token) => rightTokens.has(token));
+  return common.length >= 2 && common.length / Math.min(leftTokens.size, rightTokens.size) >= 0.72;
 }
 
 function isSafeMercadoLivreAffiliateUrl(value: unknown): boolean {
@@ -522,7 +553,7 @@ export async function POST(request: NextRequest) {
           .order("priority", { ascending: false }).order("updated_at", { ascending: false }).limit(2000),
         supabase.from("video_queue")
           .select("product_title,product_url,affiliate_url,media_assets,status,youtube_video_id")
-          .in("status", ["pending", "processing", "completed"]).limit(5000),
+          .in("status", ["pending", "processing", "completed"]).limit(1500),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .eq("status", "completed").eq("publication_mode", "automatic")
           .contains("media_assets", [{ type: "publication_format", format: "long" }])
@@ -560,6 +591,9 @@ export async function POST(request: NextRequest) {
 
       const queuedOrPublishedItemIds = new Set<string>();
       const queuedOrPublishedTitles = new Set<string>();
+      const existingProductTitles = (existing || [])
+        .map((row: any) => String(row.product_title || '').trim())
+        .filter(Boolean);
       for (const row of existing || []) {
         const marker = socialListMarker(row.media_assets);
         const itemId = marker?.itemId ||
@@ -599,8 +633,11 @@ export async function POST(request: NextRequest) {
         const productUrl = String(item.product_url || link.product_url || "").trim();
         const imageUrl = String(item.image_url || link.image_url || "").trim();
 
+        const titleAlreadyHasVideo = existingProductTitles.some((existingTitle) =>
+          isLikelySameVideoProductTitle(title, existingTitle)
+        );
         if (link.has_video === true || link.video_id || queuedOrPublishedItemIds.has(itemId) ||
-            (titleKey && queuedOrPublishedTitles.has(titleKey))) {
+            (titleKey && queuedOrPublishedTitles.has(titleKey)) || titleAlreadyHasVideo) {
           skippedAlreadyPublished += 1;
           continue;
         }
@@ -664,6 +701,7 @@ export async function POST(request: NextRequest) {
         queuedOrPublishedItemIds.add(candidate.itemId);
         const titleKey = normalizeVideoProductTitle(candidate.title);
         if (titleKey) queuedOrPublishedTitles.add(titleKey);
+        existingProductTitles.push(candidate.title);
       }
 
       return NextResponse.json({
