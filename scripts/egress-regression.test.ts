@@ -140,7 +140,8 @@ assert.match(processVideoQueueWorkflow, /queueFromSocialList/, 'video queue is f
 assert.doesNotMatch(processVideoQueueWorkflow, /workflow_run|Generate Daily Review|queueFromReviews/, 'video production is independent of editorial review generation');
 assert.match(processVideoQueueWorkflow, /MAX_VIDEOS: '5'/, 'each scheduled invocation is limited to five videos');
 assert.match(processVideoQueueWorkflow, /\n  workflow_dispatch:/, 'video queue remains manually triggerable');
-assert.doesNotMatch(processVideoQueueWorkflow, /\n  push:/, 'code pushes must not render or publish queued videos');
+assert.match(processVideoQueueWorkflow, /paths:\s*\n\s+- '\.ops\/run-first-independent-long-video-batch'/, 'only the one-time bootstrap marker can trigger a push batch');
+assert.match(processVideoQueueWorkflow, /github\.event\.head_commit\.message == 'run-first-independent-long-video-batch'/, 'normal code pushes cannot start video publishing');
 assert.match(invalidation, /revalidateAffiliateLinkSurfaces/);
 assert.match(invalidation, /revalidateProductLinkSurfaces/);
 
