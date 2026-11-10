@@ -114,9 +114,8 @@ export async function POST(request: NextRequest) {
     }
 
     const reviewSlug = contentPath.match(/^\/reviews\/([^/]+)\/?$/)?.[1] || null;
-    if (!reviewSlug) {
-      return NextResponse.json({ error: "A URL da fila não corresponde a um review ou comparativo publicado." }, { status: 422 });
-    }
+    const socialListMarker = existingMediaAssets.find((asset: any) => asset && asset.type === "ml-social-list-item") || null;
+    const socialListItemId = extractMercadoLivreItemId(socialListMarker?.itemId || video.product_url);
 
     let reviewFacts: any = null;
     if (supabase && reviewSlug) {
@@ -134,19 +133,43 @@ export async function POST(request: NextRequest) {
     }
 
     let selectedProductRow: any = null;
+    let socialListItem: any = null;
     const galleryUrls: string[] = [];
-    let resolvedItemId: string | null = extractMercadoLivreItemId(video.product_url);
+    let resolvedItemId: string | null = socialListItemId || extractMercadoLivreItemId(video.product_url);
 
     try {
-      if (supabase && reviewSlug) {
-        const { data: productRows, error: productError } = await supabase
-          .from("product_links")
-          .select("product_name,product_url,image_url,marketplace,updated_at")
-          .eq("review_slug", reviewSlug)
+      if (supabase) {
+        if (socialListItemId) {
+          const { data: listItem, error: listItemError } = await supabase
+            .from("ml_social_list_items")
+            .select("item_id,title,product_url,image_url,price,rating,review_count,highlight,last_seen_at")
+            .eq("item_id", socialListItemId)
+            .maybeSingle();
+          if (listItemError) {
+            console.warn("[generate-video-script] Social List item lookup failed:", listItemError.message);
+          } else {
+            socialListItem = listItem;
+          }
+        }
+
+        let productQuery = supabase.from("product_links")
+          .select("id,product_name,product_url,image_url,marketplace,category,price,updated_at,tags");
+        if (reviewSlug) {
+          productQuery = productQuery.eq("review_slug", reviewSlug);
+        } else if (typeof socialListMarker?.productLinkId === "string" && socialListMarker.productLinkId) {
+          productQuery = productQuery.eq("id", socialListMarker.productLinkId);
+        } else if (socialListItemId) {
+          productQuery = productQuery.contains("tags", ["ml-social-item:" + socialListItemId]);
+        } else {
+          productQuery = productQuery.eq("product_name", video.product_title);
+        }
+        const { data: productRows, error: productError } = await productQuery
           .neq("status", "archived")
           .order("updated_at", { ascending: false })
           .limit(10);
-        if (productError) console.warn("[generate-video-script] product link lookup failed:", productError.message);
+        if (productError) {
+          console.warn("[generate-video-script] product link lookup failed:", productError.message);
+        }
 
         const rows = (productRows || []) as any[];
         const exactRows = rows.filter((row) =>
@@ -162,7 +185,7 @@ export async function POST(request: NextRequest) {
           .map((row) => ({ row, score: scoreProductTitleMatch(video.product_title, row.product_name) }))
           .filter((item) => item.score)
           .sort((a, b) => Number(b.score?.confidence || 0) - Number(a.score?.confidence || 0));
-        selectedProductRow = exactRow;
+        selectedProductRow = exactRow || (rows.length === 1 ? rows[0] : null);
         if (!selectedProductRow && scoredRows.length) {
           const topConfidence = scoredRows[0].score?.confidence || 0;
           const tiedRows = scoredRows.filter((item) => Math.abs((item.score?.confidence || 0) - topConfidence) < 0.0001);
@@ -172,7 +195,9 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        if (!resolvedItemId && selectedProductRow) resolvedItemId = extractMercadoLivreItemId(selectedProductRow.product_url);
+        if (!resolvedItemId && selectedProductRow) {
+          resolvedItemId = extractMercadoLivreItemId(selectedProductRow.product_url);
+        }
 
         if (!resolvedItemId && (selectedProductRow?.product_name || video.product_title)) {
           const { data: listItems, error: listError } = await supabase
@@ -190,22 +215,22 @@ export async function POST(request: NextRequest) {
             if (match) resolvedItemId = extractMercadoLivreItemId(match.candidate.item_id || match.candidate.product_url);
           }
         }
+      }
 
-        if (resolvedItemId) {
-          const product = await getProductWithPictures(resolvedItemId);
-          const pictureUrls = Array.isArray(product.pictures)
-            ? product.pictures.flatMap((picture) => [picture.secure_url, picture.url])
-            : [];
-          galleryUrls.push(...dedupeMercadoLivreImages(pictureUrls, 5));
-          console.log("[generate-video-script] Mercado Livre gallery resolved:", resolvedItemId, galleryUrls.length);
-        }
+      if (resolvedItemId) {
+        const product = await getProductWithPictures(resolvedItemId);
+        const pictureUrls = Array.isArray(product.pictures)
+          ? product.pictures.flatMap((picture) => [picture.secure_url, picture.url])
+          : [];
+        galleryUrls.push(...dedupeMercadoLivreImages(pictureUrls, 5));
+        console.log("[generate-video-script] Mercado Livre gallery resolved:", resolvedItemId, galleryUrls.length);
       }
     } catch (error) {
       console.warn("[generate-video-script] Product gallery is unavailable; using verified primary image only:",
         error instanceof Error ? error.message.slice(0, 240) : String(error).slice(0, 240));
     }
 
-    const primaryImage = String(video.product_image_url || selectedProductRow?.image_url || "").trim();
+    const primaryImage = String(video.product_image_url || socialListItem?.image_url || selectedProductRow?.image_url || "").trim();
     const primaryUrl = primaryImage.startsWith("http://") ? primaryImage.replace(/^http:/, "https:") : primaryImage;
     const primaryImages = primaryUrl.startsWith("https://") ? [primaryUrl] : [];
     const productImages = [...new Set([...primaryImages, ...galleryUrls])]
@@ -231,6 +256,19 @@ export async function POST(request: NextRequest) {
     const cleanText = (value: unknown, limit = 900) =>
       String(value || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, limit);
     const editorialLines: string[] = [];
+    if (socialListItem) {
+      editorialLines.push("Origem: produto da Lista Social do Mercado Livre; dados do anúncio/lista, não teste prático.");
+      if (socialListItem.highlight) editorialLines.push("Destaque exibido na lista: " + cleanText(socialListItem.highlight, 100));
+      if (Number.isFinite(Number(socialListItem.price)) && Number(socialListItem.price) > 0) {
+        editorialLines.push("Preço exibido na lista (pode mudar): R$ " + Number(socialListItem.price).toFixed(2));
+      }
+      if (Number.isFinite(Number(socialListItem.rating)) && Number(socialListItem.rating) > 0) {
+        editorialLines.push("Nota exibida pelo Mercado Livre: " + Number(socialListItem.rating).toFixed(2));
+      }
+      if (Number.isFinite(Number(socialListItem.review_count)) && Number(socialListItem.review_count) > 0) {
+        editorialLines.push("Quantidade de avaliações exibida pelo Mercado Livre: " + Number(socialListItem.review_count));
+      }
+    }
     if (reviewFacts?.hero_lead) editorialLines.push("Resumo editorial: " + cleanText(reviewFacts.hero_lead, 700));
     if (reviewFacts?.meta_description) editorialLines.push("Resumo do review: " + cleanText(reviewFacts.meta_description, 500));
     for (const item of specs) editorialLines.push("Especificação confirmada — " + cleanText(item.label, 90) + ": " + cleanText(item.value, 260));
@@ -300,8 +338,8 @@ export async function POST(request: NextRequest) {
     const researchBrief = typeof body.researchBrief === "string" ? body.researchBrief : undefined;
     const script = await generateVideoScript({
       title: String(video.product_title || reviewFacts?.product || "Produto de tecnologia"),
-      category: String(reviewFacts?.category || video.product_category || "Tecnologia"),
-      price: String(reviewFacts?.price_new || video.product_price || "Consulte o preço atual"),
+      category: String(reviewFacts?.category || selectedProductRow?.category || video.product_category || "Tecnologia"),
+      price: String(socialListItem?.price || reviewFacts?.price_new || selectedProductRow?.price || video.product_price || "Consulte o preço atual"),
       marketplace: (video.product_url || "").toLowerCase().includes("amazon")
         ? "Amazon"
         : (video.product_url || "").toLowerCase().includes("shopee")
