@@ -9,6 +9,9 @@ on:
       - "scripts/video-media-matching.test.ts"
       - "src/lib/video-media-matching.ts"
       - "src/app/api/cron/generate-video-script/route.ts"
+      - "src/app/api/cron/video-queue-worker/route.ts"
+      - "scripts/video-queue-quota.test.ts"
+      - ".github/workflows/process-video-queue.yml"
       - ".github/workflows/video-pipeline-validation.yml"
   push:
     branches: [main]
@@ -63,6 +66,9 @@ jobs:
           node --import tsx scripts/caption-window.test.mjs
           node --import tsx scripts/scene-headline.test.mjs
           node scripts/media-source.test.mjs
+
+      - name: Validate independent long-video queue and daily quota
+        run: npx tsx scripts/video-queue-quota.test.ts
 
       - name: Validate format, affiliate-link and chapter contracts
         run: node video/scripts/video-format.test.mjs
