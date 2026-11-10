@@ -25,6 +25,8 @@ assert.match(block, /review_url: null/);
 assert.match(block, /format: "long"/);
 assert.match(block, /ml-social-list-item/);
 assert.match(block, /isSafeMercadoLivreAffiliateUrl/);
+assert.match(route, /function isLikelySameVideoProductTitle/);
+assert.match(block, /titleAlreadyHasVideo/);
 assert.doesNotMatch(block, /from\("reviews"\)/);
 
 assert.match(route, /pendingQuery = pendingQuery\.contains\("media_assets", \[\{ type: "publication_format", format: "long" \}\]\)/);
