@@ -1,6 +1,10 @@
 name: Generate Daily Review
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.ops/run-first-social-video-batch'
   schedule:
     - cron: '0 4 * * *'
     - cron: '0 12 * * *'
@@ -22,6 +26,7 @@ concurrency:
 
 jobs:
   generate-review:
+    if: ${{ github.event_name != 'push' || github.event.head_commit.message == 'run-first-social-video-batch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:

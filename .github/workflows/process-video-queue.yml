@@ -6,11 +6,11 @@ concurrency:
   cancel-in-progress: false
 
 on:
-  # Três lotes diários de 5 vídeos, separados por 8 horas; teto de 15 publicações/dia aplicado pela API.
-  schedule:
-    - cron: '17 5 * * *'
-    - cron: '17 13 * * *'
-    - cron: '17 21 * * *'
+  # Each successful Social List review batch starts exactly one corresponding video batch.
+  workflow_run:
+    workflows: ["Generate Daily Review"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       run_mode:
@@ -33,6 +33,7 @@ permissions:
 jobs:
   process-queue:
     name: Render and publish queued videos
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:

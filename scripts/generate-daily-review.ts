@@ -810,8 +810,13 @@ async function main(): Promise<void> {
   }));
 
   if (eligible.length === 0) {
-    if (coolingDown > 0) {
-      console.log('[review-generation] no eligible product: ' + coolingDown + ' candidate(s) are in the six-hour failure cooldown.');
+    if (coolingDown > 0 || reconciled > 0) {
+      console.log(JSON.stringify({
+        event: 'daily-review-no-new-candidates',
+        coolingDownProducts: coolingDown,
+        reconciledExistingReviews: reconciled,
+        message: 'Os reviews existentes foram reconciliados ou os candidatos estão em cooldown; o processamento de vídeos pode continuar.',
+      }));
       return;
     }
     const message = 'Nenhum produto novo elegível após deduplicação; a fila contém itens sem imagem/URL válida ou produtos que já possuem review.';
