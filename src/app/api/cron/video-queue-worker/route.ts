@@ -128,7 +128,7 @@ async function getDailyPublicationQuota(supabase: SupabaseServiceClient) {
     .select("id", { count: "exact", head: true })
     .eq("status", "completed")
     .eq("publication_mode", "automatic")
-    .contains("media_assets", [{ type: "publication_format", format: "long" }])
+    .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }]))
     .gte("completed_at", getSaoPauloDayStartIso());
   if (error) throw error;
   const completedToday = count || 0;
@@ -567,11 +567,11 @@ export async function POST(request: NextRequest) {
           .eq("video_type", "long").limit(5000),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .eq("status", "completed").eq("publication_mode", "automatic")
-          .contains("media_assets", [{ type: "publication_format", format: "long" }])
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }]))
           .gte("completed_at", getSaoPauloDayStartIso()),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .in("status", ["pending", "processing"]).eq("publication_mode", "automatic")
-          .contains("media_assets", [{ type: "publication_format", format: "long" }]),
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }])),
       ]);
       if (listError) throw listError;
       if (productLinksError) throw productLinksError;
@@ -999,7 +999,7 @@ export async function POST(request: NextRequest) {
       if (!manualOverride) {
         pendingQuery = pendingQuery
           .eq("publication_mode", "automatic")
-          .contains("media_assets", [{ type: "publication_format", format: "long" }]);
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }]));
       }
       const { data, error } = await pendingQuery
         .order("scheduled_at", { ascending: true })
