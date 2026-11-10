@@ -689,7 +689,8 @@ export async function POST(request: NextRequest) {
       const retryBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data: failed, error: failedError } = await supabase
         .from("video_queue")
-        .select("id,product_title,review_url,affiliate_url,shortened_affiliate_url,product_image_url,youtube_video_id,youtube_url,media_assets,updated_at")
+        .select("id,product_title,review_url,affiliate_url,shortened_affiliate_url,product_image_url,youtube_video_id,youtube_url,media_assets,publication_mode,updated_at")
+        .eq("publication_mode", "automatic")
         .eq("status", "failed")
         .is("youtube_video_id", null)
         .is("youtube_url", null)
@@ -703,6 +704,10 @@ export async function POST(request: NextRequest) {
       for (const item of failed || []) {
         const reviewUrl = String(item.review_url || "").trim();
         const format = getPublicationFormat(item.media_assets);
+        if (format !== "long") {
+          console.log("[retrySafeFailed] skipping legacy/short/manual item " + item.id + " (format=" + format + ").");
+          continue;
+        }
         const formatKey = reviewUrl + "|" + format;
         if (!reviewUrl || seenFormatKeys.has(formatKey)) continue;
         seenFormatKeys.add(formatKey);

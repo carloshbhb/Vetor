@@ -149,6 +149,8 @@ assert.match(videoQueueWorker, /function formatVideoQueueError\(error: unknown\)
 assert.match(videoQueueWorker, /from\("ml_social_list_items"\)/, 'video discovery is driven by the Mercado Livre Social List');
 assert.match(videoQueueWorker, /getPublicationFormat\(row\.media_assets\) === 'long'/, 'a Short must not suppress long-form generation');
 assert.match(videoQueueWorker, /MAX_DAILY_PUBLICATIONS = 15/);
+assert.match(videoQueueWorker, /if \(format !== "long"\)/);
+assert.match(videoQueueWorker, /\.eq\("publication_mode", "automatic"\)/);
 assert.match(contentPipeline, /buildGeneratedReviewContent/);
 assert.match(contentPipeline, /sectionsHtml/);
 assert.match(reviewGenerator, /normalizeEditorialIdentity\(visibleContent\)/);

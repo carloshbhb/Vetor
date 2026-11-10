@@ -29,6 +29,13 @@ assert.match(block, /\(doneToday \|\| 0\) \+ \(pendingCount \|\| 0\) \+ queued\.
 assert.match(block, /const safePurchase = Boolean\(/);
 assert.match(block, /trackedPurchase/);
 
+const retryStart = route.indexOf('if (action === "retrySafeFailed")');
+const retryEnd = route.indexOf('if (action === "retryRemotionTimeouts")', retryStart);
+assert.ok(retryStart >= 0 && retryEnd > retryStart);
+const retryBlock = route.slice(retryStart, retryEnd);
+assert.match(retryBlock, /\.eq\("publication_mode", "automatic"\)/);
+assert.match(retryBlock, /if \(format !== "long"\)/);
+
 assert.match(route, /seenFormatKeys/);
 assert.match(route, /getPublicationFormat\(record\.media_assets\) === format/);
 assert.match(route, /media_assets: \[\{ type: "publication_format", format: "short" \}\]/);
