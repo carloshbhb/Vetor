@@ -161,7 +161,7 @@ jobs:
           pending="$(jq -r '(.videos // []) | length' batch-peek.json)"
           slots=$((remaining - pending))
           if [ "$slots" -le 0 ]; then
-            echo "Batch already full or daily 10-video quota reached; no new queue entries created."
+            echo "Batch already full or daily 15-video quota reached; no new queue entries created."
             exit 0
           fi
 

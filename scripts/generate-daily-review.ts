@@ -854,6 +854,7 @@ async function main(): Promise<void> {
 
   const attempts = eligible.slice(0, maxAttempts);
   const failures: Array<{ product: string; error: string }> = [];
+  const createdReviews: Array<{ product: string; slug: string; status: string }> = [];
 
   for (const [index, link] of attempts.entries()) {
     console.log('[review-generation] attempt ' + (index + 1) + '/' + attempts.length + ': ' + link.product_name);
@@ -915,16 +916,20 @@ async function main(): Promise<void> {
         throw new Error('Review salvo, mas a verificação do vínculo produto→review falhou.');
       }
 
-      console.log(JSON.stringify({
-        event: 'daily-review-created',
+      const createdReview = {
         product: link.product_name,
         slug: outcome.slug,
         status: saved.status,
+      };
+      createdReviews.push(createdReview);
+      console.log(JSON.stringify({
+        event: 'daily-review-created',
+        ...createdReview,
         content_type: saved.content_type,
         url: 'https://www.vetor.blog/reviews/' + outcome.slug + '/',
         productLinkUpdated: true,
+        batchProgress: createdReviews.length + '/' + attempts.length,
       }));
-      return;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failures.push({ product: link.product_name, error: message });
@@ -933,11 +938,19 @@ async function main(): Promise<void> {
     }
   }
 
-  console.error('[review-generation] nenhum review foi criado após ' + attempts.length + ' tentativa(s).');
+  console.log(JSON.stringify({
+    event: 'daily-review-batch-complete',
+    requested: attempts.length,
+    created: createdReviews.length,
+    failed: failures.length,
+    reviews: createdReviews,
+  }));
   for (const failure of failures) {
     console.error(JSON.stringify({ event: 'candidate-failure', ...failure }));
   }
-  throw new Error('Geração diária falhou; nenhum review novo foi confirmado. Consulte os erros registrados acima.');
+  if (createdReviews.length === 0) {
+    throw new Error('Geração do lote falhou; nenhum review novo foi confirmado. Consulte os erros registrados acima.');
+  }
 }
 
 main().catch((error: unknown) => {
