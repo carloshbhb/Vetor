@@ -6,11 +6,11 @@ concurrency:
   cancel-in-progress: false
 
 on:
-  # Each successful Social List review batch starts exactly one corresponding video batch.
-  workflow_run:
-    workflows: ["Generate Daily Review"]
-    types: [completed]
-    branches: [main]
+  # Independent long-form video production: 08:00, 14:00 and 20:00 in Sao Paulo (UTC-03).
+  schedule:
+    - cron: '0 11 * * *'
+    - cron: '0 17 * * *'
+    - cron: '0 23 * * *'
   workflow_dispatch:
     inputs:
       run_mode:
@@ -33,7 +33,6 @@ permissions:
 jobs:
   process-queue:
     name: Render and publish queued videos
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
@@ -113,7 +112,7 @@ jobs:
             echo "::error::Production queue API did not become ready; refusing to use stale/incorrect database credentials."
             exit 1
           fi
-      - name: Fill this batch from new published reviews and comparatives
+      - name: Fill this batch directly from Mercado Livre Social List
         if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_mode != 'single' }}
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -166,10 +165,10 @@ jobs:
             exit 0
           fi
 
-          call_api "queueFromReviews" "$slots" queue-reviews.json
-          queued_reviews="$(jq -r '.queued // 0' queue-reviews.json)"
+          call_api "queueFromSocialList" "$slots" queue-social-list.json
+          queued_social_list="$(jq -r '.queued // 0' queue-social-list.json)"
 
-          echo "Social List long-form queue: $queued_reviews item(s); batch cap=5; daily cap=15."
+          echo "Independent Social List long-form queue: $queued_social_list item(s); batch cap=5; daily cap=15."
       - name: Render, describe, and upload videos
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
