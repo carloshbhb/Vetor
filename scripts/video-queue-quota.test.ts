@@ -29,7 +29,7 @@ assert.match(route, /function isLikelySameVideoProductTitle/);
 assert.match(block, /titleAlreadyHasVideo/);
 assert.doesNotMatch(block, /from\("reviews"\)/);
 
-assert.match(route, /pendingQuery = pendingQuery\.contains\("media_assets", \[\{ type: "publication_format", format: "long" \}\]\)/);
+assert.match(route, /pendingQuery = pendingQuery\s+\.eq\("publication_mode", "automatic"\)\s+\.contains\("media_assets", \[\{ type: "publication_format", format: "long" \}\]\)/);
 assert.match(route, /\.contains\("media_assets", \[\{ type: "publication_format", format: "long" \}\]\)/);
 
 const retryStart = route.indexOf('if (action === "retrySafeFailed")');
