@@ -558,27 +558,29 @@ export function buildVideoDescription(input) {
 
   const opening = input.format === "short"
     ? productTitle + ": vale a pena comprar? Veja os pontos importantes antes de escolher."
-    : productTitle + ": análise, review e orientação de compra.";
+    : productTitle + ": análise completa e orientação de compra.";
   const lines = [
     opening,
     hook,
     "",
     "🛒 LINK PARA CONFERIR PREÇO E OFERTA: " + purchaseUrl,
-    "📝 " + (reviewUrl.includes("/comparativos/") ? "COMPARATIVO COMPLETO" : "REVIEW COMPLETO") + ": " + reviewUrl,
-    "",
-    "Esta análise de " + productTitle + " (" + category + ") reúne os critérios que mais pesam na decisão de compra: recursos, limitações, compatibilidade e custo-benefício. Consulte o conteúdo completo e confira as condições atuais do anúncio antes de fechar o pedido.",
   ];
+  if (reviewUrl) {
+    lines.push("📝 " + (reviewUrl.includes("/comparativos/") ? "COMPARATIVO COMPLETO" : "REVIEW COMPLETO") + ": " + reviewUrl);
+  }
+  lines.push(
+    "",
+    reviewUrl
+      ? "Esta análise de " + productTitle + " (" + category + ") reúne os critérios que mais pesam na decisão de compra: recursos, limitações, compatibilidade e custo-benefício. Consulte o conteúdo completo e confira as condições atuais do anúncio antes de fechar o pedido."
+      : "Este vídeo independente sobre " + productTitle + " (" + category + ") apresenta critérios de compra, recursos documentados e pontos que merecem conferência. Verifique as condições atuais no anúncio antes de fechar o pedido.",
+  );
 
-  if (highlights.length) {
-    lines.push("", "🔎 PRINCIPAIS PONTOS ABORDADOS NO VÍDEO:", ...highlights);
-  }
-  if (chapters.length) {
-    lines.push("", "CAPÍTULOS:", ...chapters);
-  }
+  if (highlights.length) lines.push("", "🔎 PRINCIPAIS PONTOS ABORDADOS NO VÍDEO:", ...highlights);
+  if (chapters.length) lines.push("", "CAPÍTULOS:", ...chapters);
 
   lines.push(
     "",
-    String(input.callToAction || ("Acesse o link acima para consultar a oferta de " + productTitle + " e leia a análise completa antes de comprar.")).trim(),
+    String(input.callToAction || ("Acesse o link acima para consultar a oferta de " + productTitle + " antes de comprar.")).trim(),
     "Antes de finalizar, confira a versão exata, preço final, frete, prazo de entrega, disponibilidade, garantia e política de devolução do anúncio.",
   );
 
@@ -605,13 +607,16 @@ export function buildCtaComment(input) {
       "Qual critério você gostaria de ver comparado? Participe da conversa.",
     ].join("\n");
   }
-  return [
+  const lines = [
     "👇 Quer conferir o preço e analisar " + input.productTitle + " antes de comprar?",
     "",
     "🛒 Link para conferir a oferta: " + input.purchaseUrl,
-    "📝 Review completo no Vetor.blog: " + input.reviewUrl,
+  ];
+  if (input.reviewUrl) lines.push("📝 Review completo no Vetor.blog: " + input.reviewUrl);
+  lines.push(
     "",
     "Confira preço final, frete, disponibilidade e condições atuais no anúncio.",
     "Se o vídeo ajudou, deixe o like e inscreva-se no canal para mais análises!",
-  ].join("\n");
+  );
+  return lines.join("\n");
 }
