@@ -632,6 +632,9 @@ export async function POST(request: NextRequest) {
       });
 
       const candidates: Array<{ item: any; link: any; itemId: string; title: string; imageUrl: string; affiliateUrl: string; productUrl: string }> = [];
+      const batchProductLinkIds = new Set<string>();
+      const batchItemIds = new Set<string>();
+      const batchProductTitles: string[] = [];
       let skippedUnmatched = 0;
       let skippedUnsafe = 0;
       let skippedAlreadyPublished = 0;
@@ -654,8 +657,15 @@ export async function POST(request: NextRequest) {
         const titleAlreadyHasVideo = existingProductTitles.some((existingTitle) =>
           isLikelySameVideoProductTitle(title, existingTitle)
         );
-        if (existingLongProductLinkIds.has(String(link.id)) || queuedOrPublishedItemIds.has(itemId) ||
-            (titleKey && queuedOrPublishedTitles.has(titleKey)) || titleAlreadyHasVideo) {
+        const titleAlreadySelectedInBatch = batchProductTitles.some((selectedTitle) =>
+          isLikelySameVideoProductTitle(title, selectedTitle)
+        );
+        if (existingLongProductLinkIds.has(String(link.id)) ||
+            batchProductLinkIds.has(String(link.id)) ||
+            batchItemIds.has(itemId) ||
+            queuedOrPublishedItemIds.has(itemId) ||
+            (titleKey && queuedOrPublishedTitles.has(titleKey)) ||
+            titleAlreadyHasVideo || titleAlreadySelectedInBatch) {
           skippedAlreadyPublished += 1;
           continue;
         }
@@ -666,6 +676,9 @@ export async function POST(request: NextRequest) {
           continue;
         }
         candidates.push({ item, link, itemId, title, imageUrl, affiliateUrl, productUrl });
+        batchProductLinkIds.add(String(link.id));
+        batchItemIds.add(itemId);
+        batchProductTitles.push(title);
         if (candidates.length >= limit) break;
       }
 
