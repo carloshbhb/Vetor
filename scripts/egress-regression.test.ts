@@ -155,7 +155,7 @@ assert.match(reviewGenerator, /normalizeEditorialIdentity\(visibleContent\)/);
 assert.match(reviewGenerator, /safeProductTitle/);
 assert.match(llmProvider, /getGroqRequestPolicy/);
 assert.match(llmProvider, /waitForGroqRequestSlot/);
-assert.match(llmProvider, /nemotron-3\\.5-lightning-30b-a3b/);
+assert.match(llmProvider, /nemotron-3\.5-lightning-30b-a3b/);
 assert.match(dailyReviewGenerator, /promoteMatchedAffiliates\(supabase,\s*\{/);
 assert.match(dailyReviewGenerator, /socialListOnly:\s*true/);
 assert.match(affiliateRefill, /options\.socialListOnly/);
