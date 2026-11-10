@@ -12,7 +12,8 @@ assert.match(route, /function normalizeMercadoLivreItemId/);
 assert.match(route, /function getPublicationFormat/);
 
 const quota = route.slice(route.indexOf("async function getDailyPublicationQuota"), route.indexOf("const UPDATABLE_FIELDS"));
-assert.match(quota, /\.contains\("media_assets", \[\{ type: "publication_format", format: "long" \}\]\)/);
+const longFormatContains = '.contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }]))';
+assert.ok(quota.includes(longFormatContains), "quota filter serializes the JSONB marker explicitly");
 
 const start = route.indexOf('if (action === "queueFromSocialList")');
 const end = route.indexOf('if (action === "queueFromComparatives")', start);
@@ -35,8 +36,8 @@ assert.match(block, /getPublicationFormat\(row\.media_assets\) === "long"/);
 assert.doesNotMatch(block, /link\.has_video === true \|\| link\.video_id/);
 assert.doesNotMatch(block, /from\("reviews"\)/);
 
-assert.match(route, /pendingQuery = pendingQuery\s+\.eq\("publication_mode", "automatic"\)\s+\.contains\("media_assets", \[\{ type: "publication_format", format: "long" \}\]\)/);
-assert.match(route, /\.contains\("media_assets", \[\{ type: "publication_format", format: "long" \}\]\)/);
+assert.ok(route.includes('pendingQuery = pendingQuery\n          .eq("publication_mode", "automatic")\n          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }]))'), "automatic dequeue is long-only and JSONB-safe");
+assert.equal((route.match(/\.contains\("media_assets", JSON\.stringify/g) || []).length, 4, "all four JSONB long-format filters serialize their array as JSON");
 
 const retryStart = route.indexOf('if (action === "retrySafeFailed")');
 const retryEnd = route.indexOf('if (action === "retryRemotionTimeouts")', retryStart);
