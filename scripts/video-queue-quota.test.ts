@@ -5,45 +5,49 @@ const read = (path: string) => readFileSync(path, "utf8");
 const route = read("src/app/api/cron/video-queue-worker/route.ts");
 const workflow = read(".github/workflows/process-video-queue.yml");
 const processVideo = read("video/scripts/process-video.mjs");
+const scriptRoute = read("src/app/api/cron/generate-video-script/route.ts");
 
 assert.match(route, /const MAX_DAILY_PUBLICATIONS = 15;/);
 assert.match(route, /function normalizeMercadoLivreItemId/);
 assert.match(route, /function getPublicationFormat/);
 
-const start = route.indexOf('if (action === "queueFromReviews")');
-const end = route.indexOf('if (action === "queueFromComparatives")');
-assert.ok(start >= 0 && end > start, "queueFromReviews action exists");
+const quota = route.slice(route.indexOf("async function getDailyPublicationQuota"), route.indexOf("const UPDATABLE_FIELDS"));
+assert.match(quota, /\.contains\("media_assets", \[\{ type: "publication_format", format: "long" \}\]\)/);
+
+const start = route.indexOf('if (action === "queueFromSocialList")');
+const end = route.indexOf('if (action === "queueFromComparatives")', start);
+assert.ok(start >= 0 && end > start, "independent Social List queue action exists");
 const block = route.slice(start, end);
-
 assert.match(block, /from\("ml_social_list_items"\)/);
-assert.match(block, /socialReviewSlugs/);
-assert.match(block, /const videoFormat = "long";/);
-assert.match(block, /getPublicationFormat\(row\.media_assets\) === 'long'/);
-assert.match(block, /media_assets: \[\{ type: "publication_format", format: videoFormat \}\]/);
-assert.doesNotMatch(block, /const videoFormat = "short"/);
+assert.match(block, /from\("product_links"\)/);
+assert.match(block, /independentOfReviews: true/);
+assert.match(block, /review_url: null/);
+assert.match(block, /format: "long"/);
+assert.match(block, /ml-social-list-item/);
+assert.match(block, /isSafeMercadoLivreAffiliateUrl/);
+assert.doesNotMatch(block, /from\("reviews"\)/);
 
-assert.match(block, /\.in\("status", \["pending", "processing"\]\)\.eq\("publication_mode", "automatic"\)/);
-assert.doesNotMatch(block, /\.lte\("scheduled_at"/);
-assert.match(block, /\(doneToday \|\| 0\) \+ \(pendingCount \|\| 0\) >= MAX_DAILY_PUBLICATIONS/);
-assert.match(block, /\(doneToday \|\| 0\) \+ \(pendingCount \|\| 0\) \+ queued\.length >= MAX_DAILY_PUBLICATIONS/);
-assert.match(block, /const safePurchase = Boolean\(/);
-assert.match(block, /trackedPurchase/);
+assert.match(route, /pendingQuery = pendingQuery\.contains\("media_assets", \[\{ type: "publication_format", format: "long" \}\]\)/);
+assert.match(route, /\.contains\("media_assets", \[\{ type: "publication_format", format: "long" \}\]\)/);
 
 const retryStart = route.indexOf('if (action === "retrySafeFailed")');
 const retryEnd = route.indexOf('if (action === "retryRemotionTimeouts")', retryStart);
 assert.ok(retryStart >= 0 && retryEnd > retryStart);
-const retryBlock = route.slice(retryStart, retryEnd);
-assert.match(retryBlock, /\.eq\("publication_mode", "automatic"\)/);
-assert.match(retryBlock, /if \(format !== "long"\)/);
-
-assert.match(route, /seenFormatKeys/);
-assert.match(route, /getPublicationFormat\(record\.media_assets\) === format/);
-assert.match(route, /media_assets: \[\{ type: "publication_format", format: "short" \}\]/);
+assert.match(route.slice(retryStart, retryEnd), /getPublicationFormat\(item\.media_assets\) !== "long"/);
+assert.match(route.slice(retryStart, retryEnd), /completedKeys/);
 
 assert.equal((workflow.match(/^\s+- cron:/gm) || []).length, 3);
 assert.match(workflow, /MAX_VIDEOS: '5'/);
-assert.match(workflow, /retrySafeFailed/);
-assert.doesNotMatch(workflow, /queueFromComparatives/);
-assert.doesNotMatch(processVideo, /queueApi\('queueFromComparatives'/);
+assert.match(workflow, /queueFromSocialList/);
+assert.doesNotMatch(workflow, /workflow_run/);
+assert.doesNotMatch(workflow, /queueFromReviews/);
+assert.doesNotMatch(workflow, /Generate Daily Review/);
 
-console.log("video queue quota tests passed");
+assert.match(processVideo, /queueApi\('queueFromSocialList'/);
+assert.doesNotMatch(processVideo, /queueApi\('queueFromReviews'/);
+assert.doesNotMatch(processVideo, /review_url ausente/);
+assert.match(processVideo, /Pesquisa independente gerada para item da Lista Social/);
+assert.doesNotMatch(scriptRoute, /URL da fila não corresponde a um review/);
+assert.match(scriptRoute, /ml_social_list_items/);
+
+console.log("independent long-form video queue quota tests passed");
