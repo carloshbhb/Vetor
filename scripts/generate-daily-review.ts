@@ -77,6 +77,12 @@ function isSameProductPage(productName: string, page: ExistingReview): boolean {
   return productTokens.length >= 2 && productTokens.every((token) => pageTokens.has(token));
 }
 
+function isSocialListProductLink(link: ProductLink): boolean {
+  const tags = Array.isArray(link.tags) ? link.tags.map(String) : [];
+  const notes = String(link.notes || '');
+  return tags.includes('ml-social-list') || /ml_social_list:|Origem:\s*ml-lista-/i.test(notes);
+}
+
 function isEligibleProduct(link: ProductLink): boolean {
   return Boolean(
     link.id &&
@@ -722,23 +728,7 @@ async function main(): Promise<void> {
     dryRun,
   }));
 
-  const [{ data: rawLinks, error: linksError }, { data: existingRows, error: reviewsError }, { data: allProductRows, error: allProductLinksError }] = await Promise.all([
-    supabase
-      .from('product_links')
-      .select('*')
-      .eq('has_review', false)
-      .is('landing_page_slug', null)
-      .neq('status', 'reviewed')
-      .neq('status', 'archived')
-      .not('product_url', 'is', null)
-      .neq('product_url', '')
-      .not('affiliate_url', 'is', null)
-      .neq('affiliate_url', '')
-      .not('image_url', 'is', null)
-      .neq('image_url', '')
-      .order('priority', { ascending: false })
-      .order('created_at', { ascending: true })
-      .limit(500),
+  const [{ data: existingRows, error: reviewsError }, { data: allProductRows, error: allProductLinksError }] = await Promise.all([
     supabase
       .from('reviews')
       .select('slug,product,status,content_type,category,price_new,image_url')
@@ -749,7 +739,6 @@ async function main(): Promise<void> {
       .limit(1000),
   ]);
 
-  if (linksError) throw new Error('Não foi possível ler a fila de produtos: ' + linksError.message);
   if (reviewsError) throw new Error('Não foi possível conferir reviews/LPs existentes: ' + reviewsError.message);
   if (allProductLinksError) throw new Error('Não foi possível verificar duplicações na fila de produtos: ' + allProductLinksError.message);
 
@@ -757,7 +746,14 @@ async function main(): Promise<void> {
   const pagesBySlug = new Map(existingPages.map((page) => [page.slug, page]));
   const allProductLinks = (allProductRows || []) as ProductLink[];
 
-  const links = ((rawLinks || []) as ProductLink[]).filter(isEligibleProduct);
+  const discovery = await discoverAffiliateBackedProducts(
+    supabase,
+    existingPages,
+    allProductLinks,
+    dryRun,
+    maxAttempts
+  );
+  const links = allProductLinks.filter((link) => isEligibleProduct(link) && isSocialListProductLink(link));
   const eligible: ProductLink[] = [];
   let reconciled = 0;
   let skippedExisting = 0;
@@ -792,15 +788,6 @@ async function main(): Promise<void> {
     eligible.push(link);
   }
 
-  const discovery = await discoverAffiliateBackedProducts(
-    supabase,
-    existingPages,
-    allProductLinks,
-    dryRun,
-    maxAttempts
-  );
-  eligible.push(...discovery.candidates.filter(isEligibleProduct));
-
   const coolingDown = eligible.filter((link) => isReviewFailureCoolingDown(link.notes)).length;
   const readyEligible = eligible.filter((link) => !isReviewFailureCoolingDown(link.notes));
   eligible.splice(0, eligible.length, ...readyEligible);
@@ -808,7 +795,7 @@ async function main(): Promise<void> {
   console.log(JSON.stringify({
     event: 'daily-review-queue-inspected',
     dryRun,
-    totalRowsRead: (rawLinks || []).length,
+    totalRowsRead: allProductLinks.length,
     eligibleProducts: eligible.length,
     coolingDownProducts: coolingDown,
     reconciledExistingReviews: reconciled,
