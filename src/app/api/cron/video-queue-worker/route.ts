@@ -548,6 +548,7 @@ export async function POST(request: NextRequest) {
         { data: listItems, error: listError },
         { data: productLinks, error: productLinksError },
         { data: existing, error: existingError },
+        { data: longProductAssets, error: longProductAssetsError },
         { count: doneToday, error: doneError },
         { count: pendingCount, error: pendingError },
       ] = await Promise.all([
@@ -561,6 +562,9 @@ export async function POST(request: NextRequest) {
         supabase.from("video_queue")
           .select("product_title,product_url,affiliate_url,media_assets,status,youtube_video_id")
           .in("status", ["pending", "processing", "completed"]).limit(1500),
+        supabase.from("product_video_assets")
+          .select("product_link_id,youtube_video_id")
+          .eq("video_type", "long").limit(5000),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .eq("status", "completed").eq("publication_mode", "automatic")
           .contains("media_assets", [{ type: "publication_format", format: "long" }])
@@ -572,6 +576,7 @@ export async function POST(request: NextRequest) {
       if (listError) throw listError;
       if (productLinksError) throw productLinksError;
       if (existingError) throw existingError;
+      if (longProductAssetsError) throw longProductAssetsError;
       if (doneError) throw doneError;
       if (pendingError) throw pendingError;
 
@@ -598,10 +603,16 @@ export async function POST(request: NextRequest) {
 
       const queuedOrPublishedItemIds = new Set<string>();
       const queuedOrPublishedTitles = new Set<string>();
-      const existingProductTitles = (existing || [])
+      const existingLongRows = (existing || []).filter((row: any) =>
+        getPublicationFormat(row.media_assets) === "long"
+      );
+      const existingLongProductLinkIds = new Set(
+        (longProductAssets || []).map((asset: any) => String(asset.product_link_id || "")).filter(Boolean)
+      );
+      const existingProductTitles = existingLongRows
         .map((row: any) => String(row.product_title || '').trim())
         .filter(Boolean);
-      for (const row of existing || []) {
+      for (const row of existingLongRows) {
         const marker = socialListMarker(row.media_assets);
         const itemId = marker?.itemId ||
           normalizeMercadoLivreItemId(row.product_url) ||
@@ -643,7 +654,7 @@ export async function POST(request: NextRequest) {
         const titleAlreadyHasVideo = existingProductTitles.some((existingTitle) =>
           isLikelySameVideoProductTitle(title, existingTitle)
         );
-        if (link.has_video === true || link.video_id || queuedOrPublishedItemIds.has(itemId) ||
+        if (existingLongProductLinkIds.has(String(link.id)) || queuedOrPublishedItemIds.has(itemId) ||
             (titleKey && queuedOrPublishedTitles.has(titleKey)) || titleAlreadyHasVideo) {
           skippedAlreadyPublished += 1;
           continue;
@@ -850,6 +861,7 @@ export async function POST(request: NextRequest) {
 
       const completedKeys = new Set<string>();
       for (const row of completedRows || []) {
+        if (getPublicationFormat(row.media_assets) !== "long") continue;
         const marker = socialListMarker(row.media_assets);
         const itemId = marker?.itemId || normalizeMercadoLivreItemId(row.product_url) || normalizeMercadoLivreItemId(row.affiliate_url);
         if (itemId) completedKeys.add("item:" + itemId);
@@ -902,7 +914,7 @@ export async function POST(request: NextRequest) {
         success: true,
         retried: retried.length,
         videos: retried,
-        policy: "one failed item per Social List product; no completed YouTube upload of the same product; safe Mercado Livre affiliate URL and external HTTPS image; 24-hour cooldown",
+        policy: "one failed long-form item per Social List product; no completed long-form upload of the same product; Shorts do not suppress a long-form retry; safe Mercado Livre affiliate URL and external HTTPS image; 24-hour cooldown",
       });
     }
 
