@@ -148,8 +148,8 @@ const wrappedCaptions = buildTimedCaptionEntries(
   [{ kind: "scene", text: "Tela AMOLED de 120 Hz" }],
   ["Tela", "AMOLED", "de", "120", "Hz"].map((word, index) => ({
     type: "WordBoundary",
-    offset: index * 300_000,
-    duration: 220_000,
+    offset: index * 7_000_000,
+    duration: 5_000_000,
     text: word,
   })),
   { maxWords: 5, maxLineChars: 18 }

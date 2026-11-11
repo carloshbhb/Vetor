@@ -1105,12 +1105,6 @@ async function processVideo(video) {
       callToAction: spokenCallToAction,
       chapters,
     });
-    const ytCommentText = buildCtaComment({
-      format: videoFormat,
-      productTitle: video.product_title,
-      purchaseUrl,
-      reviewUrl,
-    });
     const terms = `${video.product_title} ${video.product_category} review análise vale a pena comprar desconto preço 2026`
       .toLowerCase()
       .normalize('NFD')
