@@ -7,7 +7,7 @@ import { getProductWithPictures } from "@/lib/mercadolivre-api";
 import { dedupeMercadoLivreImages, extractMercadoLivreItemId, findBestMercadoLivreItemMatch, scoreProductTitleMatch } from "@/lib/video-media-matching";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 240;
 
 export async function POST(request: NextRequest) {
   const authError = verifyCronAuth(request);

@@ -104,6 +104,45 @@ const tailLines = shortTailCaptions[0].text.split(/\n/);
 const tailRequired = Math.max(...tailLines.map((line) => line.length)) / 15 + (tailLines.length - 1) * 0.4 + 1;
 assert.ok(shortTailCaptions[0].end - shortTailCaptions[0].start >= tailRequired);
 
+// Regression: a short final scene phrase can be too brief to read and have no
+// same-track neighbour to merge with. Timed captions must yield to the safe fallback.
+const unreadableFinalScene = buildTimedCaptionEntries(
+  [{ kind: "scene", text: "iOS antes de fechar a compra." }],
+  [
+    ["iOS", 0, 0.25],
+    ["antes", 0.3, 0.25],
+    ["de", 0.6, 0.2],
+    ["fechar", 0.9, 0.25],
+    ["a", 1.2, 0.12],
+    ["compra.", 1.5, 0.4],
+  ].map(([text, start, duration]) => ({
+    type: "WordBoundary",
+    offset: Math.round(start * 10_000_000),
+    duration: Math.round(duration * 10_000_000),
+    text,
+  })),
+  { maxWords: 9, maxLineChars: 48 }
+);
+assert.equal(unreadableFinalScene, null, "unreadable timed scene cues trigger per-scene fallback");
+
+const fallbackSceneText = [
+  "Neste ponto vale observar primeiro o formato do fone e a compatibilidade com diferentes aparelhos.",
+  "A conexão Bluetooth atende chamadas, música e vídeos no uso cotidiano.",
+  "O estojo ajuda a recarregar os fones ao longo do dia, mas a autonomia real muda conforme volume, codec e uso de microfone.",
+  "Antes de fechar a compra, confira a versão e a compatibilidade com seu celular iOS.",
+].join(" ");
+const readableSceneFallback = buildCaptionEntries(
+  [{ kind: "scene", start: 120, end: 150, text: fallbackSceneText }],
+  9,
+  { maxLineChars: 48 }
+);
+assert.ok(readableSceneFallback.length > 1);
+for (const cue of readableSceneFallback) {
+  const lines = cue.text.split(/\r?\n/);
+  const required = Math.max(...lines.map((line) => line.length)) / 15 + (lines.length - 1) * 0.4 + 1;
+  assert.ok(cue.end - cue.start + 0.02 >= required, "fallback scene captions must pass QA reading-time requirements");
+}
+
 assert.equal(buildTimedCaptionEntries(exactSegments, exactBoundaries.slice(1), { maxWords: 3 }), null);
 const wrappedCaptions = buildTimedCaptionEntries(
   [{ kind: "scene", text: "Tela AMOLED de 120 Hz" }],

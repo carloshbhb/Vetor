@@ -43,11 +43,19 @@ function extractYouTubeVideoId(video) {
   }
 }
 
-async function insertCtaComment(youtube, videoId, text) {
+async function getYouTubeChannelId(youtube) {
+  const response = await youtube.channels.list({ part: ['id'], mine: true });
+  const channelId = response.data.items?.find((item) => typeof item.id === 'string' && item.id)?.id || '';
+  if (!channelId) throw new Error('YouTube não retornou o ID do canal autenticado.');
+  return channelId;
+}
+
+async function insertCtaComment(youtube, videoId, text, channelId) {
   const response = await youtube.commentThreads.insert({
     part: ['snippet'],
     requestBody: {
       snippet: {
+        channelId,
         videoId,
         topLevelComment: { snippet: { textOriginal: text } },
       },
@@ -96,10 +104,10 @@ async function updateVideoStatus(id, updates) {
 async function retryPendingCtaComments() {
   let pending = [];
   try {
-    const response = await queueApi('pendingComments', { limit: 5 });
+    const response = await queueApi("pendingComments", { limit: 10 });
     pending = Array.isArray(response.videos) ? response.videos : [];
   } catch (error) {
-    console.warn('[CTA_COMMENT_RETRY] Não foi possível consultar comentários pendentes: ' +
+    console.warn("[CTA_COMMENT_RETRY] Não foi possível consultar comentários pendentes: " +
       (error instanceof Error ? error.message : String(error)));
     return;
   }
@@ -109,37 +117,72 @@ async function retryPendingCtaComments() {
   try {
     youtube = await createYouTubeClient();
   } catch (error) {
-    console.warn('[CTA_COMMENT_RETRY] Não foi possível autenticar para corrigir comentários pendentes: ' +
+    console.warn("[CTA_COMMENT_RETRY] Não foi possível autenticar para corrigir comentários pendentes: " +
       (error instanceof Error ? error.message : String(error)));
     return;
   }
 
+  let channelId = "";
   for (const video of pending) {
     const videoId = extractYouTubeVideoId(video);
-    const purchaseUrl = String(video.shortened_affiliate_url || video.affiliate_url || '').trim();
-    const reviewUrl = String(video.review_url || '').trim();
+    const purchaseUrl = String(video.shortened_affiliate_url || video.affiliate_url || "").trim();
+    const reviewUrl = String(video.review_url || "").trim();
     if (!videoId || !/^https?:\/\//i.test(purchaseUrl)) {
-      console.warn('[CTA_COMMENT_PENDING] queue_id=' + video.id + ' faltam ID do YouTube ou links válidos.');
+      console.warn("[CTA_COMMENT_PENDING] queue_id=" + video.id + " faltam ID do YouTube ou links válidos.");
       continue;
     }
+
+    const commentText = buildCtaComment({
+      productTitle: String(video.product_title || "este produto"),
+      purchaseUrl,
+      reviewUrl,
+      format: resolveVideoFormat(video.media_assets),
+    });
+
     try {
-      const commentId = await insertCtaComment(youtube, videoId, buildCtaComment({
-        productTitle: String(video.product_title || 'este produto'),
-        purchaseUrl,
-        reviewUrl,
-        format: resolveVideoFormat(video.media_assets),
-      }));
+      // Scheduled uploads remain private until publishAt. YouTube comments are
+      // attempted only after the API confirms the video is public or unlisted.
+      const listing = await youtube.videos.list({ part: ["status"], id: [videoId] });
+      const publishedVideo = (listing.data.items || []).find((item) => item.id === videoId);
+      const privacyStatus = publishedVideo?.status?.privacyStatus || "";
+      if (privacyStatus !== "public" && privacyStatus !== "unlisted") {
+        console.log("[CTA_COMMENT_WAITING_PUBLIC] queue_id=" + video.id +
+          " video_id=" + videoId + " privacy=" + (privacyStatus || "not-visible"));
+        continue;
+      }
+
+      // A retry is idempotent: if YouTube accepted the comment but the queue
+      // update failed, detect the existing text instead of posting it twice.
+      const existing = await youtube.commentThreads.list({
+        part: ["snippet"],
+        videoId,
+        maxResults: 100,
+        textFormat: "plainText",
+      });
+      const existingThread = (existing.data.items || []).find((thread) =>
+        String(thread.snippet?.topLevelComment?.snippet?.textOriginal ||
+          thread.snippet?.topLevelComment?.snippet?.textDisplay || "") === commentText
+      );
+      if (existingThread) {
+        await updateVideoStatus(video.id, { error_message: null });
+        console.log("[CTA_COMMENT_ALREADY_EXISTS] queue_id=" + video.id +
+          " thread_id=" + (existingThread.id || "confirmed"));
+        continue;
+      }
+
+      if (!channelId) channelId = await getYouTubeChannelId(youtube);
+      const commentId = await insertCtaComment(youtube, videoId, commentText, channelId);
       await updateVideoStatus(video.id, { error_message: null });
-      console.log('[CTA_COMMENT_RETRIED] queue_id=' + video.id + ' comment_id=' + commentId);
+      console.log("[CTA_COMMENT_RETRIED] queue_id=" + video.id + " comment_id=" + commentId);
     } catch (error) {
       const message = (error instanceof Error ? error.message : String(error)).slice(0, 3000);
       try {
-        await updateVideoStatus(video.id, { error_message: '[CTA_COMMENT_PENDING] ' + message });
+        await updateVideoStatus(video.id, { error_message: "[CTA_COMMENT_PENDING] " + message });
       } catch (updateError) {
-        console.warn('[CTA_COMMENT_RETRY] Não foi possível salvar diagnóstico: ' +
+        console.warn("[CTA_COMMENT_RETRY] Não foi possível salvar diagnóstico: " +
           (updateError instanceof Error ? updateError.message : String(updateError)));
       }
-      console.warn('[CTA_COMMENT_PENDING] queue_id=' + video.id + ' reason=' + message.slice(0, 700));
+      console.warn("[CTA_COMMENT_PENDING] queue_id=" + video.id + " reason=" + message.slice(0, 700));
     }
   }
 }
@@ -538,7 +581,7 @@ export function computePublishSlot(usedPublishAts = [], now = new Date(), slotsE
   return new Date(`${chosenDate}T${paddedHour}:${paddedMinute}:00-03:00`).toISOString();
 }
 
-export async function uploadToYouTube(videoPath, title, description, tags, commentText, publishAtIso) {
+export async function uploadToYouTube(videoPath, title, description, tags, publishAtIso) {
   const resolvedPublishAt = String(publishAtIso || '').trim() || new Date().toISOString();
 
   try {
@@ -592,17 +635,12 @@ export async function uploadToYouTube(videoPath, title, description, tags, comme
     }
 
     const videoUrl = 'https://youtube.com/watch?v=' + videoId;
-    let commentId = null;
-    let commentError = null;
-    try {
-      commentId = await insertCtaComment(youtube, videoId, commentText);
-      console.log('[CTA_COMMENT_CONFIRMED] video_id=' + videoId + ' comment_id=' + commentId);
-    } catch (error) {
-      commentError = (error instanceof Error ? error.message : String(error)).slice(0, 3000);
-      console.warn('[CTA_COMMENT_PENDING] video_id=' + videoId + ' reason=' + commentError.slice(0, 700));
-    }
+    // A scheduled upload is private until publishAt. Defer the CTA comment;
+    // the next queue cycle checks the actual YouTube visibility before posting.
+    console.log('[CTA_COMMENT_DEFERRED] video_id=' + videoId +
+      ' reason=scheduled_video_is_private_until_publishAt');
     console.log('   📤 YouTube confirmado como privado com publishAt=' + resolvedPublishAt + ': ' + videoUrl);
-    return { videoId, videoUrl, commentId, commentError };
+    return { videoId, videoUrl, commentPending: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('   ❌ YouTube upload failed:', message);
@@ -845,7 +883,7 @@ async function processVideo(video) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ videoId: video.id, researchBrief }),
-        signal: AbortSignal.timeout(55000),
+        signal: AbortSignal.timeout(230000),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.script) {
@@ -1101,7 +1139,7 @@ async function processVideo(video) {
     await updateVideoStatus(video.id, { publish_at: publishAtIso });
     console.log('[PUBLISH_SLOT] queue_id=' + video.id + ' publishAt=' + publishAtIso);
 
-    const ytResult = await uploadToYouTube(videoPath, ytTitle, ytDescription, ytTags, ytCommentText, publishAtIso);
+    const ytResult = await uploadToYouTube(videoPath, ytTitle, ytDescription, ytTags, publishAtIso);
     if (!ytResult?.videoId || !ytResult?.videoUrl) {
       throw new Error('O YouTube não confirmou a criação do vídeo; item não marcado como concluído.');
     }
@@ -1114,8 +1152,8 @@ async function processVideo(video) {
       completed_at: new Date().toISOString(),
       youtube_video_id: ytResult.videoId,
       youtube_url: ytResult.videoUrl,
-      error_message: ytResult.commentError
-        ? ('[CTA_COMMENT_PENDING] ' + ytResult.commentError).slice(0, 4000)
+      error_message: ytResult.commentPending
+        ? '[CTA_COMMENT_PENDING] Aguardando o vídeo ficar público; o comentário será publicado automaticamente após a confirmação da visibilidade.'
         : null,
     };
 
@@ -1126,10 +1164,8 @@ async function processVideo(video) {
     else console.log('   🛒 Vídeo independente da review editorial; origem: Lista Social do Mercado Livre.');
     console.log(`   🛒 Compra: ${purchaseUrl}`);
     console.log(`   📺 YouTube: ${ytResult.videoUrl}`);
-    if (ytResult.commentId) {
-      console.log('   💬 Comentário com links e chamada para ação publicado.');
-    } else {
-      console.warn('   💬 Vídeo publicado; comentário CTA salvo para nova tentativa automática.');
+    if (ytResult.commentPending) {
+      console.log('   💬 Comentário CTA aguardando a publicação pública do vídeo; será inserido no próximo ciclo.');
     }
 
     if (fs.existsSync(audioDir)) fs.rmSync(audioDir, { recursive: true });

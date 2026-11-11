@@ -109,15 +109,15 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
 
 export function getVideoScriptGenerationBudget() {
   return {
-    // Respect the route's 60-second Vercel limit while reserving time for
-    // both provider fallbacks after two free OpenRouter quality attempts.
-    deadlineMs: 55000,
+    // The route allows 240 seconds. Bound each provider so two free OpenRouter
+    // attempts still leave time for Groq and NVIDIA before the request deadline.
+    deadlineMs: 195000,
     maxOpenRouterModels: 2,
     maxAttemptsPerModel: 1 as const,
     providerTimeouts: {
-      openrouter: 12000,
-      groq: 9000,
-      nvidia: 25000,
+      openrouter: 25000,
+      groq: 25000,
+      nvidia: 105000,
     },
   };
 }

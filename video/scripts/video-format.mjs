@@ -527,6 +527,13 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
     cueIndex += 1;
   }
 
+  const unreadableSceneCue = readable.find((cue) => {
+    if (cue.segmentKind !== "scene") return false;
+    return cue.end - cue.start + 0.02 < requiredCaptionSeconds(cue.text);
+  });
+  // Never pass captions to Remotion when the reading-time gate will reject them.
+  // The caller falls back to readable per-scene timing using the same narration.
+  if (unreadableSceneCue) return null;
   return readable.length ? readable : null;
 }
 export function buildVideoTitle(input) {

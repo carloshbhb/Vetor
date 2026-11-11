@@ -3,15 +3,15 @@ import { getVideoScriptGenerationBudget } from "../src/lib/script-generator";
 import { isValidComparisonVideoScriptResponse } from "../src/lib/script-generator";
 
 const budget = getVideoScriptGenerationBudget();
-assert.equal(budget.deadlineMs, 55_000);
+assert.equal(budget.deadlineMs, 195_000);
 assert.equal(budget.maxOpenRouterModels, 2);
 assert.equal(budget.maxAttemptsPerModel, 1);
-assert.equal(budget.providerTimeouts.openrouter, 12_000);
-assert.equal(budget.providerTimeouts.groq, 9_000);
-assert.equal(budget.providerTimeouts.nvidia, 25_000);
+assert.equal(budget.providerTimeouts.openrouter, 25_000);
+assert.equal(budget.providerTimeouts.groq, 25_000);
+assert.equal(budget.providerTimeouts.nvidia, 105_000);
 assert.ok(
-  budget.deadlineMs < 60_000,
-  "OpenRouter, Groq and NVIDIA must fit inside the Vercel route execution limit"
+  budget.deadlineMs < 240_000 && budget.deadlineMs > 120_000,
+  "the bounded OpenRouter, Groq and NVIDIA fallbacks must fit inside the 240-second Vercel route limit"
 );
 
 const product1 = "Samsung Galaxy A56";
