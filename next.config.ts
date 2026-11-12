@@ -56,7 +56,8 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'static.wixstatic.com',,
+        hostname: 'static.wixstatic.com',
+      },
     ],
   },
   async headers() {
