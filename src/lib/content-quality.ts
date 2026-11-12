@@ -241,7 +241,8 @@ function normalizeSearchText(value: string): string {
 }
 
 function isUsableProductImageUrl(value: string): boolean {
-  if (!value || /placeholder\\.svg|(?:^|\\/)og\\.png(?:[?#]|$)/i.test(value.trim())) return false;
+  const imagePath = value.split(/[?#]/, 1)[0].toLowerCase();
+  if (!value || imagePath.endsWith('/images/placeholder.svg') || imagePath.endsWith('/og.png')) return false;
   try {
     const parsed = new URL(value);
     return parsed.protocol === 'https:' || parsed.protocol === 'http:';
