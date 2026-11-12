@@ -46,6 +46,17 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'resources.claroshop.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'samsungbrshop.vtexassets.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'multimedia.bbycastatic.ca',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static.wixstatic.com',,
     ],
   },
   async headers() {
