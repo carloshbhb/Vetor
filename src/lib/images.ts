@@ -10,7 +10,10 @@ const ALLOWED_IMAGE_HOSTS = new Set([
   'images.tcdn.com.br',
   'xiaomistoreph.com',
   'bfasset.costco-static.com',
-  'resources.claroshop.com',\n  'samsungbrshop.vtexassets.com',\n  'multimedia.bbycastatic.ca',\n  'static.wixstatic.com',
+  'resources.claroshop.com',
+  'samsungbrshop.vtexassets.com',
+  'multimedia.bbycastatic.ca',
+  'static.wixstatic.com',
 ]);
 
 export const IMAGE_PLACEHOLDER = '/images/placeholder.svg';
