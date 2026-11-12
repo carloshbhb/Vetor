@@ -240,6 +240,16 @@ function normalizeSearchText(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+function isUsableProductImageUrl(value: string): boolean {
+  if (!value || /placeholder\\.svg|(?:^|\\/)og\\.png(?:[?#]|$)/i.test(value.trim())) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
 type ProductFamily = 'robot_vacuum' | 'kitchen_appliance' | 'headphones' | 'smartphone' | 'notebook' | 'wearable' | 'gaming_controller' | 'pro_audio' | 'smart_home';
 
 function inferProductFamily(name: string): ProductFamily | null {
@@ -298,6 +308,15 @@ export const generatedViralQualitySchema = z
   })
   .superRefine((val, ctx) => {
     validateComparisonFamilies(val.category, val.products, ctx);
+    val.products.forEach((product, index) => {
+      if (!isUsableProductImageUrl(product.imageUrl)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['products', index, 'imageUrl'],
+          message: 'product image must be a real HTTP(S) image URL; placeholders and site logos are not publishable',
+        });
+      }
+    });
     const visibleContent = val.content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
     const visibleLength = visibleTextLength(val.content);
     if (visibleLength < MIN_VIRAL_CONTENT_LENGTH) {

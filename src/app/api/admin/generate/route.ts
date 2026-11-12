@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
         const resolvedProducts = await Promise.all(
           comparisonProducts.map(async (p) => ({
             ...p,
-            imageUrl: await resolveProductImage(p.imageUrl),
+            imageUrl: await resolveProductImage(p.imageUrl, p.name),
           }))
         );
 

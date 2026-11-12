@@ -22,7 +22,7 @@ async function publishArticle(topic: {
   const resolvedProducts = await Promise.all(
     topic.comparisonProducts.map(async (p) => ({
       ...p,
-      imageUrl: await resolveProductImage(p.imageUrl),
+      imageUrl: await resolveProductImage(p.imageUrl, p.name),
     }))
   );
 

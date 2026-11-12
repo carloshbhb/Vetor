@@ -34,6 +34,18 @@ const validPayload = {
 const valid = validateGeneratedViralArticle(validPayload, { source: 'generator', slug: validPayload.slug });
 assert.equal(valid.ok, true, valid.ok ? '' : valid.issues.join('; '));
 
+const placeholderImage = validateGeneratedViralArticle({
+  ...validPayload,
+  products: [{ ...products[0], imageUrl: '/images/placeholder.svg' }, products[1]],
+}, { source: 'generator', slug: 'placeholder-image' });
+assert.equal(placeholderImage.ok, false, 'placeholder image must be rejected before publication');
+
+const institutionalImage = validateGeneratedViralArticle({
+  ...validPayload,
+  products: [{ ...products[0], imageUrl: 'https://www.vetor.blog/og.png' }, products[1]],
+}, { source: 'generator', slug: 'institutional-image' });
+assert.equal(institutionalImage.ok, false, 'site logo must not be accepted as a product image');
+
 const mismatchedProducts = validateGeneratedViralArticle({
   ...validPayload,
   slug: 'wap-robot-vs-air-fryer',

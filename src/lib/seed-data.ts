@@ -12,9 +12,9 @@ export const VIRAL_TOPICS = [
     title: 'Galaxy S24 vs iPhone 15 vs Pixel 8: O Melhor Smartphone 2026?',
     category: 'Smartphones',
     comparisonProducts: [
-      { name: 'Galaxy S24', slug: 'galaxy-s24', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_galaxy-s24.webp', product_url: 'https://www.mercadolivre.com.br/galaxy-s24' },
-      { name: 'iPhone 15', slug: 'iphone-15', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_iphone-15.webp', product_url: 'https://www.mercadolivre.com.br/iphone-15' },
-      { name: 'Pixel 8', slug: 'pixel-8', imageUrl: 'https://http2.mlstatic.com/D_NQ_NP_pixel-8.webp', product_url: 'https://www.mercadolivre.com.br/pixel-8' },
+      { name: 'Galaxy S24', slug: 'galaxy-s24', imageUrl: 'https://samsungbrshop.vtexassets.com/arquivos/ids/249008-800-auto?v=638793874886700000', product_url: 'https://www.mercadolivre.com.br/galaxy-s24' },
+      { name: 'iPhone 15', slug: 'iphone-15', imageUrl: 'https://multimedia.bbycastatic.ca/multimedia/products/1500x1500/172/17231/17231554.jpg', product_url: 'https://www.mercadolivre.com.br/iphone-15' },
+      { name: 'Pixel 8', slug: 'pixel-8', imageUrl: 'https://static.wixstatic.com/media/5c1d6b_04f0912b82d9426fb68cf0f7b5f425f3~mv2.png/v1/fill/w_980%2Ch_665%2Cal_c%2Cq_90%2Cusm_0.66_1.00_0.01%2Cenc_avif%2Cquality_auto/5c1d6b_04f0912b82d9426fb68cf0f7b5f425f3~mv2.png', product_url: 'https://www.mercadolivre.com.br/pixel-8' },
     ],
   },
   {
