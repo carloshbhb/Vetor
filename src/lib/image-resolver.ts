@@ -74,7 +74,8 @@ async function findDatabaseImage(productName: string): Promise<string | null> {
   const candidates: Array<{ imageUrl: string }> = [];
   for (const lookup of lookups) {
     if (lookup.status !== 'fulfilled' || lookup.value.error) continue;
-    for (const row of lookup.value.data || []) {
+    for (const rawRow of lookup.value.data || []) {
+      const row = rawRow as { title?: string; product_name?: string; name?: string; image_url?: string };
       const name = String(row.title || row.product_name || row.name || '');
       const imageUrl = String(row.image_url || '');
       if (matchesProductName(productName, name) && isProductImageUrl(imageUrl)) candidates.push({ imageUrl });
