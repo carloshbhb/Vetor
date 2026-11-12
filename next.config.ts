@@ -45,7 +45,11 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'resources.claroshop.com',
+      },      {
+        protocol: 'https',
+        hostname: 'lojamondial.vtexassets.com',
       },
+
       {
         protocol: 'https',
         hostname: 'samsungbrshop.vtexassets.com',

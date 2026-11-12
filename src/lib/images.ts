@@ -11,6 +11,7 @@ const ALLOWED_IMAGE_HOSTS = new Set([
   'xiaomistoreph.com',
   'bfasset.costco-static.com',
   'resources.claroshop.com',
+  'lojamondial.vtexassets.com',
   'samsungbrshop.vtexassets.com',
   'multimedia.bbycastatic.ca',
   'static.wixstatic.com',
