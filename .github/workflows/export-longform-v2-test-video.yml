@@ -6,6 +6,7 @@ on:
       - test/longform-editorial-v2
     paths:
       - .github/workflows/export-longform-v2-test-video.yml
+      - video/scripts/render-longform-v2-demo.mjs
   workflow_dispatch:
 
 permissions:
