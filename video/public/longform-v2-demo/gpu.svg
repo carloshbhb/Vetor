@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs><linearGradient id="gpu" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#314f70"/><stop offset="1" stop-color="#0a1422"/></linearGradient><linearGradient id="fan"><stop stop-color="#70c4ff"/><stop offset="1" stop-color="#1428a0"/></linearGradient></defs>
+<ellipse cx="600" cy="690" rx="460" ry="58" fill="#000" opacity=".38"/>
+<g transform="translate(105 250)">
+<rect x="0" y="0" width="990" height="300" rx="38" fill="url(#gpu)" stroke="#70c4ff" stroke-width="9"/>
+<rect x="60" y="40" width="870" height="220" rx="28" fill="#0b1524" stroke="#365a82" stroke-width="6"/>
+<g fill="none" stroke="url(#fan)" stroke-width="13">
+<circle cx="260" cy="150" r="92"/><circle cx="500" cy="150" r="92"/><circle cx="740" cy="150" r="92"/>
+</g>
+<g fill="#243e5c" stroke="#70c4ff" stroke-width="4">
+<circle cx="260" cy="150" r="24"/><circle cx="500" cy="150" r="24"/><circle cx="740" cy="150" r="24"/>
+</g>
+<path d="M25 300v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55m28-55v55" stroke="#dcecff" stroke-width="9"/>
+</g>
+<text x="600" y="720" font-family="Arial" font-size="55" text-anchor="middle" font-weight="900" fill="#eaf6ff">PLACA DE VÍDEO</text>
+<text x="600" y="780" font-family="Arial" font-size="26" text-anchor="middle" letter-spacing="4" fill="#70c4ff">GPU • REFRIGERAÇÃO • ALIMENTAÇÃO</text>
+</svg>
