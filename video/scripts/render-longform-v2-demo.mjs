@@ -143,7 +143,7 @@ const totalDuration = Math.max(cursor, audioDuration);
 const props = {
   title: 'Como montar um PC gamer: entenda cada componente',
   category: 'Hardware',
-  hook: narration[0].text,
+  hook: 'Monte seu PC gamer sem errar a montagem.',
   imageUrl: '/longform-v2-demo/pc-hero.svg',
   productImages: [
     '/longform-v2-demo/pc-hero.svg',
