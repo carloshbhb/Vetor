@@ -1,6 +1,7 @@
 import { Composition, registerRoot } from 'remotion';
 import { calculateEditorialMetadata, EditorialReview } from './compositions/EditorialReview';
 import { EditorialReviewLandscape } from './compositions/EditorialReviewLandscape';
+import { calculateLongFormEditorialV2Metadata, LongFormEditorialV2 } from './compositions/LongFormEditorialV2';
 import { ComparisonVideo, calculateComparisonMetadata } from './compositions/ComparisonVideo';
 
 // Brand fonts come from public/fonts (no network at render time).
@@ -9,6 +10,7 @@ import './styles/global.css';
 
 const ReviewVideoAny = EditorialReview as any;
 const LongReviewVideoAny = EditorialReviewLandscape as any;
+const LongFormEditorialV2Any = LongFormEditorialV2 as any;
 const ComparisonVideoAny = ComparisonVideo as any;
 
 export const RemotionRoot = () => {
@@ -89,6 +91,32 @@ export const RemotionRoot = () => {
           productImages: ['/assets/redmi-pad-2-pro-hero.png'],
           brollVideos: [],
           totalDuration: 250,
+          fps: 30,
+        }}
+      />
+      <Composition
+        id="LongFormEditorialV2"
+        component={LongFormEditorialV2Any}
+        durationInFrames={360}
+        fps={30}
+        width={1920}
+        height={1080}
+        calculateMetadata={calculateLongFormEditorialV2Metadata}
+        defaultProps={{
+          title: 'Como montar um PC gamer: entenda cada componente',
+          category: 'Hardware',
+          hook: 'Montar um PC gamer fica mais simples quando você entende a função de cada peça.',
+          imageUrl: '/longform-v2-demo/pc-hero.svg',
+          productImages: ['/longform-v2-demo/pc-hero.svg', '/longform-v2-demo/motherboard.svg'],
+          scenes: [
+            { id: 1, text: 'Antes da montagem, identifique as peças e entenda como elas trabalham juntas.', duration: 4, visualCue: 'Conheça o conjunto', brollKeywords: [], startFrame: 60, endFrame: 180, visualType: 'overview' },
+            { id: 2, text: 'A placa-mãe conecta os componentes e define quais peças são compatíveis.', duration: 4, visualCue: 'A base de toda a montagem', brollKeywords: [], startFrame: 180, endFrame: 300, visualType: 'detail' },
+          ],
+          audioUrl: '/audio/sample-review.mp3',
+          subtitleEntries: [],
+          callToAction: 'Confira cada conexão antes de ligar o computador.',
+          totalDuration: 12,
+          hookDuration: 2,
           fps: 30,
         }}
       />
