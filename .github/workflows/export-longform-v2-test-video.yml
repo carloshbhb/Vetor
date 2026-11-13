@@ -1,0 +1,51 @@
+name: Export isolated LongFormEditorialV2 test video
+
+on:
+  push:
+    branches:
+      - test/longform-editorial-v2
+    paths:
+      - .github/workflows/export-longform-v2-test-video.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export-test-video:
+    name: Download and validate isolated MP4 artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Download MP4 from isolated Vercel Sandbox
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --retry-delay 2 \
+            --connect-timeout 15 --max-time 240 \
+            "https://sb-2qegj1zqjxvr.vercel.run/vetor-longform-v2-demo.mp4" \
+            --output longform-editorial-v2-test.mp4
+          test "$(stat -c%s longform-editorial-v2-test.mp4)" -gt 1000000
+
+      - name: Validate MP4 streams
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          ffprobe -v error \
+            -show_entries stream=codec_name,width,height,r_frame_rate,codec_type \
+            -show_entries format=duration,size \
+            -of json longform-editorial-v2-test.mp4 | tee video-metadata.json
+          grep -q '"width": 1920' video-metadata.json
+          grep -q '"height": 1080' video-metadata.json
+          grep -q '"codec_name": "h264"' video-metadata.json
+          grep -q '"codec_name": "aac"' video-metadata.json
+
+      - name: Upload downloadable video artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: longform-editorial-v2-test-video
+          path: longform-editorial-v2-test.mp4
+          if-no-files-found: error
+          retention-days: 3
