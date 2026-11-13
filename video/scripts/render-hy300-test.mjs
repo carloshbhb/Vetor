@@ -13,8 +13,8 @@ const fps = 30;
 
 const assets = [
   {
-    name: 'projector-main.jpg',
-    url: 'https://a-static.mlcdn.com.br/420x420/projetor-hy300-suporte-4k-1080p-android-11-smart-mini-projetor-portatil-projetor-de-filme-giratorio-de-180/realltree/mipr021/88ba97d9d03dd874348d698d8188340d.jpeg',
+    name: 'projector-main.webp',
+    url: 'https://http2.mlstatic.com/D_Q_NP_994475-MLA99454017486_112025-O.webp',
   },
   {
     name: 'projector-ports.jpg',
@@ -22,7 +22,7 @@ const assets = [
   },
   {
     name: 'projector-dimensions.jpg',
-    url: 'https://a-static.mlcdn.com.br/800x800/smart-projetor-hy300-mini-projetor-suporta-4k-portatil-branco-projetor-portatil/realltree/mipr003/4553da95351b3e6e25f618cc228b4164.jpeg',
+    url: 'https://plazavea.vteximg.com.br/arquivos/ids/30375053-418-418/imageUrl_6.jpg',
   },
 ];
 
@@ -34,7 +34,7 @@ const segments = [
   {
     visualType: 'overview',
     visualCue: 'Pequeno no formato, flexível no posicionamento',
-    imageUrl: '/hy300-test/projector-main.jpg',
+    imageUrl: '/hy300-test/projector-main.webp',
     bullets: ['CERCA DE 500 G', 'ROTAÇÃO DE 180°', 'PAREDE OU TETO'],
     text: 'O HY300 VLX é um projetor compacto com suporte articulado, pensado para ser colocado em diferentes posições.',
     narration: 'O HY300 da VLX tem corpo compacto, acabamento branco e um suporte que permite direcionar a lente. A ficha informa peso aproximado de 500 gramas e rotação de até 180 graus, então você pode projetar na parede ou no teto. Só não esqueça: ele precisa permanecer conectado à energia.',
@@ -42,7 +42,7 @@ const segments = [
   {
     visualType: 'specification',
     visualCue: 'Android 11 integrado',
-    imageUrl: '/hy300-test/projector-main.jpg',
+    imageUrl: '/hy300-test/projector-main.webp',
     metric: 'ANDROID 11',
     metricLabel: 'SISTEMA INFORMADO NO ANÚNCIO',
     text: 'Aplicativos compatíveis podem ser acessados diretamente no projetor, sem TV box separado.',
@@ -68,7 +68,7 @@ const segments = [
   {
     visualType: 'tradeoff',
     visualCue: 'Atenção: 4K não é a resolução nativa',
-    imageUrl: '/hy300-test/projector-main.jpg',
+    imageUrl: '/hy300-test/projector-main.webp',
     bullets: ['TÍTULO: 4K / FULL HD', 'FICHA: 1024 × 768 NATIVOS', 'SUPORTE INFORMADO: HD 720P'],
     text: 'A ficha desta oferta informa resolução nativa de 1024 × 768 pixels; não é um projetor 4K nativo.',
     narration: 'Este é o ponto mais importante da análise. O título usa as expressões Full HD e 4K, mas a ficha técnica desta oferta informa resolução nativa de 1024 por 768 pixels e suporte a HD 720p. Portanto, não compre esperando uma imagem 4K nativa. A especificação pode variar entre versões e vendedores, então confirme a ficha do anúncio exato antes de fechar o pedido.',
@@ -84,7 +84,7 @@ const segments = [
   {
     visualType: 'specification',
     visualCue: 'O que dizem os compradores',
-    imageUrl: '/hy300-test/projector-main.jpg',
+    imageUrl: '/hy300-test/projector-main.webp',
     metric: '4,7 / 5',
     metricLabel: '25 MIL+ AVALIAÇÕES NA OFERTA',
     text: 'A página consultada também indica mais de 50 mil unidades vendidas. Os números podem mudar com o tempo.',
@@ -93,7 +93,7 @@ const segments = [
   {
     visualType: 'result',
     visualCue: 'Para quem o HY300 faz sentido?',
-    imageUrl: '/hy300-test/projector-main.jpg',
+    imageUrl: '/hy300-test/projector-main.webp',
     bullets: ['USO OCASIONAL', 'QUARTO ESCURO', 'EXPECTATIVA REALISTA'],
     text: 'É um projetor de entrada para quem aceita as limitações de imagem, brilho e áudio.',
     narration: 'Nosso veredito, com base na ficha e nas avaliações: o HY300 pode fazer sentido como projetor de entrada, compacto, para uso ocasional em um quarto escuro. Não é a melhor escolha para uma sala clara, para quem exige áudio forte sem acessório ou para quem espera resolução 4K verdadeira. Confira as especificações do vendedor, leia as avaliações mais recentes e veja o link do produto na descrição.',
@@ -179,9 +179,9 @@ const props = {
   title: 'Mini Projetor HY300 VLX: vale a pena?',
   category: 'Projetores',
   hook: 'HY300 promete 4K. Mas a ficha técnica conta outra história.',
-  imageUrl: '/hy300-test/projector-main.jpg',
+  imageUrl: '/hy300-test/projector-main.webp',
   productImages: [
-    '/hy300-test/projector-main.jpg',
+    '/hy300-test/projector-main.webp',
     '/hy300-test/projector-ports.jpg',
     '/hy300-test/projector-dimensions.jpg',
   ],
