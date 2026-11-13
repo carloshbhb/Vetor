@@ -24,7 +24,7 @@ jobs:
           set -euo pipefail
           curl --fail --location --retry 3 --retry-delay 2 \
             --connect-timeout 15 --max-time 240 \
-            "https://sb-2qegj1zqjxvr.vercel.run/vetor-longform-v2-demo.mp4" \
+            "https://sb-5z7b7xp4u4z3.vercel.run/vetor-longform-v2-demo.mp4" \
             --output longform-editorial-v2-test.mp4
           test "$(stat -c%s longform-editorial-v2-test.mp4)" -gt 1000000
 
