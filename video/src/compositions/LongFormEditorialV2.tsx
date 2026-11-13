@@ -77,8 +77,8 @@ const Eyebrow: React.FC<{ children: React.ReactNode; tone?: string }> = ({ child
 );
 
 const Backdrop: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <AbsoluteFill style={{ overflow: 'hidden', background: 'radial-gradient(ellipse at 74% 44%, #1B3151 0%, #101B2B 42%, #080C14 100%)', color: C.text, fontFamily: 'Inter, Arial, sans-serif' }}>
-    <AbsoluteFill style={{ background: 'radial-gradient(circle at 82% 16%, rgba(66,133,244,.18), transparent 28%), radial-gradient(circle at 8% 86%, rgba(20,40,160,.20), transparent 34%)' }} />
+  <AbsoluteFill style={{ overflow: 'hidden', background: 'radial-gradient(ellipse at 74% 40%, #1B3151 0%, #101B2B 42%, #080C14 100%)', color: C.text, fontFamily: 'Inter, Arial, sans-serif' }}>
+    <AbsoluteFill style={{ background: 'radial-gradient(circle at 78% 20%, rgba(66,133,244,.18), transparent 26%)' }} />
     {children}
     <AbsoluteFill style={{ pointerEvents: 'none', background: 'linear-gradient(180deg,rgba(4,8,16,.12),transparent 24%,transparent 78%,rgba(4,8,16,.45))' }} />
   </AbsoluteFill>
@@ -113,9 +113,9 @@ const Opening: React.FC<{
   const imageScale = interpolate(enter, [0, 1], [0.86, 1.02]);
   return (
     <Backdrop>
-      <div style={{ position: 'absolute', top: 142, left: 130, width: 850, opacity: titleOpacity, transform: 'translateY(' + interpolate(enter, [0, 1], [34, 0]) + 'px)' }}>
+      <div style={{ position: 'absolute', top: 142, left: 130, width: 760, opacity: titleOpacity, transform: 'translateY(' + interpolate(enter, [0, 1], [34, 0]) + 'px)' }}>
         <Eyebrow>VETOR ORIGINAL  /  {category.toUpperCase()}</Eyebrow>
-        <div style={{ marginTop: 26, fontSize: 74, fontWeight: 950, lineHeight: 1.01, letterSpacing: -3.4, maxWidth: 850 }}>{hook}</div>
+        <div style={{ marginTop: 26, fontSize: 70, fontWeight: 950, lineHeight: 1.02, letterSpacing: -3.2, maxWidth: 760 }}>{hook}</div>
         <div style={{ marginTop: 26, color: C.muted, fontSize: 30, fontWeight: 700 }}>{title}</div>
         <div style={{ marginTop: 42, display: 'flex', gap: 12, alignItems: 'center' }}>
           {['VISÃO GERAL', 'DETALHES', 'RESULTADO'].map((label, index) => (
@@ -123,8 +123,8 @@ const Opening: React.FC<{
           ))}
         </div>
       </div>
-      <ProductImage src={imageUrl} style={{ position: 'absolute', right: 120, top: 190, width: 820, height: 650, transform: 'scale(' + imageScale + ')', opacity: interpolate(frame, [0, 18], [0, 1], { extrapolateRight: 'clamp' }) }} />
-      <div style={{ position: 'absolute', left: 130, right: 130, bottom: 82, height: 4, borderRadius: 10, background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
+      <ProductImage src={imageUrl} style={{ position: 'absolute', right: 320, top: 210, width: 650, height: 590, transform: 'scale(' + imageScale + ')', opacity: interpolate(frame, [0, 18], [0, 1], { extrapolateRight: 'clamp' }) }} />
+      <div style={{ position: 'absolute', left: 130, right: 320, bottom: 130, height: 4, borderRadius: 10, background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
     </Backdrop>
   );
 };
@@ -133,7 +133,7 @@ const SceneImage: React.FC<{ src: string; frame: number; progress: number; crop?
   const zoom = interpolate(progress, [0, 1], crop ? [1.22, 1.52] : [0.96, 1.08]);
   const opacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: 'clamp' });
   return (
-    <div style={{ position: 'absolute', right: 108, top: 176, width: 820, height: 620, overflow: 'hidden', borderRadius: 30, border: '1px solid rgba(112,196,255,.24)', background: 'linear-gradient(145deg,rgba(26,48,77,.9),rgba(8,12,20,.5))', boxShadow: '0 28px 72px rgba(0,0,0,.34)', opacity }}>
+    <div style={{ position: 'absolute', right: 320, top: 196, width: 650, height: 560, overflow: 'hidden', borderRadius: 30, border: '1px solid rgba(112,196,255,.24)', background: 'linear-gradient(145deg,rgba(26,48,77,.9),rgba(8,12,20,.5))', boxShadow: '0 28px 72px rgba(0,0,0,.34)', opacity }}>
       <ProductImage src={src} style={{ width: '100%', height: '100%', objectFit: crop ? 'cover' : 'contain', transform: 'scale(' + zoom + ')', filter: crop ? 'drop-shadow(0 16px 30px rgba(0,0,0,.4))' : undefined }} />
     </div>
   );
@@ -152,7 +152,7 @@ const ComparePanel: React.FC<{ scene: LongFormEditorialScene; frame: number }> =
     { title: scene.rightTitle || 'VERIFIQUE', body: scene.rightText || 'O que precisa ser conferido antes de decidir.', accent: C.amber },
   ];
   return (
-    <div style={{ position: 'absolute', left: 130, right: 130, top: 350, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, opacity: interpolate(frame, [0, 16], [0, 1], { extrapolateRight: 'clamp' }) }}>
+    <div style={{ position: 'absolute', left: 130, right: 360, top: 350, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, opacity: interpolate(frame, [0, 16], [0, 1], { extrapolateRight: 'clamp' }) }}>
       {cards.map((card, index) => (
         <div key={card.title} style={{ minHeight: 286, padding: '30px 34px', borderRadius: 26, border: '1px solid ' + card.accent + '80', background: 'linear-gradient(145deg,rgba(18,34,56,.96),rgba(8,14,24,.96))', transform: 'translateY(' + interpolate(frame, [0, 20], [index === 0 ? 28 : 46, 0], { extrapolateRight: 'clamp' }) + 'px)' }}>
           <Eyebrow tone={card.accent}>{String(index + 1).padStart(2, '0')} / {card.title}</Eyebrow>
@@ -217,7 +217,7 @@ const EditorialScene: React.FC<{
         </div>
       ) : null}
 
-      <div style={{ position: 'absolute', left: 132, right: 132, bottom: 92, display: 'flex', alignItems: 'center', gap: 18 }}>
+      <div style={{ position: 'absolute', left: 132, right: 320, bottom: 92, display: 'flex', alignItems: 'center', gap: 18 }}>
         <div style={{ color: C.cyan, fontSize: 20, fontWeight: 900 }}>{String(index + 1).padStart(2, '0')}</div>
         <div style={{ flex: 1, height: 4, overflow: 'hidden', borderRadius: 12, background: 'rgba(255,255,255,.16)' }}>
           <div style={{ width: (progress * 100) + '%', height: '100%', background: 'linear-gradient(90deg,#1428A0,#4285F4,#70C4FF)' }} />
