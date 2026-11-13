@@ -96,7 +96,7 @@ const segments = [
     imageUrl: '/hy300-test/projector-main.webp',
     bullets: ['USO OCASIONAL', 'QUARTO ESCURO', 'EXPECTATIVA REALISTA'],
     text: 'É um projetor de entrada para quem aceita as limitações de imagem, brilho e áudio.',
-    narration: 'Nosso veredito, com base na ficha e nas avaliações: o HY300 pode fazer sentido como projetor de entrada, compacto, para uso ocasional em um quarto escuro. Não é a melhor escolha para uma sala clara, para quem exige áudio forte sem acessório ou para quem espera resolução 4K verdadeira. Confira as especificações do vendedor, leia as avaliações mais recentes e veja o link do produto na descrição.',
+    narration: 'Nosso veredito, com base na ficha e nas avaliações: o HY300 pode fazer sentido como projetor de entrada, compacto, para uso ocasional em um quarto escuro. Não é a melhor escolha para uma sala clara, para quem exige áudio forte sem acessório ou para quem espera resolução 4K verdadeira. Confira as especificações do vendedor, leia as avaliações mais recentes e veja o link do produto na descrição. As fotos deste vídeo são referências de modelos HY300 semelhantes; compare com as imagens da variante VLX anunciada.',
   },
 ];
 
