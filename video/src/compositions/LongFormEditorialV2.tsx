@@ -77,7 +77,7 @@ const Eyebrow: React.FC<{ children: React.ReactNode; tone?: string }> = ({ child
 );
 
 const Backdrop: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <AbsoluteFill style={{ overflow: 'hidden', background: 'radial-gradient(ellipse at 74% 40%, #1B3151 0%, #101B2B 42%, #080C14 100%)', color: C.text, fontFamily: 'Inter, Arial, sans-serif' }}>
+  <AbsoluteFill style={{ overflow: 'hidden', background: C.bg, color: C.text, fontFamily: 'Inter, Arial, sans-serif' }}>
     <AbsoluteFill style={{ background: 'radial-gradient(circle at 78% 20%, rgba(66,133,244,.18), transparent 26%)' }} />
     {children}
     <AbsoluteFill style={{ pointerEvents: 'none', background: 'linear-gradient(180deg,rgba(4,8,16,.12),transparent 24%,transparent 78%,rgba(4,8,16,.45))' }} />
