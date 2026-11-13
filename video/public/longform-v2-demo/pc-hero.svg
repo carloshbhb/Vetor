@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1000" viewBox="0 0 1400 1000">
+<defs>
+ <linearGradient id="case" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#263b55"/><stop offset="1" stop-color="#080e18"/></linearGradient>
+ <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#18385a" stop-opacity=".9"/><stop offset="1" stop-color="#0b1424" stop-opacity=".65"/></linearGradient>
+ <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#70c4ff"/><stop offset=".55" stop-color="#4285f4"/><stop offset="1" stop-color="#1428a0"/></linearGradient>
+ <filter id="shadow"><feGaussianBlur stdDeviation="24"/></filter>
+</defs>
+<ellipse cx="710" cy="865" rx="430" ry="58" fill="#000" opacity=".55" filter="url(#shadow)"/>
+<g transform="translate(315 65)">
+ <path d="M170 40h525l90 70v645H170z" fill="url(#case)" stroke="#5f7898" stroke-width="8"/>
+ <path d="M695 110h90v645h-90z" fill="#111b2a" stroke="#49627e" stroke-width="5"/>
+ <path d="M205 80h440v600H205z" fill="url(#glass)" stroke="#70c4ff" stroke-opacity=".55" stroke-width="5"/>
+ <rect x="235" y="115" width="380" height="510" rx="22" fill="#0a1422" stroke="#274b70" stroke-width="4"/>
+ <g fill="none" stroke="url(#blue)" stroke-width="13" opacity=".9">
+  <circle cx="330" cy="245" r="82"/><circle cx="520" cy="245" r="82"/>
+  <circle cx="330" cy="445" r="82"/><circle cx="520" cy="445" r="82"/>
+ </g>
+ <g fill="#152944" stroke="#70c4ff" stroke-width="4">
+  <circle cx="330" cy="245" r="18"/><circle cx="520" cy="245" r="18"/>
+  <circle cx="330" cy="445" r="18"/><circle cx="520" cy="445" r="18"/>
+ </g>
+ <path d="M250 650h340" stroke="#70c4ff" stroke-width="7" stroke-linecap="round" opacity=".75"/>
+ <rect x="730" y="180" width="28" height="90" rx="12" fill="#70c4ff"/>
+ <circle cx="743" cy="330" r="8" fill="#4285f4"/>
+</g>
+<g transform="translate(170 690)">
+ <rect x="0" y="0" width="280" height="135" rx="18" fill="#12243b" stroke="#70c4ff" stroke-width="4"/>
+ <rect x="22" y="22" width="236" height="88" rx="10" fill="#0a1422"/>
+ <rect x="44" y="40" width="58" height="54" rx="6" fill="#1f4672"/>
+ <rect x="118" y="40" width="118" height="12" rx="6" fill="#4285f4"/>
+ <rect x="118" y="64" width="92" height="10" rx="5" fill="#70c4ff" opacity=".6"/>
+ <text x="140" y="168" fill="#dcecff" font-size="22" font-family="Arial" text-anchor="middle" font-weight="700">PLACA-MÃE</text>
+</g>
+<g transform="translate(930 735)">
+ <rect x="0" y="0" width="265" height="75" rx="16" fill="#182b43" stroke="#70c4ff" stroke-width="4"/>
+ <rect x="24" y="16" width="215" height="34" rx="8" fill="url(#blue)"/>
+ <path d="M40 77v22m28-22v22m28-22v22m28-22v22m28-22v22m28-22v22m28-22v22" stroke="#c5d8ed" stroke-width="7"/>
+ <text x="132" y="135" fill="#dcecff" font-size="22" font-family="Arial" text-anchor="middle" font-weight="700">MEMÓRIA RAM</text>
+</g>
+<text x="700" y="955" font-family="Arial" font-size="25" text-anchor="middle" font-weight="800" letter-spacing="8" fill="#70c4ff">VETOR • HARDWARE LAB</text>
+</svg>
