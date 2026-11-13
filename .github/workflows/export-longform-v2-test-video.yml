@@ -49,4 +49,4 @@ jobs:
           name: longform-editorial-v2-test-video
           path: longform-editorial-v2-test.mp4
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 4
