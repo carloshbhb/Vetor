@@ -304,7 +304,7 @@ const Room: React.FC<{ src: string }> = ({ src }) => {
           <div style={{ position: 'absolute', left: '43%', top: '40%', width: '20%', height: '40%', background: K.red, borderRadius: '50% 50% 0 0' }} />
         </div>
       </div>
-      <ProductSticker src={src} frame={f} x={250} y={1430} width={420} height={420} rotation={-8} revealAt={12} />
+      <ProductSticker src={src} frame={f} x={300} y={1360} width={360} height={360} rotation={-8} revealAt={12} />
       <div style={{ position: 'absolute', right: 185, bottom: 330, width: 350, padding: '23px 25px', background: K.yellow, border: '7px solid ' + K.ink, transform: 'rotate(5deg)', boxShadow: '8px 9px 0 ' + K.ink }}>
         <Word size={55}>USO CASUAL</Word>
         <div style={{ marginTop: 15, fontSize: 27, fontWeight: 800, lineHeight: 1.1 }}>O som pode pedir uma caixa Bluetooth.</div>
@@ -331,8 +331,8 @@ const Verdict: React.FC = () => {
         <Word size={140} color={K.lime} italic>NÃO.</Word>
       </div>
       <ProjectorMascot frame={f} x={330} y={1160 + bounce} scale={.92} energy={1.4} />
-      <div style={{ position: 'absolute', left: 90, right: 90, bottom: 295, padding: '27px 25px', background: K.white, border: '9px solid ' + K.ink, transform: 'rotate(-2deg)', boxShadow: '10px 12px 0 ' + K.ink, textAlign: 'center' }}>
-        <Word size={80} italic>VOCÊ COMPRARIA?</Word>
+      <div style={{ position: 'absolute', left: 180, right: 180, bottom: 300, padding: '20px 18px', background: K.white, border: '9px solid ' + K.ink, transform: 'rotate(-2deg)', boxShadow: '10px 12px 0 ' + K.ink, textAlign: 'center' }}>
+        <Word size={70} italic>VOCÊ COMPRARIA?</Word>
       </div>
       <div style={{ position: 'absolute', left: 90, top: 1480, fontSize: 30, fontWeight: 950 }}>HY300 • VETOR.BLOG</div>
     </Paper>
