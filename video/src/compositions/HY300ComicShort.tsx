@@ -244,7 +244,7 @@ const Smart: React.FC<{ src: string }> = ({ src }) => {
         <Word size={142}>POR DENTRO</Word>
         <Word size={110} color={K.red} italic>É SMART</Word>
       </div>
-      <ProductSticker src={src} frame={f} x={295} y={1110} width={510} height={510} rotation={7} revealAt={3} />
+      <ProductSticker src={src} frame={f} x={330} y={1110} width={450} height={450} rotation={7} revealAt={3} />
       <IconBadge label="ANDROID 11" type="android" x={445} y={500} frame={f} delay={4} color={K.red} />
       <IconBadge label="WI-FI" type="wifi" x={445} y={715} frame={f} delay={11} color={K.blue} />
       <IconBadge label="BLUETOOTH" type="bluetooth" x={445} y={930} frame={f} delay={18} color={K.red} />
@@ -322,16 +322,16 @@ const Verdict: React.FC = () => {
   return (
     <Paper color={K.yellow}>
       <ComicBurst frame={f} x={540} y={760} color={K.red} scale={1.06} />
-      <div style={{ position: 'absolute', left: 85, top: 300 }}>
-        <Word size={132}>PRATICIDADE?</Word>
+      <div style={{ position: 'absolute', left: 100, top: 300 }}>
+        <Word size={118}>PRATICIDADE?</Word>
         <Word size={160} color={K.blue} italic rotate={-5}>SIM.</Word>
       </div>
-      <div style={{ position: 'absolute', right: 190, top: 650, transform: 'rotate(4deg) scale(' + p + ')', background: K.ink, color: K.white, border: '7px solid ' + K.white, padding: '26px 30px', boxShadow: '10px 11px 0 ' + K.red }}>
-        <Word size={83} color={K.white}>CINEMA 4K?</Word>
-        <Word size={140} color={K.lime} italic>NÃO.</Word>
+      <div style={{ position: 'absolute', right: 260, top: 650, transform: 'rotate(4deg) scale(' + p + ')', background: K.ink, color: K.white, border: '7px solid ' + K.white, padding: '26px 30px', boxShadow: '10px 11px 0 ' + K.red }}>
+        <Word size={76} color={K.white}>CINEMA 4K?</Word>
+        <Word size={120} color={K.lime} italic>NÃO.</Word>
       </div>
       <ProjectorMascot frame={f} x={330} y={1160 + bounce} scale={.92} energy={1.4} />
-      <div style={{ position: 'absolute', left: 180, right: 180, bottom: 300, padding: '20px 18px', background: K.white, border: '9px solid ' + K.ink, transform: 'rotate(-2deg)', boxShadow: '10px 12px 0 ' + K.ink, textAlign: 'center' }}>
+      <div style={{ position: 'absolute', left: 180, right: 180, bottom: 330, padding: '20px 18px', background: K.white, border: '9px solid ' + K.ink, transform: 'rotate(-2deg)', boxShadow: '10px 12px 0 ' + K.ink, textAlign: 'center' }}>
         <Word size={70} italic>VOCÊ COMPRARIA?</Word>
       </div>
       <div style={{ position: 'absolute', left: 90, top: 1480, fontSize: 30, fontWeight: 950 }}>HY300 • VETOR.BLOG</div>
