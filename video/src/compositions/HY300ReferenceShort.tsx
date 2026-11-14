@@ -31,7 +31,8 @@ const PaperTag:React.FC<{x:number;y:number;text:string;frame:number;start?:numbe
 const ProductPrint:React.FC<{imageUrl:string;frame:number;x:number;y:number;width:number;rotation?:number;start?:number;swing?:boolean}>=
 ({imageUrl,frame,x,y,width,rotation=-5,start=0,swing=false})=>{
  const f=Math.max(0,frame-start);
- const p=spring({frame:f,fps:24,config:{damping:10,stiffness:150,mass:.7}});\n const yaw=swing?interpolate(frame,[start+4,start+20,start+38,start+54],[0,-24,18,0],clamp):0;
+ const p=spring({frame:f,fps:24,config:{damping:10,stiffness:150,mass:.7}});
+ const yaw=swing?interpolate(frame,[start+4,start+20,start+38,start+54],[0,-24,18,0],clamp):0;
  return <div style={{position:'absolute',left:x+'%',top:y+'%',width,padding:'18px 18px 58px',background:'#FBF7EA',border:'3px solid #171717',boxShadow:'15px 20px 0 rgba(0,0,0,.32)',clipPath:'polygon(1% 1%,99% 0,100% 98%,96% 100%,2% 99%,0 3%)',transform:`perspective(1200px) translateY(${interpolate(p,[0,1],[100,0],clamp)}px) rotateY(${yaw}deg) rotate(${rotation+(1-p)*12}deg) scale(${interpolate(p,[0,1],[.55,1],clamp)})`,opacity:interpolate(f,[0,5],[0,1],clamp),transformOrigin:'50% 55%'}}>
   <div style={{position:'relative',width:'100%',aspectRatio:'1/1',overflow:'hidden',background:'#E5DED1'}}>
    <Img src={media(imageUrl)} style={{width:'100%',height:'100%',objectFit:'cover',filter:'grayscale(.72) contrast(1.12) sepia(.12)'}}/>
