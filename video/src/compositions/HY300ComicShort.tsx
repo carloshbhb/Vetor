@@ -158,7 +158,7 @@ const ProductSticker: React.FC<{ src: string; frame: number; x: number; y: numbe
 };
 
 const HandArrow: React.FC<{ frame: number; color?: string; rotate?: number }> = ({ frame, color = K.ink, rotate = 0 }) => (
-  <svg viewBox="0 0 420 250" width="420" height="250" style={{ position: 'absolute', right: 20, bottom: 50, transform: 'rotate(' + rotate + 'deg)' }}>
+  <svg viewBox="0 0 420 250" width="420" height="250" style={{ position: 'absolute', right: 20, bottom: 210, transform: 'rotate(' + rotate + 'deg)' }}>
     <path d="M20 210 Q80 8 260 60 Q312 74 340 110" fill="none" stroke={color} strokeWidth="13" strokeLinecap="round" strokeDasharray="430" strokeDashoffset={interpolate(frame, [0, 28], [430, 0], clamp)} />
     <path d="M286 54 L348 118 L365 35" fill="none" stroke={color} strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" opacity={interpolate(frame, [12, 25], [0, 1], clamp)} />
   </svg>
@@ -190,7 +190,7 @@ const Hook: React.FC<{ src: string }> = ({ src }) => {
       <ProductSticker src={src} frame={f} x={680} y={1120} width={470} height={520} rotation={-7} revealAt={4} />
       <ProjectorMascot frame={f} x={250} y={1300} scale={.86} energy={1.4} />
       <div style={{ position: 'absolute', left: 70, bottom: 270, padding: '18px 24px', background: K.blue, border: '6px solid ' + K.ink, color: K.white, transform: 'rotate(-4deg)', boxShadow: '8px 9px 0 ' + K.ink, fontSize: 38, fontWeight: 1000 }}>MAS TEM PEGADINHA...</div>
-      <div style={{ position: 'absolute', right: 60, bottom: 265, transform: 'scale(.78)' }}><HandArrow frame={f} color={K.ink} rotate={-3} /></div>
+      <HandArrow frame={f} color={K.ink} rotate={-3} />
     </Paper>
   );
 };
@@ -243,7 +243,7 @@ const Smart: React.FC<{ src: string }> = ({ src }) => {
   return (
     <Paper color={K.lime}>
       <InkLines frame={f} color={K.ink} side="right" />
-      <div style={{ position: 'absolute', left: 70, top: 145, transform: 'rotate(-5deg)' }}>
+      <div style={{ position: 'absolute', left: 80, top: 235, transform: 'rotate(-5deg)' }}>
         <Word size={142}>POR DENTRO</Word>
         <Word size={110} color={K.red} italic>É SMART</Word>
       </div>
