@@ -200,7 +200,7 @@ const Rotate: React.FC<{ src: string }> = ({ src }) => {
   const orbit = interpolate(f, [0, 48], [-42, 35]);
   return (
     <Paper color={K.paper}>
-      <div style={{ position: 'absolute', left: 82, top: 290 }}>
+      <div style={{ position: 'absolute', left: 120, top: 290 }}>
         <Word size={104}>JOGA A</Word>
         <Word size={172} color={K.red} italic rotate={-5}>IMAGEM</Word>
         <Word size={100}>PRA ONDE</Word>
@@ -211,10 +211,10 @@ const Rotate: React.FC<{ src: string }> = ({ src }) => {
         <Word size={186} color={K.red}>180°</Word>
       </div>
       <svg viewBox="0 0 1080 1920" width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        <path d="M150 1240 C120 1000 260 760 470 800 C685 830 755 1030 700 1200" fill="none" stroke={K.blue} strokeWidth="17" strokeDasharray="24 16" strokeLinecap="round" strokeDashoffset={interpolate(f, [0, 50], [300, 0])} />
+        <path d="M180 1240 C160 1000 280 760 470 800 C685 830 755 1030 700 1200" fill="none" stroke={K.blue} strokeWidth="17" strokeDasharray="24 16" strokeLinecap="round" strokeDashoffset={interpolate(f, [0, 50], [300, 0])} />
         <path d="M670 1155 L724 1215 L755 1125" stroke={K.blue} strokeWidth="17" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </svg>
-      <ProjectorMascot frame={f} x={750} y={350} scale={.52} energy={1.25} />
+      <ProjectorMascot frame={f} x={650} y={350} scale={.42} energy={1.25} />
       <div style={{ position: 'absolute', left: 95, bottom: 350, width: 850, color: K.ink, fontSize: 36, fontWeight: 850, lineHeight: 1.15 }}>SUPORTE ARTICULADO PARA PROJETAR NA PAREDE OU NO TETO.</div>
     </Paper>
   );
