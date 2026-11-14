@@ -158,7 +158,7 @@ const ProductSticker: React.FC<{ src: string; frame: number; x: number; y: numbe
 };
 
 const HandArrow: React.FC<{ frame: number; color?: string; rotate?: number }> = ({ frame, color = K.ink, rotate = 0 }) => (
-  <svg viewBox="0 0 420 250" width="420" height="250" style={{ position: 'absolute', right: 20, bottom: 210, transform: 'rotate(' + rotate + 'deg)' }}>
+  <svg viewBox="0 0 420 250" width="420" height="250" style={{ position: 'absolute', right: 170, bottom: 210, transform: 'rotate(' + rotate + 'deg)' }}>
     <path d="M20 210 Q80 8 260 60 Q312 74 340 110" fill="none" stroke={color} strokeWidth="13" strokeLinecap="round" strokeDasharray="430" strokeDashoffset={interpolate(frame, [0, 28], [430, 0], clamp)} />
     <path d="M286 54 L348 118 L365 35" fill="none" stroke={color} strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" opacity={interpolate(frame, [12, 25], [0, 1], clamp)} />
   </svg>
@@ -178,9 +178,8 @@ const Hook: React.FC<{ src: string }> = ({ src }) => {
   return (
     <Paper color={K.yellow}>
       <ComicBurst frame={f} x={748} y={710} color={K.red} scale={.9} />
-      <InkLines frame={f} side="right" />
       <div style={{ position: 'absolute', left: 86, top: 210, fontSize: 38, fontWeight: 950, letterSpacing: 5 }}>MINI PROJETOR</div>
-      <div style={{ position: 'absolute', left: 58, top: 300, transform: 'translateY(' + interpolate(pop, [0, 1], [100, 0]) + 'px) scale(' + pop + ') rotate(' + shake + 'deg)' }}>
+      <div style={{ position: 'absolute', left: 90, top: 300, transform: 'translateY(' + interpolate(pop, [0, 1], [100, 0]) + 'px) scale(' + pop + ') rotate(' + shake + 'deg)' }}>
         <Word size={220} color={K.ink}>DIZ</Word>
         <Word size={330} color={K.red} italic rotate={-7} style={{ marginTop: -2 }}>4K?!</Word>
       </div>
@@ -217,7 +216,7 @@ const Rotate: React.FC<{ src: string }> = ({ src }) => {
         <path d="M670 1155 L724 1215 L755 1125" stroke={K.blue} strokeWidth="17" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </svg>
       <ProjectorMascot frame={f} x={850} y={350} scale={.55} energy={1.25} />
-      <div style={{ position: 'absolute', left: 72, bottom: 160, width: 850, color: K.ink, fontSize: 36, fontWeight: 850, lineHeight: 1.15 }}>SUPORTE ARTICULADO PARA PROJETAR NA PAREDE OU NO TETO.</div>
+      <div style={{ position: 'absolute', left: 80, bottom: 285, width: 850, color: K.ink, fontSize: 36, fontWeight: 850, lineHeight: 1.15 }}>SUPORTE ARTICULADO PARA PROJETAR NA PAREDE OU NO TETO.</div>
     </Paper>
   );
 };
@@ -242,7 +241,6 @@ const Smart: React.FC<{ src: string }> = ({ src }) => {
   const f = useCurrentFrame();
   return (
     <Paper color={K.lime}>
-      <InkLines frame={f} color={K.ink} side="right" />
       <div style={{ position: 'absolute', left: 80, top: 235, transform: 'rotate(-5deg)' }}>
         <Word size={142}>POR DENTRO</Word>
         <Word size={110} color={K.red} italic>É SMART</Word>
