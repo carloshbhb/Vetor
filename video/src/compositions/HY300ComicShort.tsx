@@ -178,19 +178,19 @@ const Hook: React.FC<{ src: string }> = ({ src }) => {
   return (
     <Paper color={K.yellow}>
       <ComicBurst frame={f} x={748} y={710} color={K.red} scale={.9} />
-      <InkLines frame={f} side="left" />
-      <div style={{ position: 'absolute', left: 68, top: 180, fontSize: 38, fontWeight: 950, letterSpacing: 5 }}>MINI PROJETOR</div>
+      <InkLines frame={f} side="right" />
+      <div style={{ position: 'absolute', left: 86, top: 210, fontSize: 38, fontWeight: 950, letterSpacing: 5 }}>MINI PROJETOR</div>
       <div style={{ position: 'absolute', left: 58, top: 300, transform: 'translateY(' + interpolate(pop, [0, 1], [100, 0]) + 'px) scale(' + pop + ') rotate(' + shake + 'deg)' }}>
         <Word size={220} color={K.ink}>DIZ</Word>
         <Word size={330} color={K.red} italic rotate={-7} style={{ marginTop: -2 }}>4K?!</Word>
       </div>
-      <div style={{ position: 'absolute', right: 62, top: 210, width: 370, height: 90, border: '7px solid ' + K.ink, background: K.white, display: 'flex', justifyContent: 'center', alignItems: 'center', transform: 'rotate(5deg)', boxShadow: '10px 11px 0 ' + K.ink }}>
+      <div style={{ position: 'absolute', right: 180, top: 250, width: 300, height: 90, border: '7px solid ' + K.ink, background: K.white, display: 'flex', justifyContent: 'center', alignItems: 'center', transform: 'rotate(5deg)', boxShadow: '10px 11px 0 ' + K.ink }}>
         <Word size={58}>HY300</Word>
       </div>
-      <ProductSticker src={src} frame={f} x={770} y={1120} width={590} height={590} rotation={-7} revealAt={4} />
+      <ProductSticker src={src} frame={f} x={680} y={1120} width={470} height={520} rotation={-7} revealAt={4} />
       <ProjectorMascot frame={f} x={250} y={1300} scale={.86} energy={1.4} />
-      <div style={{ position: 'absolute', left: 70, bottom: 170, padding: '18px 24px', background: K.blue, border: '6px solid ' + K.ink, color: K.white, transform: 'rotate(-4deg)', boxShadow: '8px 9px 0 ' + K.ink, fontSize: 38, fontWeight: 1000 }}>MAS TEM PEGADINHA...</div>
-      <HandArrow frame={f} color={K.ink} rotate={-3} />
+      <div style={{ position: 'absolute', left: 70, bottom: 270, padding: '18px 24px', background: K.blue, border: '6px solid ' + K.ink, color: K.white, transform: 'rotate(-4deg)', boxShadow: '8px 9px 0 ' + K.ink, fontSize: 38, fontWeight: 1000 }}>MAS TEM PEGADINHA...</div>
+      <div style={{ position: 'absolute', right: 60, bottom: 265, transform: 'scale(.78)' }}><HandArrow frame={f} color={K.ink} rotate={-3} /></div>
     </Paper>
   );
 };
@@ -202,13 +202,13 @@ const Rotate: React.FC<{ src: string }> = ({ src }) => {
   const orbit = interpolate(f, [0, 48], [-42, 35]);
   return (
     <Paper color={K.paper}>
-      <div style={{ position: 'absolute', left: 68, top: 170 }}>
+      <div style={{ position: 'absolute', left: 82, top: 235 }}>
         <Word size={104}>JOGA A</Word>
         <Word size={172} color={K.red} italic rotate={-5}>IMAGEM</Word>
         <Word size={100}>PRA ONDE</Word>
         <Word size={118} color={K.blue}>QUISER</Word>
       </div>
-      <ProductSticker src={src} frame={f} x={580} y={1060} width={760} height={760} rotation={orbit} revealAt={5} />
+      <ProductSticker src={src} frame={f} x={500} y={1060} width={650} height={700} rotation={orbit} revealAt={5} />
       <div style={{ position: 'absolute', left: 115, top: 900, transform: 'rotate(-10deg) scale(' + p + ')', border: '9px solid ' + K.ink, background: K.yellow, padding: '20px 30px', boxShadow: '10px 12px 0 ' + K.ink }}>
         <Word size={186} color={K.red}>180°</Word>
       </div>
@@ -248,11 +248,11 @@ const Smart: React.FC<{ src: string }> = ({ src }) => {
         <Word size={110} color={K.red} italic>É SMART</Word>
       </div>
       <ProductSticker src={src} frame={f} x={295} y={1110} width={510} height={510} rotation={7} revealAt={3} />
-      <IconBadge label="ANDROID 11" type="android" x={590} y={500} frame={f} delay={4} color={K.red} />
-      <IconBadge label="WI-FI" type="wifi" x={590} y={715} frame={f} delay={11} color={K.blue} />
-      <IconBadge label="BLUETOOTH" type="bluetooth" x={590} y={930} frame={f} delay={18} color={K.red} />
-      <IconBadge label="HDMI" type="hdmi" x={590} y={1145} frame={f} delay={25} color={K.blue} />
-      <div style={{ position: 'absolute', left: 75, bottom: 180, padding: '18px 24px', border: '7px solid ' + K.ink, background: K.white, fontSize: 32, fontWeight: 950, transform: 'rotate(-4deg)', boxShadow: '8px 9px 0 ' + K.ink }}>APARELHOS COMPATÍVEIS</div>
+      <IconBadge label="ANDROID 11" type="android" x={445} y={500} frame={f} delay={4} color={K.red} />
+      <IconBadge label="WI-FI" type="wifi" x={445} y={715} frame={f} delay={11} color={K.blue} />
+      <IconBadge label="BLUETOOTH" type="bluetooth" x={445} y={930} frame={f} delay={18} color={K.red} />
+      <IconBadge label="HDMI" type="hdmi" x={445} y={1145} frame={f} delay={25} color={K.blue} />
+      <div style={{ position: 'absolute', left: 80, bottom: 275, padding: '18px 24px', border: '7px solid ' + K.ink, background: K.white, fontSize: 32, fontWeight: 950, transform: 'rotate(-4deg)', boxShadow: '8px 9px 0 ' + K.ink }}>APARELHOS COMPATÍVEIS</div>
     </Paper>
   );
 };
@@ -265,21 +265,21 @@ const Truth: React.FC = () => {
   return (
     <Paper color={K.ink}>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,#121212 0%,#232323 100%)' }} />
-      <div style={{ position: 'absolute', left: 62, top: 170, color: K.white, fontSize: 44, fontWeight: 950, letterSpacing: 5 }}>A VERDADE SOBRE O</div>
-      <div style={{ position: 'absolute', left: 54, top: 310, transform: 'rotate(-7deg) translateX(' + x + 'px)' }}>
+      <div style={{ position: 'absolute', left: 82, top: 245, color: K.white, fontSize: 44, fontWeight: 950, letterSpacing: 5 }}>A VERDADE SOBRE O</div>
+      <div style={{ position: 'absolute', left: 65, top: 390, transform: 'rotate(-7deg) translateX(' + x + 'px)' }}>
         <Word size={390} color={K.white} italic>4K</Word>
       </div>
       <svg viewBox="0 0 1080 1920" width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         <path d="M80 290 L900 760 M900 250 L100 800" stroke={K.red} strokeWidth="42" strokeLinecap="round" opacity={crack} strokeDasharray="1250" strokeDashoffset={interpolate(f, [10, 30], [1250, 0], clamp)} />
       </svg>
-      <div style={{ position: 'absolute', left: 55, top: 845, width: 970, height: 330, background: K.lime, border: '10px solid ' + K.white, display: 'flex', justifyContent: 'center', alignItems: 'center', transform: 'rotate(2deg) scale(' + interpolate(p, [0, 1], [.75, 1]) + ')', boxShadow: '14px 17px 0 ' + K.red }}>
+      <div style={{ position: 'absolute', left: 75, top: 890, width: 970, height: 330, background: K.lime, border: '10px solid ' + K.white, display: 'flex', justifyContent: 'center', alignItems: 'center', transform: 'rotate(2deg) scale(' + interpolate(p, [0, 1], [.75, 1]) + ')', boxShadow: '14px 17px 0 ' + K.red }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 46, fontWeight: 1000, letterSpacing: 3 }}>RESOLUÇÃO NATIVA</div>
           <Word size={142} color={K.ink}>1024 × 768</Word>
         </div>
       </div>
-      <div style={{ position: 'absolute', left: 80, bottom: 225, transform: 'rotate(-5deg) scale(' + p + ')', padding: '18px 26px', background: K.red, border: '8px solid ' + K.white, color: K.white, fontSize: 46, fontWeight: 1000, boxShadow: '9px 10px 0 ' + K.white }}>NÃO É 4K NATIVO.</div>
-      <div style={{ position: 'absolute', right: 55, bottom: 120, color: K.white, fontSize: 25, fontWeight: 750, maxWidth: 800, textAlign: 'right' }}>ACEITAR UM SINAL 4K NÃO SIGNIFICA PROJETAR EM 4K.</div>
+      <div style={{ position: 'absolute', left: 85, bottom: 315, transform: 'rotate(-5deg) scale(' + p + ')', padding: '18px 26px', background: K.red, border: '8px solid ' + K.white, color: K.white, fontSize: 46, fontWeight: 1000, boxShadow: '9px 10px 0 ' + K.white }}>NÃO É 4K NATIVO.</div>
+      <div style={{ position: 'absolute', right: 90, bottom: 315, color: K.white, fontSize: 25, fontWeight: 750, maxWidth: 800, textAlign: 'right' }}>ACEITAR UM SINAL 4K NÃO SIGNIFICA PROJETAR EM 4K.</div>
     </Paper>
   );
 };
@@ -290,7 +290,7 @@ const Room: React.FC<{ src: string }> = ({ src }) => {
   return (
     <Paper color={K.paper}>
       <div style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', background: 'linear-gradient(180deg,rgba(255,255,255,.0),rgba(59,49,36,.12))' }} />
-      <div style={{ position: 'absolute', left: 62, top: 160 }}>
+      <div style={{ position: 'absolute', left: 82, top: 245 }}>
         <Word size={130}>NO ESCURO</Word>
         <Word size={105} color={K.red} italic rotate={-4}>FAZ MAIS</Word>
         <Word size={130}>SENTIDO</Word>
@@ -320,7 +320,7 @@ const Verdict: React.FC = () => {
   return (
     <Paper color={K.yellow}>
       <ComicBurst frame={f} x={540} y={760} color={K.red} scale={1.06} />
-      <div style={{ position: 'absolute', left: 60, top: 150 }}>
+      <div style={{ position: 'absolute', left: 80, top: 240 }}>
         <Word size={132}>PRATICIDADE?</Word>
         <Word size={160} color={K.blue} italic rotate={-5}>SIM.</Word>
       </div>
@@ -329,7 +329,7 @@ const Verdict: React.FC = () => {
         <Word size={140} color={K.lime} italic>NÃO.</Word>
       </div>
       <ProjectorMascot frame={f} x={330} y={1160 + bounce} scale={1.05} energy={1.4} />
-      <div style={{ position: 'absolute', left: 76, right: 76, bottom: 205, padding: '27px 25px', background: K.white, border: '9px solid ' + K.ink, transform: 'rotate(-2deg)', boxShadow: '10px 12px 0 ' + K.ink, textAlign: 'center' }}>
+      <div style={{ position: 'absolute', left: 90, right: 90, bottom: 295, padding: '27px 25px', background: K.white, border: '9px solid ' + K.ink, transform: 'rotate(-2deg)', boxShadow: '10px 12px 0 ' + K.ink, textAlign: 'center' }}>
         <Word size={80} italic>VOCÊ COMPRARIA?</Word>
       </div>
       <div style={{ position: 'absolute', left: 80, top: 1520, fontSize: 30, fontWeight: 950 }}>HY300 • VETOR.BLOG</div>
