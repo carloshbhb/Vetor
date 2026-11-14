@@ -197,7 +197,7 @@ const Rotate: React.FC<{ src: string }> = ({ src }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
   const p = spring({ frame: f, fps, config: { damping: 12, stiffness: 130 } });
-  const orbit = interpolate(f, [0, 48], [-42, 35]);
+  const orbit = interpolate(f, [0, 48], [-22, 20]);
   return (
     <Paper color={K.paper}>
       <div style={{ position: 'absolute', left: 120, top: 290 }}>
@@ -206,7 +206,7 @@ const Rotate: React.FC<{ src: string }> = ({ src }) => {
         <Word size={100}>PRA ONDE</Word>
         <Word size={118} color={K.blue}>QUISER</Word>
       </div>
-      <ProductSticker src={src} frame={f} x={500} y={1080} width={520} height={600} rotation={orbit} revealAt={5} />
+      <ProductSticker src={src} frame={f} x={430} y={1090} width={480} height={550} rotation={orbit} revealAt={5} />
       <div style={{ position: 'absolute', left: 250, top: 900, transform: 'rotate(-10deg) scale(' + p + ')', border: '9px solid ' + K.ink, background: K.yellow, padding: '20px 30px', boxShadow: '10px 12px 0 ' + K.ink }}>
         <Word size={186} color={K.red}>180°</Word>
       </div>
