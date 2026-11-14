@@ -128,9 +128,23 @@ function writeMusicWav(file, seconds, bpm = 116) {
 fs.mkdirSync(publicDir, { recursive: true });
 fs.mkdirSync(workDir, { recursive: true });
 
-const sourceProduct = path.join(project, 'public', 'hy300-test', 'projector-main.webp');
+const sourceProductDir = path.join(project, 'public', 'hy300-test');
+const sourceProduct = path.join(sourceProductDir, 'projector-main.webp');
 const productImage = path.join(publicDir, 'projector-main.webp');
-if (!fs.existsSync(sourceProduct)) throw new Error('Foto principal do HY300 não encontrada no asset pack do piloto.');
+fs.mkdirSync(sourceProductDir, { recursive: true });
+if (!fs.existsSync(sourceProduct) || fs.statSync(sourceProduct).size < 1000) {
+  console.log('[ASSET] Baixando imagem principal do HY300 para o piloto comic.');
+  run('curl', [
+    '--fail', '--location', '--retry', '3', '--retry-delay', '2',
+    '--connect-timeout', '15', '--max-time', '90',
+    '--user-agent', 'Mozilla/5.0',
+    'https://http2.mlstatic.com/D_Q_NP_994475-MLA99454017486_112025-O.webp',
+    '--output', sourceProduct,
+  ], 'Download da imagem principal HY300');
+}
+if (!fs.existsSync(sourceProduct) || fs.statSync(sourceProduct).size < 1000) {
+  throw new Error('Foto principal do HY300 ausente ou inválida após o download.');
+}
 fs.copyFileSync(sourceProduct, productImage);
 
 const audioFiles = [];
