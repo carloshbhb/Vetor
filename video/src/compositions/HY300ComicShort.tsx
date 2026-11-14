@@ -207,14 +207,14 @@ const Rotate: React.FC<{ src: string }> = ({ src }) => {
         <Word size={118} color={K.blue}>QUISER</Word>
       </div>
       <ProductSticker src={src} frame={f} x={500} y={1060} width={650} height={700} rotation={orbit} revealAt={5} />
-      <div style={{ position: 'absolute', left: 115, top: 900, transform: 'rotate(-10deg) scale(' + p + ')', border: '9px solid ' + K.ink, background: K.yellow, padding: '20px 30px', boxShadow: '10px 12px 0 ' + K.ink }}>
+      <div style={{ position: 'absolute', left: 150, top: 900, transform: 'rotate(-10deg) scale(' + p + ')', border: '9px solid ' + K.ink, background: K.yellow, padding: '20px 30px', boxShadow: '10px 12px 0 ' + K.ink }}>
         <Word size={186} color={K.red}>180°</Word>
       </div>
       <svg viewBox="0 0 1080 1920" width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        <path d="M100 1240 C65 1000 220 760 470 800 C685 830 755 1030 700 1200" fill="none" stroke={K.blue} strokeWidth="17" strokeDasharray="24 16" strokeLinecap="round" strokeDashoffset={interpolate(f, [0, 50], [300, 0])} />
+        <path d="M150 1240 C120 1000 260 760 470 800 C685 830 755 1030 700 1200" fill="none" stroke={K.blue} strokeWidth="17" strokeDasharray="24 16" strokeLinecap="round" strokeDashoffset={interpolate(f, [0, 50], [300, 0])} />
         <path d="M670 1155 L724 1215 L755 1125" stroke={K.blue} strokeWidth="17" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </svg>
-      <ProjectorMascot frame={f} x={850} y={350} scale={.55} energy={1.25} />
+      <ProjectorMascot frame={f} x={750} y={350} scale={.52} energy={1.25} />
       <div style={{ position: 'absolute', left: 95, bottom: 350, width: 850, color: K.ink, fontSize: 36, fontWeight: 850, lineHeight: 1.15 }}>SUPORTE ARTICULADO PARA PROJETAR NA PAREDE OU NO TETO.</div>
     </Paper>
   );
