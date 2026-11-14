@@ -1,4 +1,4 @@
-name: Export isolated HY300 Remotion test video
+name: Render HY300 comic short (Remotion)
 
 on:
   push:
@@ -6,52 +6,77 @@ on:
       - test/product-hy300-video
     paths:
       - .github/workflows/export-hy300-test-video.yml
+      - video/scripts/render-hy300-comic-short.mjs
+      - video/src/compositions/HY300ComicShort.tsx
+      - video/src/Root.tsx
+      - video/package.json
+      - video/package-lock.json
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  export-test-video:
-    name: Download and validate HY300 MP4
+  render-comic-short:
+    name: Render and QA vertical HY300 comic pilot
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 25
     steps:
-      - name: Download isolated sandbox render
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --location --retry 3 --retry-delay 2 \
-            --connect-timeout 15 --max-time 240 \
-            "https://sb-61kpdxrgejlh.vercel.run/vetor-hy300-test.mp4" \
-            --output vetor-hy300-product-test.mp4
-          test "$(stat -c%s vetor-hy300-product-test.mp4)" -gt 1000000
+      - name: Checkout isolated pilot branch
+        uses: actions/checkout@v4
 
-      - name: Validate streams and create contact sheet
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: video/package-lock.json
+
+      - name: Install rendering and audio tools
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg python3-venv
+          python3 -m venv /tmp/edge-tts-venv
+          /tmp/edge-tts-venv/bin/pip install --disable-pip-version-check edge-tts
+          echo "/tmp/edge-tts-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Install Remotion dependencies
+        run: npm ci --prefix video
+
+      - name: Render comic short
+        shell: bash
+        run: |
+          set -euo pipefail
+          node video/scripts/render-hy300-comic-short.mjs
+          test -s /tmp/vetor-hy300-comic-short.mp4
+          mkdir -p artifacts
+          cp /tmp/vetor-hy300-comic-short.mp4 artifacts/hy300-comic-short.mp4
+
+      - name: Validate video streams, duration and safe delivery format
+        shell: bash
+        run: |
+          set -euo pipefail
           ffprobe -v error \
             -show_entries stream=codec_name,width,height,r_frame_rate,codec_type \
             -show_entries format=duration,size \
-            -of json vetor-hy300-product-test.mp4 | tee video-metadata.json
-          grep -q '"width": 1920' video-metadata.json
-          grep -q '"height": 1080' video-metadata.json
-          grep -q '"codec_name": "h264"' video-metadata.json
-          grep -q '"codec_name": "aac"' video-metadata.json
-          ffmpeg -y -v error -i vetor-hy300-product-test.mp4 \
-            -vf "fps=1/28,scale=640:-1,tile=4x2" -frames:v 1 \
-            vetor-hy300-product-test-contact-sheet.jpg
+            -of json artifacts/hy300-comic-short.mp4 | tee artifacts/video-metadata.json
+          jq -e '[.streams[] | select(.codec_type == "video" and .codec_name == "h264" and .width == 1080 and .height == 1920)] | length == 1' artifacts/video-metadata.json
+          jq -e '[.streams[] | select(.codec_type == "audio")] | length >= 1' artifacts/video-metadata.json
+          jq -e '.format.duration | tonumber > 12 and tonumber < 75' artifacts/video-metadata.json
+          jq -e '.format.size | tonumber > 200000' artifacts/video-metadata.json
+          ffmpeg -y -v error -i artifacts/hy300-comic-short.mp4 \
+            -vf "fps=1/3,scale=360:-1,tile=4x3" -frames:v 1 \
+            artifacts/hy300-comic-contact-sheet.jpg
 
-      - name: Upload downloadable test files
+      - name: Upload pilot and QA evidence
         uses: actions/upload-artifact@v4
         with:
-          name: hy300-remotion-product-test
+          name: hy300-comic-short-pilot
           path: |
-            vetor-hy300-product-test.mp4
-            vetor-hy300-product-test-contact-sheet.jpg
-            video-metadata.json
+            artifacts/hy300-comic-short.mp4
+            artifacts/hy300-comic-contact-sheet.jpg
+            artifacts/video-metadata.json
           if-no-files-found: error
-          retention-days: 4
+          retention-days: 7
