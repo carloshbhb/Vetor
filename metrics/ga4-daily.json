@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "date": "2026-11-12",
+  "date": "2026-11-14",
   "property": "properties/458038617",
   "organic": {
     "sessions": 0,
@@ -11,10 +11,6 @@
     "staleDays": 0,
     "lastDataDate": null,
     "daily": [
-      {
-        "date": "2026-08-15",
-        "sessions": 0
-      },
       {
         "date": "2026-08-16",
         "sessions": 0
@@ -370,10 +366,14 @@
       {
         "date": "2026-11-12",
         "sessions": 0
+      },
+      {
+        "date": "2026-11-14",
+        "sessions": 0
       }
     ]
   },
   "topPages": [],
   "anomaly": false,
-  "fetchedAt": "2026-11-12T17:10:57.309Z"
+  "fetchedAt": "2026-11-14T15:23:13.984Z"
 }
