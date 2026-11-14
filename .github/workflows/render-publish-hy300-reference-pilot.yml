@@ -1,0 +1,93 @@
+name: HY300 reference-animation pilot (isolated)
+
+on:
+  push:
+    branches: [test/hy300-reference-animation]
+    paths:
+      - .github/workflows/render-publish-hy300-reference-pilot.yml
+      - .agents/skills/hy300-reference-animation/SKILL.md
+      - video/src/compositions/HY300ReferenceShort.tsx
+      - video/src/RootHY300Reference.tsx
+      - video/src/vendor/vox-paper/**
+      - video/src/vendor/opus-toon/**
+      - video/scripts/render-hy300-reference-short.mjs
+      - video/scripts/upload-hy300-reference-short.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hy300-reference-pilot
+  cancel-in-progress: false
+
+jobs:
+  render-validate-publish:
+    name: Render, validate and publish only the HY300 pilot
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout isolated pilot branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: video/package-lock.json
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install FFmpeg and Edge TTS
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          python -m pip install --disable-pip-version-check edge-tts
+
+      - name: Install existing Remotion dependencies
+        run: npm ci --prefix video
+
+      - name: Type-check isolated Remotion composition
+        working-directory: video
+        run: npx tsc --noEmit
+
+      - name: Render reference-led pilot
+        working-directory: video
+        run: node scripts/render-hy300-reference-short.mjs
+
+      - name: Validate video streams and create contact sheet
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s video/out/hy300-reference-short.mp4
+          ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate,codec_type -show_entries format=duration,size -of json video/out/hy300-reference-short.mp4 | tee video/out/hy300-reference-metadata.json
+          jq -e '[.streams[] | select(.codec_type == "video" and .codec_name == "h264" and .width == 1080 and .height == 1920 and .r_frame_rate == "24/1")] | length == 1' video/out/hy300-reference-metadata.json
+          jq -e '[.streams[] | select(.codec_type == "audio")] | length >= 1' video/out/hy300-reference-metadata.json
+          jq -e '.format.duration | tonumber > 18 and tonumber < 60' video/out/hy300-reference-metadata.json
+          jq -e '.format.size | tonumber > 300000' video/out/hy300-reference-metadata.json
+          ffmpeg -y -v error -i video/out/hy300-reference-short.mp4 -vf "fps=1/2,scale=320:-1,tile=3x3:padding=12:margin=12:color=white" -frames:v 1 video/out/hy300-reference-contact-sheet.jpg
+
+      - name: Upload render and QA evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hy300-reference-animation-pilot
+          path: |
+            video/out/hy300-reference-short.mp4
+            video/out/hy300-reference-contact-sheet.jpg
+            video/out/hy300-reference-metadata.json
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Publish only this validated pilot via Production OAuth
+        working-directory: video
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          VIDEO_PATH: out/hy300-reference-short.mp4
+        run: node scripts/upload-hy300-reference-short.mjs
