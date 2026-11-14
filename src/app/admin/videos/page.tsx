@@ -63,6 +63,7 @@ export default function AdminVideosPage() {
   const [saving, setSaving] = useState(false);
   const [workingOn, setWorkingOn] = useState("");
   const [newUrl, setNewUrl] = useState("");
+  const [visualStyle, setVisualStyle] = useState<"standard" | "stickman">("standard");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -125,8 +126,9 @@ export default function AdminVideosPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!newUrl.trim()) return;
-    await createVideoJobs({ productUrl: newUrl.trim() }, (payload) => {
+    await createVideoJobs({ productUrl: newUrl.trim(), visualStyle }, (payload) => {
       setNewUrl("");
+      setVisualStyle("standard");
       const video = payload.video as { product_title?: string } | undefined;
       return `Produto adicionado à fila: ${String(video?.product_title || "vídeo agendado")}.`;
     });
@@ -227,22 +229,38 @@ export default function AdminVideosPage() {
 
       <section className="bg-[var(--surface)] border border-border rounded-2xl p-5 mb-6 shadow-sm">
         <h2 className="font-heading font-bold">Adicionar à fila</h2>
-        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 mt-3">
-          <input
-            type="url"
-            value={newUrl}
-            onChange={(event) => setNewUrl(event.target.value)}
-            placeholder="URL do produto (Amazon, Shopee ou Mercado Livre)"
-            aria-label="URL do produto"
-            required
-            className="min-w-0 flex-1 bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm"
-          />
-          <button type="submit" disabled={saving} className="rounded-lg bg-[var(--amber)] px-4 py-2.5 text-sm font-bold text-black disabled:opacity-50">
-            {saving ? "Agendando…" : "Agendar produto"}
-          </button>
-          <button type="button" onClick={() => void handleBestSellers()} disabled={saving} className="rounded-lg border border-border px-4 py-2.5 text-sm disabled:opacity-50">
-            {saving ? "Aguarde…" : "Adicionar 5 mais vendidos do ML"}
-          </button>
+        <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              type="url"
+              value={newUrl}
+              onChange={(event) => setNewUrl(event.target.value)}
+              placeholder="URL do produto (Amazon, Shopee ou Mercado Livre)"
+              aria-label="URL do produto"
+              required
+              className="min-w-0 flex-1 bg-[var(--surface2)] border border-border rounded-lg px-3 py-2.5 text-sm"
+            />
+            <select
+              value={visualStyle}
+              onChange={(event) => setVisualStyle(event.target.value as "standard" | "stickman")}
+              aria-label="Estilo visual do vídeo"
+              className="rounded-lg border border-border bg-[var(--surface2)] px-3 py-2.5 text-sm"
+            >
+              <option value="standard">Visual padrão do Vetor</option>
+              <option value="stickman">Stickman 2D · vídeo longo 16:9</option>
+            </select>
+            <button type="submit" disabled={saving} className="rounded-lg bg-[var(--amber)] px-4 py-2.5 text-sm font-bold text-black disabled:opacity-50">
+              {saving ? "Agendando…" : "Agendar produto"}
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => void handleBestSellers()} disabled={saving} className="rounded-lg border border-border px-4 py-2.5 text-sm disabled:opacity-50">
+              {saving ? "Aguarde…" : "Adicionar 5 mais vendidos do ML"}
+            </button>
+            {visualStyle === "stickman" && (
+              <p className="text-xs text-[var(--muted)]">O template Stickman usa a mesma personagem Vetor em todas as cenas, gestos animados, cartões de especificações e legendas sincronizadas. É exclusivo para vídeos longos e renderizado localmente no Remotion, sem consumir créditos Digital Maker.</p>
+            )}
+          </div>
         </form>
       </section>
 

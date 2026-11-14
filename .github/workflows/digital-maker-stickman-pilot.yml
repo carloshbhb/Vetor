@@ -1,0 +1,277 @@
+name: Digital Maker AI — Stickman pilot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".ops/run-digital-maker-pilot"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: digital-maker-stickman-pilot
+  cancel-in-progress: false
+
+jobs:
+  create-and-monitor-pilot:
+    name: Create Galaxy Fit3 stickman review
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Wait for the Production deployment and MCP connection
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: https://www.vetor.blog
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET is not configured in GitHub Actions."
+            exit 1
+          fi
+          for attempt in $(seq 1 60); do
+            code="$(curl -sS --max-time 30 -o /tmp/dmai-health.json -w '%{http_code}' \
+              "$SITE_URL/api/admin/digital-maker-ai" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Cache-Control: no-cache" || true)"
+            if [ "$code" = "200" ] && jq -e '.success == true and .account != null' /tmp/dmai-health.json >/dev/null 2>&1; then
+              echo "Digital Maker AI connection confirmed through the Production API."
+              jq '{toolCount: (.tools | length), accountAvailable: (.account != null), accountErrors: .errors}' /tmp/dmai-health.json
+              exit 0
+            fi
+            echo "Production route not ready or MCP not connected (HTTP ${code:-unknown}); retry $attempt/60."
+            sleep 10
+          done
+          echo "Digital Maker AI did not become available through Production."
+          cat /tmp/dmai-health.json || true
+          exit 1
+
+      - name: Create the stickman character and start exactly one pilot
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: https://www.vetor.blog
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const base = process.env.SITE_URL;
+          const secret = process.env.CRON_SECRET;
+          const report = {
+            startedAt: new Date().toISOString(),
+            product: "Samsung Galaxy Fit3 Rosa Nude",
+            reviewUrl: "https://www.vetor.blog/reviews/samsung-galaxy-fit3-rosa-nude-review",
+            characterName: "Vetor Stickman",
+            provider: "Digital Maker AI",
+            statusChecks: [],
+          };
+
+          async function post(body) {
+            const response = await fetch(base + "/api/admin/digital-maker-ai", {
+              method: "POST",
+              headers: {
+                Authorization: "Bearer " + secret,
+                "Content-Type": "application/json",
+                "Cache-Control": "no-cache",
+              },
+              body: JSON.stringify(body),
+              signal: AbortSignal.timeout(30000),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || data.success === false) {
+              throw new Error(data.error || "Production API returned HTTP " + response.status);
+            }
+            return data;
+          }
+
+          function findString(value, keys, depth = 0) {
+            if (depth > 12 || value === null || value === undefined) return "";
+            if (Array.isArray(value)) {
+              for (const item of value) {
+                const found = findString(item, keys, depth + 1);
+                if (found) return found;
+              }
+              return "";
+            }
+            if (typeof value !== "object") return "";
+            for (const key of keys) {
+              const candidate = value[key];
+              if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+            }
+            for (const item of Object.values(value)) {
+              const found = findString(item, keys, depth + 1);
+              if (found) return found;
+            }
+            return "";
+          }
+
+          function findJobId(value, depth = 0) {
+            return findString(value, ["job_id", "jobId", "video_id", "videoId"], depth);
+          }
+
+          function findStatus(value) {
+            return findString(value, ["status", "state", "job_status"], 0).toLowerCase();
+          }
+
+          const started = await post({ action: "runStickmanPilot" });
+          if (started.blocked) {
+            report.status = "blocked";
+            report.blockedReason = started.message || started.blocked;
+            report.account = started.account || null;
+            report.latestVideo = started.latestVideo || null;
+            fs.writeFileSync("digital-maker-pilot-report.json", JSON.stringify(report, null, 2));
+            console.log(JSON.stringify(report, null, 2));
+            process.exit(1);
+          }
+
+          const jobId = started.jobId || findJobId(started.videoResult);
+          report.language = started.language;
+          report.character = {
+            name: started.character?.name || "Vetor Stickman",
+            created: started.character?.created === true,
+            style: started.character?.style || "animated_cartoon",
+            imageUrl: started.character?.imageUrl || "",
+          };
+          report.account = {
+            plan: findString(started.account, ["plan", "plan_name", "tier"]),
+            minutesRemaining: findString(started.account, ["minutes_remaining", "remaining_minutes", "video_minutes_remaining"]),
+          };
+          report.videoJobId = jobId;
+          report.videoRequest = started.videoArgs || {};
+          report.jobStartedAt = new Date().toISOString();
+
+          if (!jobId) {
+            report.status = "started_without_job_id";
+            report.videoResult = started.videoResult || started;
+            fs.writeFileSync("digital-maker-pilot-report.json", JSON.stringify(report, null, 2));
+            console.log(JSON.stringify(report, null, 2));
+            throw new Error("Digital Maker AI did not return a recognizable video job ID.");
+          }
+
+          console.log("Character prepared: " + report.character.name + " (" + (report.character.created ? "new" : "reused") + ").");
+          console.log("Video job started: " + jobId + ". Language: " + (report.language || "unknown") + ".");
+
+          let finalResult = null;
+          const maxChecks = 20;
+          for (let attempt = 1; attempt <= maxChecks; attempt++) {
+            await new Promise((resolve) => setTimeout(resolve, 90000));
+            const check = await post({ action: "checkVideo", jobId });
+            const result = check.result || check;
+            const status = findStatus(result);
+            const url = findString(result, ["video_url", "videoUrl", "download_url", "downloadUrl"]);
+            report.statusChecks.push({
+              at: new Date().toISOString(),
+              status: status || "unknown",
+              hasVideoUrl: Boolean(url),
+            });
+            console.log("Video status check " + attempt + "/" + maxChecks + ": " + (status || "unknown") + ".");
+            if (url) report.videoUrl = url;
+
+            if (url || ["completed", "complete", "ready", "success", "succeeded"].includes(status)) {
+              finalResult = result;
+              break;
+            }
+            if (["failed", "error", "cancelled", "canceled"].includes(status)) {
+              finalResult = result;
+              report.status = status;
+              report.finalResult = result;
+              break;
+            }
+          }
+
+          if (!finalResult) {
+            report.status = "still_processing";
+            report.message = "The video job did not finish within the monitoring window; use the stored job ID to continue checking.";
+            fs.writeFileSync("digital-maker-pilot-report.json", JSON.stringify(report, null, 2));
+            console.log(JSON.stringify(report, null, 2));
+            process.exit(1);
+          }
+
+          report.finalResult = finalResult;
+          if (!report.status) report.status = "completed";
+          const videoId = findString(finalResult, ["video_id", "videoId", "id"]) || jobId;
+          try {
+            const scenes = await post({ action: "listVideoScenes", videoId });
+            report.scenes = scenes.result || scenes;
+          } catch (error) {
+            report.sceneListError = error instanceof Error ? error.message : String(error);
+          }
+
+          report.finishedAt = new Date().toISOString();
+          fs.writeFileSync("digital-maker-pilot-report.json", JSON.stringify(report, null, 2));
+          console.log(JSON.stringify({
+            status: report.status,
+            product: report.product,
+            language: report.language,
+            character: report.character,
+            videoJobId: report.videoJobId,
+            videoUrl: report.videoUrl || "",
+            sceneDetailsCollected: Boolean(report.scenes),
+          }, null, 2));
+
+          if (report.status !== "completed" && !report.videoUrl) {
+            process.exit(1);
+          }
+          NODE
+
+      - name: Preserve pilot report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: digital-maker-stickman-pilot
+          path: digital-maker-pilot-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  render-local-stickman-replica:
+    name: Render the independent Portuguese Remotion replica
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Install Edge TTS
+        run: pip install edge-tts
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd video
+          npm ci
+      - name: Validate the opt-in template contract
+        run: node video/scripts/stickman-template.test.mjs
+      - name: Type-check Remotion compositions
+        working-directory: video
+        run: npx tsc --noEmit
+      - name: Install Remotion QA and prepare Chrome
+        working-directory: video
+        run: |
+          npm install --global remotion-qa@0.1.3
+          ./node_modules/.bin/remotion browser ensure --log info
+      - name: Render the Portuguese stickman pilot locally
+        env:
+          EDGE_TTS_RATE: '+5%'
+        run: node video/scripts/stickman-review-pilot.mjs
+      - name: Preserve MP4, preview props, and QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vetor-stickman-remotion-replica
+          path: |
+            video/out/stickman-galaxy-fit3-remotion.mp4
+            video/out/stickman-galaxy-fit3-remotion-report.json
+            video/out/galaxy-fit3-stickman-remotion-props.json
+            video/out/stickman-galaxy-fit3-remotion-beats.json
+          if-no-files-found: ignore
+          retention-days: 14

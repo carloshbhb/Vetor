@@ -139,8 +139,9 @@ export default function DigitalMakerAIPage() {
       });
       const payload = await readResponse(response);
       setLatestResult(payload.result ?? payload);
-      const id = findJobId(payload.result);
-      if (id && action === "createVideo") setJobId(id);
+      const resultData = payload.result ?? payload;
+      const id = findJobId(resultData);
+      if (id && (action === "createVideo" || action === "runStickmanPilot")) setJobId(id);
       setNotice(successMessage + (id && action === "createVideo" ? " ID do job preenchido para acompanhamento." : ""));
       if (action === "createVideo" || action === "generateImage") {
         void refresh();
@@ -242,6 +243,39 @@ export default function DigitalMakerAIPage() {
           <p className="mt-2 text-lg font-black">Remotion principal</p>
           <p className="mt-1 text-xs text-[var(--muted)]">Fila, QA e publicação existentes preservados</p>
         </div>
+      </div>
+
+      <div className="mb-5">
+        <Panel
+          title="Piloto: review com stickman"
+          description="Cria ou reutiliza o personagem Vetor Stickman no Digital Maker AI e solicita um vídeo Multi Scene horizontal sobre a Galaxy Fit3. O provedor gera imagens de cena com o mesmo personagem; não é uma animação articulada. A geração usa 1 imagem para um personagem novo e minutos de vídeo conforme a duração final."
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void runAction(
+                "runStickmanPilot",
+                {},
+                "Piloto solicitado ao Digital Maker AI. O ID do job foi preenchido para acompanhamento."
+              )}
+              disabled={!!busy || loading || !account}
+              className={actionClass}
+            >
+              {busy === "runStickmanPilot" ? "Preparando personagem e vídeo…" : "Criar piloto Galaxy Fit3"}
+            </button>
+            <a
+              href="https://www.vetor.blog/reviews/samsung-galaxy-fit3-rosa-nude-review"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border border-border px-4 py-2.5 text-sm font-semibold"
+            >
+              Abrir review usado no piloto
+            </a>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
+            O piloto não publica no YouTube nem altera a fila de produção. Caso o plano não tenha acesso ao vídeo ou saldo suficiente, a solicitação será interrompida antes de consumir créditos.
+          </p>
+        </Panel>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">

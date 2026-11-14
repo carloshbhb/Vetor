@@ -14,6 +14,7 @@ type InputProps = Record<string, unknown>;
 
 interface ReviewVideoData {
   type: 'review' | 'long';
+  templateId?: string;
   title: string;
   imageUrl: string;
   score: number;
@@ -91,7 +92,11 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
     copyDirRecursive(publicDir, bundleLocation);
   }
 
-  const compositionId = data.type === 'long' ? 'LongReviewVideo' : data.type === 'review' ? 'ReviewVideo' : 'ComparisonVideo';
+  const compositionId = data.type === 'comparison'
+    ? 'ComparisonVideo'
+    : data.templateId === 'stickman-review'
+      ? 'StickmanReviewLandscape'
+      : data.type === 'long' ? 'LongReviewVideo' : 'ReviewVideo';
   // selectComposition avalia calculateMetadata com as props reais, então a duração do MP4
   // acompanha totalDuration (a narração) em vez do valor fixo do <Composition>.
   const composition = await selectComposition({
@@ -179,6 +184,7 @@ async function main() {
 
       videoData = {
         type,
+        templateId: typeof rawData.templateId === 'string' ? rawData.templateId : undefined,
         title: rawData.title,
         imageUrl: rawData.imageUrl,
         score: rawData.score,

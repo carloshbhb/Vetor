@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { productUrl, scheduledAt, bestSellers } = body;
+    const visualStyle = body.visualStyle === 'stickman' ? 'stickman' : 'standard';
 
     if (bestSellers) {
       const count = await createVideoJobsFromBestSellers(bestSellers);
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid URL. Must be Amazon, Shopee, or Mercado Livre product link.' }, { status: 400 });
     }
 
-    const video = await createVideoJob({ productUrl, scheduledAt });
+    const video = await createVideoJob({ productUrl, scheduledAt, visualStyle });
     
     return NextResponse.json({
       success: true,
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
         product_category: video.product_category,
         product_price: video.product_price,
         status: video.status,
+        visual_style: visualStyle,
         created_at: video.created_at,
       },
     });

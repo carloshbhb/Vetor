@@ -9,6 +9,7 @@ import { scriptToSubtitles, type SubtitleEntry } from './script-generator';
 export interface VideoQueueInput {
   productUrl: string;
   scheduledAt?: string;
+  visualStyle?: 'standard' | 'stickman';
 }
 
 export interface VideoQueueItem {
@@ -72,6 +73,12 @@ export async function createVideoJob(input: VideoQueueInput): Promise<VideoQueue
       product_image_url: productData.imageUrl,
       affiliate_url: affiliateUrl,
       shortened_affiliate_url: shortenedUrl,
+      ...(input.visualStyle === 'stickman' ? {
+        media_assets: [
+          { type: 'publication_format', format: 'long' },
+          { type: 'visual_style', style: 'stickman' },
+        ],
+      } : {}),
       status: 'pending',
       scheduled_at: input.scheduledAt || new Date().toISOString(),
     })

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { buildCaptionEntries, buildNarrationTimings, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat, stripSpokenUrls } from './video-format.mjs';
 import { renderWithHyperFrames } from '../hyperframes/render-video.mjs';
 import { researchProduct } from './research-product.mjs';
+import { resolveVisualTemplate } from './stickman-template.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -827,6 +828,7 @@ async function processVideo(video) {
   await updateVideoStatus(video.id, { status: 'processing', started_at: new Date().toISOString(), error_message: null });
   const publicAudioPath = path.resolve('video/public/tmp', `video-${video.id}.mp3`);
   const videoFormat = resolveVideoFormat(video.media_assets);
+  const visualTemplateId = resolveVisualTemplate(video.media_assets, videoFormat);
   let temporaryVisualAssets = [];
   let processingStage = 'roteiro';
   console.log("   Formato: " + (videoFormat === "long" ? "vídeo longo 16:9" : "Short vertical"));
@@ -1012,7 +1014,7 @@ async function processVideo(video) {
 
     const videoData = {
       type: videoFormat === "long" ? "long" : "review",
-      templateId: /\/comparativos\//i.test(String(video.review_url || "")) ? "comparison-editorial" : (videoFormat === "long" ? "product-editorial" : "shorts-retention"),
+      templateId: visualTemplateId || (/\/comparativos\//i.test(String(video.review_url || "")) ? "comparison-editorial" : (videoFormat === "long" ? "product-editorial" : "shorts-retention")),
       title: video.product_title,
       imageUrl: productImageSource,
       score: Number.isFinite(Number(script.score)) && Number(script.score) > 0 && Number(script.score) <= 10 ? Number(script.score) : 0,
@@ -1053,7 +1055,8 @@ async function processVideo(video) {
 
     const videoFileName = `video-${video.id}.mp4`;
     const videoPath = path.join(outputDir, videoFileName);
-    const renderEngine = String(process.env.VIDEO_RENDER_ENGINE || "remotion").toLowerCase();
+    const configuredRenderEngine = String(process.env.VIDEO_RENDER_ENGINE || "remotion").toLowerCase();
+    const renderEngine = videoData.templateId === "stickman-review" ? "remotion" : configuredRenderEngine;
     if (renderEngine === "hyperframes") {
       try {
         await renderWithHyperFrames({ ...videoData, id: video.id }, videoPath);

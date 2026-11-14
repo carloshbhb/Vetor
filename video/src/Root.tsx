@@ -1,6 +1,7 @@
 import { Composition, registerRoot } from 'remotion';
 import { calculateEditorialMetadata, EditorialReview } from './compositions/EditorialReview';
 import { EditorialReviewLandscape } from './compositions/EditorialReviewLandscape';
+import { StickmanReviewLandscape } from './compositions/StickmanReviewLandscape';
 import { ComparisonVideo, calculateComparisonMetadata } from './compositions/ComparisonVideo';
 
 // Brand fonts come from public/fonts (no network at render time).
@@ -9,6 +10,7 @@ import './styles/global.css';
 
 const ReviewVideoAny = EditorialReview as any;
 const LongReviewVideoAny = EditorialReviewLandscape as any;
+const StickmanReviewLandscapeAny = StickmanReviewLandscape as any;
 const ComparisonVideoAny = ComparisonVideo as any;
 
 export const RemotionRoot = () => {
@@ -89,6 +91,39 @@ export const RemotionRoot = () => {
           productImages: ['/assets/redmi-pad-2-pro-hero.png'],
           brollVideos: [],
           totalDuration: 250,
+          fps: 30,
+        }}
+      />
+      <Composition
+        id="StickmanReviewLandscape"
+        component={StickmanReviewLandscapeAny}
+        durationInFrames={1800}
+        fps={30}
+        width={1920}
+        height={1080}
+        calculateMetadata={calculateEditorialMetadata}
+        defaultProps={{
+          title: 'Samsung Galaxy Fit3 Rosa Nude',
+          imageUrl: '/assets/galaxy-fit3-stickman-pilot.webp',
+          score: 9.2,
+          category: 'Wearables / Smartbands',
+          hook: 'A Galaxy Fit3 vale a pena ou falta algo importante?',
+          hookDuration: 3,
+          scenes: [
+            { id: 1, text: 'A Samsung Galaxy Fit3 combina corpo de alumínio com tela AMOLED de 1,6 polegada.', duration: 7, visualCue: 'Corpo de alumínio e tela AMOLED', brollKeywords: [], startFrame: 90, endFrame: 300 },
+            { id: 2, text: 'A resolução de 256 por 402 pixels dá espaço para notificações e informações de treino.', duration: 7, visualCue: 'Tela AMOLED de 1,6 polegada', brollKeywords: [], startFrame: 300, endFrame: 510 },
+            { id: 3, text: 'A Samsung informa até 13 dias de bateria em condições de uso típicas.', duration: 7, visualCue: 'Até 13 dias de bateria', brollKeywords: [], startFrame: 510, endFrame: 720 },
+            { id: 4, text: 'A proteção 5 ATM e IP68 ajuda a usar a pulseira em atividades com água.', duration: 7, visualCue: 'Proteção 5 ATM e IP68', brollKeywords: [], startFrame: 720, endFrame: 930 },
+            { id: 5, text: 'Ela acompanha frequência cardíaca, oxigênio no sangue e movimento, com recursos de sono.', duration: 7, visualCue: 'Sensores e monitoramento', brollKeywords: [], startFrame: 930, endFrame: 1140 },
+            { id: 6, text: 'Mas não tem GPS integrado: para mapear rotas ao ar livre, depende do celular.', duration: 7, visualCue: 'Sem GPS integrado', brollKeywords: [], startFrame: 1140, endFrame: 1350 },
+            { id: 7, text: 'Também não oferece NFC para pagamentos por aproximação e a experiência completa é voltada ao Android.', duration: 7, visualCue: 'Sem NFC e compatibilidade Android', brollKeywords: [], startFrame: 1350, endFrame: 1560 },
+          ],
+          callToAction: 'Leia a análise completa e confira preço e condições atuais no Vetor.blog.',
+          audioUrl: '/assets/galaxy-fit3-stickman-pilot.mp3',
+          subtitleEntries: [],
+          productImages: ['/assets/galaxy-fit3-stickman-pilot.webp'],
+          brollVideos: [],
+          totalDuration: 60,
           fps: 30,
         }}
       />
