@@ -3,6 +3,7 @@ import { calculateEditorialMetadata, EditorialReview } from './compositions/Edit
 import { EditorialReviewLandscape } from './compositions/EditorialReviewLandscape';
 import { calculateLongFormEditorialV2Metadata, LongFormEditorialV2 } from './compositions/LongFormEditorialV2';
 import { ComparisonVideo, calculateComparisonMetadata } from './compositions/ComparisonVideo';
+import { HY300ComicShort } from './compositions/HY300ComicShort';
 
 // Brand fonts come from public/fonts (no network at render time).
 import './styles/loadFonts';
@@ -12,6 +13,7 @@ const ReviewVideoAny = EditorialReview as any;
 const LongReviewVideoAny = EditorialReviewLandscape as any;
 const LongFormEditorialV2Any = LongFormEditorialV2 as any;
 const ComparisonVideoAny = ComparisonVideo as any;
+const HY300ComicShortAny = HY300ComicShort as any;
 
 export const RemotionRoot = () => {
   return (
@@ -117,6 +119,28 @@ export const RemotionRoot = () => {
           callToAction: 'Confira cada conexão antes de ligar o computador.',
           totalDuration: 12,
           hookDuration: 2,
+          fps: 30,
+        }}
+      />
+      <Composition
+        id="HY300ComicShort"
+        component={HY300ComicShortAny}
+        durationInFrames={900}
+        fps={30}
+        width={1080}
+        height={1920}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.max(1, Math.ceil(props.totalDuration * props.fps)),
+        })}
+        defaultProps={{
+          title: 'HY300: promete 4K. Mas será?',
+          imageUrl: '/hy300-comic/projector-main.webp',
+          audioUrl: '/hy300-comic/voiceover.mp3',
+          musicUrl: '/hy300-comic/music.wav',
+          scenes: [
+            { id: 1, kind: 'hook', startFrame: 0, endFrame: 90, narration: 'O HY300 promete 4K. Mas tem um detalhe que muda tudo.' },
+          ],
+          totalDuration: 30,
           fps: 30,
         }}
       />
