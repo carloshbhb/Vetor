@@ -9,6 +9,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
+import { resolveMediaSource } from '../utils/media-source';
 
 type ComicScene = {
   id: number;
@@ -151,7 +152,7 @@ const ProductSticker: React.FC<{ src: string; frame: number; x: number; y: numbe
       opacity: interpolate(local, [0, 5], [0, 1], clamp),
       clipPath: 'polygon(2% 0,98% 1%,100% 97%,4% 100%,0 75%)',
     }}>
-      <Img src={src} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+      <Img src={resolveMediaSource(src)} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
     </div>
   );
 };
@@ -351,8 +352,8 @@ const SceneRenderer: React.FC<{ scene: ComicScene; src: string }> = ({ scene, sr
 export const HY300ComicShort: React.FC<HY300ComicShortProps> = (props) => {
   return (
     <AbsoluteFill style={{ background: K.ink }}>
-      <Audio src={props.audioUrl} volume={1} />
-      {props.musicUrl ? <Audio src={props.musicUrl} volume={0.12} loop /> : null}
+      <Audio src={resolveMediaSource(props.audioUrl)} volume={1} />
+      {props.musicUrl ? <Audio src={resolveMediaSource(props.musicUrl)} volume={0.12} loop /> : null}
       {props.scenes.map((scene) => (
         <Sequence key={scene.id} from={scene.startFrame} durationInFrames={Math.max(1, scene.endFrame - scene.startFrame)} premountFor={6}>
           <SceneRenderer scene={scene} src={props.imageUrl} />
