@@ -14,27 +14,27 @@ const fps = 30;
 const segments = [
   {
     kind: 'hook',
-    narration: 'O HY trezentos promete quatro K. Mas tem um detalhe que muda tudo.'
+    narration: 'O HY trezentos promete quatro K. Mas tem uma pegadinha.'
   },
   {
     kind: 'rotate',
-    narration: 'Ele é compacto e gira até cento e oitenta graus para jogar a imagem na parede ou no teto.'
+    narration: 'É compacto e gira cento e oitenta graus, para projetar na parede ou no teto.'
   },
   {
     kind: 'smart',
-    narration: 'Tem Android onze, Wi-Fi, Bluetooth e HDMI para conectar aparelhos compatíveis.'
+    narration: 'Tem Android onze, Wi-Fi, Bluetooth e HDMI.'
   },
   {
     kind: 'truth',
-    narration: 'Agora, a pegadinha: a ficha desta oferta informa resolução nativa de mil e vinte e quatro por setecentos e sessenta e oito. Receber sinal quatro K não é projetar em quatro K.'
+    narration: 'Mas atenção: a oferta informa resolução nativa de mil e vinte e quatro por setecentos e sessenta e oito. Aceitar sinal quatro K não é projetar em quatro K.'
   },
   {
     kind: 'room',
-    narration: 'Ele faz mais sentido no quarto escuro, para uso casual. E o som pode pedir uma caixa Bluetooth.'
+    narration: 'Use no escuro. E talvez precise de uma caixa Bluetooth.'
   },
   {
     kind: 'verdict',
-    narration: 'Resumo: praticidade, sim. Cinema quatro K, não. Você compraria sabendo disso?'
+    narration: 'Praticidade, sim. Cinema quatro K, não. Você compraria assim?'
   },
 ];
 
@@ -140,7 +140,7 @@ for (let i = 0; i < segments.length; i += 1) {
   console.log('[EDGE_TTS] Gerando fala ' + (i + 1) + '/' + segments.length + ' (' + segments[i].kind + ').');
   run('edge-tts', [
     '--voice', 'pt-BR-FranciscaNeural',
-    '--rate', '+6%',
+    '--rate', '+4%',
     '--text', segments[i].narration,
     '--write-media', output,
   ], 'Edge TTS');
