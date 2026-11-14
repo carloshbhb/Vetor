@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - ".ops/run-digital-maker-pilot"
+      - ".ops/run-digital-maker-stickman-pilot"
 
 permissions:
   contents: read
