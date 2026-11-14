@@ -28,11 +28,11 @@ const PaperTag:React.FC<{x:number;y:number;text:string;frame:number;start?:numbe
  return <div style={{position:'absolute',left:x+'%',top:y+'%',padding:'13px 18px 15px',background:color,border:'3px solid #171717',boxShadow:'9px 11px 0 rgba(20,20,20,.3)',clipPath:'polygon(1% 4%,98% 0,100% 95%,3% 100%,0 65%)',transform:`translateY(${interpolate(p,[0,1],[75,0],clamp)}px) rotate(${interpolate(p,[0,1],[rotate-13,rotate])}deg) scale(${interpolate(p,[0,1],[.72,1],clamp)})`,opacity:interpolate(f,[0,3],[0,1],clamp),color:ink,fontFamily:'Bebas Neue,Impact,sans-serif',fontSize:size,fontWeight:900,lineHeight:1,whiteSpace:'nowrap'}}>{text}</div>;
 };
 
-const ProductPrint:React.FC<{imageUrl:string;frame:number;x:number;y:number;width:number;rotation?:number;start?:number}>=
-({imageUrl,frame,x,y,width,rotation=-5,start=0})=>{
+const ProductPrint:React.FC<{imageUrl:string;frame:number;x:number;y:number;width:number;rotation?:number;start?:number;swing?:boolean}>=
+({imageUrl,frame,x,y,width,rotation=-5,start=0,swing=false})=>{
  const f=Math.max(0,frame-start);
- const p=spring({frame:f,fps:24,config:{damping:10,stiffness:150,mass:.7}});
- return <div style={{position:'absolute',left:x+'%',top:y+'%',width,padding:'18px 18px 58px',background:'#FBF7EA',border:'3px solid #171717',boxShadow:'15px 20px 0 rgba(0,0,0,.32)',clipPath:'polygon(1% 1%,99% 0,100% 98%,96% 100%,2% 99%,0 3%)',transform:`translateY(${interpolate(p,[0,1],[100,0],clamp)}px) rotate(${rotation+(1-p)*12}deg) scale(${interpolate(p,[0,1],[.55,1],clamp)})`,opacity:interpolate(f,[0,5],[0,1],clamp),transformOrigin:'50% 55%'}}>
+ const p=spring({frame:f,fps:24,config:{damping:10,stiffness:150,mass:.7}});\n const yaw=swing?interpolate(frame,[start+4,start+20,start+38,start+54],[0,-24,18,0],clamp):0;
+ return <div style={{position:'absolute',left:x+'%',top:y+'%',width,padding:'18px 18px 58px',background:'#FBF7EA',border:'3px solid #171717',boxShadow:'15px 20px 0 rgba(0,0,0,.32)',clipPath:'polygon(1% 1%,99% 0,100% 98%,96% 100%,2% 99%,0 3%)',transform:`perspective(1200px) translateY(${interpolate(p,[0,1],[100,0],clamp)}px) rotateY(${yaw}deg) rotate(${rotation+(1-p)*12}deg) scale(${interpolate(p,[0,1],[.55,1],clamp)})`,opacity:interpolate(f,[0,5],[0,1],clamp),transformOrigin:'50% 55%'}}>
   <div style={{position:'relative',width:'100%',aspectRatio:'1/1',overflow:'hidden',background:'#E5DED1'}}>
    <Img src={media(imageUrl)} style={{width:'100%',height:'100%',objectFit:'cover',filter:'grayscale(.72) contrast(1.12) sepia(.12)'}}/>
    <AbsoluteFill style={{pointerEvents:'none',opacity:.22,mixBlendMode:'multiply',backgroundImage:'radial-gradient(#171717 .7px,transparent .9px)',backgroundSize:'7px 7px'}}/>
@@ -77,7 +77,7 @@ const BeatScene:React.FC<{scene:HY300ReferenceScene;imageUrl:string}>=({scene,im
    </>}
    {scene.kind==='rotate'&&<>
     <HeadlineStrip text="ELE GIRA 180°" step={Math.max(0,Math.floor((frame-1)/2))} sizePctH={6.3} x={8} y={9} bg="#F5EC0C" fg="#171717" rot={-3}/>
-    <ProductPrint imageUrl={imageUrl} frame={frame} x={25} y={28} width={650} rotation={7} start={4}/>
+    <ProductPrint imageUrl={imageUrl} frame={frame} x={25} y={28} width={650} rotation={7} start={4} swing/>
     <svg viewBox="0 0 1080 1920" width="100%" height="100%" style={{position:'absolute',inset:0,pointerEvents:'none'}}>
      <path d="M190 1250 C65 950 270 670 540 720 C800 768 890 1050 755 1270" fill="none" stroke="#F5EC0C" strokeWidth="17" strokeLinecap="round" strokeDasharray="1600" strokeDashoffset={interpolate(frame,[10,55],[1600,0],clamp)}/>
      <path d="M730 1210 L780 1290 L838 1195" fill="none" stroke="#F5EC0C" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" opacity={interpolate(frame,[36,48],[0,1],clamp)}/>
@@ -129,40 +129,49 @@ const BeatScene:React.FC<{scene:HY300ReferenceScene;imageUrl:string}>=({scene,im
  </AbsoluteFill>;
 };
 
-const MascotLayer:React.FC=()=>{
- const {width,height}=useVideoConfig(),frame=useCurrentFrame();
+const MascotLayer:React.FC<{scenes:HY300ReferenceScene[]}>=({scenes})=>{
+ const {width,height}=useVideoConfig();
+ const script:{at:number;action:string;dur:number;x?:number}[]=[];
+ const expressions:{at:number;mouth:string;brows:string;steam:string;look?:[number,number]}[]=[];
+ for(const scene of scenes){
+  const len=Math.max(1,scene.endFrame-scene.startFrame);
+  let cursor=scene.startFrame;
+  const add=(action:string,dur:number,x?:number)=>{
+   const d=Math.max(1,Math.min(Math.floor(dur),scene.endFrame-cursor));
+   if(d>0){script.push({at:cursor,action,dur:d,...(x===undefined?{}:{x})});cursor+=d;}
+  };
+  if(scene.kind==='hook'){
+   add('walk',Math.min(24,len*.24),-.34);add('point',Math.min(34,len*.34),-.34);add('idle',scene.endFrame-cursor);
+   expressions.push({at:scene.startFrame,mouth:'smile',brows:'happy',steam:'lazy',look:[0,0]});
+  } else if(scene.kind==='rotate'){
+   add('point',Math.min(18,len*.24),-.34);add('hop',Math.min(20,len*.26),-.28);add('point',scene.endFrame-cursor,-.34);
+   expressions.push({at:scene.startFrame,mouth:'o',brows:'up',steam:'alarm',look:[.5,-.2]});
+  } else if(scene.kind==='features'){
+   add('walk',Math.min(18,len*.2),-.23);add('point',Math.min(30,len*.32),-.32);add('wave',scene.endFrame-cursor,-.28);
+   expressions.push({at:scene.startFrame,mouth:'smile',brows:'happy',steam:'lazy',look:[.7,0]});
+  } else if(scene.kind==='truth'){
+   add('hop',Math.min(18,len*.18),-.36);add('point',Math.min(42,len*.42),-.36);add('idle',scene.endFrame-cursor);
+   expressions.push({at:scene.startFrame,mouth:'wavy',brows:'worried',steam:'bitter',look:[.8,-.3]});
+  } else if(scene.kind==='room'){
+   add('walk',Math.min(18,len*.2),-.34);add('point',Math.min(26,len*.28),-.34);add('idle',scene.endFrame-cursor);
+   expressions.push({at:scene.startFrame,mouth:'o',brows:'up',steam:'lazy',look:[.5,0]});
+  } else {
+   add('cheer',Math.min(32,len*.34),-.3);add('wave',scene.endFrame-cursor,-.3);
+   expressions.push({at:scene.startFrame,mouth:'grin',brows:'happy',steam:'heart',look:[0,0]});
+  }
+ }
  const charProps:ToonObjectCharacterProps={
   body:'box3d',color:'#F5F1E8',ink:'#171717',accent:'#D72E27',background:'transparent',floor:'transparent',
-  expressions:[
-   {at:0,mouth:'smile',brows:'happy',steam:'lazy',look:[0,0]},
-   {at:52,mouth:'o',brows:'up',steam:'alarm',look:[.3,-.2]},
-   {at:114,mouth:'smile',brows:'happy',steam:'lazy',look:[.7,0]},
-   {at:200,mouth:'wavy',brows:'worried',steam:'bitter',look:[.7,-.1]},
-   {at:260,mouth:'o',brows:'up',steam:'alarm',look:[.8,-.3]},
-   {at:385,mouth:'smile',brows:'happy',steam:'heart',look:[.3,0]},
-   {at:520,mouth:'grin',brows:'happy',steam:'heart',look:[0,0]},
-  ],
-  script:[
-   {at:0,action:'walk',dur:52,x:-.18},{at:52,action:'idle',dur:46},
-   {at:98,action:'point',dur:55,x:-.13},{at:153,action:'idle',dur:48},
-   {at:201,action:'hop',dur:35},{at:236,action:'point',dur:60,x:-.08},
-   {at:296,action:'idle',dur:44},{at:340,action:'walk',dur:54,x:.06},
-   {at:394,action:'idle',dur:42},{at:436,action:'wave',dur:60,x:.02},
-   {at:496,action:'cheer',dur:70,x:.1},
-  ],
-  startX:-.3,bpm:116,boil:1.25,onTwos:true,size:.68,shadow:true,transparent:true,
-  floorY:.79,hat:'none',hatColor:'#F5EC0C',mood:'none',tint:'',tintK:0,gloom:0,blush:0,
-  legs:'quad',snout:false,flower:false,
+  expressions,script,startX:-.58,bpm:116,boil:1.25,onTwos:true,size:.62,shadow:true,transparent:true,floorY:.78,
  };
- const opacity=interpolate(frame,[190,230,330,370],[1,.24,.24,1],clamp);
- return <div style={{position:'absolute',left:0,top:0,width,height,pointerEvents:'none',zIndex:20,opacity}}><ToonObjectCharacter {...charProps}/></div>;
+ return <div style={{position:'absolute',left:0,top:0,width,height,pointerEvents:'none',zIndex:20}}><ToonObjectCharacter {...charProps}/></div>;
 };
 
 export const HY300ReferenceShort:React.FC<HY300ReferenceShortProps>=({imageUrl,voiceUrl,musicUrl,effectsUrl,scenes})=>(
  <AbsoluteFill style={{background:'#F4E9D5'}}>
   <CollageFilters scale={1} seed={17}/>
   {scenes.map(scene=><Sequence key={scene.id} from={scene.startFrame} durationInFrames={Math.max(1,scene.endFrame-scene.startFrame)}><BeatScene scene={scene} imageUrl={imageUrl}/></Sequence>)}
-  <MascotLayer/>
+  <MascotLayer scenes={scenes}/>
   <Audio src={staticFile(voiceUrl)} volume={1}/>
   <Audio src={staticFile(musicUrl)} volume={.27}/>
   <Audio src={staticFile(effectsUrl)} volume={.34}/>

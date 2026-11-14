@@ -29,14 +29,15 @@ type Props = {
   onTwos: boolean;
   size: number;
   shadow: boolean;
+  floorY?: number;
   transparent?: boolean;
 };
 
-export const ToonObjectCharacter: React.FC<Props> = ({body, color, ink, accent, background, floor, expressions, script, startX, bpm, boil, onTwos, size, shadow, transparent = false}) => {
+export const ToonObjectCharacter: React.FC<Props> = ({body, color, ink, accent, background, floor, expressions, script, startX, bpm, boil, onTwos, size, shadow, floorY: floorYOverride, transparent = false}) => {
   const frame = useCurrentFrame();
   const {w, h, fps, portrait} = useStage();
   const S = Math.min((h * 0.62) / 335, (w * (portrait ? 0.74 : 0.6)) / 300) * size;
-  const floorY = h * (portrait ? 0.68 : 0.8);
+  const floorY = h * (floorYOverride ?? (portrait ? 0.68 : 0.8));
   const baseY = floorY - 149 * S;
 
   // current action segment
