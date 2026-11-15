@@ -123,6 +123,30 @@ function findStringByKeyPattern(value: unknown, pattern: RegExp, depth = 0): str
   return "";
 }
 
+function findPlanName(value: unknown): string {
+  const byKey = findStringByKeyPattern(value, /plan|subscription|tier/i);
+  const candidates = collectStrings(value).map((item) => item.trim()).filter(Boolean);
+  const exact = candidates.find((item) =>
+    /^(?:free|pro|premium|ultimate)(?:\\s+(?:plan|subscription))?$/i.test(item)
+  );
+  const matched = (exact || byKey).match(/\\b(premium|ultimate|pro|free)\\b/i);
+  return matched ? matched[1].toLowerCase() : "";
+}
+
+function getAccountSummary(value: unknown): JsonRecord {
+  const topLevelKeys = value && typeof value === "object" && !Array.isArray(value)
+    ? Object.keys(value as JsonRecord)
+    : [];
+  return {
+    plan: findPlanName(value) || null,
+    minutesRemaining: findNumberByKeyPattern(
+      value,
+      /(?:video.*minutes?.*(?:remaining|left|available)|minutes?.*(?:remaining|left|available)|(?:remaining|left|available).*minutes?|pool.*minutes?)/i
+    ),
+    topLevelKeys,
+  };
+}
+
 function findJobId(value: unknown, depth = 0): string {
   if (depth > 10 || value === null || value === undefined) return "";
   if (typeof value === "string") {
@@ -351,15 +375,48 @@ async function runStickmanPilot() {
     };
   }
 
-  const plan = findStringByKeyPattern(account, /^(plan|plan_name|subscription|subscription_plan|tier)$/i);
-  if (!/premium|ultimate/i.test(plan)) {
+  const accountInfo = getAccountSummary(account);
+  const plan = String(accountInfo.plan || "");
+  const remainingMinutes = typeof accountInfo.minutesRemaining === "number"
+    ? accountInfo.minutesRemaining
+    : null;
+
+  if (!plan) {
     throw new DigitalMakerAIError(
-      "O plano retornado pela conta (" + (plan || "não identificado") + ") não confirma acesso ao gerador de vídeos. Nenhum personagem ou vídeo foi criado.",
+      "Digital Maker AI respondeu à consulta da conta, mas não foi possível identificar o plano. Campos retornados: " +
+        (Array.isArray(accountInfo.topLevelKeys) ? accountInfo.topLevelKeys.join(", ") : "nenhum") +
+        ". Nenhum personagem ou vídeo foi criado.",
       403
     );
   }
 
-  const remainingMinutes = findNumberByKeyPattern(account, /(?:minutes.*(?:remaining|left|available)|(?:remaining|left|available).*minutes|pool.*minutes)/i);
+  const portugueseLanguage = findPortugueseLanguage(options);
+  const language = portugueseLanguage || "en";
+  const script = portugueseLanguage ? PILOT_SCRIPT_PT : PILOT_SCRIPT_EN;
+
+  if (plan === "pro") {
+    const character = await ensurePilotCharacter(tools, characterList);
+    return {
+      success: true,
+      blocked: "video_plan",
+      pilot: "stickman-review-galaxy-fit3",
+      product: PILOT_PRODUCT,
+      reviewUrl: PILOT_REVIEW_URL,
+      account: accountInfo,
+      language,
+      character,
+      message: "Personagem salvo. O plano Pro permite personagens, mas a geração de vídeos exige Premium ou Ultimate. Nenhum minuto de vídeo foi consumido.",
+      costNote: "Foi usada uma imagem para criar o personagem; nenhum minuto de vídeo foi consumido.",
+    };
+  }
+
+  if (!["premium", "ultimate"].includes(plan)) {
+    throw new DigitalMakerAIError(
+      "O plano " + plan + " não permite esta criação. Nenhum crédito foi consumido.",
+      403
+    );
+  }
+
   if (remainingMinutes === null || remainingMinutes < 1) {
     throw new DigitalMakerAIError(
       remainingMinutes === null
@@ -369,9 +426,6 @@ async function runStickmanPilot() {
     );
   }
 
-  const portugueseLanguage = findPortugueseLanguage(options);
-  const language = portugueseLanguage || "en";
-  const script = portugueseLanguage ? PILOT_SCRIPT_PT : PILOT_SCRIPT_EN;
   const character = await ensurePilotCharacter(tools, characterList);
 
   const createVideoTool = findTool(tools, "create_video");
@@ -445,6 +499,8 @@ export async function GET(request: NextRequest) {
       {
         success: true,
         account: account.value,
+        accountSummary: getAccountSummary(account.value),
+        deploymentSha: process.env.VERCEL_GIT_COMMIT_SHA || null,
         toolCount: tools.value.length,
         errors,
       },

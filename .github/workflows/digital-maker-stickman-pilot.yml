@@ -13,7 +13,7 @@ jobs:
   create-and-monitor-pilot:
     name: Create Galaxy Fit3 stickman review
     concurrency:
-      group: digital-maker-stickman-pilot
+      group: digital-maker-stickman-pilot-v2
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 40
