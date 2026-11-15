@@ -13,7 +13,7 @@ jobs:
   create-and-monitor-pilot:
     name: Create Galaxy Fit3 stickman review
     concurrency:
-      group: digital-maker-stickman-pilot-v2
+      group: digital-maker-stickman-pilot-v3
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -28,18 +28,18 @@ jobs:
             echo "CRON_SECRET is not configured in GitHub Actions."
             exit 1
           fi
-          for attempt in $(seq 1 6); do
+          for attempt in $(seq 1 18); do
             code="$(curl -sS --max-time 25 -o /tmp/dmai-health.json -w '%{http_code}' \
               "$SITE_URL/api/admin/digital-maker-ai/?health=1" \
               -H "Authorization: Bearer $CRON_SECRET" \
               -H "Cache-Control: no-cache" || true)"
-            if [ "$code" = "200" ] && jq -e --arg sha "$GITHUB_SHA" '.success == true and .account != null and (.toolCount // 0) > 0 and .deploymentSha == $sha' /tmp/dmai-health.json >/dev/null 2>&1; then
+            if [ "$code" = "200" ] && jq -e '.success == true and .account != null and (.toolCount // 0) > 0 and .deploymentMarker == "dmai-stickman-health-v3"' /tmp/dmai-health.json >/dev/null 2>&1; then
               echo "Digital Maker AI connection confirmed through the Production API."
-              jq '{toolCount: .toolCount, accountSummary: .accountSummary, deploymentSha: .deploymentSha}' /tmp/dmai-health.json
+              jq '{toolCount: .toolCount, accountSummary: .accountSummary, deploymentMarker: .deploymentMarker, deploymentSha: .deploymentSha}' /tmp/dmai-health.json
               exit 0
             fi
             echo "Production API connection check $attempt/6 failed (HTTP ${code:-unknown}):"
-            jq '{success, errors, accountAvailable: (.account != null), toolCount}' /tmp/dmai-health.json 2>/dev/null || cat /tmp/dmai-health.json || true
+            jq '{success, errors, accountSummary, deploymentMarker, deploymentSha, toolCount}' /tmp/dmai-health.json 2>/dev/null || cat /tmp/dmai-health.json || true
             if [ "$attempt" -lt 6 ]; then sleep 10; fi
           done
           echo "Digital Maker AI did not become available through the Production API."

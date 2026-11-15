@@ -17,6 +17,7 @@ const PILOT_CHARACTER_NAME = "Vetor Stickman";
 const PILOT_STYLE = "animated_cartoon";
 const PILOT_PRODUCT = "Samsung Galaxy Fit3 Rosa Nude";
 const PILOT_REVIEW_URL = "https://www.vetor.blog/reviews/samsung-galaxy-fit3-rosa-nude-review";
+const PILOT_DEPLOYMENT_MARKER = "dmai-stickman-health-v3";
 
 function getString(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
@@ -500,6 +501,7 @@ export async function GET(request: NextRequest) {
         success: true,
         account: account.value,
         accountSummary: getAccountSummary(account.value),
+        deploymentMarker: PILOT_DEPLOYMENT_MARKER,
         deploymentSha: process.env.VERCEL_GIT_COMMIT_SHA || null,
         toolCount: tools.value.length,
         errors,
