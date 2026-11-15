@@ -33,9 +33,9 @@ jobs:
               "$SITE_URL/api/admin/digital-maker-ai/?health=1" \
               -H "Authorization: Bearer $CRON_SECRET" \
               -H "Cache-Control: no-cache" || true)"
-            if [ "$code" = "200" ] && jq -e '.success == true and .account != null and (.toolCount // 0) > 0' /tmp/dmai-health.json >/dev/null 2>&1; then
+            if [ "$code" = "200" ] && jq -e --arg sha "$GITHUB_SHA" '.success == true and .account != null and (.toolCount // 0) > 0 and .deploymentSha == $sha' /tmp/dmai-health.json >/dev/null 2>&1; then
               echo "Digital Maker AI connection confirmed through the Production API."
-              jq '{toolCount: .toolCount, accountAvailable: (.account != null)}' /tmp/dmai-health.json
+              jq '{toolCount: .toolCount, accountSummary: .accountSummary, deploymentSha: .deploymentSha}' /tmp/dmai-health.json
               exit 0
             fi
             echo "Production API connection check $attempt/6 failed (HTTP ${code:-unknown}):"
@@ -65,7 +65,7 @@ jobs:
           };
 
           async function post(body) {
-            const response = await fetch(base + "/api/admin/digital-maker-ai", {
+            const response = await fetch(base + "/api/admin/digital-maker-ai/", {
               method: "POST",
               headers: {
                 Authorization: "Bearer " + secret,
@@ -113,12 +113,21 @@ jobs:
 
           const started = await post({ action: "runStickmanPilot" });
           if (started.blocked) {
-            report.status = "blocked";
+            report.status = started.blocked === "video_plan"
+              ? "character_created_video_plan_required"
+              : "blocked";
             report.blockedReason = started.message || started.blocked;
             report.account = started.account || null;
-            report.latestVideo = started.latestVideo || null;
+            report.character = started.character ? {
+              name: started.character.name || "Vetor Stickman",
+              created: started.character.created === true,
+              style: started.character.style || "animated_cartoon",
+              imageUrl: started.character.imageUrl || "",
+            } : null;
+            report.costNote = started.costNote || "";
             fs.writeFileSync("digital-maker-pilot-report.json", JSON.stringify(report, null, 2));
             console.log(JSON.stringify(report, null, 2));
+            if (started.blocked === "video_plan") process.exit(0);
             process.exit(1);
           }
 

@@ -127,9 +127,9 @@ function findPlanName(value: unknown): string {
   const byKey = findStringByKeyPattern(value, /plan|subscription|tier/i);
   const candidates = collectStrings(value).map((item) => item.trim()).filter(Boolean);
   const exact = candidates.find((item) =>
-    /^(?:free|pro|premium|ultimate)(?:\\s+(?:plan|subscription))?$/i.test(item)
+    /^(?:free|pro|premium|ultimate)(?:\s+(?:plan|subscription))?$/i.test(item)
   );
-  const matched = (exact || byKey).match(/\\b(premium|ultimate|pro|free)\\b/i);
+  const matched = (exact || byKey).match(/\b(premium|ultimate|pro|free)\b/i);
   return matched ? matched[1].toLowerCase() : "";
 }
 
@@ -190,7 +190,7 @@ function collectStrings(value: unknown, depth = 0): string[] {
 
 function findPortugueseLanguage(options: unknown): string | null {
   const values = collectStrings(options);
-  const candidate = values.find((value) => /^(?:portuguese(?:\\s*\\([^)]*\\))?|português(?:\\s*\\([^)]*\\))?|pt(?:[-_]br)?)$/i.test(value.trim()));
+  const candidate = values.find((value) => /^(?:portuguese(?:\s*\\([^)]*\\))?|português(?:\s*\\([^)]*\\))?|pt(?:[-_]br)?)$/i.test(value.trim()));
   if (!candidate) return null;
   const trimmed = candidate.trim();
   if (/^portugu/i.test(trimmed)) return "Portuguese";
