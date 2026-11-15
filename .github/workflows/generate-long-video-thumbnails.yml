@@ -60,13 +60,28 @@ jobs:
       - name: Validate thumbnail generator before making changes
         run: |
           node --check video/scripts/generate-long-video-thumbnails.mjs
+          node video/scripts/thumbnail-pipeline.test.mjs
           python -m py_compile video/scripts/compose-youtube-thumbnail.py
           python - <<'PY'
+          from PIL import Image, ImageDraw
+          image = Image.new("RGB", (1280, 720), "#1428A0")
+          draw = ImageDraw.Draw(image)
+          draw.rounded_rectangle((760, 150, 1160, 610), radius=70, fill="#080C14", outline="#5BA0FF", width=12)
+          image.save("/tmp/vetor-thumbnail-fixture.png")
+          PY
+          python video/scripts/compose-youtube-thumbnail.py \
+            --input /tmp/vetor-thumbnail-fixture.png \
+            --output /tmp/vetor-thumbnail-composed.jpg \
+            --hook "VALE A PENA?" \
+            --product "Produto de teste Vetor"
+          python - <<'PY'
+          import os
           from PIL import Image
-          image = Image.new("RGB", (1280, 720), "#080C14")
-          image.save("/tmp/vetor-thumbnail-dependency-check.jpg", quality=90)
-          assert Image.open("/tmp/vetor-thumbnail-dependency-check.jpg").size == (1280, 720)
-          print("Pillow and 1280x720 JPEG composition are ready.")
+          image = Image.open("/tmp/vetor-thumbnail-composed.jpg")
+          assert image.size == (1280, 720), image.size
+          assert image.format == "JPEG", image.format
+          assert os.path.getsize("/tmp/vetor-thumbnail-composed.jpg") < 2 * 1024 * 1024
+          print("Composition gate passed: 1280x720 JPEG under 2 MB.")
           PY
 
       - name: Generate and apply long-form thumbnails
