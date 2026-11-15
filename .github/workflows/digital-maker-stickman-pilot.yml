@@ -13,7 +13,7 @@ jobs:
   create-and-monitor-pilot:
     name: Create Galaxy Fit3 stickman review
     concurrency:
-      group: digital-maker-stickman-pilot-v3
+      group: digital-maker-stickman-pilot-v4
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -33,7 +33,7 @@ jobs:
               "$SITE_URL/api/admin/digital-maker-ai/?health=1" \
               -H "Authorization: Bearer $CRON_SECRET" \
               -H "Cache-Control: no-cache" || true)"
-            if [ "$code" = "200" ] && jq -e '.success == true and .account != null and (.toolCount // 0) > 0 and .deploymentMarker == "dmai-stickman-health-v3"' /tmp/dmai-health.json >/dev/null 2>&1; then
+            if [ "$code" = "200" ] && jq -e '.success == true and .account != null and (.toolCount // 0) > 0 and .deploymentMarker == "dmai-stickman-health-v4"' /tmp/dmai-health.json >/dev/null 2>&1; then
               echo "Digital Maker AI connection confirmed through the Production API."
               jq '{toolCount: .toolCount, accountSummary: .accountSummary, deploymentMarker: .deploymentMarker, deploymentSha: .deploymentSha}' /tmp/dmai-health.json
               exit 0
