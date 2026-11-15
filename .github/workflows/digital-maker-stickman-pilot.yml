@@ -22,28 +22,28 @@ jobs:
       - name: Wait for the Production deployment and MCP connection
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          SITE_URL: https://www.vetor.blog
+          SITE_URL: https://vetor-blog.vercel.app
         run: |
           set -euo pipefail
           if [ -z "${CRON_SECRET:-}" ]; then
             echo "CRON_SECRET is not configured in GitHub Actions."
             exit 1
           fi
-          for attempt in $(seq 1 60); do
-            code="$(curl -sS --max-time 30 -o /tmp/dmai-health.json -w '%{http_code}' \
-              "$SITE_URL/api/admin/digital-maker-ai" \
+          for attempt in $(seq 1 6); do
+            code="$(curl -sS --max-time 25 -o /tmp/dmai-health.json -w '%{http_code}' \
+              "$SITE_URL/api/admin/digital-maker-ai?health=1" \
               -H "Authorization: Bearer $CRON_SECRET" \
               -H "Cache-Control: no-cache" || true)"
-            if [ "$code" = "200" ] && jq -e '.success == true and .account != null' /tmp/dmai-health.json >/dev/null 2>&1; then
+            if [ "$code" = "200" ] && jq -e '.success == true and .account != null and (.toolCount // 0) > 0' /tmp/dmai-health.json >/dev/null 2>&1; then
               echo "Digital Maker AI connection confirmed through the Production API."
-              jq '{toolCount: (.tools | length), accountAvailable: (.account != null), accountErrors: .errors}' /tmp/dmai-health.json
+              jq '{toolCount: .toolCount, accountAvailable: (.account != null)}' /tmp/dmai-health.json
               exit 0
             fi
-            echo "Production route not ready or MCP not connected (HTTP ${code:-unknown}); retry $attempt/60."
-            sleep 10
+            echo "Production API connection check $attempt/6 failed (HTTP ${code:-unknown}):"
+            jq '{success, errors, accountAvailable: (.account != null), toolCount}' /tmp/dmai-health.json 2>/dev/null || cat /tmp/dmai-health.json || true
+            if [ "$attempt" -lt 6 ]; then sleep 10; fi
           done
-          echo "Digital Maker AI did not become available through Production."
-          cat /tmp/dmai-health.json || true
+          echo "Digital Maker AI did not become available through the Production API."
           exit 1
 
       - name: Create the stickman character and start exactly one pilot

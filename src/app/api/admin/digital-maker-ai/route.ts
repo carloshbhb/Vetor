@@ -420,6 +420,38 @@ export async function GET(request: NextRequest) {
   const authError = authorize(request);
   if (authError) return authError;
 
+  if (request.nextUrl.searchParams.get("health") === "1") {
+    const [account, tools] = await Promise.allSettled([
+      digitalMakerCall("get_account"),
+      digitalMakerListTools(),
+    ]);
+    const errors = {
+      account: account.status === "rejected" ? getErrorMessage(account.reason) : null,
+      tools: tools.status === "rejected" ? getErrorMessage(tools.reason) : null,
+    };
+    if (account.status === "rejected") {
+      return NextResponse.json(
+        { success: false, account: null, toolCount: 0, errors },
+        { status: getErrorStatus(account.reason) }
+      );
+    }
+    if (tools.status === "rejected") {
+      return NextResponse.json(
+        { success: false, account: account.value, toolCount: 0, errors },
+        { status: getErrorStatus(tools.reason) }
+      );
+    }
+    return NextResponse.json(
+      {
+        success: true,
+        account: account.value,
+        toolCount: tools.value.length,
+        errors,
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
+  }
+
   const [account, options, creations, tools, characters] = await Promise.allSettled([
     digitalMakerCall("get_account"),
     digitalMakerCall("list_video_options"),
