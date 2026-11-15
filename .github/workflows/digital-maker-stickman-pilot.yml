@@ -111,7 +111,16 @@ jobs:
             return findString(value, ["status", "state", "job_status"], 0).toLowerCase();
           }
 
-          const started = await post({ action: "runStickmanPilot" });
+          let started;
+          try {
+            started = await post({ action: "runStickmanPilot" });
+          } catch (error) {
+            report.status = "provider_error";
+            report.error = error instanceof Error ? error.message : String(error);
+            fs.writeFileSync("digital-maker-pilot-report.json", JSON.stringify(report, null, 2));
+            console.log(JSON.stringify(report, null, 2));
+            throw error;
+          }
           if (started.blocked) {
             report.status = started.blocked === "video_plan"
               ? "character_created_video_plan_required"

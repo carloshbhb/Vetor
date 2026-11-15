@@ -178,7 +178,13 @@ export async function digitalMakerCall(
   }
 
   const structured = result.structuredContent;
-  if (structured && typeof structured === "object") return structured;
+  if (
+    structured &&
+    typeof structured === "object" &&
+    Object.keys(structured as JsonRecord).length > 0
+  ) {
+    return structured;
+  }
 
   const content = Array.isArray(result.content) ? result.content : [];
   const textParts = content

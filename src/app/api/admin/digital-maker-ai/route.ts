@@ -127,24 +127,49 @@ function findStringByKeyPattern(value: unknown, pattern: RegExp, depth = 0): str
 function findPlanName(value: unknown): string {
   const byKey = findStringByKeyPattern(value, /plan|subscription|tier/i);
   const candidates = collectStrings(value).map((item) => item.trim()).filter(Boolean);
-  const exact = candidates.find((item) =>
-    /^(?:free|pro|premium|ultimate)(?:\s+(?:plan|subscription))?$/i.test(item)
+  const matchPlan = (text: string) =>
+    text.match(/\b(premium|ultimate|pro|free)\b/i)?.[1].toLowerCase() || "";
+  for (const candidate of candidates) {
+    const matched = matchPlan(candidate);
+    if (matched) return matched;
+  }
+  return matchPlan(byKey);
+}
+
+function findMinutesRemaining(value: unknown): number | null {
+  const byKey = findNumberByKeyPattern(
+    value,
+    /(?:video.*minutes?.*(?:remaining|left|available)|minutes?.*(?:remaining|left|available)|(?:remaining|left|available).*minutes?|pool.*minutes?)/i
   );
-  const matched = (exact || byKey).match(/\b(premium|ultimate|pro|free)\b/i);
-  return matched ? matched[1].toLowerCase() : "";
+  if (byKey !== null) return byKey;
+
+  const text = collectStrings(value).join("\n");
+  const patterns = [
+    /(?:video\s+)?minutes?\s+(?:remaining|left|available)\D{0,12}(\d+(?:[.,]\d+)?)/i,
+    /(\d+(?:[.,]\d+)?)\s*(?:video\s+)?minutes?\s*(?:remaining|left|available)/i,
+    /(?:remaining|left|available)\s+(?:video\s+)?minutes?\D{0,12}(\d+(?:[.,]\d+)?)/i,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const amount = Number(match[1].replace(",", "."));
+      if (Number.isFinite(amount)) return amount;
+    }
+  }
+  return null;
 }
 
 function getAccountSummary(value: unknown): JsonRecord {
   const topLevelKeys = value && typeof value === "object" && !Array.isArray(value)
     ? Object.keys(value as JsonRecord)
     : [];
+  const text = collectStrings(value).join("\n");
   return {
     plan: findPlanName(value) || null,
-    minutesRemaining: findNumberByKeyPattern(
-      value,
-      /(?:video.*minutes?.*(?:remaining|left|available)|minutes?.*(?:remaining|left|available)|(?:remaining|left|available).*minutes?|pool.*minutes?)/i
-    ),
+    minutesRemaining: findMinutesRemaining(value),
     topLevelKeys,
+    responseType: value === null ? "null" : Array.isArray(value) ? "array" : typeof value,
+    responsePreview: text.slice(0, 1200),
   };
 }
 
@@ -384,8 +409,11 @@ async function runStickmanPilot() {
 
   if (!plan) {
     throw new DigitalMakerAIError(
-      "Digital Maker AI respondeu à consulta da conta, mas não foi possível identificar o plano. Campos retornados: " +
+      "Digital Maker AI respondeu à consulta da conta sem um plano reconhecível. Tipo: " +
+        String(accountInfo.responseType || "desconhecido") +
+        "; campos: " +
         (Array.isArray(accountInfo.topLevelKeys) ? accountInfo.topLevelKeys.join(", ") : "nenhum") +
+        "; resposta: " + String(accountInfo.responsePreview || "vazia").slice(0, 900) +
         ". Nenhum personagem ou vídeo foi criado.",
       403
     );
