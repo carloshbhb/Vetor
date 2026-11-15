@@ -1,2 +1,2 @@
 run-digital-maker-stickman-pilot
-healthcheck=production-alias
+healthcheck=canonical-trailing-slash
