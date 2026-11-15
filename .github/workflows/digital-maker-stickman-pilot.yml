@@ -9,13 +9,12 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: digital-maker-stickman-pilot
-  cancel-in-progress: false
-
 jobs:
   create-and-monitor-pilot:
     name: Create Galaxy Fit3 stickman review
+    concurrency:
+      group: digital-maker-stickman-pilot
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -224,6 +223,7 @@ jobs:
 
   render-local-stickman-replica:
     name: Render the independent Portuguese Remotion replica
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
