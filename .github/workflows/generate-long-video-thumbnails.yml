@@ -1,0 +1,110 @@
+name: Generate custom thumbnails for every long-form video
+run-name: YouTube long-form thumbnail backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_videos:
+        description: "Maximum long-form thumbnails to generate and apply in this run"
+        required: true
+        default: "53"
+        type: string
+      start_offset:
+        description: "Offset in the completed long-form video queue"
+        required: true
+        default: "0"
+        type: string
+      force:
+        description: "Regenerate and replace thumbnails already registered by this pipeline"
+        required: true
+        default: false
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - ".ops/run-long-video-thumbnail-backfill"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vetor-long-video-thumbnails
+  cancel-in-progress: false
+
+jobs:
+  generate-and-apply:
+    name: Generate, QA and apply thumbnails to long-form videos
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout production source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Python 3.12 and image fonts
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install image composition dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-dejavu-core
+          python -m pip install --upgrade pip
+          python -m pip install Pillow==12.0.0
+
+      - name: Validate thumbnail generator before making changes
+        run: |
+          node --check video/scripts/generate-long-video-thumbnails.mjs
+          python -m py_compile video/scripts/compose-youtube-thumbnail.py
+          python - <<'PY'
+          from PIL import Image
+          image = Image.new("RGB", (1280, 720), "#080C14")
+          image.save("/tmp/vetor-thumbnail-dependency-check.jpg", quality=90)
+          assert Image.open("/tmp/vetor-thumbnail-dependency-check.jpg").size == (1280, 720)
+          print("Pillow and 1280x720 JPEG composition are ready.")
+          PY
+
+      - name: Generate and apply long-form thumbnails
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          THUMBNAIL_IMAGE_MODEL: gemini-3.1-flash-image
+          MAX_VIDEOS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_videos || '53' }}
+          START_OFFSET: ${{ github.event_name == 'workflow_dispatch' && inputs.start_offset || '0' }}
+          FORCE_THUMBNAILS: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
+        run: node video/scripts/generate-long-video-thumbnails.mjs
+
+      - name: Upload generated thumbnails and application report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vetor-youtube-long-thumbnails-${{ github.run_id }}
+          path: |
+            video/out/youtube-thumbnails/*.jpg
+            video/youtube-thumbnail-report.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Publish backfill summary
+        if: always()
+        run: |
+          echo "## YouTube long-form thumbnails" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f video/youtube-thumbnail-report.json ]; then
+            node -e '
+              const fs = require("node:fs");
+              const r = JSON.parse(fs.readFileSync("video/youtube-thumbnail-report.json", "utf8"));
+              console.log("- Eligible in queue: " + r.totalLongVideos);
+              console.log("- Generated: " + r.generated);
+              console.log("- Applied: " + r.applied);
+              console.log("- Skipped: " + r.skipped);
+              console.log("- Failed: " + r.failed);
+            ' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No completed report was written; inspect the failed step logs." >> "$GITHUB_STEP_SUMMARY"
+          fi
