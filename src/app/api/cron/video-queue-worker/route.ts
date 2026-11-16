@@ -540,7 +540,7 @@ export async function POST(request: NextRequest) {
       const limit = Math.min(Math.max(Math.floor(Number(body.limit || 25)), 1), 50);
       const { data: videos, error, count } = await supabase
         .from("video_queue")
-        .select("id,product_title,product_category,product_image_url,script_text,script_hook,media_assets,youtube_video_id,youtube_url,completed_at", { count: "exact" })
+        .select("id,product_title,product_category,product_image_url,script_text,script_hook,media_assets,youtube_video_id,youtube_url,video_url,completed_at", { count: "exact" })
         .eq("status", "completed")
         .not("youtube_video_id", "is", null)
         .not("media_assets", "cs", JSON.stringify([{ type: "publication_format", format: "long" }]))
