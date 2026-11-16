@@ -539,6 +539,10 @@ export function buildTimedCaptionEntries(segments, wordBoundaries, options = {})
 export function buildVideoTitle(input) {
   const productTitle = String(input.productTitle || "Produto de tecnologia").trim();
   const hook = String(input.hook || "").trim().replace(/[.!?]+$/, "");
+  if (input.format === "short" && input.contentType === "trend") {
+    const topicTitle = String(input.topicTitle || hook || "Em alta agora").trim();
+    return (topicTitle + " #Shorts").slice(0, 100);
+  }
   return input.format === "long"
     ? (productTitle + ": vale a pena? Análise completa | Vetor.blog").slice(0, 100)
     : ((hook || "Vale a pena comprar?") + " | " + productTitle + " #Shorts").slice(0, 100);
@@ -550,6 +554,44 @@ export function buildVideoDescription(input) {
   const hook = String(input.hook || "").trim();
   const purchaseUrl = String(input.purchaseUrl || "").trim();
   const reviewUrl = String(input.reviewUrl || "").trim();
+
+  if (input.format === "short" && input.contentType === "trend") {
+    const topicTitle = String(input.topicTitle || hook || "Tendência em alta").trim();
+    const highlights = [...new Set((Array.isArray(input.highlights) ? input.highlights : [])
+      .map((item) => String(item || "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim())
+      .filter(Boolean))]
+      .slice(0, 5)
+      .map((item) => "• " + item.slice(0, 190));
+    const topicalTags = [...new Set((Array.isArray(input.topicalTags) ? input.topicalTags : [])
+      .map((item) => String(item || "").replace(/^#/, "").replace(/[^a-zA-Z0-9_]/g, "").trim())
+      .filter(Boolean))]
+      .slice(0, 8)
+      .map((item) => "#" + item);
+    const lines = [
+      topicTitle + " — contexto rápido sobre o assunto que está em alta.",
+      hook,
+      "",
+      "🛒 PRODUTO RELACIONADO RECOMENDADO: " + productTitle + " (" + category + ")",
+      "🔗 LINK PARA CONFERIR A OFERTA: " + purchaseUrl,
+    ];
+    if (reviewUrl) lines.push("📝 ANÁLISE DO PRODUTO RECOMENDADO: " + reviewUrl);
+    lines.push(
+      "",
+      "Este Short comenta uma pauta em alta no YouTube e termina com uma sugestão de produto relacionado para quem quer explorar melhor esse universo. A recomendação não representa patrocínio do assunto comentado.",
+    );
+    if (highlights.length) lines.push("", "🔎 NESTE SHORT:", ...highlights);
+    lines.push(
+      "",
+      String(input.callToAction || ("O produto relacionado é " + productTitle + ". Acesse o link do perfil do canal Vetor para conferir a oferta e a análise completa.")).trim(),
+      "Em Shorts, links externos na descrição podem não ser clicáveis. Consulte também o link do perfil do canal.",
+      "",
+      "Aviso: o link pode ser afiliado. Isso não altera os critérios editoriais da recomendação.",
+      "",
+      "#Shorts #EmAlta #Tendencias #VetorBlog " + topicalTags.join(" "),
+    );
+    return lines.filter((line, index) => line || (index > 0 && lines[index - 1] !== "")).join("\n").slice(0, 4800);
+  }
+
   const highlights = [...new Set((Array.isArray(input.highlights) ? input.highlights : [])
     .map((item) => String(item || "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim())
     .filter(Boolean))]

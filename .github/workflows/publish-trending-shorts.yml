@@ -1,0 +1,157 @@
+name: Publish Trending Shorts Batch
+run-name: Publish trending Shorts — 15 videos in 3 batches
+
+concurrency:
+  group: vetor-trending-shorts-production
+  cancel-in-progress: false
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.ops/run-trending-shorts-batch.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Render and publish 15 topical Shorts
+    if: ${{ github.event_name != 'push' || github.event.head_commit.message == 'publish-trending-shorts-batch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout production commit
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install FFmpeg and Edge TTS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install edge-tts aiohttp
+
+      - name: Install application and Remotion dependencies
+        run: |
+          npm ci
+          cd video
+          npm ci
+
+      - name: Validate Remotion and Shorts contracts
+        run: |
+          cd video
+          npx tsc --noEmit
+          cd ..
+          node video/scripts/video-format.test.mjs
+          node video/scripts/stickman-template.test.mjs
+          cd video
+          ./node_modules/.bin/remotion browser ensure --log info
+
+      - name: Validate the 3x5 campaign manifest
+        run: |
+          set -euo pipefail
+          test -s .ops/run-trending-shorts-batch.json
+          jq -e '.campaign and (.batches | length == 3) and ([.batches[] | length] == [5,5,5])' .ops/run-trending-shorts-batch.json >/dev/null
+          unique_count="$(jq -r '[.batches[][]] | unique | length' .ops/run-trending-shorts-batch.json)"
+          test "$unique_count" -eq 15
+          echo "Manifest validated: 15 unique Short queue IDs, grouped 5+5+5."
+
+      - name: Wait for authenticated production queue API
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+        run: |
+          set -euo pipefail
+          : "${CRON_SECRET:?CRON_SECRET secret is required}"
+          ready=0
+          for attempt in $(seq 1 24); do
+            curl_exit=0
+            code="$(curl -sS --max-time 12 -o queue-api-ready.json -w '%{http_code}' \
+              -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              -d '{"action":"recent"}' || curl_exit=$?)"
+            if [ "$curl_exit" -eq 0 ] && [ "$code" = "200" ] && jq -e '.success == true' queue-api-ready.json >/dev/null; then
+              echo "Production queue API is ready."
+              ready=1
+              break
+            fi
+            echo "Queue API not ready (attempt $attempt, HTTP=${code:-000})."
+            if [ "$attempt" -lt 24 ]; then sleep 10; fi
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat queue-api-ready.json 2>/dev/null || true
+            echo "::error::Production queue API did not become ready; refusing to publish."
+            exit 1
+          fi
+
+      - name: Publish the 15 Shorts in 3 sequential manual batches
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          EDGE_TTS_RATE: "${{ vars.EDGE_TTS_RATE || '+5%' }}"
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}
+          GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
+          VIDEO_RENDER_ENGINE: remotion
+          HYPERFRAMES_REMOTION_FALLBACK: 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          for batch in 0 1 2; do
+            echo "========== MANUAL SHORTS BATCH $((batch + 1))/3 =========="
+            ids="$(jq -r ".batches[$batch][]" .ops/run-trending-shorts-batch.json)"
+            while IFS= read -r video_id; do
+              [ -n "$video_id" ] || continue
+              echo "----- Publishing queue item $video_id -----"
+              set +e
+              MANUAL_RUN=true VIDEO_ID="$video_id" MAX_VIDEOS=1 node video/scripts/process-video.mjs
+              result=$?
+              set -e
+              if [ "$result" -ne 0 ]; then
+                echo "::error::Short $video_id failed with exit code $result; continuing to remaining IDs."
+                failed=$((failed + 1))
+              fi
+            done <<< "$ids"
+          done
+          echo "Completed campaign: 15 queue IDs attempted, failures=$failed."
+          if [ "$failed" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Upload render and QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trending-shorts-render-evidence-${{ github.run_id }}
+          path: |
+            video/out/video-*.mp4
+            video/out/video-*-beats.json
+            video/out/qa-*-frames/**
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Report resulting queue status
+        if: always()
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+        run: |
+          if [ -n "${CRON_SECRET:-}" ]; then
+            curl -fsS --max-time 20 -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              -d '{"action":"recent"}' | jq .
+          fi

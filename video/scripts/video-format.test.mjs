@@ -223,6 +223,37 @@ assert.ok(shortDescription.includes("Cancelamento de ruído"));
 assert.ok(shortDescription.includes("links externos na descrição"));
 assert.ok(shortDescription.includes("não são clicáveis"));
 
+const trendTitle = buildVideoTitle({
+  format: shortFormat,
+  contentType: "trend",
+  productTitle: "Produto X",
+  topicTitle: "Por que FURIA x Spirit dominou o YouTube?",
+});
+assert.ok(trendTitle.startsWith("Por que FURIA x Spirit dominou o YouTube?"));
+assert.ok(trendTitle.includes("#Shorts"));
+assert.ok(!trendTitle.includes("Produto X"));
+
+const trendDescription = buildVideoDescription({
+  format: shortFormat,
+  contentType: "trend",
+  topicTitle: "FURIA x Spirit: por que a final virou assunto?",
+  productTitle: "Mouse Logitech G305",
+  category: "Acessórios para Games",
+  purchaseUrl,
+  reviewUrl,
+  hook: "A final colocou o cenário competitivo no radar.",
+  highlights: ["Final BLAST Rivals 2026 S2", "O interesse da comunidade gamer"],
+  topicalTags: ["#FURIA", "#CS2", "#BLASTRIVALS"],
+  callToAction: "O produto relacionado é o Mouse Logitech G305. Confira o link no perfil do canal Vetor.",
+});
+assert.ok(trendDescription.includes("FURIA x Spirit"));
+assert.ok(trendDescription.includes("PRODUTO RELACIONADO RECOMENDADO"));
+assert.ok(trendDescription.includes("Mouse Logitech G305"));
+assert.ok(trendDescription.includes(purchaseUrl));
+assert.ok(trendDescription.includes(reviewUrl));
+assert.ok(trendDescription.includes("#FURIA"));
+assert.ok(trendDescription.includes("não representa patrocínio"));
+
 const longComment = buildCtaComment({ format: longFormat, productTitle: "Produto X", purchaseUrl, reviewUrl });
 const shortComment = buildCtaComment({ format: shortFormat, productTitle: "Produto X", purchaseUrl, reviewUrl });
 assert.ok(longComment.includes(purchaseUrl));

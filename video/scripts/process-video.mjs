@@ -1087,7 +1087,13 @@ async function processVideo(video) {
       throw new Error('Link de compra/afiliado ausente ou inválido; upload bloqueado.');
     }
 
-    const ytTitle = buildVideoTitle({ format: videoFormat, productTitle: video.product_title, hook: spokenHook });
+    const ytTitle = buildVideoTitle({
+      format: videoFormat,
+      productTitle: video.product_title,
+      hook: spokenHook,
+      contentType: script.contentType,
+      topicTitle: script.topicTitle,
+    });
     const chapters = videoFormat === "long"
       ? [
           { time: 0, title: "Introdução e decisão de compra" },
@@ -1099,6 +1105,9 @@ async function processVideo(video) {
       : [];
     const ytDescription = buildVideoDescription({
       format: videoFormat,
+      contentType: script.contentType,
+      topicTitle: script.topicTitle,
+      topicalTags: script.tags,
       productTitle: video.product_title,
       category: video.product_category,
       purchaseUrl,
@@ -1108,7 +1117,8 @@ async function processVideo(video) {
       callToAction: spokenCallToAction,
       chapters,
     });
-    const terms = `${video.product_title} ${video.product_category} review análise vale a pena comprar desconto preço 2026`
+    const topicalTags = Array.isArray(script.tags) ? script.tags.map(String).filter(Boolean) : [];
+    const terms = `${script.topicTitle || ""} ${topicalTags.join(" ")} ${video.product_title} ${video.product_category} review análise vale a pena comprar desconto preço 2026`
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
@@ -1119,6 +1129,7 @@ async function processVideo(video) {
       'tecnologia', 'Vetor Blog', '2026',
       ...(videoFormat === "long" ? ["análise completa", "guia de compra"] : ["Shorts", "shorts de tecnologia"]),
       video.product_category,
+      ...topicalTags,
       ...terms,
     ])].filter(Boolean).slice(0, 30);
 
