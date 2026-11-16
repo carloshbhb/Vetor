@@ -23,6 +23,10 @@ on:
     branches: [main]
     paths:
       - ".ops/run-long-video-thumbnail-backfill"
+      - "video/scripts/generate-long-video-thumbnails.mjs"
+      - "video/scripts/compose-youtube-thumbnail.py"
+      - "video/scripts/thumbnail-pipeline.test.mjs"
+      - ".github/workflows/generate-long-video-thumbnails.yml"
 
 permissions:
   contents: read
