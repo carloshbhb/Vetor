@@ -1,1 +1,1 @@
-run all eligible completed long-form videos; do not touch Shorts
+rerun legacy MP4 dimension audit against the current Production API; process only confirmed landscape videos and never touch Shorts
