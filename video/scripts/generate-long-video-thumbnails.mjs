@@ -10,9 +10,7 @@ const ROOT = process.cwd();
 const OUTPUT_DIR = path.join(ROOT, "video", "out", "youtube-thumbnails");
 const SITE_URL = (process.env.VETOR_SITE_URL || "https://www.vetor.blog").replace(/\/$/, "");
 const CRON_SECRET = String(process.env.CRON_SECRET || "").trim();
-const GOOGLE_AI_API_KEY = String(process.env.GOOGLE_AI_API_KEY || "").trim();
-const MODEL = process.env.THUMBNAIL_IMAGE_MODEL || "gemini-3.1-flash-image";
-const MAX_VIDEOS = Math.max(1, Math.min(500, Number(process.env.MAX_VIDEOS || 53)));
+const MAX_VIDEOS = Math.max(1, Math.min(500, Number(process.env.MAX_VIDEOS || 500)));
 const START_OFFSET = Math.max(0, Number(process.env.START_OFFSET || 0));
 const FORCE = process.env.FORCE_THUMBNAILS === "true";
 const REPORT_PATH = path.join(ROOT, "video", "youtube-thumbnail-report.json");
@@ -50,22 +48,6 @@ export function thumbnailHook(productTitle, videoTitle, videoId) {
   return available[hashIndex(videoId, available.length)];
 }
 
-export function buildThumbnailPrompt(productTitle, category = "") {
-  const title = String(productTitle || "produto").slice(0, 180);
-  const categoryText = String(category || "tecnologia").slice(0, 80);
-  return [
-    "Create a premium, high-click-through YouTube thumbnail BACKGROUND image for a Brazilian product review channel.",
-    "FORMAT: landscape 16:9, designed to be cropped and exported at exactly 1280x720.",
-    "PRODUCT FIDELITY IS THE TOP PRIORITY: the attached reference is the exact product being reviewed. Reproduce that exact physical product, silhouette, proportions, color, button layout, camera arrangement, screen shape, ports, controls, material, and visible brand marks. Do not substitute a similar product, redesign it, invent extra accessories, or alter the product's identity.",
-    "COMPOSITION: one dominant hero product, large and tack-sharp, occupying the RIGHT 58 percent of the frame. Give it premium commercial product-photography treatment, dramatic three-quarter angle where consistent with the reference, rich realistic material detail, strong rim lighting, dimensional depth, controlled reflections, and a restrained electric-blue light source.",
-    "LEFT 42 percent: clean dark midnight-navy negative space with a subtle blue gradient and very low visual detail. This area must remain empty for a separately typeset headline. Keep the product away from the left text-safe area.",
-    "ART DIRECTION: bold, modern Brazilian tech-review channel; cinematic studio lighting; deep navy #080C14, electric blue #1428A0 and vivid blue accents; energetic but premium, crisp subject separation, rich contrast that remains clear on a phone-sized feed.",
-    "BACKGROUND: visually interesting layered studio environment, subtle radial glow and depth, never cluttered. No collage, no split panels, no extra products, no people, no hands.",
-    "STRICTLY NO TEXT OR GRAPHICS: no words, letters, numbers, captions, logos, watermarks, fake interface elements, badges, stars, arrows, or price tags anywhere. We add the headline and channel branding afterward with clean typography.",
-    "The item is " + title + ". Product category: " + categoryText + ". Use the attached image as the visual source of truth."
-  ].join(" ");
-}
-
 async function productionApi(action, payload = {}) {
   if (!CRON_SECRET) throw new Error("CRON_SECRET ausente.");
   const response = await fetch(SITE_URL + "/api/cron/video-queue-worker/", {
@@ -85,7 +67,6 @@ async function productionApi(action, payload = {}) {
 }
 
 async function getAccessToken() {
-  await productionApi("youtubeOAuthCheck");
   const auth = await productionApi("youtubeAccessToken");
   if (auth.credentialSource !== "vercel-production" || !auth.accessToken) {
     throw new Error("OAuth Production do YouTube não foi confirmado.");
@@ -93,25 +74,36 @@ async function getAccessToken() {
   return String(auth.accessToken);
 }
 
-async function fetchYouTubeSnippets(videoIds, accessToken) {
+async function fetchYouTubeSnippets(videoIds, initialAccessToken) {
   const found = new Map();
+  let accessToken = initialAccessToken;
   for (let start = 0; start < videoIds.length; start += 50) {
     const ids = videoIds.slice(start, start + 50);
-    const url = new URL("https://www.googleapis.com/youtube/v3/videos");
-    url.searchParams.set("part", "snippet,status");
-    url.searchParams.set("id", ids.join(","));
-    const response = await fetch(url, {
-      headers: { Authorization: "Bearer " + accessToken },
-      signal: AbortSignal.timeout(30000),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error("YouTube videos.list HTTP " + response.status + ": " +
+    let response;
+    let data;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const url = new URL("https://www.googleapis.com/youtube/v3/videos");
+      url.searchParams.set("part", "snippet,status");
+      url.searchParams.set("id", ids.join(","));
+      response = await fetch(url, {
+        headers: { Authorization: "Bearer " + accessToken },
+        signal: AbortSignal.timeout(30000),
+      });
+      data = await response.json().catch(() => ({}));
+      if (response.status === 401 && attempt === 0) {
+        console.warn("[thumbnail] access token expirou durante videos.list; renovando OAuth Production.");
+        accessToken = await getAccessToken();
+        continue;
+      }
+      break;
+    }
+    if (!response?.ok) {
+      throw new Error("YouTube videos.list HTTP " + response?.status + ": " +
         String(data?.error?.message || "falha ao ler metadados").slice(0, 500));
     }
     for (const video of data.items || []) found.set(String(video.id), video);
   }
-  return found;
+  return { found, accessToken };
 }
 
 async function downloadReferenceImage(url) {
@@ -127,58 +119,6 @@ async function downloadReferenceImage(url) {
   return { buffer, mimeType };
 }
 
-async function generateBackground(productTitle, category, reference) {
-  if (!GOOGLE_AI_API_KEY) throw new Error("GOOGLE_AI_API_KEY ausente nos secrets do GitHub.");
-  const prompt = buildThumbnailPrompt(productTitle, category);
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/" +
-    encodeURIComponent(MODEL) + ":generateContent";
-  let lastError;
-  for (let attempt = 1; attempt <= 4; attempt += 1) {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": GOOGLE_AI_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{
-          role: "user",
-          parts: [
-            { text: prompt },
-            { inlineData: { mimeType: reference.mimeType, data: reference.buffer.toString("base64") } },
-          ],
-        }],
-        generationConfig: {
-          responseModalities: ["TEXT", "IMAGE"],
-          imageConfig: { aspectRatio: "16:9", imageSize: "1K" },
-        },
-      }),
-      signal: AbortSignal.timeout(180000),
-    });
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const message = String(payload?.error?.message || "falha na geração de imagem").slice(0, 700);
-      lastError = new Error("Gemini image HTTP " + response.status + ": " + message);
-      if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 4) throw lastError;
-      const retryAfter = Number(response.headers.get("retry-after") || 0);
-      const waitMs = retryAfter > 0 ? retryAfter * 1000 : attempt * 15000;
-      console.warn("[thumbnail] Gemini temporariamente indisponível; retry " + attempt + "/3 em " + waitMs + "ms.");
-      await new Promise((resolve) => setTimeout(resolve, waitMs));
-      continue;
-    }
-
-    const parts = payload?.candidates?.[0]?.content?.parts || [];
-    const image = parts.find((part) => part?.inlineData?.data || part?.inline_data?.data);
-    const base64 = image?.inlineData?.data || image?.inline_data?.data;
-    if (!base64) {
-      const blockReason = payload?.promptFeedback?.blockReason || payload?.candidates?.[0]?.finishReason || "imagem ausente";
-      throw new Error("Gemini não retornou imagem para a thumbnail: " + String(blockReason));
-    }
-    return Buffer.from(base64, "base64");
-  }
-  throw lastError || new Error("Falha desconhecida na geração da thumbnail.");
-}
 
 async function composeThumbnail(backgroundBuffer, outputPath, hook, productTitle) {
   const inputPath = outputPath.replace(/\.jpg$/i, "-background.png");
@@ -201,28 +141,39 @@ async function composeThumbnail(backgroundBuffer, outputPath, hook, productTitle
   return result;
 }
 
-async function uploadThumbnail(videoId, imageBuffer, accessToken) {
-  const url = new URL("https://www.googleapis.com/upload/youtube/v3/thumbnails/set");
-  url.searchParams.set("videoId", videoId);
-  url.searchParams.set("uploadType", "media");
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: "Bearer " + accessToken,
-      "Content-Type": "image/jpeg",
-    },
-    body: imageBuffer,
-    signal: AbortSignal.timeout(60000),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error("YouTube thumbnails.set HTTP " + response.status + ": " +
+async function uploadThumbnail(videoId, imageBuffer, initialAccessToken) {
+  let accessToken = initialAccessToken;
+  let response;
+  let data;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const url = new URL("https://www.googleapis.com/upload/youtube/v3/thumbnails/set");
+    url.searchParams.set("videoId", videoId);
+    url.searchParams.set("uploadType", "media");
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + accessToken,
+        "Content-Type": "image/jpeg",
+      },
+      body: imageBuffer,
+      signal: AbortSignal.timeout(60000),
+    });
+    data = await response.json().catch(() => ({}));
+    if (response.status === 401 && attempt === 0) {
+      console.warn("[thumbnail] access token expirou durante thumbnails.set; renovando OAuth Production.");
+      accessToken = await getAccessToken();
+      continue;
+    }
+    break;
+  }
+  if (!response?.ok) {
+    throw new Error("YouTube thumbnails.set HTTP " + response?.status + ": " +
       String(data?.error?.message || "upload rejeitado").slice(0, 600));
   }
   const thumbnailUrl = data?.items?.[0]?.default?.url ||
     data?.items?.[0]?.medium?.url || data?.items?.[0]?.high?.url || "";
   if (!thumbnailUrl) throw new Error("YouTube não confirmou a URL da thumbnail após o upload.");
-  return String(thumbnailUrl);
+  return { thumbnailUrl: String(thumbnailUrl), accessToken };
 }
 
 function alreadyHasCustomThumbnail(mediaAssets) {
@@ -236,7 +187,7 @@ async function main() {
   await fs.mkdir(OUTPUT_DIR, { recursive: true });
   const report = {
     startedAt,
-    model: MODEL,
+    renderer: "vetor-native-product-composition-v2",
     requested: MAX_VIDEOS,
     offset: START_OFFSET,
     force: FORCE,
@@ -248,7 +199,7 @@ async function main() {
     results: [],
   };
 
-  const accessToken = await getAccessToken();
+  let accessToken = await getAccessToken();
   let offset = START_OFFSET;
   let remaining = MAX_VIDEOS;
   let total = null;
@@ -265,7 +216,9 @@ async function main() {
     if (!videos.length) break;
 
     const ids = videos.map((video) => String(video.youtube_video_id || "")).filter(Boolean);
-    const youtubeVideos = await fetchYouTubeSnippets(ids, accessToken);
+    const youtubeResult = await fetchYouTubeSnippets(ids, accessToken);
+    const youtubeVideos = youtubeResult.found;
+    accessToken = youtubeResult.accessToken;
 
     for (const video of videos) {
       const id = String(video.id || "");
@@ -286,20 +239,22 @@ async function main() {
           throw new Error("Vídeo não encontrado no canal autenticado do YouTube.");
         }
         if (!video.product_image_url) throw new Error("A fila não tem imagem original validada do produto.");
-        console.log("[thumbnail] generating " + videoId + " — " + productTitle.slice(0, 90));
+        console.log("[thumbnail] composing " + videoId + " — " + productTitle.slice(0, 90));
 
         const reference = await downloadReferenceImage(video.product_image_url);
-        const background = await generateBackground(productTitle, video.product_category, reference);
+        const background = reference.buffer;
         const hook = thumbnailHook(productTitle, videoTitle, videoId);
         const outputPath = path.join(OUTPUT_DIR, videoId + ".jpg");
         const jpeg = await composeThumbnail(background, outputPath, hook, productTitle);
         report.generated += 1;
 
-        const thumbnailUrl = await uploadThumbnail(videoId, jpeg, accessToken);
+        const upload = await uploadThumbnail(videoId, jpeg, accessToken);
+        const thumbnailUrl = upload.thumbnailUrl;
+        accessToken = upload.accessToken;
         const marker = {
           type: "youtube_custom_thumbnail",
           url: thumbnailUrl,
-          model: MODEL,
+          model: "vetor-native-product-composition-v2",
           hook,
           appliedAt: new Date().toISOString(),
         };
