@@ -124,9 +124,9 @@ async function downloadReferenceImage(url) {
 
 
 function backgroundPrompt(productTitle, videoTitle, hook, videoId) {
-  const title = String(productTitle || "produto de tecnologia").replace(/\\s+/g, " ").trim().slice(0, 115);
-  const video = String(videoTitle || "").replace(/\\s+/g, " ").trim().slice(0, 110);
-  const normalized = (title + " " + video).normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
+  const title = String(productTitle || "produto de tecnologia").replace(/\s+/g, " ").trim().slice(0, 115);
+  const video = String(videoTitle || "").replace(/\s+/g, " ").trim().slice(0, 110);
+  const normalized = (title + " " + video).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   let environment = "luxury technology product studio with an elegant reflective display stage";
   if (/fone|headphone|earbud|microfone|audio|som|caixa de som|qcy|jbl/.test(normalized)) {
     environment = "premium sound studio, acoustic architectural textures, subtle waveform-inspired light trails, professional recording atmosphere";
@@ -216,9 +216,9 @@ async function generateAiBackground(productTitle, videoTitle, hook, videoId) {
 }
 
 async function composeThumbnail(backgroundBuffer, productBuffer, productMimeType, outputPath, hook, productTitle) {
-  const backgroundPath = outputPath.replace(/\\.jpg$/i, "-ai-background.jpg");
+  const backgroundPath = outputPath.replace(/\.jpg$/i, "-ai-background.jpg");
   const extension = productMimeType === "image/png" ? "png" : productMimeType === "image/webp" ? "webp" : "jpg";
-  const productPath = outputPath.replace(/\\.jpg$/i, "-product." + extension);
+  const productPath = outputPath.replace(/\.jpg$/i, "-product." + extension);
   await fs.writeFile(backgroundPath, backgroundBuffer);
   await fs.writeFile(productPath, productBuffer);
   try {
