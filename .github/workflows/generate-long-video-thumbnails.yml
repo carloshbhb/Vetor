@@ -7,7 +7,7 @@ on:
       max_videos:
         description: "Maximum long-form thumbnails to generate and apply in this run"
         required: true
-        default: "500"
+        default: "67"
         type: string
       start_offset:
         description: "Offset in the completed long-form video queue"
@@ -17,16 +17,12 @@ on:
       force:
         description: "Regenerate and replace thumbnails already registered by this pipeline"
         required: true
-        default: false
+        default: true
         type: boolean
   push:
     branches: [main]
     paths:
       - ".ops/run-long-video-thumbnail-backfill"
-      - "video/scripts/generate-long-video-thumbnails.mjs"
-      - "video/scripts/compose-youtube-thumbnail.py"
-      - "video/scripts/thumbnail-pipeline.test.mjs"
-      - ".github/workflows/generate-long-video-thumbnails.yml"
 
 permissions:
   contents: read
