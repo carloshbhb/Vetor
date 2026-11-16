@@ -74,7 +74,7 @@ async function getAccessToken() {
   return String(auth.accessToken);
 }
 
-async function fetchYouTubeSnippets(videoIds, initialAccessToken) {
+async function fetchYouTubeVideos(videoIds, initialAccessToken, parts = "snippet,status") {
   const found = new Map();
   let accessToken = initialAccessToken;
   for (let start = 0; start < videoIds.length; start += 50) {
@@ -83,7 +83,7 @@ async function fetchYouTubeSnippets(videoIds, initialAccessToken) {
     let data;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const url = new URL("https://www.googleapis.com/youtube/v3/videos");
-      url.searchParams.set("part", "snippet,status");
+      url.searchParams.set("part", parts);
       url.searchParams.set("id", ids.join(","));
       response = await fetch(url, {
         headers: { Authorization: "Bearer " + accessToken },
@@ -182,44 +182,8 @@ function alreadyHasCustomThumbnail(mediaAssets) {
   );
 }
 
-async function main() {
-  const startedAt = new Date().toISOString();
-  await fs.mkdir(OUTPUT_DIR, { recursive: true });
-  const report = {
-    startedAt,
-    renderer: "vetor-native-product-composition-v2",
-    requested: MAX_VIDEOS,
-    offset: START_OFFSET,
-    force: FORCE,
-    totalLongVideos: 0,
-    generated: 0,
-    applied: 0,
-    skipped: 0,
-    failed: 0,
-    results: [],
-  };
-
-  let accessToken = await getAccessToken();
-  let offset = START_OFFSET;
-  let remaining = MAX_VIDEOS;
-  let total = null;
-
-  while (remaining > 0) {
-    const batchLimit = Math.min(50, remaining);
-    const batch = await productionApi("longVideoThumbnailBatch", { offset, limit: batchLimit });
-    if (total === null) {
-      total = Number(batch.total || 0);
-      report.totalLongVideos = total;
-      console.log("[thumbnail] long_form_queue_records=" + total);
-    }
-    const videos = Array.isArray(batch.videos) ? batch.videos : [];
-    if (!videos.length) break;
-
-    const ids = videos.map((video) => String(video.youtube_video_id || "")).filter(Boolean);
-    const youtubeResult = await fetchYouTubeSnippets(ids, accessToken);
-    const youtubeVideos = youtubeResult.found;
-    accessToken = youtubeResult.accessToken;
-
+async function applyThumbnailBatch(videos, youtubeVideos, initialAccessToken, report) {
+  let accessToken = initialAccessToken;
     for (const video of videos) {
       const id = String(video.id || "");
       const videoId = String(video.youtube_video_id || "");
@@ -286,11 +250,135 @@ async function main() {
         console.error("[thumbnail] failed " + videoId + ": " + message);
       }
     }
+  return accessToken;
+}
+
+async function main() {
+  const startedAt = new Date().toISOString();
+  await fs.mkdir(OUTPUT_DIR, { recursive: true });
+  const report = {
+    startedAt,
+    renderer: "vetor-native-product-composition-v2",
+    requested: MAX_VIDEOS,
+    offset: START_OFFSET,
+    force: FORCE,
+    totalLongVideos: 0,
+    explicitLongVideos: 0,
+    unclassifiedCandidates: 0,
+    legacyLandscapeVideos: 0,
+    legacySkipped: 0,
+    generated: 0,
+    applied: 0,
+    skipped: 0,
+    failed: 0,
+    results: [],
+  };
+
+  let accessToken = await getAccessToken();
+  let offset = START_OFFSET;
+  let remaining = MAX_VIDEOS;
+  let total = null;
+
+  while (remaining > 0) {
+    const batchLimit = Math.min(50, remaining);
+    const batch = await productionApi("longVideoThumbnailBatch", { offset, limit: batchLimit });
+    if (total === null) {
+      total = Number(batch.total || 0);
+      report.totalLongVideos = total;
+      report.explicitLongVideos = total;
+      console.log("[thumbnail] long_form_queue_records=" + total);
+    }
+    const videos = Array.isArray(batch.videos) ? batch.videos : [];
+    if (!videos.length) break;
+
+    const ids = videos.map((video) => String(video.youtube_video_id || "")).filter(Boolean);
+    const youtubeResult = await fetchYouTubeVideos(ids, accessToken, "snippet,status");
+    accessToken = await applyThumbnailBatch(videos, youtubeResult.found, youtubeResult.accessToken, report);
 
     offset += videos.length;
     remaining -= videos.length;
     if (videos.length < batchLimit) break;
   }
+
+  // Older published videos predate publication_format markers. Inspect the actual
+  // uploaded stream dimensions and process only verified landscape videos.
+  let legacyOffset = 0;
+  let legacyTotal = null;
+  while (remaining > 0) {
+    const legacyLimit = Math.min(50, remaining);
+    const legacyBatch = await productionApi("unclassifiedCompletedVideoThumbnailBatch", {
+      offset: legacyOffset,
+      limit: legacyLimit,
+    });
+    if (legacyTotal === null) {
+      legacyTotal = Number(legacyBatch.total || 0);
+      report.unclassifiedCandidates = legacyTotal;
+      console.log("[thumbnail] legacy_unclassified_candidates=" + legacyTotal);
+    }
+    const legacyVideos = Array.isArray(legacyBatch.videos) ? legacyBatch.videos : [];
+    if (!legacyVideos.length) break;
+
+    const ids = legacyVideos.map((video) => String(video.youtube_video_id || "")).filter(Boolean);
+    const details = await fetchYouTubeVideos(ids, accessToken, "snippet,status,fileDetails,processingDetails");
+    accessToken = details.accessToken;
+    const confirmedLandscape = [];
+
+    for (const video of legacyVideos) {
+      const videoId = String(video.youtube_video_id || "");
+      const youtubeVideo = details.found.get(videoId);
+      const snippet = youtubeVideo?.snippet || {};
+      const titleAndTags = [snippet.title || "", ...(Array.isArray(snippet.tags) ? snippet.tags : [])].join(" ");
+      const explicitlyShort = /#shorts?\\b|youtube shorts/i.test(titleAndTags);
+      const streams = Array.isArray(youtubeVideo?.fileDetails?.videoStreams)
+        ? youtubeVideo.fileDetails.videoStreams
+        : [];
+      const stream = streams
+        .filter((item) => Number(item?.widthPixels) > 0 && Number(item?.heightPixels) > 0)
+        .sort((a, b) =>
+          (Number(b.widthPixels) * Number(b.heightPixels)) -
+          (Number(a.widthPixels) * Number(a.heightPixels))
+        )[0];
+
+      let width = Number(stream?.widthPixels || 0);
+      let height = Number(stream?.heightPixels || 0);
+      if (["clockwise", "counterClockwise"].includes(String(stream?.rotation || ""))) {
+        [width, height] = [height, width];
+      }
+
+      if (!youtubeVideo?.id || explicitlyShort || !stream || width <= height) {
+        report.legacySkipped += 1;
+        report.skipped += 1;
+        report.results.push({
+          queueId: String(video.id || ""),
+          videoId,
+          productTitle: String(video.product_title || "Produto em análise"),
+          status: "skipped",
+          reason: explicitlyShort
+            ? "marcado como YouTube Shorts"
+            : !stream
+              ? "resolução original indisponível para confirmar formato"
+              : "arquivo vertical ou quadrado; preservado sem alteração",
+          dimensions: stream ? { width, height } : null,
+        });
+        continue;
+      }
+
+      report.legacyLandscapeVideos += 1;
+      confirmedLandscape.push(video);
+      console.log("[thumbnail] legacy landscape confirmed " + videoId + " (" + width + "x" + height + ")");
+    }
+
+    report.totalLongVideos = report.explicitLongVideos + report.legacyLandscapeVideos;
+    if (confirmedLandscape.length) {
+      accessToken = await applyThumbnailBatch(confirmedLandscape, details.found, accessToken, report);
+    }
+
+    legacyOffset += legacyVideos.length;
+    remaining -= legacyVideos.length;
+    if (legacyVideos.length < legacyLimit) break;
+  }
+
+  report.totalLongVideos = report.explicitLongVideos + report.legacyLandscapeVideos;
 
   report.finishedAt = new Date().toISOString();
   await fs.writeFile(REPORT_PATH, JSON.stringify(report, null, 2));
