@@ -10,6 +10,9 @@ const ROOT = process.cwd();
 const OUTPUT_DIR = path.join(ROOT, "video", "out", "youtube-thumbnails");
 const SITE_URL = (process.env.VETOR_SITE_URL || "https://www.vetor.blog").replace(/\/$/, "");
 const CRON_SECRET = String(process.env.CRON_SECRET || "").trim();
+const OPENROUTER_API_KEY = String(process.env.OPENROUTER_API_KEY || "").trim();
+const IMAGE_MODEL = String(process.env.THUMBNAIL_IMAGE_MODEL || "openai/gpt-image-2.5-flare").trim();
+const IMAGE_API_URL = "https://openrouter.ai/api/v1/images";
 const MAX_VIDEOS = Math.max(1, Math.min(500, Number(process.env.MAX_VIDEOS || 500)));
 const START_OFFSET = Math.max(0, Number(process.env.START_OFFSET || 0));
 const FORCE = process.env.FORCE_THUMBNAILS === "true";
@@ -120,19 +123,116 @@ async function downloadReferenceImage(url) {
 }
 
 
-async function composeThumbnail(backgroundBuffer, outputPath, hook, productTitle) {
-  const inputPath = outputPath.replace(/\.jpg$/i, "-background.png");
-  await fs.writeFile(inputPath, backgroundBuffer);
+function backgroundPrompt(productTitle, videoTitle, hook, videoId) {
+  const title = String(productTitle || "produto de tecnologia").replace(/\\s+/g, " ").trim().slice(0, 115);
+  const video = String(videoTitle || "").replace(/\\s+/g, " ").trim().slice(0, 110);
+  const normalized = (title + " " + video).normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
+  let environment = "luxury technology product studio with an elegant reflective display stage";
+  if (/fone|headphone|earbud|microfone|audio|som|caixa de som|qcy|jbl/.test(normalized)) {
+    environment = "premium sound studio, acoustic architectural textures, subtle waveform-inspired light trails, professional recording atmosphere";
+  } else if (/notebook|laptop|mouse|teclado|playstation|xbox|controle|game|console/.test(normalized)) {
+    environment = "premium gaming and workstation studio, cinematic desk lighting, refined blue edge lights, subtle performance-inspired visual energy";
+  } else if (/tablet|ipad/.test(normalized)) {
+    environment = "minimal premium mobile-tech studio, glass architecture, layered light planes and a refined display pedestal";
+  } else if (/smartwatch|watch|relogio|pulseira|band|fit3/.test(normalized)) {
+    environment = "modern active-lifestyle technology studio, sleek kinetic light ribbons, premium dark reflective surfaces";
+  } else if (/tv|televis|projetor|cinema/.test(normalized)) {
+    environment = "cinematic home-theater environment, deep atmospheric blue light, elegant architectural surfaces, soft projected light";
+  } else if (/camera|seguranca|sensor|tapo|intelbras/.test(normalized)) {
+    environment = "premium smart-home and security technology environment, modern architectural lines, controlled blue accent lighting";
+  } else if (/esteira|fitness|academia|sport/.test(normalized)) {
+    environment = "premium modern fitness studio, dramatic directional lighting, dark architectural surfaces and subtle electric-blue accents";
+  } else if (/perfume|fragrance|rabanne|rayhaan/.test(normalized)) {
+    environment = "luxury fragrance campaign set, elegant dark stone, soft metallic highlights and cinematic blue-gold lighting";
+  } else if (/mala|viagem|bagagem/.test(normalized)) {
+    environment = "premium travel editorial set, modern airport lounge architecture, refined reflective surfaces and cool cinematic lighting";
+  }
+
+  return [
+    "Create one publish-ready visual BACKGROUND PLATE for a premium Brazilian technology-review YouTube thumbnail.",
+    "Landscape 16:9 composition, cinematic commercial photography, high-end product advertising art direction.",
+    "The product being reviewed is: " + title + ". Video context: " + (video || title) + ".",
+    "Build the environment around this product category: " + environment + ".",
+    "CRITICAL LAYOUT: keep the LEFT 55 percent very dark, clean, low-detail negative space for bold white and electric-blue headline typography that will be added later.",
+    "On the RIGHT half, create a luminous but uncluttered presentation zone with an empty glossy pedestal / architectural light stage where a real product photo will be placed later.",
+    "Color system: midnight navy, near-black, cobalt blue and restrained electric-blue highlights; controlled bloom, volumetric rays, elegant reflections, deep contrast and subtle depth.",
+    "No product, no device, no object, no people, no hands, no packaging, no silhouettes, no logos, no brand marks, no text, no letters, no numbers, no UI, no watermarks.",
+    "Do not write or render the hook text: " + String(hook || "") + ". The final typography is composited separately.",
+    "No collage, no split panels, no borders, no noisy cyberpunk clutter. Strong readable composition at small YouTube thumbnail size."
+  ].join(" ");
+}
+
+async function generateAiBackground(productTitle, videoTitle, hook, videoId) {
+  if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY ausente no GitHub Actions.");
+  const prompt = backgroundPrompt(productTitle, videoTitle, hook, videoId);
+  let lastError = "";
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(IMAGE_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + OPENROUTER_API_KEY,
+        "Content-Type": "application/json",
+        "HTTP-Referer": SITE_URL,
+        "X-Title": "Vetor Blog YouTube Thumbnail Pipeline",
+      },
+      body: JSON.stringify({
+        model: IMAGE_MODEL,
+        prompt,
+        aspect_ratio: "16:9",
+        quality: "medium",
+        output_format: "jpeg",
+      }),
+      signal: AbortSignal.timeout(180000),
+    });
+    const bodyText = await response.text();
+    if (!response.ok) {
+      lastError = "OpenRouter image API HTTP " + response.status + ": " + bodyText.slice(0, 1000);
+      if (![408, 409, 425, 429, 500, 502, 503, 504].includes(response.status) || attempt === 2) {
+        throw new Error(lastError);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2500 * (attempt + 1)));
+      continue;
+    }
+    let result;
+    try { result = JSON.parse(bodyText); } catch {
+      throw new Error("OpenRouter image API retornou JSON inválido.");
+    }
+    const image = Array.isArray(result.data) ? result.data[0] : null;
+    if (!image?.b64_json) {
+      throw new Error("OpenRouter não retornou data[0].b64_json: " + JSON.stringify(result).slice(0, 700));
+    }
+    const buffer = Buffer.from(image.b64_json, "base64");
+    if (buffer.length < 12000 || buffer.length > 20 * 1024 * 1024) {
+      throw new Error("Imagem gerada vazia ou fora do limite: " + buffer.length + " bytes.");
+    }
+    return {
+      buffer,
+      mediaType: String(image.media_type || "image/jpeg"),
+      cost: Number.isFinite(Number(result.usage?.cost)) ? Number(result.usage.cost) : null,
+      prompt,
+    };
+  }
+  throw new Error(lastError || "Falha na geração de background por IA.");
+}
+
+async function composeThumbnail(backgroundBuffer, productBuffer, productMimeType, outputPath, hook, productTitle) {
+  const backgroundPath = outputPath.replace(/\\.jpg$/i, "-ai-background.jpg");
+  const extension = productMimeType === "image/png" ? "png" : productMimeType === "image/webp" ? "webp" : "jpg";
+  const productPath = outputPath.replace(/\\.jpg$/i, "-product." + extension);
+  await fs.writeFile(backgroundPath, backgroundBuffer);
+  await fs.writeFile(productPath, productBuffer);
   try {
     await execFileAsync("python", [
       path.join(ROOT, "video", "scripts", "compose-youtube-thumbnail.py"),
-      "--input", inputPath,
+      "--input", productPath,
+      "--background", backgroundPath,
       "--output", outputPath,
       "--hook", hook,
       "--product", String(productTitle || "").slice(0, 120),
     ], { timeout: 60000, maxBuffer: 2 * 1024 * 1024 });
   } finally {
-    await fs.rm(inputPath, { force: true });
+    await fs.rm(backgroundPath, { force: true });
+    await fs.rm(productPath, { force: true });
   }
   const result = await fs.readFile(outputPath);
   if (result.length < 20000 || result.length > 2 * 1024 * 1024) {
@@ -237,11 +337,19 @@ async function applyThumbnailBatch(videos, youtubeVideos, initialAccessToken, re
         console.log("[thumbnail] composing " + videoId + " — " + productTitle.slice(0, 90));
 
         const reference = await downloadReferenceImage(video.product_image_url);
-        const background = reference.buffer;
         const hook = thumbnailHook(productTitle, videoTitle, videoId);
+        const aiBackground = await generateAiBackground(productTitle, videoTitle, hook, videoId);
         const outputPath = path.join(OUTPUT_DIR, videoId + ".jpg");
-        const jpeg = await composeThumbnail(background, outputPath, hook, productTitle);
+        const jpeg = await composeThumbnail(
+          aiBackground.buffer,
+          reference.buffer,
+          reference.mimeType,
+          outputPath,
+          hook,
+          productTitle
+        );
         report.generated += 1;
+        if (aiBackground.cost !== null) report.estimatedImageCost += aiBackground.cost;
 
         const upload = await uploadThumbnail(videoId, jpeg, accessToken);
         const thumbnailUrl = upload.thumbnailUrl;
@@ -249,7 +357,7 @@ async function applyThumbnailBatch(videos, youtubeVideos, initialAccessToken, re
         const marker = {
           type: "youtube_custom_thumbnail",
           url: thumbnailUrl,
-          model: "vetor-native-product-composition-v2",
+          model: IMAGE_MODEL + "+vetor-product-composition-v3",
           hook,
           appliedAt: new Date().toISOString(),
         };
@@ -289,7 +397,9 @@ async function main() {
   await fs.mkdir(OUTPUT_DIR, { recursive: true });
   const report = {
     startedAt,
-    renderer: "vetor-native-product-composition-v2",
+    renderer: "openai-gpt-image-2.5-flare+vetor-product-composition-v3",
+    imageModel: IMAGE_MODEL,
+    estimatedImageCost: 0,
     requested: MAX_VIDEOS,
     offset: START_OFFSET,
     force: FORCE,

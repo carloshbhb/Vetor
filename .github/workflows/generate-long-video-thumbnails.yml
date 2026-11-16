@@ -91,10 +91,12 @@ jobs:
       - name: Compose and apply long-form thumbnails
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          THUMBNAIL_IMAGE_MODEL: openai/gpt-image-2.5-flare
           VETOR_SITE_URL: https://www.vetor.blog
-          MAX_VIDEOS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_videos || '500' }}
+          MAX_VIDEOS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_videos || '1' }}
           START_OFFSET: ${{ github.event_name == 'workflow_dispatch' && inputs.start_offset || '0' }}
-          FORCE_THUMBNAILS: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
+          FORCE_THUMBNAILS: ${{ github.event_name == 'workflow_dispatch' && inputs.force || github.event_name == 'push' }}
         run: node video/scripts/generate-long-video-thumbnails.mjs
 
       - name: Upload generated thumbnails and application report

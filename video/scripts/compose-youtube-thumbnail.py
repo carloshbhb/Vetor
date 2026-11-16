@@ -61,21 +61,41 @@ def rounded_mask(size, radius):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="Exact product photo from product_image_url")
+    parser.add_argument("--background", default="", help="Optional GPT-generated background image")
     parser.add_argument("--output", required=True)
     parser.add_argument("--hook", required=True)
     parser.add_argument("--product", default="")
     args = parser.parse_args()
 
-    # Midnight-blue gradient with an electric-blue spotlight behind the hero card.
-    base = Image.new("RGB", (W, H))
-    pix = base.load()
-    left, right = NAVY, (17, 33, 68)
-    for x in range(W):
-        t = x / (W - 1)
-        for y in range(H):
-            glow = max(0.0, 1.0 - (((x - 1000) / 520) ** 2 + ((y - 350) / 490) ** 2))
-            glow = glow ** 1.7
-            pix[x, y] = tuple(int(left[i] * (1-t) + right[i] * t + (12, 43, 106)[i] * glow) for i in range(3))
+    # Use the GPT-generated, video-specific background when supplied.
+    if args.background:
+        scene = ImageOps.fit(
+            Image.open(args.background).convert("RGB"),
+            (W, H),
+            method=Image.Resampling.LANCZOS,
+            centering=(0.5, 0.5),
+        ).convert("RGBA")
+        # Darken the left side progressively to protect headline contrast.
+        shade = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        shade_pixels = shade.load()
+        for x in range(W):
+            alpha = int(178 * (max(0.0, 1.0 - x / 900) ** 1.4))
+            for y in range(H):
+                shade_pixels[x, y] = (4, 8, 20, alpha)
+        base = Image.alpha_composite(scene, shade)
+        base = Image.alpha_composite(base, Image.new("RGBA", (W, H), (5, 16, 38, 18)))
+    else:
+        # Deterministic branded fallback for offline / legacy runs.
+        base = Image.new("RGB", (W, H))
+        pix = base.load()
+        left, right = NAVY, (17, 33, 68)
+        for x in range(W):
+            t = x / (W - 1)
+            for y in range(H):
+                glow = max(0.0, 1.0 - (((x - 1000) / 520) ** 2 + ((y - 350) / 490) ** 2))
+                glow = glow ** 1.7
+                pix[x, y] = tuple(int(left[i] * (1-t) + right[i] * t + (12, 43, 106)[i] * glow) for i in range(3))
+        base = base.convert("RGBA")
 
     # Subtle diagonals and light trails add energy without clutter.
     shapes = Image.new("RGBA", (W, H), (0, 0, 0, 0))
