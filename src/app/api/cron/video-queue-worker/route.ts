@@ -535,6 +535,27 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (action === "unclassifiedCompletedVideoThumbnailBatch") {
+      const offset = Math.max(0, Math.floor(Number(body.offset || 0)));
+      const limit = Math.min(Math.max(Math.floor(Number(body.limit || 25)), 1), 50);
+      const { data: videos, error, count } = await supabase
+        .from("video_queue")
+        .select("id,product_title,product_category,product_image_url,script_text,script_hook,media_assets,youtube_video_id,youtube_url,completed_at", { count: "exact" })
+        .eq("status", "completed")
+        .not("youtube_video_id", "is", null)
+        .not("media_assets", "cs", JSON.stringify([{ type: "publication_format", format: "long" }]))
+        .not("media_assets", "cs", JSON.stringify([{ type: "publication_format", format: "short" }]))
+        .order("completed_at", { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (error) throw error;
+      return NextResponse.json({
+        success: true,
+        offset,
+        total: count || 0,
+        videos: videos || [],
+      });
+    }
+
     if (action === "metadataBatch") {
       const [{ data: videos, error: videosError }, { data: affiliateLinks, error: linksError }] = await Promise.all([
         supabase.from("video_queue")
