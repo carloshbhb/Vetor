@@ -4,7 +4,7 @@ import { thumbnailHook } from "./generate-long-video-thumbnails.mjs";
 const title = "Smartphone Samsung Galaxy A36 5G 128GB";
 const hook = thumbnailHook(title, "Samsung Galaxy A36 5G vale a pena? Review completo", "mntave2c5So");
 assert.ok(hook.length > 0);
-assert.ok(hook.split(/\\s+/).length <= 4, "thumbnail hook must have at most four words");
+assert.ok(hook.split(/\s+/).length <= 4, "thumbnail hook must have at most four words");
 assert.ok(!/Samsung|Galaxy|A36/i.test(hook), "thumbnail hook must complement, not repeat, the title");
 
 const headphoneHook = thumbnailHook("Fone de Ouvido QCY HT08 Melobuds Pro", "QCY HT08 Melobuds Pro review", "rQasZbUzGrU");
