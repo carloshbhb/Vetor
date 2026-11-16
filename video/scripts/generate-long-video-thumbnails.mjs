@@ -182,6 +182,37 @@ function alreadyHasCustomThumbnail(mediaAssets) {
   );
 }
 
+async function probeHostedVideo(videoUrl) {
+  const rawUrl = String(videoUrl || "");
+  let parsedUrl;
+  try { parsedUrl = new URL(rawUrl); } catch { return null; }
+  if (parsedUrl.protocol !== "https:" || parsedUrl.hostname !== "www.vetor.blog") return null;
+  try {
+    const { stdout } = await execFileAsync("ffprobe", [
+      "-v", "error",
+      "-select_streams", "v:0",
+      "-show_entries", "stream=width,height:stream_tags=rotate:stream_side_data=rotation",
+      "-of", "json",
+      rawUrl,
+    ], { timeout: 45000, maxBuffer: 1024 * 1024 });
+    const probe = JSON.parse(stdout || "{}");
+    const stream = Array.isArray(probe.streams) ? probe.streams[0] : null;
+    if (!stream) return null;
+    let width = Number(stream.width || 0);
+    let height = Number(stream.height || 0);
+    const sideRotation = Number(stream.side_data_list?.find((item) => Number.isFinite(Number(item.rotation)))?.rotation);
+    const tagRotation = Number(stream.tags?.rotate || 0);
+    const rotation = Number.isFinite(sideRotation) && sideRotation !== 0 ? sideRotation : tagRotation;
+    if (Math.abs(rotation) === 90 || Math.abs(rotation) === 270) [width, height] = [height, width];
+    if (!(width > 0 && height > 0)) return null;
+    return { width, height, rotation: rotation || 0, method: "hosted-mp4-ffprobe" };
+  } catch (error) {
+    const message = String(error?.message || error).slice(0, 180);
+    console.warn("[thumbnail] ffprobe could not inspect hosted MP4: " + message);
+    return null;
+  }
+}
+
 async function applyThumbnailBatch(videos, youtubeVideos, initialAccessToken, report) {
   let accessToken = initialAccessToken;
     for (const video of videos) {
@@ -266,6 +297,7 @@ async function main() {
     explicitLongVideos: 0,
     unclassifiedCandidates: 0,
     legacyLandscapeVideos: 0,
+    legacyFfprobeSuccess: 0,
     legacySkipped: 0,
     generated: 0,
     applied: 0,
@@ -328,7 +360,7 @@ async function main() {
       const youtubeVideo = details.found.get(videoId);
       const snippet = youtubeVideo?.snippet || {};
       const titleAndTags = [snippet.title || "", ...(Array.isArray(snippet.tags) ? snippet.tags : [])].join(" ");
-      const explicitlyShort = /#shorts?\\b|youtube shorts/i.test(titleAndTags);
+      const explicitlyShort = /#shorts?\b|youtube shorts/i.test(titleAndTags);
       const streams = Array.isArray(youtubeVideo?.fileDetails?.videoStreams)
         ? youtubeVideo.fileDetails.videoStreams
         : [];
@@ -341,11 +373,22 @@ async function main() {
 
       let width = Number(stream?.widthPixels || 0);
       let height = Number(stream?.heightPixels || 0);
+      let dimensionMethod = stream ? "youtube-fileDetails" : "";
       if (["clockwise", "counterClockwise"].includes(String(stream?.rotation || ""))) {
         [width, height] = [height, width];
       }
 
-      if (!youtubeVideo?.id || explicitlyShort || !stream || width <= height) {
+      if (!stream && video.video_url) {
+        const hostedProbe = await probeHostedVideo(video.video_url);
+        if (hostedProbe) {
+          width = hostedProbe.width;
+          height = hostedProbe.height;
+          dimensionMethod = hostedProbe.method;
+          report.legacyFfprobeSuccess += 1;
+        }
+      }
+
+      if (!youtubeVideo?.id || explicitlyShort || !(width > 0 && height > 0) || width <= height) {
         report.legacySkipped += 1;
         report.skipped += 1;
         report.results.push({
@@ -358,14 +401,14 @@ async function main() {
             : !stream
               ? "resolução original indisponível para confirmar formato"
               : "arquivo vertical ou quadrado; preservado sem alteração",
-          dimensions: stream ? { width, height } : null,
+          dimensions: width > 0 && height > 0 ? { width, height } : null,
         });
         continue;
       }
 
       report.legacyLandscapeVideos += 1;
       confirmedLandscape.push(video);
-      console.log("[thumbnail] legacy landscape confirmed " + videoId + " (" + width + "x" + height + ")");
+      console.log("[thumbnail] legacy landscape confirmed " + videoId + " (" + width + "x" + height + ") via " + dimensionMethod);
     }
 
     report.totalLongVideos = report.explicitLongVideos + report.legacyLandscapeVideos;
