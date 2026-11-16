@@ -1,4 +1,4 @@
-name: Generate custom thumbnails for every long-form video
+name: Apply custom thumbnails to every long-form video
 run-name: YouTube long-form thumbnail backfill
 
 on:
@@ -7,7 +7,7 @@ on:
       max_videos:
         description: "Maximum long-form thumbnails to generate and apply in this run"
         required: true
-        default: "53"
+        default: "500"
         type: string
       start_offset:
         description: "Offset in the completed long-form video queue"
@@ -33,7 +33,7 @@ concurrency:
 
 jobs:
   generate-and-apply:
-    name: Generate, QA and apply thumbnails to long-form videos
+    name: Compose, QA and apply thumbnails to long-form videos
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
@@ -84,13 +84,11 @@ jobs:
           print("Composition gate passed: 1280x720 JPEG under 2 MB.")
           PY
 
-      - name: Generate and apply long-form thumbnails
+      - name: Compose and apply long-form thumbnails
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
           VETOR_SITE_URL: https://www.vetor.blog
-          THUMBNAIL_IMAGE_MODEL: gemini-3.1-flash-image
-          MAX_VIDEOS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_videos || '53' }}
+          MAX_VIDEOS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_videos || '500' }}
           START_OFFSET: ${{ github.event_name == 'workflow_dispatch' && inputs.start_offset || '0' }}
           FORCE_THUMBNAILS: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
         run: node video/scripts/generate-long-video-thumbnails.mjs
