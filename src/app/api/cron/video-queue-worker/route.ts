@@ -793,6 +793,216 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (action === "queueFromSocialListShorts") {
+      const limit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
+      const [
+        { data: listItems, error: listError },
+        { data: productLinks, error: productLinksError },
+        { data: existing, error: existingError },
+        { data: shortProductAssets, error: shortProductAssetsError },
+        { count: doneToday, error: doneError },
+        { count: pendingCount, error: pendingError },
+      ] = await Promise.all([
+        supabase.from("ml_social_list_items")
+          .select("item_id,title,product_url,image_url,price,original_price,rating,review_count,highlight,last_seen_at")
+          .order("last_seen_at", { ascending: false }).limit(1000),
+        supabase.from("product_links")
+          .select("id,slug,product_name,category,product_url,affiliate_url,image_url,marketplace,status,has_video,video_id,price,priority,tags,notes,updated_at")
+          .neq("status", "archived")
+          .order("priority", { ascending: false }).order("updated_at", { ascending: false }).limit(2000),
+        supabase.from("video_queue")
+          .select("product_title,product_url,affiliate_url,media_assets,status,youtube_video_id")
+          .in("status", ["pending", "processing", "completed"]).limit(1500),
+        supabase.from("product_video_assets")
+          .select("product_link_id,youtube_video_id")
+          .eq("video_type", "short").limit(5000),
+        supabase.from("video_queue").select("id", { count: "exact", head: true })
+          .eq("status", "completed").eq("publication_mode", "automatic")
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "short" }]))
+          .gte("completed_at", getSaoPauloDayStartIso()),
+        supabase.from("video_queue").select("id", { count: "exact", head: true })
+          .in("status", ["pending", "processing"]).eq("publication_mode", "automatic")
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "short" }])),
+      ]);
+      if (listError) throw listError;
+      if (productLinksError) throw productLinksError;
+      if (existingError) throw existingError;
+      if (shortProductAssetsError) throw shortProductAssetsError;
+      if (doneError) throw doneError;
+      if (pendingError) throw pendingError;
+
+      const completed = doneToday || 0;
+      const pending = pendingCount || 0;
+      const dailySlots = Math.max(0, MAX_DAILY_PUBLICATIONS - completed - pending);
+      if (dailySlots <= 0) {
+        return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true, completedToday: completed, pendingAutomaticShorts: pending });
+      }
+
+      const linksByItemId = new Map<string, any>();
+      const linksByTitle = new Map<string, any[]>();
+      for (const link of productLinks || []) {
+        if (!isSocialListProductLink(link)) continue;
+        const linkedItemId = socialListItemIdFromProductLink(link);
+        if (linkedItemId && !linksByItemId.has(linkedItemId)) linksByItemId.set(linkedItemId, link);
+        const titleKey = normalizeVideoProductTitle(link.product_name);
+        if (titleKey) {
+          const current = linksByTitle.get(titleKey) || [];
+          current.push(link);
+          linksByTitle.set(titleKey, current);
+        }
+      }
+
+      const queuedOrPublishedItemIds = new Set<string>();
+      const queuedOrPublishedTitles = new Set<string>();
+      const existingShortRows = (existing || []).filter((row: any) =>
+        getPublicationFormat(row.media_assets) === "short"
+      );
+      const existingShortProductLinkIds = new Set(
+        (shortProductAssets || []).map((asset: any) => String(asset.product_link_id || "")).filter(Boolean)
+      );
+      const existingProductTitles = existingShortRows
+        .map((row: any) => String(row.product_title || '').trim())
+        .filter(Boolean);
+      for (const row of existingShortRows) {
+        const marker = socialListMarker(row.media_assets);
+        const itemId = marker?.itemId ||
+          normalizeMercadoLivreItemId(row.product_url) ||
+          normalizeMercadoLivreItemId(row.affiliate_url);
+        if (itemId) queuedOrPublishedItemIds.add(itemId);
+        const titleKey = normalizeVideoProductTitle(row.product_title);
+        if (titleKey) queuedOrPublishedTitles.add(titleKey);
+      }
+
+      const rankedItems = [...(listItems || [])].sort((a: any, b: any) => {
+        const aHighlight = String(a.highlight || "").toUpperCase() === "MAIS VENDIDO" ? 1 : 0;
+        const bHighlight = String(b.highlight || "").toUpperCase() === "MAIS VENDIDO" ? 1 : 0;
+        if (aHighlight !== bHighlight) return bHighlight - aHighlight;
+        const reviewsDiff = Number(b.review_count || 0) - Number(a.review_count || 0);
+        if (reviewsDiff) return reviewsDiff;
+        return Date.parse(String(b.last_seen_at || "")) - Date.parse(String(a.last_seen_at || ""));
+      });
+
+      const candidates: Array<{ item: any; link: any; itemId: string; title: string; imageUrl: string; affiliateUrl: string; productUrl: string }> = [];
+      const batchProductLinkIds = new Set<string>();
+      const batchItemIds = new Set<string>();
+      const batchProductTitles: string[] = [];
+      let skippedUnmatched = 0;
+      let skippedUnsafe = 0;
+      let skippedAlreadyPublished = 0;
+      for (const item of rankedItems) {
+        const itemId = normalizeMercadoLivreItemId(item.item_id);
+        if (!itemId) { skippedUnsafe += 1; continue; }
+        let link = linksByItemId.get(itemId) || null;
+        if (!link) {
+          const titleMatches = linksByTitle.get(normalizeVideoProductTitle(item.title)) || [];
+          if (titleMatches.length === 1) link = titleMatches[0];
+        }
+        if (!link) { skippedUnmatched += 1; continue; }
+
+        const title = String(item.title || link.product_name || "").trim();
+        const titleKey = normalizeVideoProductTitle(title);
+        const affiliateUrl = String(link.affiliate_url || "").trim();
+        const productUrl = String(item.product_url || link.product_url || "").trim();
+        const imageUrl = String(item.image_url || link.image_url || "").trim();
+
+        const titleAlreadyHasVideo = existingProductTitles.some((existingTitle) =>
+          isLikelySameVideoProductTitle(title, existingTitle)
+        );
+        const titleAlreadySelectedInBatch = batchProductTitles.some((selectedTitle) =>
+          isLikelySameVideoProductTitle(title, selectedTitle)
+        );
+        if (existingShortProductLinkIds.has(String(link.id)) ||
+            batchProductLinkIds.has(String(link.id)) ||
+            batchItemIds.has(itemId) ||
+            queuedOrPublishedItemIds.has(itemId) ||
+            (titleKey && queuedOrPublishedTitles.has(titleKey)) ||
+            titleAlreadyHasVideo || titleAlreadySelectedInBatch) {
+          skippedAlreadyPublished += 1;
+          continue;
+        }
+        if (!title || !isSafeMercadoLivreProductUrl(productUrl) ||
+            !isSafeMercadoLivreAffiliateUrl(affiliateUrl) ||
+            !/^https:\/\//i.test(imageUrl) || /vetor\.blog|\/og\.png(?:$|\?)/i.test(imageUrl)) {
+          skippedUnsafe += 1;
+          continue;
+        }
+        candidates.push({ item, link, itemId, title, imageUrl, affiliateUrl, productUrl });
+        batchProductLinkIds.add(String(link.id));
+        batchItemIds.add(itemId);
+        batchProductTitles.push(title);
+        if (candidates.length >= limit) break;
+      }
+
+      const queued = [];
+      for (const candidate of candidates) {
+        if (completed + pending + queued.length >= MAX_DAILY_PUBLICATIONS) break;
+        const queueId = randomUUID();
+        const priceValue = Number(candidate.item.price ?? candidate.link.price);
+        const price = Number.isFinite(priceValue) && priceValue > 0
+          ? "R$" + priceValue.toFixed(2).replace(".", ",")
+          : "Consulte o preço atual";
+        const categoryValue = String(candidate.link.category || "").trim();
+        const category = !categoryValue || /^lista social$/i.test(categoryValue) ? "Tecnologia" : categoryValue;
+        const purchase = new URL(candidate.affiliateUrl);
+        purchase.searchParams.set("utm_source", "youtube");
+        purchase.searchParams.set("utm_medium", "video");
+        purchase.searchParams.set("utm_campaign", "ml-social-list-shorts");
+        purchase.searchParams.set("utm_content", queueId);
+        purchase.searchParams.set("utm_term", "short");
+        purchase.searchParams.set("placement", "description");
+        const trackedPurchaseUrl = purchase.toString();
+
+        const { data: inserted, error: insertError } = await supabase
+          .from("video_queue")
+          .insert({
+            id: queueId,
+            product_url: candidate.productUrl,
+            product_title: candidate.title,
+            product_category: category,
+            product_price: price,
+            product_image_url: candidate.imageUrl,
+            affiliate_url: candidate.affiliateUrl,
+            shortened_affiliate_url: trackedPurchaseUrl,
+            script_text: "",
+            script_hook: "Análise completa: " + candidate.title + ".",
+            voiceover_url: "",
+            voiceover_duration: 0,
+            media_assets: [
+              { type: "publication_format", format: "short" },
+              { type: "ml-social-list-item", itemId: candidate.itemId, productLinkId: candidate.link.id },
+            ],
+            status: "pending",
+            publication_mode: "automatic",
+            review_url: null,
+            scheduled_at: new Date().toISOString(),
+          })
+          .select("id,product_title,status,review_url,affiliate_url,product_url,media_assets")
+          .single();
+        if (insertError) throw insertError;
+        queued.push(inserted);
+        queuedOrPublishedItemIds.add(candidate.itemId);
+        const titleKey = normalizeVideoProductTitle(candidate.title);
+        if (titleKey) queuedOrPublishedTitles.add(titleKey);
+        existingProductTitles.push(candidate.title);
+      }
+
+      return NextResponse.json({
+        success: true,
+        queued: queued.length,
+        videos: queued,
+        source: "ml_social_list_items+verified_product_links",
+        format: "short",
+        independentOfReviews: true,
+        eligibleMatches: candidates.length,
+        skippedUnmatched,
+        skippedUnsafe,
+        skippedAlreadyPublished,
+        dailyLimit: MAX_DAILY_PUBLICATIONS,
+        completedToday: completed,
+        pendingAutomaticShorts: pending,
+      });
+    }
+
     if (action === "queueFromComparatives") {
       const limit = Math.min(Math.max(Number(body.limit || 1), 1), 15);
       const { data: articles, error: articlesError } = await supabase
