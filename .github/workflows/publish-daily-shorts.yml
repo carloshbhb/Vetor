@@ -69,7 +69,7 @@ jobs:
               -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
               -H "Authorization: Bearer $CRON_SECRET" \
               -H "Content-Type: application/json" \
-              -d '{"action":"recent"}" || true)"
+              -d '{"action":"recent"}' || true)"
             if [ "$code" = "200" ] && jq -e '.success == true' queue-api-ready.json >/dev/null; then
               ready=1
               break
