@@ -102,14 +102,17 @@ jobs:
           if curl -fsSL --max-time 25 "https://trends.google.com/trending/rss?geo=BR" -o trends.xml; then
             python - <<'PY'
           import json, xml.etree.ElementTree as ET
-          root = ET.parse("trends.xml").getroot()
-          ns = {"ht":"https://trends.google.com/trending/rss"}
           rows = []
-          for item in root.findall(".//item"):
-              title = (item.findtext("title") or "").strip()
-              traffic = (item.findtext("ht:approx_traffic", default="", namespaces=ns) or "").strip()
-              if title:
-                  rows.append({"title": title, "traffic": traffic, "source": "Google Trends Brasil"})
+          try:
+              root = ET.parse("trends.xml").getroot()
+              ns = {"ht":"https://trends.google.com/trending/rss"}
+              for item in root.findall(".//item"):
+                  title = (item.findtext("title") or "").strip()
+                  traffic = (item.findtext("ht:approx_traffic", default="", namespaces=ns) or "").strip()
+                  if title:
+                      rows.append({"title": title, "traffic": traffic, "source": "Google Trends Brasil"})
+          except Exception as exc:
+              print(f"Could not parse Trends feed; using catalog fallback: {exc}")
           with open("trends.json", "w", encoding="utf-8") as f:
               json.dump(rows[:30], f, ensure_ascii=False)
           print(f"Google Trends topics loaded: {len(rows[:30])}")
@@ -127,8 +130,8 @@ jobs:
                 -H "Authorization: Bearer $CRON_SECRET" \
                 -H "Content-Type: application/json" \
                 -d "$trend_payload")"
-              if [ "$code" = "200" ] && [ "$(jq -r '.queued // 0' "shorts-batch-$batch.json")" -eq 0 ]; then
-                echo "No relevant trend/product match; falling back to the next eligible Mercado Livre products."
+              if [ "$code" != "200" ] || [ "$(jq -r '.queued // 0' "shorts-batch-$batch.json" 2>/dev/null || echo 0)" -eq 0 ]; then
+                echo "Trend queue unavailable or no relevant product match; falling back to the next eligible Mercado Livre products."
                 code="$(curl -sS --max-time 60 -o "shorts-batch-$batch.json" -w '%{http_code}' \
                   -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
                   -H "Authorization: Bearer $CRON_SECRET" \
