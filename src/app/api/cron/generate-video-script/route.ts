@@ -335,7 +335,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const researchBrief = typeof body.researchBrief === "string" ? body.researchBrief : undefined;
+    const trendMarker = existingMediaAssets.find((asset: any) => asset && asset.type === "trend-topic") || null;
+    const trendResearchBrief = trendMarker?.title
+      ? "Pauta em alta identificada no Google Trends Brasil: " + String(trendMarker.title).slice(0, 180) +
+        ". Conecte o assunto ao produto apenas quando houver relação factual clara. Explique a utilidade do produto para quem acompanha esse assunto, sem alegar que o produto está em alta, sem inventar especificações, compatibilidade ou resultados. Se a relação for indireta, deixe isso explícito e priorize uma recomendação honesta."
+      : undefined;
+    const researchBrief = typeof body.researchBrief === "string"
+      ? body.researchBrief
+      : trendResearchBrief;
     const script = await generateVideoScript({
       title: String(video.product_title || reviewFacts?.product || "Produto de tecnologia"),
       category: String(reviewFacts?.category || selectedProductRow?.category || video.product_category || "Tecnologia"),
