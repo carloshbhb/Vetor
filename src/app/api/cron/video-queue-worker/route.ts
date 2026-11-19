@@ -793,6 +793,165 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (action === "queueTrendingShorts") {
+      const limit = Math.min(Math.max(Number(body.limit || 5), 1), 5);
+      const topics = (Array.isArray(body.trendTopics) ? body.trendTopics : [])
+        .map((entry: any) => ({
+          title: String(entry?.title || "").replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim().slice(0, 180),
+          traffic: String(entry?.traffic || "").slice(0, 40),
+          source: String(entry?.source || "Google Trends BR").slice(0, 80),
+        }))
+        .filter((entry: any) => entry.title.length >= 3)
+        .slice(0, 30);
+      if (!topics.length) {
+        return NextResponse.json({ success: true, queued: 0, videos: [], reason: "no_trend_topics", fallbackRequired: true });
+      }
+      const [
+        { data: listItems, error: listError },
+        { data: productLinks, error: linksError },
+        { data: existing, error: existingError },
+        { count: doneToday, error: doneError },
+        { count: pendingCount, error: pendingError },
+      ] = await Promise.all([
+        supabase.from("ml_social_list_items")
+          .select("item_id,title,product_url,image_url,price,original_price,rating,review_count,highlight,last_seen_at")
+          .order("last_seen_at", { ascending: false }).limit(1000),
+        supabase.from("product_links")
+          .select("id,product_name,category,product_url,affiliate_url,image_url,price,priority,tags,notes,updated_at")
+          .neq("status", "archived")
+          .order("priority", { ascending: false }).order("updated_at", { ascending: false }).limit(2000),
+        supabase.from("video_queue")
+          .select("product_title,product_url,affiliate_url,media_assets,status")
+          .in("status", ["pending", "processing", "completed"]).limit(2000),
+        supabase.from("video_queue").select("id", { count: "exact", head: true })
+          .eq("status", "completed").eq("publication_mode", "automatic")
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "short" }]))
+          .gte("completed_at", getSaoPauloDayStartIso()),
+        supabase.from("video_queue").select("id", { count: "exact", head: true })
+          .in("status", ["pending", "processing"]).eq("publication_mode", "automatic")
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "short" }])),
+      ]);
+      if (listError) throw listError;
+      if (linksError) throw linksError;
+      if (existingError) throw existingError;
+      if (doneError) throw doneError;
+      if (pendingError) throw pendingError;
+      const completed = doneToday || 0;
+      const pending = pendingCount || 0;
+      const slots = Math.min(limit, Math.max(0, MAX_DAILY_PUBLICATIONS - completed - pending));
+      if (!slots) return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true, completedToday: completed, pendingAutomaticShorts: pending });
+
+      const linksByItemId = new Map<string, any>();
+      const linksByTitle = new Map<string, any[]>();
+      for (const link of productLinks || []) {
+        if (!isSocialListProductLink(link)) continue;
+        const itemId = socialListItemIdFromProductLink(link);
+        if (itemId && !linksByItemId.has(itemId)) linksByItemId.set(itemId, link);
+        const key = normalizeVideoProductTitle(link.product_name);
+        if (key) linksByTitle.set(key, [...(linksByTitle.get(key) || []), link]);
+      }
+      const usedTitles = (existing || [])
+        .filter((row: any) => getPublicationFormat(row.media_assets) === "short")
+        .map((row: any) => String(row.product_title || ""));
+      const usedItems = new Set((existing || [])
+        .filter((row: any) => getPublicationFormat(row.media_assets) === "short")
+        .map((row: any) => socialListMarker(row.media_assets)?.itemId || normalizeMercadoLivreItemId(row.product_url))
+        .filter(Boolean));
+      const stop = new Set(["para","com","como","mais","menos","sobre","de","da","do","das","dos","uma","um","the","and","for","new","novo","nova","hoje","brasil","brasileiro","brasileira"]);
+      const tokens = (value: unknown) => normalizeVideoProductTitle(value).split(" ").filter((word) => word.length > 2 && !stop.has(word));
+      const synonym: Record<string,string[]> = {
+        celular:["smartphone","telefone"], smartphone:["celular","telefone"], games:["game","gamer","gaming","controle"], gaming:["game","gamer","games"], gamer:["gaming","games","game"],
+        notebook:["laptop","pc"], laptop:["notebook"], fone:["headset","earbuds","audio"], earbuds:["fone","audio"], headset:["fone","audio"],
+        camera:["webcam","filmadora"], webcam:["camera"], tv:["televisao","smart"], televisao:["tv","smart"],
+      };
+      const candidates = (listItems || []).map((item: any) => {
+        const itemId = normalizeMercadoLivreItemId(item.item_id);
+        let link = itemId ? linksByItemId.get(itemId) : null;
+        if (!link) {
+          const matches = linksByTitle.get(normalizeVideoProductTitle(item.title)) || [];
+          if (matches.length === 1) link = matches[0];
+        }
+        if (!link) return null;
+        const title = String(item.title || link.product_name || "").trim();
+        const productTokens = new Set([...tokens(title), ...tokens(link.category)]);
+        const affiliateUrl = String(link.affiliate_url || "").trim();
+        const productUrl = String(item.product_url || link.product_url || "").trim();
+        const imageUrl = String(item.image_url || link.image_url || "").trim();
+        if (!itemId || !title || !isSafeMercadoLivreProductUrl(productUrl) || !isSafeMercadoLivreAffiliateUrl(affiliateUrl) ||
+            !imageUrl.startsWith("https://") || /vetor\\.blog|\\/og\\.png(?:$|\\?)/i.test(imageUrl) || usedItems.has(itemId) ||
+            usedTitles.some((old: string) => isLikelySameVideoProductTitle(title, old))) return null;
+        return { item, link, itemId, title, affiliateUrl, productUrl, imageUrl, productTokens };
+      }).filter(Boolean) as any[];
+      const ranked: Array<{ topic: any; product: any; score: number }> = [];
+      const selectedItems = new Set<string>();
+      for (const topic of topics) {
+        const topicTokens = tokens(topic.title);
+        let best: any = null;
+        for (const product of candidates) {
+          if (selectedItems.has(product.itemId)) continue;
+          let score = 0;
+          for (const token of topicTokens) {
+            if (product.productTokens.has(token)) score += 3;
+            for (const related of synonym[token] || []) if (product.productTokens.has(related)) score += 2;
+          }
+          if (score > (best?.score || 0)) best = { product, score };
+        }
+        // Require at least one strong product/topic match; never force an irrelevant affiliate recommendation.
+        if (best && best.score >= 3) {
+          ranked.push({ topic, product: best.product, score: best.score });
+          selectedItems.add(best.product.itemId);
+        }
+        if (ranked.length >= slots) break;
+      }
+      const queued = [];
+      for (const match of ranked) {
+        const product = match.product;
+        const queueId = randomUUID();
+        const priceValue = Number(product.item.price ?? product.link.price);
+        const price = Number.isFinite(priceValue) && priceValue > 0 ? "R$" + priceValue.toFixed(2).replace(".", ",") : "Consulte o preço atual";
+        const category = String(product.link.category || "Tecnologia").trim() || "Tecnologia";
+        const purchase = new URL(product.affiliateUrl);
+        purchase.searchParams.set("utm_source", "youtube");
+        purchase.searchParams.set("utm_medium", "short");
+        purchase.searchParams.set("utm_campaign", "trending-topic-ml-social-list");
+        purchase.searchParams.set("utm_content", queueId);
+        purchase.searchParams.set("utm_term", "trend");
+        const { data: inserted, error: insertError } = await supabase.from("video_queue").insert({
+          id: queueId,
+          product_url: product.productUrl,
+          product_title: product.title,
+          product_category: category,
+          product_price: price,
+          product_image_url: product.imageUrl,
+          affiliate_url: product.affiliateUrl,
+          shortened_affiliate_url: purchase.toString(),
+          script_text: "",
+          script_hook: "Em alta: " + match.topic.title + ". O que vale observar em " + product.title + "?",
+          voiceover_url: "",
+          voiceover_duration: 0,
+          media_assets: [
+            { type: "publication_format", format: "short" },
+            { type: "ml-social-list-item", itemId: product.itemId, productLinkId: product.link.id },
+            { type: "trend-topic", title: match.topic.title, traffic: match.topic.traffic, source: match.topic.source, relevanceScore: match.score },
+          ],
+          status: "pending",
+          publication_mode: "automatic",
+          review_url: null,
+          scheduled_at: new Date().toISOString(),
+        }).select("id,product_title,status,media_assets").single();
+        if (insertError) throw insertError;
+        queued.push(inserted);
+        usedTitles.push(product.title);
+      }
+      return NextResponse.json({
+        success: true, queued: queued.length, videos: queued,
+        source: "google-trends-br+ml-social-list", format: "short", trendTopicsReceived: topics.length,
+        matchedProducts: ranked.length, unmatchedTopics: Math.max(0, topics.length - ranked.length),
+        completedToday: completed, pendingAutomaticShorts: pending, dailyLimit: MAX_DAILY_PUBLICATIONS,
+        fallbackRequired: queued.length === 0,
+      });
+    }
+
     if (action === "queueFromSocialListShorts") {
       const limit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
       const [
