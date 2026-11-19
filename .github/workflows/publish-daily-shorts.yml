@@ -98,13 +98,51 @@ jobs:
           set -euo pipefail
           failed=0
           attempted=0
+          echo "Fetching Google Trends Brazil feed..."
+          if curl -fsSL --max-time 25 "https://trends.google.com/trending/rss?geo=BR" -o trends.xml; then
+            python - <<'PY'
+          import json, xml.etree.ElementTree as ET
+          root = ET.parse("trends.xml").getroot()
+          ns = {"ht":"https://trends.google.com/trending/rss"}
+          rows = []
+          for item in root.findall(".//item"):
+              title = (item.findtext("title") or "").strip()
+              traffic = (item.findtext("ht:approx_traffic", default="", namespaces=ns) or "").strip()
+              if title:
+                  rows.append({"title": title, "traffic": traffic, "source": "Google Trends Brasil"})
+          with open("trends.json", "w", encoding="utf-8") as f:
+              json.dump(rows[:30], f, ensure_ascii=False)
+          print(f"Google Trends topics loaded: {len(rows[:30])}")
+          PY
+          else
+            echo "Google Trends feed failed; fallback to catalog queue is enabled."
+            echo '[]' > trends.json
+          fi
           for batch in 1 2 3; do
             echo "========== SHORTS BATCH $batch/3 =========="
-            code="$(curl -sS --max-time 60 -o "shorts-batch-$batch.json" -w '%{http_code}' \
-              -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
-              -H "Authorization: Bearer $CRON_SECRET" \
-              -H "Content-Type: application/json" \
-              -d '{"action":"queueFromSocialListShorts","limit":5}')"
+            if [ -s trends.json ] && [ "$(jq 'length' trends.json)" -gt 0 ]; then
+              trend_payload="$(jq -cn --argjson topics "$(cat trends.json)" '{action:"queueTrendingShorts",limit:5,trendTopics:$topics}')"
+              code="$(curl -sS --max-time 60 -o "shorts-batch-$batch.json" -w '%{http_code}' \
+                -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+                -H "Authorization: Bearer $CRON_SECRET" \
+                -H "Content-Type: application/json" \
+                -d "$trend_payload")"
+              if [ "$code" = "200" ] && [ "$(jq -r '.queued // 0' "shorts-batch-$batch.json")" -eq 0 ]; then
+                echo "No relevant trend/product match; falling back to the next eligible Mercado Livre products."
+                code="$(curl -sS --max-time 60 -o "shorts-batch-$batch.json" -w '%{http_code}' \
+                  -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+                  -H "Authorization: Bearer $CRON_SECRET" \
+                  -H "Content-Type: application/json" \
+                  -d '{"action":"queueFromSocialListShorts","limit":5}')"
+              fi
+            else
+              echo "Google Trends feed unavailable; using the regular Mercado Livre list queue."
+              code="$(curl -sS --max-time 60 -o "shorts-batch-$batch.json" -w '%{http_code}' \
+                -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+                -H "Authorization: Bearer $CRON_SECRET" \
+                -H "Content-Type: application/json" \
+                -d '{"action":"queueFromSocialListShorts","limit":5}')"
+            fi
             if [ "$code" != "200" ] || ! jq -e '.success == true' "shorts-batch-$batch.json" >/dev/null; then
               echo "::error::Could not queue Shorts batch $batch (HTTP=$code)."
               cat "shorts-batch-$batch.json"
