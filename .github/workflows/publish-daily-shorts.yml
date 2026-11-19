@@ -1,0 +1,162 @@
+name: Publish Daily Shorts
+run-name: Publish 15 Shorts — 3 batches of 5
+
+concurrency:
+  group: vetor-daily-shorts-production
+  cancel-in-progress: false
+
+on:
+  # 08:00 Sao Paulo (UTC-03), one run containing three sequential batches.
+  schedule:
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Generate, render and publish 15 Shorts
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout production commit
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install FFmpeg and Edge TTS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install edge-tts aiohttp
+
+      - name: Install dependencies (CPU ONNX runtime only)
+        env:
+          npm_config_onnxruntime_node_install_cuda: skip
+        run: |
+          npm ci --onnxruntime-node-install-cuda=skip
+          cd video
+          npm ci --onnxruntime-node-install-cuda=skip
+
+      - name: Validate Remotion and Shorts contracts
+        working-directory: video
+        run: |
+          npx tsc --noEmit
+          node scripts/video-format.test.mjs
+          node scripts/stickman-template.test.mjs
+          ./node_modules/.bin/remotion browser ensure --log info
+
+      - name: Wait for authenticated production queue API
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+        run: |
+          set -euo pipefail
+          : "${CRON_SECRET:?CRON_SECRET secret is required}"
+          ready=0
+          for attempt in $(seq 1 24); do
+            code="$(curl -sS --max-time 12 -o queue-api-ready.json -w '%{http_code}' \
+              -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              -d '{"action":"recent"}" || true)"
+            if [ "$code" = "200" ] && jq -e '.success == true' queue-api-ready.json >/dev/null; then
+              ready=1
+              break
+            fi
+            echo "Production queue API not ready (attempt $attempt, HTTP=${code:-000})."
+            sleep 10
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat queue-api-ready.json 2>/dev/null || true
+            echo "::error::Production queue API did not become ready."
+            exit 1
+          fi
+
+      - name: Generate and publish three batches of five Shorts
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+          EDGE_TTS_RATE: "${{ vars.EDGE_TTS_RATE || '+5%' }}"
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}
+          GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
+          VIDEO_RENDER_ENGINE: remotion
+          HYPERFRAMES_REMOTION_FALLBACK: 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          attempted=0
+          for batch in 1 2 3; do
+            echo "========== SHORTS BATCH $batch/3 =========="
+            code="$(curl -sS --max-time 60 -o "shorts-batch-$batch.json" -w '%{http_code}' \
+              -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              -d '{"action":"queueFromSocialListShorts","limit":5}')"
+            if [ "$code" != "200" ] || ! jq -e '.success == true' "shorts-batch-$batch.json" >/dev/null; then
+              echo "::error::Could not queue Shorts batch $batch (HTTP=$code)."
+              cat "shorts-batch-$batch.json"
+              exit 1
+            fi
+            jq -r '"Queued: " + ((.queued // 0)|tostring) + " | skipped duplicates: " + ((.skippedAlreadyPublished // 0)|tostring)' "shorts-batch-$batch.json"
+            while IFS= read -r video_id; do
+              [ -n "$video_id" ] || continue
+              attempted=$((attempted + 1))
+              echo "----- Rendering and publishing Short $attempted/15 ($video_id) -----"
+              set +e
+              MANUAL_RUN=true VIDEO_ID="$video_id" MAX_VIDEOS=1 node video/scripts/process-video.mjs
+              result=$?
+              set -e
+              if [ "$result" -ne 0 ]; then
+                echo "::error::Short $video_id failed (exit=$result); continuing."
+                failed=$((failed + 1))
+              fi
+            done < <(jq -r '.videos[]?.id // empty' "shorts-batch-$batch.json")
+            if [ "$(jq -r '.queued // 0' "shorts-batch-$batch.json")" -eq 0 ]; then
+              echo "No eligible new Shorts in this batch; stopping to avoid repeated empty work."
+              break
+            fi
+          done
+          echo "Shorts campaign finished: attempted=$attempted, failures=$failed."
+          if [ "$attempted" -eq 0 ]; then
+            echo "::error::No eligible Shorts were created from the Mercado Livre Social List."
+            exit 1
+          fi
+          if [ "$failed" -gt 0 ]; then exit 1; fi
+
+      - name: Preserve render and QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-shorts-render-evidence-${{ github.run_id }}
+          path: |
+            video/out/video-*.mp4
+            video/out/video-*-beats.json
+            video/out/qa-*-frames/**
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Report resulting queue status
+        if: always()
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VETOR_SITE_URL: https://www.vetor.blog
+        run: |
+          if [ -n "${CRON_SECRET:-}" ]; then
+            curl -fsS --max-time 20 -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              -d '{"action":"recent"}' | jq .
+          fi
