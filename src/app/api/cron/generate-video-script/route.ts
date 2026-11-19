@@ -338,7 +338,7 @@ export async function POST(request: NextRequest) {
     const trendMarker = existingMediaAssets.find((asset: any) => asset && asset.type === "trend-topic") || null;
     const trendResearchBrief = trendMarker?.title
       ? "Pauta em alta identificada no Google Trends Brasil: " + String(trendMarker.title).slice(0, 180) +
-        ". Conecte o assunto ao produto apenas quando houver relação factual clara. Explique a utilidade do produto para quem acompanha esse assunto, sem alegar que o produto está em alta, sem inventar especificações, compatibilidade ou resultados. Se a relação for indireta, deixe isso explícito e priorize uma recomendação honesta."
+        ". Conecte o assunto ao produto apenas quando houver relação factual clara. Explique a utilidade do produto para quem acompanha esse assunto, sem alegar que o produto está em alta, sem inventar especificações, compatibilidade ou resultados. Se a relação for indireta, deixe isso explícito e priorize uma recomendação honesta. Na última cena, recomende de forma explícita o produto selecionado da Lista Social do Mercado Livre, explique em uma frase por que ele combina com o assunto e encerre com CTA para conferir o link de compra na descrição."
       : undefined;
     const researchBrief = typeof body.researchBrief === "string"
       ? body.researchBrief
