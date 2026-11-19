@@ -797,7 +797,7 @@ export async function POST(request: NextRequest) {
       const limit = Math.min(Math.max(Number(body.limit || 5), 1), 5);
       const topics = (Array.isArray(body.trendTopics) ? body.trendTopics : [])
         .map((entry: any) => ({
-          title: String(entry?.title || "").replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim().slice(0, 180),
+          title: String(entry?.title || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 180),
           traffic: String(entry?.traffic || "").slice(0, 40),
           source: String(entry?.source || "Google Trends BR").slice(0, 80),
         }))
@@ -878,7 +878,7 @@ export async function POST(request: NextRequest) {
         const productUrl = String(item.product_url || link.product_url || "").trim();
         const imageUrl = String(item.image_url || link.image_url || "").trim();
         if (!itemId || !title || !isSafeMercadoLivreProductUrl(productUrl) || !isSafeMercadoLivreAffiliateUrl(affiliateUrl) ||
-            !imageUrl.startsWith("https://") || /vetor\\.blog|\\/og\\.png(?:$|\\?)/i.test(imageUrl) || usedItems.has(itemId) ||
+            !imageUrl.startsWith("https://") || /vetor\.blog|\/og\.png(?:$|\?)/i.test(imageUrl) || usedItems.has(itemId) ||
             usedTitles.some((old: string) => isLikelySameVideoProductTitle(title, old))) return null;
         return { item, link, itemId, title, affiliateUrl, productUrl, imageUrl, productTokens };
       }).filter(Boolean) as any[];
