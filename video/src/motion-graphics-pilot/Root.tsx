@@ -146,7 +146,7 @@ const TabletScreen = () => {
   );
 
   return (
-    <mesh geometry={screenGeometry} position={[0, 0, 0.112]}>
+    <mesh geometry={screenGeometry} position={[0, 0, 0.155]}>
       <meshBasicMaterial map={texture} toneMapped={false} />
     </mesh>
   );
@@ -193,7 +193,7 @@ const TabletModel = () => {
 
         <TabletScreen />
 
-        <mesh position={[-1.69, 1.04, 0.125]}>
+        <mesh position={[-1.69, 1.04, 0.162]}>
           <circleGeometry args={[0.035, 32]} />
           <meshBasicMaterial color="#07101d" />
         </mesh>
