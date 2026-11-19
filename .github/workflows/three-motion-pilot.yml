@@ -1,0 +1,80 @@
+name: Three.js Motion Graphics Pilot
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "video/src/motion-graphics-pilot/**"
+      - ".github/workflows/three-motion-pilot.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: three-motion-graphics-pilot
+  cancel-in-progress: true
+
+jobs:
+  render-pilot:
+    name: Render isolated Redmi Pad 2 Pro 3D pilot
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: video/package-lock.json
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install video dependencies
+        working-directory: video
+        run: npm ci
+
+      - name: Generate Portuguese narration (Edge TTS)
+        working-directory: video
+        env:
+          PILOT_NARRATION: "Esse é o Redmi Pad 2 Pro. Tela de 12,1 polegadas, resolução 2.5K e até 120 hertz para estudar, trabalhar e assistir. O Snapdragon 7s Gen 4 e a bateria de 12 mil miliampere-hora completam o conjunto. Mas atenção: o painel é LCD, não AMOLED. A versão de 6 giga de RAM com 128 giga de armazenamento é uma das opções. Confira preço e acessórios antes de comprar."
+        run: |
+          python -m pip install --no-cache-dir edge-tts
+          mkdir -p public/pilot out/frames
+          edge-tts --voice pt-BR-FranciscaNeural --rate=+2% --text "$PILOT_NARRATION" --write-media public/pilot/redmi-pad-2-pro-voice.mp3
+
+      - name: Render with Remotion and Three.js
+        working-directory: video
+        run: |
+          npx remotion render src/motion-graphics-pilot/Root.tsx RedmiPad2ProMotionPilot out/redmi-pad-2-pro-3d-pilot.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --concurrency=2
+          test -s out/redmi-pad-2-pro-3d-pilot.mp4
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,r_frame_rate -of json out/redmi-pad-2-pro-3d-pilot.mp4
+
+      - name: Extract review frames
+        working-directory: video
+        run: |
+          for second in 1 4 8 13 18 24 28; do
+            ffmpeg -hide_banner -loglevel error -ss "$second" -i out/redmi-pad-2-pro-3d-pilot.mp4 -frames:v 1 -q:v 2 "out/frames/frame-$second.jpg"
+          done
+          ls -lh out/redmi-pad-2-pro-3d-pilot.mp4 out/frames
+
+      - name: Upload pilot artifact (no YouTube publishing)
+        uses: actions/upload-artifact@v4
+        with:
+          name: vetor-redmi-pad-2-pro-threejs-pilot
+          path: |
+            video/out/redmi-pad-2-pro-3d-pilot.mp4
+            video/out/frames/*.jpg
+          if-no-files-found: error
+          retention-days: 7
