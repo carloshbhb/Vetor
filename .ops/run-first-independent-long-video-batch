@@ -1,1 +1,2 @@
 One-time bootstrap trigger for the independent long-form Mercado Livre Social List video queue. Retry after the Production JSONB filter fix.
+Retry after ONNX Runtime CPU-only install fix — 2026-11-18.
