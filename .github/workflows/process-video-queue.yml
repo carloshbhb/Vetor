@@ -61,9 +61,9 @@ jobs:
         run: pip install edge-tts aiohttp
       - name: Install dependencies
         run: |
-          npm ci
+          npm ci --onnxruntime-node-install-cuda=skip
           cd video
-          npm ci
+          npm ci --onnxruntime-node-install-cuda=skip
       - name: Type-check Remotion project before any queue operation
         working-directory: video
         run: npx tsc --noEmit
