@@ -1014,9 +1014,22 @@ async function processVideo(video) {
     const brollVideos = await fetchPexelsBroll(script.scenes, video.product_category, video.id, videoFormat);
     temporaryVisualAssets.push(...brollVideos.filter(Boolean).map(source => path.resolve("video/public", source)));
 
+    const visualTemplate = resolveVetorVisualTemplate({
+      mediaAssets: video.media_assets,
+      videoData: { title: video.product_title, category: video.product_category, scenes: script.scenes },
+      script,
+    });
+    console.log("[VISUAL_TEMPLATE] " + visualTemplate.id + " (" + visualTemplate.selection + "); motion=" +
+      visualTemplate.motion + "; transition=" + visualTemplate.transition + ". Remotion permanece como motor padrão.");
+
     const videoData = {
       type: videoFormat === "long" ? "long" : "review",
       templateId: visualTemplateId || (/\/comparativos\//i.test(String(video.review_url || "")) ? "comparison-editorial" : (videoFormat === "long" ? "product-editorial" : "shorts-retention")),
+      visualTemplateId: visualTemplate.id,
+      visualTemplateName: visualTemplate.name,
+      visualTemplateMotion: visualTemplate.motion,
+      visualTemplateTransition: visualTemplate.transition,
+      visualTemplateCues: visualTemplate.visualCues,
       title: video.product_title,
       imageUrl: productImageSource,
       score: Number.isFinite(Number(script.score)) && Number(script.score) > 0 && Number(script.score) <= 10 ? Number(script.score) : 0,
