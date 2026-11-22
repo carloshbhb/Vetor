@@ -26,6 +26,30 @@ import {
   landscapeCameraAt,
 } from '../utils/landscape-safe-zone';
 
+const TEMPLATE_ACCENTS: Record<string, string> = {
+  "premium-product-3d": "#D6B269",
+  "exploded-teardown": "#38D2DC",
+  "hologram-hud": "#5AFFE1",
+  "kinetic-typography": "#FF49A6",
+  "isometric-explainer": "#5BCD91",
+  "cinematic-2d": "#FF975E",
+  "lifestyle-demo": "#FFC275",
+  "data-storytelling": "#599AFF",
+  "comparison-arena": "#FF6868",
+  "editorial-luxury": "#D8D0B8",
+};
+
+const LandscapeTemplateAtmosphere: React.FC<{ templateId?: string }> = ({ templateId }) => {
+  const accent = TEMPLATE_ACCENTS[templateId || ""];
+  if (!accent) return null;
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse at 72% 38%, " + accent + "22, transparent 52%)" }} />
+      <div style={{ position: "absolute", left: 0, top: 0, width: 8, height: "100%", background: accent, opacity: 0.72 }} />
+    </AbsoluteFill>
+  );
+};
+
 const palette = {
   background: '#080C14',
   surface: '#0F1623',
@@ -340,6 +364,7 @@ export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) 
         fontFamily: 'Inter, DM Sans, Arial, sans-serif',
       }}
     >
+      <LandscapeTemplateAtmosphere templateId={props.visualTemplateId} />
       {/* Static gradient ground: the camera moves foreground content only, so the frame edges never show a seam. */}
       <AbsoluteFill
         style={{
