@@ -28,6 +28,89 @@ export const VIDEO_VISUAL_TEMPLATE_IDS = [
 
 export type VideoVisualTemplateId = typeof VIDEO_VISUAL_TEMPLATE_IDS[number];
 
+const VISUAL_TEMPLATE_SET = new Set<string>(VIDEO_VISUAL_TEMPLATE_IDS);
+
+function fallbackVisualDirection(scene: Partial<VideoScene>, index: number, comparison = false) {
+  const text = [scene.visualCue, scene.text, scene.visualIntent].filter(Boolean).join(" ")
+    .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
+  if (comparison || /compar|versus|\\bvs\\b|alternativa|concorrente/.test(text)) {
+    return {
+      visualTemplates: ["comparison-arena", "data-storytelling", "kinetic-typography"] as VideoVisualTemplateId[],
+      visualIntent: "Entrada dos produtos em lados opostos, enquadramento dividido e câmera com aproximação curta no momento do critério.",
+    };
+  }
+  if (/preco|valor|custo|frete|oferta|desconto|parcel/.test(text)) {
+    return {
+      visualTemplates: ["data-storytelling", "kinetic-typography", "editorial-luxury"] as VideoVisualTemplateId[],
+      visualIntent: "Número confirmado cresce em contador animado, gráfico entra em camadas e a câmera aproxima no dado principal.",
+    };
+  }
+  if (/limita|ressalva|contra|nao tem|sem gps|sem nfc|incompatib|garantia/.test(text)) {
+    return {
+      visualTemplates: ["kinetic-typography", "cinematic-2d", "editorial-luxury"] as VideoVisualTemplateId[],
+      visualIntent: "Palavra-chave surge com impacto, recortes 2D se deslocam em parallax e a câmera faz uma aproximação curta.",
+    };
+  }
+  if (/desmont|interno|componente|placa logica|sensor interno|arquitetura interna/.test(text)) {
+    return {
+      visualTemplates: ["exploded-teardown", "premium-product-3d", "hologram-hud"] as VideoVisualTemplateId[],
+      visualIntent: "Somente componentes internos documentados se separam em camadas 3D, com rótulos técnicos e câmera orbital lenta.",
+    };
+  }
+  if (/bateria|autonomia|mah|armazenamento|memoria ram|\\bram\\b|\\bgb\\b|\\btb\\b|\\bhz\\b|resolucao|processador|chip/.test(text)) {
+    return {
+      visualTemplates: ["hologram-hud", "data-storytelling", "premium-product-3d"] as VideoVisualTemplateId[],
+      visualIntent: "Painéis HUD aparecem ao redor do produto, dado confirmado anima em contador e a câmera faz um push-in controlado.",
+    };
+  }
+  if (/rotina|dia a dia|estudo|trabalho|jogo|jogos|assistir|mobilidade|portatil|conforto|uso real|viagem|cozinha|treino/.test(text)) {
+    return {
+      visualTemplates: ["lifestyle-demo", "cinematic-2d", "isometric-explainer"] as VideoVisualTemplateId[],
+      visualIntent: "Corte para contexto de uso ilustrativo, camadas de cenário em parallax e movimento de câmera lateral suave.",
+    };
+  }
+  if (/veredito|vale a pena|recomend|para quem|conclus/.test(text)) {
+    return {
+      visualTemplates: ["editorial-luxury", "premium-product-3d", "kinetic-typography"] as VideoVisualTemplateId[],
+      visualIntent: "Produto em hero shot editorial, luz de recorte e headline final entra com tipografia cinética.",
+    };
+  }
+  if (index === 0) {
+    return {
+      visualTemplates: ["kinetic-typography", "premium-product-3d", "cinematic-2d"] as VideoVisualTemplateId[],
+      visualIntent: "Gancho com palavra-chave em impacto, produto revelado em 3D gráfico e câmera avança rapidamente.",
+    };
+  }
+  return {
+    visualTemplates: ["premium-product-3d", "cinematic-2d", "kinetic-typography"] as VideoVisualTemplateId[],
+    visualIntent: "Produto em destaque com luz de estúdio, profundidade em camadas e câmera com movimento flutuante discreto.",
+  };
+}
+
+/** Preserve AI choices when valid; fill only missing or malformed creative direction so generation never stalls. */
+export function ensureSceneVisualDirections<T extends Partial<VideoScene>>(
+  scenes: T[],
+  options: { comparison?: boolean } = {},
+): Array<T & Pick<VideoScene, "visualIntent" | "visualTemplates">> {
+  return scenes.map((scene, index) => {
+    const fallback = fallbackVisualDirection(scene, index, Boolean(options.comparison));
+    const supplied = Array.isArray(scene.visualTemplates)
+      ? [...new Set(scene.visualTemplates.filter((id): id is VideoVisualTemplateId =>
+          typeof id === "string" && VISUAL_TEMPLATE_SET.has(id)
+        ))].slice(0, 3)
+      : [];
+    const visualTemplates = supplied.length >= 2
+      ? supplied
+      : supplied.length === 1
+        ? [...supplied, ...fallback.visualTemplates.filter((id) => id !== supplied[0])].slice(0, 3)
+        : fallback.visualTemplates;
+    const visualIntent = typeof scene.visualIntent === "string" && scene.visualIntent.trim()
+      ? scene.visualIntent.trim().slice(0, 500)
+      : fallback.visualIntent;
+    return { ...scene, visualIntent, visualTemplates };
+  });
+}
+
 export interface VideoScene {
   id: number;
   text: string;
@@ -119,9 +202,6 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
       !Number.isFinite(scene.duration) || scene.duration < minDuration || scene.duration > maxDuration ||
       typeof scene.visualCue !== "string" || !scene.visualCue.trim() ||
       !Array.isArray(scene.brollKeywords) ||
-      typeof scene.visualIntent !== "string" || !scene.visualIntent.trim() ||
-      !Array.isArray(scene.visualTemplates) || scene.visualTemplates.length < 2 || scene.visualTemplates.length > 3 ||
-      scene.visualTemplates.some((id: unknown) => !VIDEO_VISUAL_TEMPLATE_IDS.includes(id as VideoVisualTemplateId))
     )) return false;
     const cues = parsed.scenes.map((scene: any) => scene.visualCue.trim().toLowerCase());
     if (new Set(cues).size < Math.min(6, cues.length)) return false;
@@ -172,7 +252,8 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     throw new Error("[video-script] JSON inválido: " + (error instanceof Error ? error.message : String(error)));
   }
 
-  const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
+  const rawScenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
+  const scenes = ensureSceneVisualDirections(rawScenes) as VideoScene[];
   const minScenes = isLong ? 8 : 6;
   const maxScenes = isLong ? 10 : 7;
   const minDuration = isLong ? 29 : 9;
@@ -186,9 +267,7 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
       return typeof item.text !== "string" || item.text.trim().split(/\s+/).length < (isLong ? 35 : 8) ||
         !Number.isFinite(item.duration) || (item.duration as number) < minDuration || (item.duration as number) > maxDuration ||
         typeof item.visualCue !== "string" || !item.visualCue.trim() || !Array.isArray(item.brollKeywords) ||
-        typeof item.visualIntent !== "string" || !item.visualIntent.trim() ||
-        !Array.isArray(item.visualTemplates) || item.visualTemplates.length < 2 || item.visualTemplates.length > 3 ||
-        item.visualTemplates.some((id: unknown) => !VIDEO_VISUAL_TEMPLATE_IDS.includes(id as VideoVisualTemplateId));
+false;
     })
   ) throw new Error("[video-script] Roteiro reprovado: estrutura, duração ou cenas incompletas.");
 
@@ -257,9 +336,6 @@ export function isValidComparisonVideoScriptResponse(
       typeof scene.visualCue !== "string" || !scene.visualCue.trim() ||
       !Array.isArray(scene.brollKeywords) ||
       scene.brollKeywords.some((keyword: unknown) => typeof keyword !== "string" || !keyword.trim()) ||
-      typeof scene.visualIntent !== "string" || !scene.visualIntent.trim() ||
-      !Array.isArray(scene.visualTemplates) || scene.visualTemplates.length < 2 || scene.visualTemplates.length > 3 ||
-      scene.visualTemplates.some((id: unknown) => !VIDEO_VISUAL_TEMPLATE_IDS.includes(id as VideoVisualTemplateId))
     )) return false;
 
     const cues = parsed.scenes.map((scene: any) => scene.visualCue.trim().toLowerCase());
@@ -338,7 +414,7 @@ export async function generateComparisonVideoScript(input: {
       throw new Error("Roteiro reprovado: estrutura incompleta ou afirmação técnica sem evidência.");
     }
 
-    const scenes = parsed.scenes as ComparisonVideoScene[];
+    const scenes = ensureSceneVisualDirections(parsed.scenes, { comparison: true }) as ComparisonVideoScene[];
     const totalDuration = scenes.reduce((sum, scene) => sum + scene.duration, 8);
     return {
       hook: parsed.hook.trim(),
