@@ -26,6 +26,8 @@ export type StoryboardScene = {
   text?: string;
   visualCue?: string;
   brollKeywords?: string[];
+  visualIntent?: string;
+  visualTemplates?: string[];
 };
 
 const MOTIONS: SceneMotionPreset[] = [
@@ -53,6 +55,20 @@ function hashText(value: string): number {
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
+}
+
+/** Translate the AI director's camera instruction into a deterministic Remotion motion preset. */
+export function motionFromVisualIntent(value: unknown): SceneMotionPreset | null {
+  const intent = normalize(value);
+  if (!intent) return null;
+
+  if (/inclina.*(esquerda|left)|tilt.*left|rotacao.*anti horario/.test(intent)) return 'tilt-left';
+  if (/inclina.*(direita|right)|tilt.*right|rotacao.*horario/.test(intent)) return 'tilt-right';
+  if (/panoramica.*esquerda|pan.*left|desliza.*para a esquerda|move.*para a esquerda|camera.*esquerda/.test(intent)) return 'pan-left';
+  if (/panoramica.*direita|pan.*right|desliza.*para a direita|move.*para a direita|camera.*direita/.test(intent)) return 'pan-right';
+  if (/aproxima|aproximacao|zoom|macro|close up|push in|avanca em direcao/.test(intent)) return 'push-in';
+  if (/flutua|flutuacao|flutuante|deriva|drift|float|orbita|orbit|gira em torno/.test(intent)) return 'float';
+  return null;
 }
 
 export function classifySceneVisual(scene: StoryboardScene, index = 0): SceneVisualMode {
@@ -91,8 +107,9 @@ export function createSceneVisualPlan(scenes: StoryboardScene[], seed = 'vetor')
       scene.text ?? '',
       (scene.brollKeywords ?? []).join('|'),
     ].join(':');
-    let motion = MOTIONS[hashText(input) % MOTIONS.length];
-    if (motion === previousMotion) {
+    const intentMotion = motionFromVisualIntent(scene.visualIntent);
+    let motion = intentMotion || MOTIONS[hashText(input) % MOTIONS.length];
+    if (!intentMotion && motion === previousMotion) {
       motion = MOTIONS[(MOTIONS.indexOf(motion) + 1 + (index % (MOTIONS.length - 1))) % MOTIONS.length];
     }
     previousMotion = motion;
