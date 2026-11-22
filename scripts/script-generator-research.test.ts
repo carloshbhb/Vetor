@@ -44,6 +44,15 @@ const invalidDirection = ensureSceneVisualDirections([{
 assert.equal(invalidDirection[0].visualTemplates[0], "lifestyle-demo");
 assert.equal(invalidDirection[0].visualTemplates.length, 3);
 
+const comparisonFallback = ensureSceneVisualDirections([
+  { id: 4, type: "product1", text: "Confira a tela e o acabamento externo.", visualCue: "Detalhes do primeiro produto" },
+  { id: 5, type: "product2", text: "Veja a bateria e autonomia confirmadas.", visualCue: "Autonomia do segundo produto" },
+  { id: 6, type: "comparison", text: "Compare os critérios e avalie o que importa para seu uso.", visualCue: "Critérios lado a lado" },
+], { comparison: true });
+assert.equal(comparisonFallback[0].visualTemplates[0], "premium-product-3d");
+assert.equal(comparisonFallback[1].visualTemplates[0], "hologram-hud");
+assert.equal(comparisonFallback[2].visualTemplates[0], "comparison-arena");
+
 const withoutBrief = buildScriptPrompt(baseProduct);
 assert.ok(withoutBrief.includes("PESQUISA SERP + YOUTUBE"), "prompt deve conter seção de pesquisa");
 assert.ok(withoutBrief.includes("Não disponível."), "prompt sem brief deve indicar indisponível");
