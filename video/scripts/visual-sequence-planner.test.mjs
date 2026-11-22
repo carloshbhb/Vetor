@@ -46,10 +46,11 @@ assert.equal(aiDirected[0].directionSource, "ai-scene-direction");
 assert.match(aiDirected[0].artDirection, /Orbit de câmera/);
 
 const invalidAI = planVetorSceneMixes({
-  scenes: [{ id: 100, text: "Cena comum", visualTemplates: ["invented-style", "hud"] }],
+  scenes: [{ id: 100, text: "Cena comum", visualTemplates: ["invented-style", "not-a-template"] }],
 });
-assert.equal(invalidAI[0].primaryTemplate, "cinematic-2d");
+assert.equal(invalidAI[0].primaryTemplate, "kinetic-typography");
 assert.equal(invalidAI[0].directionSource, "narrative-rules");
+assert.ok(invalidAI[0].templateIds.length <= 3);
 
 const manual = planVetorSceneMixes({ scenes, manualTemplateId: "editorial-luxury" });
 assert.ok(manual.every((item) => item.primaryTemplate === "editorial-luxury"));
