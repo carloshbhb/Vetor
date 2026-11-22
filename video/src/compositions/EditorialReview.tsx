@@ -75,6 +75,19 @@ const colors = {
   amber: '#FFB85C',
 };
 
+const SCENE_TEMPLATE_ACCENTS: Record<string, string> = {
+  "premium-product-3d": "#D6B269",
+  "exploded-teardown": "#38D2DC",
+  "hologram-hud": "#5AFFE1",
+  "kinetic-typography": "#FF49A6",
+  "isometric-explainer": "#5BCD91",
+  "cinematic-2d": "#FF975E",
+  "lifestyle-demo": "#FFC275",
+  "data-storytelling": "#599AFF",
+  "comparison-arena": "#FF6868",
+  "editorial-luxury": "#D8D0B8",
+};
+
 const TEMPLATE_SKINS: Record<string, { glow: string; accent: string; pattern: string }> = {
   "premium-product-3d": { glow: "rgba(214,178,105,.22)", accent: "#D6B269", pattern: "radial-gradient(ellipse at 50% 38%, rgba(214,178,105,.15), transparent 52%)" },
   "exploded-teardown": { glow: "rgba(56,210,220,.2)", accent: "#38D2DC", pattern: "linear-gradient(135deg, rgba(56,210,220,.09) 1px, transparent 1px)" },
@@ -271,7 +284,9 @@ const FeatureScene: React.FC<{
     : warning
       ? 'PONTO DE ATENÇÃO'
       : visual.label;
-  const accent = warning ? colors.amber : colors.cyan;
+  const accent = warning
+    ? colors.amber
+    : SCENE_TEMPLATE_ACCENTS[scene.creativeDirection?.primaryTemplate || ""] || colors.cyan;
 
   const beats = React.useMemo(
     () =>
@@ -478,7 +493,9 @@ export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: colors.ink }}>
-      <TemplateAtmosphere templateId={props.visualTemplateId} />
+      {props.scenes.some((scene) => scene.creativeDirection) ? null : (
+        <TemplateAtmosphere templateId={props.visualTemplateId} />
+      )}
       <Audio src={resolveMediaSource(props.audioUrl)} volume={0.96} />
       {props.musicUrl ? <Audio src={resolveMediaSource(props.musicUrl)} volume={0.07} loop /> : null}
       <Sequence from={0} durationInFrames={hookFrames} premountFor={fps}>
