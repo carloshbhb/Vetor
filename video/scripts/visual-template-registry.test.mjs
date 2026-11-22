@@ -29,5 +29,6 @@ const wearable = resolveVetorVisualTemplate({
 });
 assert.ok(["hologram-hud", "premium-product-3d", "data-storytelling"].includes(wearable.id));
 assert.equal(VETOR_VISUAL_TEMPLATES.every((item) => item.renderer === "remotion"), true);
+assert.equal(VETOR_VISUAL_TEMPLATES.every((item) => Array.isArray(item.capabilities) && item.capabilities.length >= 3), true);
 
 console.log("[visual-template-registry] 10 templates, aliases, manual selection and automatic routing passed.");
