@@ -97,7 +97,7 @@ function fallbackVisualDirection(scene: Partial<VideoScene>, index: number, comp
 export function ensureSceneVisualDirections<T extends Partial<VideoScene>>(
   scenes: T[],
   options: { comparison?: boolean } = {},
-): Array<T & Pick<VideoScene, "visualIntent" | "visualTemplates">> {
+): Array<Omit<T, "visualIntent" | "visualTemplates"> & Pick<VideoScene, "visualIntent" | "visualTemplates">> {
   return scenes.map((scene, index) => {
     const fallback = fallbackVisualDirection(
       scene,
