@@ -25,10 +25,16 @@ const DIRECTING = Object.freeze({
     transition: "scan-reveal",
     energy: "medium",
   },
-  "detail": {
+  "teardown": {
     primary: "exploded-teardown",
     support: ["premium-product-3d", "hologram-hud"],
     transition: "component-snap",
+    energy: "medium",
+  },
+  "detail": {
+    primary: "premium-product-3d",
+    support: ["editorial-luxury", "hologram-hud"],
+    transition: "cinematic-wipe",
     energy: "medium",
   },
   "lifestyle": {
@@ -85,7 +91,8 @@ export function classifyNarrativeBeat(scene = {}, index = 0) {
   if (/compar|versus|\bvs\b|alternativa|concorrente|qual comprar/.test(text)) return "comparison";
   if (/veredito|vale a pena|recomend|para quem|conclus/.test(text)) return "verdict";
   if (/bateria|autonomia|mah|armazenamento|memoria ram|\bram\b|\bgb\b|\btb\b|\bhz\b|\bmp\b|\bw\b|\bghz\b|\bmhz\b|resolucao|\b2\.\d+k\b|processador|chip/.test(text)) return "specification";
-  if (/tela|display|camera|acabamento|material|construcao|design|porta|audio|microfone|bluetooth|conexao|ergonomia|componente|sensor/.test(text)) return "detail";
+  if (/desmont|interno|componente|chip|processador|placa logica|sensor interno|arquitetura interna/.test(text)) return "teardown";
+  if (/tela|display|camera|acabamento|material|construcao|design|porta|audio|microfone|bluetooth|conexao|ergonomia|sensor/.test(text)) return "detail";
   if (/rotina|dia a dia|estudo|trabalho|jogo|jogos|assistir|mobilidade|portatil|conforto|uso real|viagem|cozinha|treino/.test(text)) return "lifestyle";
   if (index === 0) return "hook";
   return "feature";
