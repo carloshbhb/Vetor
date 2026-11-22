@@ -128,7 +128,7 @@ export function planVetorSceneMixes({
     const templateIds = [primary, ...support].filter((id, itemIndex, all) =>
       all.indexOf(id) === itemIndex && Boolean(getTemplate(id))
     );
-    const visualLayers = [...new Set(templateIds.flatMap((id) => LAYERS[id] || []))];
+    const visualLayers = [...new Set(templateIds.flatMap((id) => getTemplate(id)?.capabilities || LAYERS[id] || []))];
     const assets = {
       realProductImage: true,
       galleryCutaway: Boolean(hasProductGallery),
