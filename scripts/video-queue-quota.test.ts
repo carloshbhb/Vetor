@@ -43,7 +43,7 @@ assert.doesNotMatch(block, /link\.has_video === true \|\| link\.video_id/);
 assert.doesNotMatch(block, /from\("reviews"\)/);
 
 assert.ok(route.includes('pendingQuery = pendingQuery\n          .eq("publication_mode", "automatic")\n          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }]))'), "automatic dequeue is long-only and JSONB-safe");
-assert.equal((route.match(/\.contains\("media_assets", JSON\.stringify/g) || []).length, 5, "all five JSONB long-format filters serialize their array as JSON");
+assert.equal((route.match(/\.contains\("media_assets", JSON\.stringify/g) || []).length, 9, "all nine JSONB media_assets filters serialize their array as JSON");
 
 const retryStart = route.indexOf('if (action === "retrySafeFailed")');
 const retryEnd = route.indexOf('if (action === "retryRemotionTimeouts")', retryStart);

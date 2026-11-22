@@ -80,8 +80,13 @@ jobs:
       - name: Validate format, affiliate-link and chapter contracts
         run: node video/scripts/video-format.test.mjs
 
-      - name: Validate worker JavaScript syntax
-        run: node --check video/scripts/process-video.mjs && node --check video/scripts/video-format.mjs
+      - name: Validate worker and renderer JavaScript syntax
+        run: |
+          node --check video/scripts/process-video.mjs
+          node --check video/scripts/video-format.mjs
+          node --check video/scripts/render-lemo-opuscar.mjs
+          node --check video/scripts/render-engine-router.mjs
+          node video/scripts/render-engine-router.test.mjs
 
       - name: Type-check Remotion project
         working-directory: video
