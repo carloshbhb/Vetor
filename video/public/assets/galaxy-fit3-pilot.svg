@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+<defs>
+ <linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#343D4A"/><stop offset=".48" stop-color="#090D14"/><stop offset="1" stop-color="#202936"/></linearGradient>
+ <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#132A4A"/><stop offset=".52" stop-color="#07111F"/><stop offset="1" stop-color="#193C63"/></linearGradient>
+ <linearGradient id="strap" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#202936"/><stop offset=".5" stop-color="#566273"/><stop offset="1" stop-color="#202936"/></linearGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="30"/></filter>
+</defs>
+<ellipse cx="600" cy="1030" rx="280" ry="52" fill="#000" opacity=".32" filter="url(#shadow)"/>
+<g transform="rotate(-12 600 600)">
+ <path d="M480 45 Q600 5 720 45 L755 365 Q600 410 445 365Z" fill="url(#strap)" stroke="#111923" stroke-width="16"/>
+ <path d="M445 835 Q600 795 755 835 L720 1155 Q600 1195 480 1155Z" fill="url(#strap)" stroke="#111923" stroke-width="16"/>
+ <g fill="#0B111A" opacity=".72"><rect x="550" y="100" width="100" height="22" rx="11"/><rect x="550" y="150" width="100" height="22" rx="11"/><rect x="550" y="200" width="100" height="22" rx="11"/><rect x="550" y="1000" width="100" height="22" rx="11"/><rect x="550" y="1050" width="100" height="22" rx="11"/></g>
+ <rect x="350" y="300" width="500" height="620" rx="112" fill="url(#body)" stroke="#788494" stroke-width="10"/>
+ <rect x="386" y="336" width="428" height="548" rx="82" fill="url(#screen)" stroke="#02060B" stroke-width="12"/>
+ <rect x="835" y="535" width="32" height="110" rx="15" fill="#788494"/>
+ <circle cx="600" cy="610" r="170" fill="none" stroke="#55D6FF" stroke-width="18" opacity=".88" stroke-dasharray="790 280" transform="rotate(-90 600 610)"/>
+ <circle cx="600" cy="610" r="138" fill="none" stroke="#4285F4" stroke-width="8" opacity=".48"/>
+ <text x="600" y="500" text-anchor="middle" fill="#B9D9FF" font-family="Arial,sans-serif" font-size="35" font-weight="700">QUARTA-FEIRA</text>
+ <text x="600" y="635" text-anchor="middle" fill="#FFFFFF" font-family="Arial,sans-serif" font-size="145" font-weight="700">09:41</text>
+ <text x="600" y="700" text-anchor="middle" fill="#8AD8FF" font-family="Arial,sans-serif" font-size="34" font-weight="700">18°  •  8.420 passos</text>
+ <g transform="translate(480 760)" fill="#7DE0BC"><rect width="240" height="18" rx="9"/><rect y="28" width="172" height="18" rx="9" opacity=".55"/></g>
+</g>
+</svg>
