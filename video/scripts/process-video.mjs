@@ -8,6 +8,8 @@ import { resolveRenderEngine, withRenderEngineSelection, shouldFallbackToRemotio
 import { renderWithLemoOpuscar } from './render-lemo-opuscar.mjs';
 import { researchProduct } from './research-product.mjs';
 import { resolveVisualTemplate } from './stickman-template.mjs';
+import { resolveVetorVisualTemplate } from './visual-template-registry.mjs';
+import { planVetorSceneMixes } from './visual-sequence-planner.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -1021,6 +1023,25 @@ async function processVideo(video) {
     });
     console.log("[VISUAL_TEMPLATE] " + visualTemplate.id + " (" + visualTemplate.selection + "); motion=" +
       visualTemplate.motion + "; transition=" + visualTemplate.transition + ". Remotion permanece como motor padrão.");
+
+    // Visual direction is selected per narrative scene, not once for the whole video.
+    // A manual style remains the lead language, while supporting techniques can still
+    // be mixed to make each scene serve its own storytelling purpose.
+    const visualSequence = planVetorSceneMixes({
+      scenes: scenesWithVisualDirection,
+      title: video.product_title,
+      category: video.product_category,
+      manualTemplateId: visualTemplate.selection === "manual" ? visualTemplate.id : null,
+      hasProductGallery: productImages.length > 1,
+      hasBroll: brollVideos.some(Boolean),
+    });
+    const scenesWithVisualDirection = scenesWithFrames.map((scene, index) => ({
+      ...scene,
+      creativeDirection: visualSequence[index],
+    }));
+    console.log("[VISUAL_DIRECTOR] " + visualSequence.map((plan, index) =>
+      "cena-" + (index + 1) + "=" + plan.templateIds.join("+") + "/" + plan.transitionIn
+    ).join(" | "));
 
     const videoData = {
       type: videoFormat === "long" ? "long" : "review",
