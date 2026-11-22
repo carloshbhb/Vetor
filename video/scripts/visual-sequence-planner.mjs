@@ -121,11 +121,17 @@ export function planVetorSceneMixes({
   return (Array.isArray(scenes) ? scenes : []).map((scene, index) => {
     const beat = classifyNarrativeBeat(scene, index);
     const direction = DIRECTING[beat] || DIRECTING.feature;
-    let primary = manual || direction.primary;
-    let support = direction.support.filter((id) => id !== primary);
+    const aiSuggestions = Array.isArray(scene.visualTemplates)
+      ? scene.visualTemplates.map(normalizeVetorTemplateId).filter(Boolean).slice(0, 3)
+      : [];
+    let primary = manual || aiSuggestions[0] || direction.primary;
+    const suggestedSupport = aiSuggestions.slice(1);
+    let support = [...suggestedSupport, ...direction.support]
+      .filter((id, itemIndex, all) => id !== primary && all.indexOf(id) === itemIndex);
 
-    // Avoid consecutive scenes with the same leading language when auto-directed.
-    if (!manual && primary === previousPrimary && support.length > 0) {
+    // AI scene direction leads when present; heuristic direction fills missing layers.
+    // Avoid consecutive repeated lead styles only when the AI did not explicitly choose one.
+    if (!manual && !aiSuggestions.length && primary === previousPrimary && support.length > 0) {
       const next = support.shift();
       support.unshift(primary);
       primary = next;
@@ -147,6 +153,8 @@ export function planVetorSceneMixes({
     return {
       sceneId: scene.id ?? index + 1,
       narrativeBeat: beat,
+      visualIntent: typeof scene.visualIntent === "string" ? scene.visualIntent.slice(0, 500) : "",
+      directionSource: manual ? "manual-override" : aiSuggestions.length ? "ai-scene-direction" : "narrative-rules",
       primaryTemplate: primary,
       supportTemplates: templateIds.filter((id) => id !== primary),
       templateIds,
@@ -162,6 +170,7 @@ export function planVetorSceneMixes({
         `Combinação: ${names.slice(1).join(" + ") || "sem camada secundária"}`,
         title ? `Produto: ${title}` : "",
         category ? `Categoria: ${category}` : "",
+        typeof scene.visualIntent === "string" ? `Intenção visual: ${scene.visualIntent.slice(0, 240)}` : "",
       ].filter(Boolean).join(" | "),
     };
   });
