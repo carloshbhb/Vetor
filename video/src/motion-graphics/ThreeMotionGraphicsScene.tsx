@@ -36,11 +36,14 @@ export const ThreeMotionGraphicsScene: React.FC<ThreeMotionGraphicsSceneProps> =
 
 const MotionGeometry: React.FC<{ accentColor: string; variant: ThreeMotionVariant }> = ({ accentColor, variant }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
   const seconds = frame / fps;
   const reveal = interpolate(frame, [0, 24], [0, 1], { extrapolateRight: 'clamp' });
   const spin = seconds * 0.42;
-  const scale = variant === 'isometric' ? 0.42 : 0.48;
+  const landscape = width > height;
+  const scale = landscape
+    ? (variant === 'isometric' ? 0.7 : 0.82)
+    : (variant === 'isometric' ? 0.42 : 0.48);
 
   if (variant === 'exploded') {
     const spread = interpolate(reveal, [0, 1], [0.15, 1]);
