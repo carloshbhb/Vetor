@@ -79,8 +79,11 @@ jobs:
         run: npm install --global remotion-qa@0.1.3
       - name: Validate format, storyboard and chapter contracts
         run: |
+          node --check video/scripts/process-video.mjs
+          node --check video/scripts/render-lemo-opuscar.mjs
           node video/scripts/video-format.test.mjs
           node video/scripts/stickman-template.test.mjs
+          node video/scripts/render-engine-router.test.mjs
           cd video
           node --import tsx scripts/visual-storyboard.test.mjs
           node --import tsx scripts/shorts-safe-zone-layout.test.mjs
@@ -187,8 +190,10 @@ jobs:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}
           GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
-          VIDEO_RENDER_ENGINE: remotion
+          VIDEO_RENDER_ENGINE: auto
           HYPERFRAMES_REMOTION_FALLBACK: 'true'
+          LEMO_REMOTION_FALLBACK: 'true'
+          LEMO_OPUSCAR_HOME: ${{ runner.temp }}/vetor-lemo-opuscar
           HYPERFRAMES_BIN: hyperframes
           HYPERFRAMES_WORKERS: '2'
         run: node video/scripts/process-video.mjs

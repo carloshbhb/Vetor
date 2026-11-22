@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createVideoJob, getPendingVideos, processVideoPipeline, getVideoById, createVideoJobsFromBestSellers, getVideoQueueStats, listVideoQueue, retryFailedVideo } from '@/lib/video-orchestrator';
+import { createVideoJob, getPendingVideos, processVideoPipeline, getVideoById, createVideoJobsFromBestSellers, getVideoQueueStats, listVideoQueue, retryFailedVideo, updateVideoStatus } from '@/lib/video-orchestrator';
 import { verifyAdminAuth } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
@@ -16,6 +16,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { productUrl, scheduledAt, bestSellers } = body;
     const visualStyle = body.visualStyle === 'stickman' ? 'stickman' : 'standard';
+    const validEngines = new Set(['auto', 'remotion', 'hyperframes', 'lemo-opuscar']);
+    const renderEngine = typeof body.renderEngine === 'string' && validEngines.has(body.renderEngine) ? body.renderEngine : 'auto';
+    if (body.renderEngine !== undefined && !validEngines.has(body.renderEngine)) {
+      return NextResponse.json({ error: 'Motor de renderização inválido.' }, { status: 400 });
+    }
+    if (visualStyle === 'stickman' && !['auto', 'remotion'].includes(renderEngine)) {
+      return NextResponse.json({ error: 'O estilo Stickman é exclusivo do Remotion.' }, { status: 400 });
+    }
 
     if (bestSellers) {
       const count = await createVideoJobsFromBestSellers(bestSellers);
@@ -31,7 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid URL. Must be Amazon, Shopee, or Mercado Livre product link.' }, { status: 400 });
     }
 
-    const video = await createVideoJob({ productUrl, scheduledAt, visualStyle });
+    const video = await createVideoJob({ productUrl, scheduledAt, visualStyle, renderEngine });
     
     return NextResponse.json({
       success: true,
@@ -112,6 +120,30 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const id = typeof body.id === 'string' ? body.id : '';
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+
+    if (typeof body.renderEngine === 'string') {
+      const validEngines = new Set(['auto', 'remotion', 'hyperframes', 'lemo-opuscar']);
+      if (!validEngines.has(body.renderEngine)) {
+        return NextResponse.json({ error: 'Motor de renderização inválido.' }, { status: 400 });
+      }
+      const video = await getVideoById(id);
+      if (!video) return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+      if (!['pending', 'failed'].includes(video.status)) {
+        return NextResponse.json({ error: 'O motor só pode ser alterado enquanto o vídeo estiver na fila ou com falha.' }, { status: 409 });
+      }
+      if (Array.isArray(video.media_assets) && video.media_assets.some((item: any) => item?.type === 'visual_style' && item?.style === 'stickman') &&
+          !['auto', 'remotion'].includes(body.renderEngine)) {
+        return NextResponse.json({ error: 'O estilo Stickman é exclusivo do Remotion.' }, { status: 400 });
+      }
+      if (video.media_assets != null && !Array.isArray(video.media_assets)) {
+        return NextResponse.json({ error: 'Este vídeo tem metadados de mídia legados; não alterei os dados para evitar perda de assets.' }, { status: 409 });
+      }
+      const assets = Array.isArray(video.media_assets) ? video.media_assets.filter((item: any) => item?.type !== 'render_engine') : [];
+      if (body.renderEngine !== 'auto') assets.push({ type: 'render_engine', requested: body.renderEngine });
+      await updateVideoStatus(id, { media_assets: assets });
+      return NextResponse.json({ success: true, renderEngine: body.renderEngine });
+    }
+
     const retried = await retryFailedVideo(id);
     if (!retried) return NextResponse.json({ error: 'Failed video not found.' }, { status: 404 });
     return NextResponse.json({ success: true });

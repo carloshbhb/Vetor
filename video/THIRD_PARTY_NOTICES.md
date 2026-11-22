@@ -10,3 +10,5 @@ The production design adapts patterns into Vetor-owned components; it does not v
 - **audio-bed-check** — MIT: https://github.com/oo-pibe/audio-bed-check (evaluated; not integrated until the pipeline includes a separate licensed music bed)
 
 Remotion has its own separate license terms. The licenses above apply only to the referenced component libraries and tools. Preserve copyright, SPDX and NOTICE requirements whenever directly copying source or assets from third-party repositories.
+
+- **Lemo-Opuscar core**: optional render engine fetched on demand from [lemomo-ai/lemo-opuscar](https://github.com/lemomo-ai/lemo-opuscar). The core renderer and bundled code are MIT-licensed; the repository's Markdown style guides are CC BY-NC 4.0 with a separate permission for adapting them into the user's own commercial film projects. The initial Vetor integration uses the official core renderer with an original Vetor composition and does not redistribute the style-guide Markdown or third-party demo assets. See the upstream [LICENSE](https://github.com/lemomo-ai/lemo-opuscar/blob/main/LICENSE).

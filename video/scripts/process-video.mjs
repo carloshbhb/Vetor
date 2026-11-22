@@ -4,6 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildCaptionEntries, buildNarrationTimings, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat, stripSpokenUrls } from './video-format.mjs';
 import { renderWithHyperFrames } from '../hyperframes/render-video.mjs';
+import { resolveRenderEngine, withRenderEngineSelection } from './render-engine-router.mjs';
+import { renderWithLemoOpuscar } from './render-lemo-opuscar.mjs';
 import { researchProduct } from './research-product.mjs';
 import { resolveVisualTemplate } from './stickman-template.mjs';
 
@@ -1051,12 +1053,25 @@ async function processVideo(video) {
       brollVideos,
       totalDuration,
       fps,
+      visualStyle: script.visualStyle || script.motionStyle || "",
+      renderProfile: script.renderProfile || "",
     };
 
     const videoFileName = `video-${video.id}.mp4`;
     const videoPath = path.join(outputDir, videoFileName);
-    const configuredRenderEngine = String(process.env.VIDEO_RENDER_ENGINE || "remotion").toLowerCase();
-    const renderEngine = videoData.templateId === "stickman-review" ? "remotion" : configuredRenderEngine;
+    const selection = resolveRenderEngine({
+      mediaAssets: video.media_assets,
+      videoData,
+      defaultEngine: process.env.VIDEO_RENDER_ENGINE || "auto",
+    });
+    await updateVideoStatus(video.id, {
+      media_assets: withRenderEngineSelection(video.media_assets, selection),
+    });
+    const renderEngine = selection.engine;
+    console.log("[RENDER_ENGINE] pedido=" + selection.requestedEngine +
+      " selecionado=" + renderEngine + " modo=" + selection.mode +
+      " motivo=" + selection.reason);
+
     if (renderEngine === "hyperframes") {
       try {
         await renderWithHyperFrames({ ...videoData, id: video.id }, videoPath);
@@ -1064,14 +1079,26 @@ async function processVideo(video) {
         if (process.env.HYPERFRAMES_REMOTION_FALLBACK !== "true") throw hyperframesError;
         console.warn("[RENDER_FALLBACK] HyperFrames falhou; usando Remotion como contingência. " +
           (hyperframesError instanceof Error ? hyperframesError.message : String(hyperframesError)).slice(0, 1200));
-        processingStage = "renderização Remotion (fallback)";
+        processingStage = "renderização Remotion (fallback HyperFrames)";
+        await renderWithRemotion(videoData, videoPath);
+      }
+    } else if (renderEngine === "lemo-opuscar") {
+      try {
+        processingStage = "renderização Lemo-Opuscar";
+        const audioPath = path.resolve("video/public/tmp", "video-" + video.id + ".mp3");
+        await renderWithLemoOpuscar({ ...videoData, id: video.id }, videoPath, audioPath);
+      } catch (lemoError) {
+        if (process.env.LEMO_REMOTION_FALLBACK !== "true") throw lemoError;
+        console.warn("[RENDER_FALLBACK] Lemo-Opuscar falhou; usando Remotion como contingência. " +
+          (lemoError instanceof Error ? lemoError.message : String(lemoError)).slice(0, 1400));
+        processingStage = "renderização Remotion (fallback Lemo-Opuscar)";
         await renderWithRemotion(videoData, videoPath);
       }
     } else if (renderEngine === "remotion") {
       processingStage = "renderização Remotion";
       await renderWithRemotion(videoData, videoPath);
     } else {
-      throw new Error("VIDEO_RENDER_ENGINE inválido: " + renderEngine + ". Use remotion ou hyperframes (fallback opcional).");
+      throw new Error("Motor de renderização inválido: " + renderEngine);
     }
     processingStage = "controle de qualidade do vídeo";
     runRemotionQualityGate(videoPath, videoData.subtitleEntries, videoFormat, video.id);

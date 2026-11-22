@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 type VideoStatus = "pending" | "processing" | "completed" | "failed";
+type RenderEngine = "auto" | "remotion" | "hyperframes" | "lemo-opuscar";
 
 type VideoQueueItem = {
   id: string;
@@ -17,6 +18,7 @@ type VideoQueueItem = {
   youtube_url: string | null;
   created_at: string;
   scheduled_at: string | null;
+  media_assets?: Array<Record<string, unknown>>;
 };
 
 type VideoStats = {
@@ -26,6 +28,14 @@ type VideoStats = {
   completed: number;
   failed: number;
 };
+
+const RENDER_ENGINE_LABEL: Record<RenderEngine, string> = { auto: "Automático", remotion: "Remotion", hyperframes: "HyperFrames", "lemo-opuscar": "Lemo-Opuscar" };
+
+function getQueueRenderEngine(mediaAssets: Array<Record<string, unknown>> | undefined): RenderEngine {
+  const marker = Array.isArray(mediaAssets) ? mediaAssets.find((item) => item?.type === "render_engine") : null;
+  const value = marker?.requested;
+  return value === "remotion" || value === "hyperframes" || value === "lemo-opuscar" ? value : "auto";
+}
 
 const PAGE_SIZE = 50;
 const STATUS_LABEL: Record<VideoStatus, string> = {
@@ -64,6 +74,7 @@ export default function AdminVideosPage() {
   const [workingOn, setWorkingOn] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [visualStyle, setVisualStyle] = useState<"standard" | "stickman">("standard");
+  const [renderEngine, setRenderEngine] = useState<RenderEngine>("auto");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -126,9 +137,10 @@ export default function AdminVideosPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!newUrl.trim()) return;
-    await createVideoJobs({ productUrl: newUrl.trim(), visualStyle }, (payload) => {
+    await createVideoJobs({ productUrl: newUrl.trim(), visualStyle, renderEngine }, (payload) => {
       setNewUrl("");
       setVisualStyle("standard");
+      setRenderEngine("auto");
       const video = payload.video as { product_title?: string } | undefined;
       return `Produto adicionado à fila: ${String(video?.product_title || "vídeo agendado")}.`;
     });
@@ -154,6 +166,27 @@ export default function AdminVideosPage() {
       await loadVideos(page);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível processar o vídeo.");
+    } finally {
+      setWorkingOn("");
+    }
+  };
+
+  const updateVideoRenderEngine = async (id: string, nextEngine: RenderEngine) => {
+    setWorkingOn(id);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/video/queue", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, renderEngine: nextEngine }),
+      });
+      await readPayload(response);
+      setNotice("Motor de renderização atualizado para " + RENDER_ENGINE_LABEL[nextEngine] + ".");
+      await loadVideos(page);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível alterar o motor do vídeo.");
+      await loadVideos(page);
     } finally {
       setWorkingOn("");
     }
@@ -242,12 +275,24 @@ export default function AdminVideosPage() {
             />
             <select
               value={visualStyle}
-              onChange={(event) => setVisualStyle(event.target.value as "standard" | "stickman")}
+              onChange={(event) => { const next = event.target.value as "standard" | "stickman"; setVisualStyle(next); if (next === "stickman") setRenderEngine("remotion"); }}
               aria-label="Estilo visual do vídeo"
               className="rounded-lg border border-border bg-[var(--surface2)] px-3 py-2.5 text-sm"
             >
               <option value="standard">Visual padrão do Vetor</option>
               <option value="stickman">Stickman 2D · vídeo longo 16:9</option>
+            </select>
+            <select
+              value={renderEngine}
+              onChange={(event) => setRenderEngine(event.target.value as RenderEngine)}
+              disabled={visualStyle === "stickman"}
+              aria-label="Motor de renderização"
+              className="rounded-lg border border-border bg-[var(--surface2)] px-3 py-2.5 text-sm"
+            >
+              <option value="auto">Motor: Automático</option>
+              <option value="remotion">Remotion</option>
+              <option value="hyperframes">HyperFrames</option>
+              <option value="lemo-opuscar">Lemo-Opuscar</option>
             </select>
             <button type="submit" disabled={saving} className="rounded-lg bg-[var(--amber)] px-4 py-2.5 text-sm font-bold text-black disabled:opacity-50">
               {saving ? "Agendando…" : "Agendar produto"}
@@ -278,21 +323,22 @@ export default function AdminVideosPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[1080px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-[var(--muted)]">
                 <th className="px-5 py-3">Produto</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Criado</th>
                 <th className="px-4 py-3">Vídeo</th>
+                <th className="px-4 py-3">Motor</th>
                 <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="px-5 py-12 text-center text-[var(--muted)]">Carregando fila…</td></tr>
+                <tr><td colSpan={6} className="px-5 py-12 text-center text-[var(--muted)]">Carregando fila…</td></tr>
               ) : videos.length === 0 ? (
-                <tr><td colSpan={5} className="px-5 py-12 text-center text-[var(--muted)]">Nenhum vídeo nesta página.</td></tr>
+                <tr><td colSpan={6} className="px-5 py-12 text-center text-[var(--muted)]">Nenhum vídeo nesta página.</td></tr>
               ) : videos.map((video) => (
                 <tr key={video.id} className="border-b border-border/70 hover:bg-[var(--surface2)]">
                   <td className="px-5 py-4">
@@ -309,6 +355,20 @@ export default function AdminVideosPage() {
                   <td className="px-4 py-4 text-xs text-[var(--muted)]">{formatDate(video.created_at)}</td>
                   <td className="px-4 py-4">
                     {(video.youtube_url || video.video_url) ? <a href={video.youtube_url || video.video_url || "#"} target="_blank" rel="noopener noreferrer" className="text-[var(--amber)] hover:underline">Abrir vídeo</a> : "—"}
+                  </td>
+                  <td className="px-4 py-4">
+                    <select
+                      value={getQueueRenderEngine(video.media_assets)}
+                      onChange={(event) => void updateVideoRenderEngine(video.id, event.target.value as RenderEngine)}
+                      disabled={!!workingOn || video.status === "processing" || video.status === "completed"}
+                      aria-label={"Motor de renderização de " + video.product_title}
+                      className="max-w-[170px] rounded-lg border border-border bg-[var(--surface2)] px-2 py-2 text-xs disabled:opacity-50"
+                    >
+                      <option value="auto">Automático</option>
+                      <option value="remotion">Remotion</option>
+                      <option value="hyperframes">HyperFrames</option>
+                      <option value="lemo-opuscar">Lemo-Opuscar</option>
+                    </select>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex justify-end gap-3">

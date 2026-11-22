@@ -10,6 +10,7 @@ export interface VideoQueueInput {
   productUrl: string;
   scheduledAt?: string;
   visualStyle?: 'standard' | 'stickman';
+  renderEngine?: 'auto' | 'remotion' | 'hyperframes' | 'lemo-opuscar';
 }
 
 export interface VideoQueueItem {
@@ -73,12 +74,19 @@ export async function createVideoJob(input: VideoQueueInput): Promise<VideoQueue
       product_image_url: productData.imageUrl,
       affiliate_url: affiliateUrl,
       shortened_affiliate_url: shortenedUrl,
-      ...(input.visualStyle === 'stickman' ? {
-        media_assets: [
-          { type: 'publication_format', format: 'long' },
-          { type: 'visual_style', style: 'stickman' },
-        ],
-      } : {}),
+      ...((() => {
+        const mediaAssets: Array<Record<string, string>> = [];
+        if (input.visualStyle === 'stickman') {
+          mediaAssets.push(
+            { type: 'publication_format', format: 'long' },
+            { type: 'visual_style', style: 'stickman' },
+          );
+        }
+        if (input.renderEngine && input.renderEngine !== 'auto') {
+          mediaAssets.push({ type: 'render_engine', requested: input.renderEngine });
+        }
+        return mediaAssets.length ? { media_assets: mediaAssets } : {};
+      })()),
       status: 'pending',
       scheduled_at: input.scheduledAt || new Date().toISOString(),
     })
