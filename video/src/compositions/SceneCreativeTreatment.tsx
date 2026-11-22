@@ -113,7 +113,7 @@ const SceneTransition: React.FC<{ kind: string; accent: string }> = ({ kind, acc
       <AbsoluteFill style={common}>
         <div style={{
           position: 'absolute', inset: -160, background: 'linear-gradient(105deg,transparent 28%,' + accent + ' 48%,#FFFFFF 50%,' + accent + ' 52%,transparent 72%)',
-          transform: 'translateX(' + interpolate(frame, [0, 18], [-1300, 1300], { extrapolateRight: 'clamp' }) + 'px) skewX(-12deg)',
+          transform: 'translateX(' + interpolate(frame, [0, 18], [-width * 1.2, width * 1.2], { extrapolateRight: 'clamp' }) + 'px) skewX(-12deg)',
         }} />
       </AbsoluteFill>
     );
@@ -145,7 +145,6 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
   const { fps, width, height } = useVideoConfig();
   if (!plan) return null;
 
-  const templates = plan.templateIds || [];
   const variant = pickThreeVariant(plan);
   const threeOpacity = interpolate(frame, [0, 10, 26], [0, 0.9, 0.58], { extrapolateRight: 'clamp' });
   const entrance = spring({ frame, fps, config: { damping: 13, stiffness: 180, mass: 0.65 } });
@@ -190,7 +189,7 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
             boxShadow: '0 0 110px ' + accent + '22',
           }} />
           <div style={{
-            position: 'absolute', top: 560, bottom: 380, left: 0, right: 0,
+            position: 'absolute', top: landscape ? height * 0.12 : 560, bottom: landscape ? height * 0.1 : 380, left: 0, right: 0,
             background: 'linear-gradient(115deg,transparent 25%, ' + accent + '16 50%, transparent 72%)',
             transform: 'translateX(' + (interpolate(frame, [0, 80], [-520, 520], { extrapolateRight: 'clamp' })) + 'px)',
           }} />
