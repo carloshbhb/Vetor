@@ -52,6 +52,7 @@ function emphasisText(label: string, sceneText: string, metric: string | null) {
 
 const SceneTransition: React.FC<{ kind: string; accent: string }> = ({ kind, accent }) => {
   const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
   if (frame >= 18) return null;
   const progress = interpolate(frame, [0, 18], [0, 1], { extrapolateRight: 'clamp' });
   const fade = interpolate(frame, [0, 11, 18], [1, 0.9, 0], { extrapolateRight: 'clamp' });
@@ -74,9 +75,9 @@ const SceneTransition: React.FC<{ kind: string; accent: string }> = ({ kind, acc
       <AbsoluteFill style={common}>
         {[0, 1, 2].map((index) => (
           <div key={index} style={{
-            position: 'absolute', left: 0, right: 0, top: 650 + index * 220, height: 3,
+            position: 'absolute', left: 0, right: 0, top: height * (0.32 + index * 0.18), height: 3,
             background: accent, boxShadow: '0 0 26px ' + accent,
-            transform: 'translateX(' + interpolate(frame, [0, 8], [index % 2 ? 1100 : -1100, 0], { extrapolateRight: 'clamp' }) + 'px)',
+            transform: 'translateX(' + interpolate(frame, [0, 8], [index % 2 ? width * 1.1 : -width * 1.1, 0], { extrapolateRight: 'clamp' }) + 'px)',
           }} />
         ))}
       </AbsoluteFill>
@@ -87,7 +88,7 @@ const SceneTransition: React.FC<{ kind: string; accent: string }> = ({ kind, acc
       <AbsoluteFill style={common}>
         <div style={{
           position: 'absolute', top: 0, bottom: 0, width: 180,
-          left: interpolate(frame, [0, 18], [-180, 1080], { extrapolateRight: 'clamp' }),
+          left: interpolate(frame, [0, 18], [-180, width], { extrapolateRight: 'clamp' }),
           background: 'linear-gradient(90deg,transparent,' + accent + '66,transparent)',
           boxShadow: '0 0 65px ' + accent,
         }} />
@@ -99,9 +100,9 @@ const SceneTransition: React.FC<{ kind: string; accent: string }> = ({ kind, acc
       <AbsoluteFill style={common}>
         {[0, 1, 2, 3].map((index) => (
           <div key={index} style={{
-            position: 'absolute', left: 0, right: 0, height: 100,
-            top: 580 + index * 150, background: accent,
-            transform: 'translateX(' + interpolate(frame, [0, 10], [index % 2 ? 1080 : -1080, 0], { extrapolateRight: 'clamp' }) + 'px)',
+            position: 'absolute', left: 0, right: 0, height: height * 0.09,
+            top: height * (0.3 + index * 0.16), background: accent,
+            transform: 'translateX(' + interpolate(frame, [0, 10], [index % 2 ? width : -width, 0], { extrapolateRight: 'clamp' }) + 'px)',
           }} />
         ))}
       </AbsoluteFill>
@@ -129,7 +130,7 @@ const SceneTransition: React.FC<{ kind: string; accent: string }> = ({ kind, acc
     <AbsoluteFill style={{
       ...common,
       background: 'linear-gradient(115deg,transparent 20%,' + accent + '66 50%,transparent 80%)',
-      transform: 'translateX(' + interpolate(progress, [0, 1], [-1080, 1080]) + 'px)',
+      transform: 'translateX(' + interpolate(progress, [0, 1], [-width, width]) + 'px)',
     }} />
   );
 };
@@ -141,7 +142,7 @@ const SceneTransition: React.FC<{ kind: string; accent: string }> = ({ kind, acc
  */
 export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, sceneText, metric }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
   if (!plan) return null;
 
   const templates = plan.templateIds || [];
@@ -151,6 +152,19 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
   const titleScale = interpolate(entrance, [0, 1], [0.72, 1]);
   const titleX = interpolate(frame, [0, 14], [80, 0], { extrapolateRight: 'clamp' });
   const punch = emphasisText(label, sceneText, metric);
+  const landscape = width > height;
+  const hudBox = landscape
+    ? { left: width * 0.43, top: height * 0.18, width: width * 0.49, height: height * 0.66 }
+    : { left: 76, top: 610, width: 820, height: 620 };
+  const kineticBox = landscape
+    ? { left: width * 0.49, right: width * 0.08, top: height * 0.72 }
+    : { left: 78, right: 190, top: 1200 };
+  const editorialFrame = landscape
+    ? { left: width * 0.035, right: width * 0.075, top: height * 0.16, bottom: height * 0.13 }
+    : { left: 48, right: 190, top: 565, bottom: 385 };
+  const cinematicCircle = landscape
+    ? { left: width * 0.42 - height * 0.45, top: height * 0.05, size: height * 0.9 }
+    : { left: -260, top: 590, size: 940 };
   const showKinetic = includes(plan, 'kinetic-typography');
   const showHud = includes(plan, 'hologram-hud');
   const showCinematic = includes(plan, 'cinematic-2d');
@@ -170,7 +184,7 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
       {showCinematic ? (
         <>
           <div style={{
-            position: 'absolute', left: -260, top: 590, width: 940, height: 940, borderRadius: 940,
+            position: 'absolute', left: cinematicCircle.left, top: cinematicCircle.top, width: cinematicCircle.size, height: cinematicCircle.size, borderRadius: cinematicCircle.size,
             border: '1px solid ' + accent + '55',
             transform: 'translate(' + (Math.sin(frame / 22) * 26) + 'px,' + (Math.cos(frame / 25) * 18) + 'px) scale(' + (1 + Math.sin(frame / 34) * 0.035) + ')',
             boxShadow: '0 0 110px ' + accent + '22',
@@ -185,7 +199,7 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
 
       {showHud ? (
         <div style={{
-          position: 'absolute', left: 76, top: 610, width: 820, height: 620,
+          position: 'absolute', left: hudBox.left, top: hudBox.top, width: hudBox.width, height: hudBox.height,
           border: '1px solid ' + accent + '88',
           boxShadow: 'inset 0 0 45px ' + accent + '16, 0 0 24px ' + accent + '22',
           clipPath: 'polygon(0 0, 90% 0, 100% 10%, 100% 100%, 10% 100%, 0 90%)',
@@ -201,7 +215,7 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
 
       {showIsometric ? (
         <div style={{
-          position: 'absolute', left: 125, top: 710, width: 720, height: 410,
+          position: 'absolute', left: landscape ? width * 0.48 : 125, top: landscape ? height * 0.36 : 710, width: landscape ? width * 0.44 : 720, height: landscape ? height * 0.42 : 410,
           backgroundImage: 'linear-gradient(30deg,' + accent + '38 1px,transparent 1px),linear-gradient(150deg,' + accent + '38 1px,transparent 1px)',
           backgroundSize: '42px 24px',
           transform: 'perspective(700px) rotateX(58deg) rotateZ(-4deg)',
@@ -212,14 +226,14 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
 
       {showComparison ? (
         <>
-          <div style={{ position: 'absolute', top: 600, bottom: 400, left: '50%', width: 3, background: accent, boxShadow: '0 0 24px ' + accent }} />
-          <div style={{ position: 'absolute', top: 610, left: 'calc(50% - 48px)', width: 96, height: 48, borderRadius: 24, background: accent, color: '#080C14', textAlign: 'center', lineHeight: '48px', fontSize: 20, fontWeight: 1000 }}>VS</div>
+          <div style={{ position: 'absolute', top: landscape ? height * 0.18 : 600, bottom: landscape ? height * 0.18 : 400, left: '50%', width: 3, background: accent, boxShadow: '0 0 24px ' + accent }} />
+          <div style={{ position: 'absolute', top: landscape ? height * 0.2 : 610, left: 'calc(50% - 48px)', width: 96, height: 48, borderRadius: 24, background: accent, color: '#080C14', textAlign: 'center', lineHeight: '48px', fontSize: 20, fontWeight: 1000 }}>VS</div>
         </>
       ) : null}
 
       {showData && metric ? (
         <div style={{
-          position: 'absolute', right: 190, top: 645, padding: '12px 18px',
+          position: 'absolute', right: landscape ? width * 0.1 : 190, top: landscape ? height * 0.25 : 645, padding: '12px 18px',
           borderLeft: '3px solid ' + accent, background: '#07111DD9',
           color: accent, fontSize: 24, fontWeight: 900, letterSpacing: 2,
           transform: 'translateY(' + (Math.sin(frame / 8) * 4) + 'px)',
@@ -230,7 +244,7 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
 
       {showKinetic ? (
         <div style={{
-          position: 'absolute', left: 78, right: 190, top: 1200,
+          position: 'absolute', left: kineticBox.left, right: kineticBox.right, top: kineticBox.top,
           color: '#FFFFFF', fontSize: 64, lineHeight: 0.98, fontWeight: 1000,
           letterSpacing: -3, textTransform: 'uppercase',
           textShadow: '0 8px 36px rgba(0,0,0,.8), 0 0 30px ' + accent + '55',
@@ -243,7 +257,7 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
 
       {showEditorial ? (
         <div style={{
-          position: 'absolute', left: 48, right: 190, top: 565, bottom: 385,
+          position: 'absolute', left: editorialFrame.left, right: editorialFrame.right, top: editorialFrame.top, bottom: editorialFrame.bottom,
           borderTop: '1px solid ' + accent + '88', borderBottom: '1px solid ' + accent + '88',
           opacity: 0.48,
         }} />
