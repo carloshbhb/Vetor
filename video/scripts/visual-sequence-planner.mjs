@@ -126,8 +126,10 @@ export function planVetorSceneMixes({
       : [];
     let primary = manual || aiSuggestions[0] || direction.primary;
     const suggestedSupport = aiSuggestions.slice(1);
-    let support = [...suggestedSupport, ...direction.support]
-      .filter((id, itemIndex, all) => id !== primary && all.indexOf(id) === itemIndex);
+    let support = (aiSuggestions.length
+      ? [...suggestedSupport, ...direction.support]
+      : direction.support
+    ).filter((id, itemIndex, all) => id !== primary && all.indexOf(id) === itemIndex).slice(0, 2);
 
     // AI scene direction leads when present; heuristic direction fills missing layers.
     // Avoid consecutive repeated lead styles only when the AI did not explicitly choose one.
