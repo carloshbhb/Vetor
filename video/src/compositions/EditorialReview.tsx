@@ -58,6 +58,7 @@ export type EditorialReviewProps = {
   hookDuration?: number;
   /** Optional background music (low volume under the narration). */
   musicUrl?: string;
+  visualTemplateId?: string;
 };
 
 const colors = {
@@ -69,6 +70,31 @@ const colors = {
   blueDark: '#1428A0',
   cyan: '#70C4FF',
   amber: '#FFB85C',
+};
+
+const TEMPLATE_SKINS: Record<string, { glow: string; accent: string; pattern: string }> = {
+  "premium-product-3d": { glow: "rgba(214,178,105,.22)", accent: "#D6B269", pattern: "radial-gradient(ellipse at 50% 38%, rgba(214,178,105,.15), transparent 52%)" },
+  "exploded-teardown": { glow: "rgba(56,210,220,.2)", accent: "#38D2DC", pattern: "linear-gradient(135deg, rgba(56,210,220,.09) 1px, transparent 1px)" },
+  "hologram-hud": { glow: "rgba(90,255,225,.2)", accent: "#5AFFE1", pattern: "repeating-linear-gradient(0deg, rgba(90,255,225,.045) 0 1px, transparent 1px 44px)" },
+  "kinetic-typography": { glow: "rgba(255,73,166,.2)", accent: "#FF49A6", pattern: "radial-gradient(ellipse at 18% 78%, rgba(255,73,166,.16), transparent 48%)" },
+  "isometric-explainer": { glow: "rgba(91,205,145,.2)", accent: "#5BCD91", pattern: "linear-gradient(30deg, rgba(91,205,145,.06) 1px, transparent 1px)" },
+  "cinematic-2d": { glow: "rgba(255,151,94,.2)", accent: "#FF975E", pattern: "radial-gradient(ellipse at 78% 24%, rgba(255,151,94,.17), transparent 48%)" },
+  "lifestyle-demo": { glow: "rgba(255,194,117,.18)", accent: "#FFC275", pattern: "radial-gradient(ellipse at 22% 72%, rgba(255,194,117,.14), transparent 52%)" },
+  "data-storytelling": { glow: "rgba(89,154,255,.22)", accent: "#599AFF", pattern: "linear-gradient(90deg, rgba(89,154,255,.05) 1px, transparent 1px)" },
+  "comparison-arena": { glow: "rgba(255,82,82,.2)", accent: "#FF6868", pattern: "linear-gradient(90deg, rgba(66,133,244,.10) 0 49.5%, rgba(255,104,104,.10) 50.5% 100%)" },
+  "editorial-luxury": { glow: "rgba(224,220,205,.18)", accent: "#D8D0B8", pattern: "radial-gradient(ellipse at 50% 50%, rgba(224,220,205,.10), transparent 60%)" },
+};
+
+const TemplateAtmosphere: React.FC<{ templateId?: string }> = ({ templateId }) => {
+  const skin = TEMPLATE_SKINS[templateId || ""] || null;
+  if (!skin) return null;
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      <AbsoluteFill style={{ background: skin.pattern, opacity: 0.9 }} />
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 42%, " + skin.glow + ", transparent 58%)" }} />
+      <div style={{ position: "absolute", left: 0, top: 0, width: 9, height: "100%", background: skin.accent, opacity: 0.72 }} />
+    </AbsoluteFill>
+  );
 };
 
 const HookFrames = 3;
@@ -441,6 +467,7 @@ export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: colors.ink }}>
+      <TemplateAtmosphere templateId={props.visualTemplateId} />
       <Audio src={resolveMediaSource(props.audioUrl)} volume={0.96} />
       {props.musicUrl ? <Audio src={resolveMediaSource(props.musicUrl)} volume={0.07} loop /> : null}
       <Sequence from={0} durationInFrames={hookFrames} premountFor={fps}>
