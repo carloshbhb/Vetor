@@ -1,6 +1,7 @@
 import type { EditorialScene, EditorialSubtitle } from '../compositions/EditorialReview';
 import type { ComparisonSceneData, SubtitleEntry } from '../compositions/ComparisonVideo';
 import { resolveSceneTimings } from './timing';
+import { planVetorSceneMixes } from '../../scripts/visual-sequence-planner.mjs';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition, ensureBrowser } from '@remotion/renderer';
 import path from 'path';
@@ -53,6 +54,8 @@ interface ComparisonVideoData {
   totalDuration: number;
   fps: number;
   comparisonUrl?: string;
+  openingCreativeDirection?: import('../compositions/SceneCreativeTreatment').SceneCreativeDirection;
+  closingCreativeDirection?: import('../compositions/SceneCreativeTreatment').SceneCreativeDirection;
 }
 
 type VideoData = ReviewVideoData | ComparisonVideoData;
@@ -210,6 +213,37 @@ async function main() {
       };
     } else {
       const scenesWithFrames = calculateComparisonFrameTimings(rawData.scenes, fps, hookFrames);
+      const category = String(rawData.category || "Comparativos");
+      const images = rawData.productImages || [rawData.product1.imageUrl, rawData.product2.imageUrl];
+      const clips = Array.isArray(rawData.brollVideos) ? rawData.brollVideos : [];
+      const visualSequence = planVetorSceneMixes({
+        scenes: scenesWithFrames,
+        title: rawData.title,
+        category,
+        hasProductGallery: images.length > 2,
+        hasBroll: clips.some(Boolean),
+      });
+      const scenesWithVisualDirection = scenesWithFrames.map((scene, index) => ({
+        ...scene,
+        creativeDirection: visualSequence[index],
+      }));
+      const openingCreativeDirection = planVetorSceneMixes({
+        scenes: [{ id: "comparison-hook", text: rawData.hook, visualCue: "Duelo de abertura" }],
+        title: rawData.title,
+        category,
+        hasProductGallery: images.length > 2,
+        hasBroll: clips.some(Boolean),
+      })[0];
+      const closingCreativeDirection = planVetorSceneMixes({
+        scenes: [{ id: "comparison-verdict", text: rawData.callToAction, visualCue: "Veredito comparativo" }],
+        title: rawData.title,
+        category,
+        hasProductGallery: images.length > 2,
+        hasBroll: clips.some(Boolean),
+      })[0];
+      console.log('[Remotion] Direção criativa comparativa: ' + visualSequence.map((item, index) =>
+        'cena-' + (index + 1) + '=' + item.templateIds.join('+')
+      ).join(' | '));
       const contentFrames = scenesWithFrames.reduce((max, s) => Math.max(max, s.endFrame), hookFrames) - hookFrames;
       const verdictFrames = 5 * fps;
       const totalDuration = (hookFrames + contentFrames + verdictFrames) / fps;
@@ -223,7 +257,9 @@ async function main() {
         winner: rawData.winner,
         comparisonUrl: typeof rawData.comparisonUrl === 'string' ? rawData.comparisonUrl : 'https://www.vetor.blog/comparativos/',
         hook: rawData.hook,
-        scenes: scenesWithFrames,
+        scenes: scenesWithVisualDirection,
+        openingCreativeDirection,
+        closingCreativeDirection,
         callToAction: rawData.callToAction,
         audioUrl: rawData.audioUrl,
         subtitleEntries: rawData.subtitleEntries,
