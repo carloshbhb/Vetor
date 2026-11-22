@@ -53,9 +53,12 @@ const comparisonFallback = ensureSceneVisualDirections([
   { id: 5, type: "product2", text: "Veja a bateria e autonomia confirmadas.", visualCue: "Autonomia do segundo produto" },
   { id: 6, type: "comparison", text: "Compare os critérios e avalie o que importa para seu uso.", visualCue: "Critérios lado a lado" },
 ], { comparison: true });
-assert.equal(comparisonFallback[0]?.visualTemplates[0], "premium-product-3d");
-assert.equal(comparisonFallback[1]?.visualTemplates[0], "hologram-hud");
-assert.equal(comparisonFallback[2]?.visualTemplates[0], "comparison-arena");
+const comparisonDetail = comparisonFallback[0]!;
+const comparisonSpecs = comparisonFallback[1]!;
+const comparisonArena = comparisonFallback[2]!;
+assert.equal(comparisonDetail.visualTemplates[0], "premium-product-3d");
+assert.equal(comparisonSpecs.visualTemplates[0], "hologram-hud");
+assert.equal(comparisonArena.visualTemplates[0], "comparison-arena");
 
 const withoutBrief = buildScriptPrompt(baseProduct);
 assert.ok(withoutBrief.includes("PESQUISA SERP + YOUTUBE"), "prompt deve conter seção de pesquisa");
