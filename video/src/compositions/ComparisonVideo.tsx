@@ -20,6 +20,7 @@ import { ScoreBar } from '../components/ScoreBar';
 import { KineticCaption } from '../components/KineticCaption';
 import { COMPARISON_BROLL_STAGE } from '../utils/shorts-safe-zone';
 import { SceneCreativeTreatment, type SceneCreativeDirection } from './SceneCreativeTreatment';
+import { motionFromVisualIntent, type SceneMotionPreset } from '../utils/visual-storyboard';
 
 export interface SubtitleEntry {
   start: number;
@@ -36,6 +37,7 @@ export interface ComparisonSceneData {
   startFrame: number;
   endFrame: number;
   type: 'intro' | 'product1' | 'product2' | 'comparison' | 'verdict';
+  visualIntent?: string;
   creativeDirection?: SceneCreativeDirection;
 }
 
@@ -101,7 +103,8 @@ const ProductScene: React.FC<{
   fps: number;
   brollVideos: string[];
   sceneIndex: number;
-}> = ({ product, borderColor, scoreColor, label, currentFrame, startFrame, duration, fps, brollVideos, sceneIndex }) => {
+  motion?: SceneMotionPreset;
+}> = ({ product, borderColor, scoreColor, label, currentFrame, startFrame, duration, fps, brollVideos, sceneIndex, motion = 'push-in' }) => {
   const frameInScene = currentFrame - startFrame;
   const progress = frameInScene / (duration * fps);
   const hasScore = Number.isFinite(product.score) && product.score > 0;
@@ -119,6 +122,20 @@ const ProductScene: React.FC<{
     : 0;
 
   const slideIn = interpolate(progress, [0, 0.2], [-150, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const cameraX = motion === 'pan-left'
+    ? interpolate(progress, [0, 1], [34, -34])
+    : motion === 'pan-right'
+      ? interpolate(progress, [0, 1], [-34, 34])
+      : 0;
+  const cameraY = motion === 'float' ? Math.sin(progress * Math.PI * 2) * 12 : 0;
+  const cameraRotate = motion === 'tilt-left'
+    ? interpolate(progress, [0, 1], [1.6, -1.6])
+    : motion === 'tilt-right'
+      ? interpolate(progress, [0, 1], [-1.6, 1.6])
+      : 0;
+  const cameraScale = motion === 'push-in'
+    ? interpolate(progress, [0, 1], [0.98, 1.06])
+    : interpolate(progress, [0, 1], [1.03, 1]);
   const textProgress = spring({ fps, frame: frameInScene, config: { stiffness: 120, damping: 20 } });
   const textOpacity = interpolate(textProgress, [0, 0.1, 0.9, 1], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
@@ -152,7 +169,7 @@ const ProductScene: React.FC<{
           )}
         </div>
 
-        <div style={{ opacity: productOpacity, transform: `translateX(${slideIn}px)`, zIndex: 1, background: theme.surface, borderRadius: 32, padding: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, border: `2px solid ${borderColor}`, boxShadow: `0 20px 60px rgba(0,0,0,0.4)` }}>
+        <div style={{ opacity: productOpacity, transform: `translate(${slideIn + cameraX}px, ${cameraY}px) scale(${cameraScale}) rotate(${cameraRotate}deg)`, zIndex: 1, background: theme.surface, borderRadius: 32, padding: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, border: `2px solid ${borderColor}`, boxShadow: `0 20px 60px rgba(0,0,0,0.4)` }}>
           <AnimatedText text={label} fontSize={32} color={theme.muted} />
           <Img src={product.imageUrl} style={{ width: 350, height: 350, objectFit: 'contain', borderRadius: 24 }} />
           <div style={{ fontSize: 36, fontWeight: 'bold', color: theme.text, fontFamily: fonts.heading }}>{product.name}</div>
@@ -355,6 +372,7 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
               fps={fps}
               brollVideos={brollVideos}
               sceneIndex={scene.id}
+              motion={motionFromVisualIntent(scene.visualIntent) || 'push-in'}
             />
           )}
           {scene.type === 'product2' && (
@@ -369,6 +387,7 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
               fps={fps}
               brollVideos={brollVideos}
               sceneIndex={scene.id}
+              motion={motionFromVisualIntent(scene.visualIntent) || 'push-in'}
             />
           )}
           {scene.type === 'comparison' && (
