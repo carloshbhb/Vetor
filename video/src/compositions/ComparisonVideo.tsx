@@ -334,7 +334,7 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
         <HookScene hook={hook} product1Image={product1.imageUrl} product2Image={product2.imageUrl} />
         <SceneCreativeTreatment
           plan={openingCreativeDirection || scenes[0]?.creativeDirection}
-          accent={openingCreativeDirection?.primaryTemplate === "comparison-arena" ? "#FF6868" : "#D6B269"}
+          accent={comparisonAccent((openingCreativeDirection || scenes[0]?.creativeDirection)?.primaryTemplate)}
           label={hook}
           sceneText={hook}
           metric={null}
