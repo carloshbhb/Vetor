@@ -32,6 +32,8 @@ export type EditorialScene = {
   brollKeywords: string[];
   startFrame: number;
   endFrame: number;
+  visualIntent?: string;
+  visualTemplates?: string[];
   /** Scene-level art direction may combine several independent visual templates. */
   creativeDirection?: SceneCreativeDirection;
 };
@@ -322,6 +324,7 @@ const FeatureScene: React.FC<{
             metric={metric}
             metricLabel="ESPECIFICAÇÃO CITADA"
             accent={accent}
+            motion={visual.motion}
           />
           <BeatWipe strength={beatIndex === 0 ? 0.8 : 0.4} />
           {beat.kind === 'callout' ? <Audio src={staticFile('sfx/pop.mp3')} volume={0.5} /> : null}
