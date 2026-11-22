@@ -3,13 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { renderWithLemoOpuscar } from "./render-lemo-opuscar.mjs";
 
-const root = process.cwd();
+const root = path.resolve("video");
 const audioPath = path.join(root, "public", "tmp", "lemo-galaxy-fit3-pilot.mp3");
 const outputPath = path.join(root, "artifacts", "vetor-lemo-galaxy-fit3-motion-pilot.mp4");
 const narration = "A Galaxy Fit3 parece completa, mas tem três detalhes que você precisa saber antes de comprar. Primeiro: a tela AMOLED de 1,6 polegada é grande e fácil de ler. Segundo: a Samsung anuncia até treze dias de bateria, dependendo do uso. E ela ainda traz estrutura de alumínio, proteção IP68 e 5 ATM. Agora o ponto que muda a decisão: ela não tem GPS integrado. Para registrar o trajeto, precisa levar o celular. Também não tem NFC para pagamentos por aproximação. Então, vale a pena? Se você quer notificações, treinos e uma tela bonita gastando menos, pode fazer sentido. Se precisa de GPS independente ou pagamentos no pulso, procure outra opção. Confira a análise completa no Vetor.blog.";
 fs.mkdirSync(path.dirname(audioPath), { recursive: true });
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-execFileSync("python", ["../scripts/tts.py", narration, audioPath], { cwd: root, stdio: "inherit" });
+execFileSync("python", ["scripts/tts.py", narration, audioPath], { cwd: process.cwd(), stdio: "inherit" });
 const audioSeconds = Number(execFileSync("ffprobe", ["-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",audioPath], {encoding:"utf8"}).trim());
 if (!Number.isFinite(audioSeconds) || audioSeconds < 15) throw new Error("Edge TTS produziu uma faixa inesperadamente curta.");
 const fps = 30;
