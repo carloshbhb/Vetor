@@ -69,6 +69,12 @@ function fallbackVisualDirection(scene: Partial<VideoScene>, index: number, comp
       visualIntent: "Corte para contexto de uso ilustrativo, camadas de cenário em parallax e movimento de câmera lateral suave.",
     };
   }
+  if (/tela|display|camera|acabamento|material|construcao|design|porta|audio|microfone|bluetooth|conexao|ergonomia|sensor/.test(text)) {
+    return {
+      visualTemplates: ["premium-product-3d", "editorial-luxury", "hologram-hud"] as VideoVisualTemplateId[],
+      visualIntent: "Close macro do detalhe externo com luz de recorte, câmera faz pan lento e HUD discreto identifica apenas características confirmadas.",
+    };
+  }
   if (/veredito|vale a pena|recomend|para quem|conclus/.test(text)) {
     return {
       visualTemplates: ["editorial-luxury", "premium-product-3d", "kinetic-typography"] as VideoVisualTemplateId[],
