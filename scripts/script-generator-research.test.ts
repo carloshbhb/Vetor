@@ -12,6 +12,9 @@ const baseProduct: ProductInfo = {
 const withBrief = buildScriptPrompt({ ...baseProduct, researchBrief: "SERP mostra review do concorrente com 2M views." });
 assert.ok(withBrief.includes("PESQUISA SERP + YOUTUBE"), "prompt deve conter seção de pesquisa");
 assert.ok(withBrief.includes("SERP mostra review do concorrente com 2M views."), "prompt deve conter texto do brief");
+assert.ok(withBrief.includes("DIREÇÃO CRIATIVA POR CENA"), "prompt deve orientar a IA a dirigir cada cena");
+assert.ok(withBrief.includes("visualTemplates"), "prompt deve pedir as combinações de templates");
+assert.ok(withBrief.includes("exploded-teardown"), "prompt deve incluir o catálogo visual permitido");
 
 const withoutBrief = buildScriptPrompt(baseProduct);
 assert.ok(withoutBrief.includes("PESQUISA SERP + YOUTUBE"), "prompt deve conter seção de pesquisa");
