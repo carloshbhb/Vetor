@@ -50,6 +50,90 @@ function emphasisText(label: string, sceneText: string, metric: string | null) {
   return words.join(' ').toUpperCase();
 }
 
+const SceneTransition: React.FC<{ kind: string; accent: string }> = ({ kind, accent }) => {
+  const frame = useCurrentFrame();
+  if (frame >= 18) return null;
+  const progress = interpolate(frame, [0, 18], [0, 1], { extrapolateRight: 'clamp' });
+  const fade = interpolate(frame, [0, 11, 18], [1, 0.9, 0], { extrapolateRight: 'clamp' });
+  const common: React.CSSProperties = {
+    position: 'absolute', pointerEvents: 'none', opacity: fade,
+  };
+
+  if (kind === 'arena-slam') {
+    const left = interpolate(frame, [0, 8, 18], [-100, 0, 0], { extrapolateRight: 'clamp' });
+    const right = interpolate(frame, [0, 8, 18], [100, 0, 0], { extrapolateRight: 'clamp' });
+    return (
+      <AbsoluteFill style={common}>
+        <div style={{ position: 'absolute', inset: '0 50% 0 0', background: accent, transform: 'translateX(' + left + '%)' }} />
+        <div style={{ position: 'absolute', inset: '0 0 0 50%', background: '#080C14', borderLeft: '3px solid ' + accent, transform: 'translateX(' + right + '%)' }} />
+      </AbsoluteFill>
+    );
+  }
+  if (kind === 'component-snap') {
+    return (
+      <AbsoluteFill style={common}>
+        {[0, 1, 2].map((index) => (
+          <div key={index} style={{
+            position: 'absolute', left: 0, right: 0, top: 650 + index * 220, height: 3,
+            background: accent, boxShadow: '0 0 26px ' + accent,
+            transform: 'translateX(' + interpolate(frame, [0, 8], [index % 2 ? 1100 : -1100, 0], { extrapolateRight: 'clamp' }) + 'px)',
+          }} />
+        ))}
+      </AbsoluteFill>
+    );
+  }
+  if (kind === 'scan-reveal') {
+    return (
+      <AbsoluteFill style={common}>
+        <div style={{
+          position: 'absolute', top: 0, bottom: 0, width: 180,
+          left: interpolate(frame, [0, 18], [-180, 1080], { extrapolateRight: 'clamp' }),
+          background: 'linear-gradient(90deg,transparent,' + accent + '66,transparent)',
+          boxShadow: '0 0 65px ' + accent,
+        }} />
+      </AbsoluteFill>
+    );
+  }
+  if (kind === 'data-wipe') {
+    return (
+      <AbsoluteFill style={common}>
+        {[0, 1, 2, 3].map((index) => (
+          <div key={index} style={{
+            position: 'absolute', left: 0, right: 0, height: 100,
+            top: 580 + index * 150, background: accent,
+            transform: 'translateX(' + interpolate(frame, [0, 10], [index % 2 ? 1080 : -1080, 0], { extrapolateRight: 'clamp' }) + 'px)',
+          }} />
+        ))}
+      </AbsoluteFill>
+    );
+  }
+  if (kind === 'word-swipe' || kind === 'cinematic-wipe' || kind === 'layered-wipe') {
+    return (
+      <AbsoluteFill style={common}>
+        <div style={{
+          position: 'absolute', inset: -160, background: 'linear-gradient(105deg,transparent 28%,' + accent + ' 48%,#FFFFFF 50%,' + accent + ' 52%,transparent 72%)',
+          transform: 'translateX(' + interpolate(frame, [0, 18], [-1300, 1300], { extrapolateRight: 'clamp' }) + 'px) skewX(-12deg)',
+        }} />
+      </AbsoluteFill>
+    );
+  }
+  if (kind === 'match-cut') {
+    return (
+      <AbsoluteFill style={{
+        ...common,
+        background: 'radial-gradient(circle at 50% 50%,' + accent + ' 0%,transparent ' + interpolate(frame, [0, 18], [0, 95], { extrapolateRight: 'clamp' }) + '%)',
+      }} />
+    );
+  }
+  return (
+    <AbsoluteFill style={{
+      ...common,
+      background: 'linear-gradient(115deg,transparent 20%,' + accent + '66 50%,transparent 80%)',
+      transform: 'translateX(' + interpolate(progress, [0, 1], [-1080, 1080]) + 'px)',
+    }} />
+  );
+};
+
 /**
  * Combines the lead template with supporting visual techniques on each scene.
  * It is deliberately an overlay: the existing image gallery, real B-roll, narration,
@@ -164,6 +248,8 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
           opacity: 0.48,
         }} />
       ) : null}
+
+      <SceneTransition kind={plan.transitionIn} accent={accent} />
     </AbsoluteFill>
   );
 };
