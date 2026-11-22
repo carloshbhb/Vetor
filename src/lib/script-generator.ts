@@ -32,8 +32,8 @@ const VISUAL_TEMPLATE_SET = new Set<string>(VIDEO_VISUAL_TEMPLATE_IDS);
 
 function fallbackVisualDirection(scene: Partial<VideoScene>, index: number, comparison = false) {
   const text = [scene.visualCue, scene.text, scene.visualIntent].filter(Boolean).join(" ")
-    .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
-  if (comparison || /compar|versus|\\bvs\\b|alternativa|concorrente/.test(text)) {
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (comparison || /compar|versus|\bvs\b|alternativa|concorrente/.test(text)) {
     return {
       visualTemplates: ["comparison-arena", "data-storytelling", "kinetic-typography"] as VideoVisualTemplateId[],
       visualIntent: "Entrada dos produtos em lados opostos, enquadramento dividido e câmera com aproximação curta no momento do critério.",
@@ -57,7 +57,7 @@ function fallbackVisualDirection(scene: Partial<VideoScene>, index: number, comp
       visualIntent: "Somente componentes internos documentados se separam em camadas 3D, com rótulos técnicos e câmera orbital lenta.",
     };
   }
-  if (/bateria|autonomia|mah|armazenamento|memoria ram|\\bram\\b|\\bgb\\b|\\btb\\b|\\bhz\\b|resolucao|processador|chip/.test(text)) {
+  if (/bateria|autonomia|mah|armazenamento|memoria ram|\bram\b|\bgb\b|\btb\b|\bhz\b|resolucao|processador|chip/.test(text)) {
     return {
       visualTemplates: ["hologram-hud", "data-storytelling", "premium-product-3d"] as VideoVisualTemplateId[],
       visualIntent: "Painéis HUD aparecem ao redor do produto, dado confirmado anima em contador e a câmera faz um push-in controlado.",
@@ -201,7 +201,7 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
       scene.text.trim().split(/\s+/).length < (isLong ? 35 : 8) ||
       !Number.isFinite(scene.duration) || scene.duration < minDuration || scene.duration > maxDuration ||
       typeof scene.visualCue !== "string" || !scene.visualCue.trim() ||
-      !Array.isArray(scene.brollKeywords) ||
+      !Array.isArray(scene.brollKeywords)
     )) return false;
     const cues = parsed.scenes.map((scene: any) => scene.visualCue.trim().toLowerCase());
     if (new Set(cues).size < Math.min(6, cues.length)) return false;
@@ -335,7 +335,7 @@ export function isValidComparisonVideoScriptResponse(
       !validTypes.has(scene.type) ||
       typeof scene.visualCue !== "string" || !scene.visualCue.trim() ||
       !Array.isArray(scene.brollKeywords) ||
-      scene.brollKeywords.some((keyword: unknown) => typeof keyword !== "string" || !keyword.trim()) ||
+      scene.brollKeywords.some((keyword: unknown) => typeof keyword !== "string" || !keyword.trim())
     )) return false;
 
     const cues = parsed.scenes.map((scene: any) => scene.visualCue.trim().toLowerCase());
