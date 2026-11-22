@@ -184,6 +184,12 @@ jobs:
           remotion-qa check /tmp/vetor-review-smoke.mp4 --beats /tmp/vetor-review-smoke-beats.json --channel yt-shorts --max-dead 1 --frames /tmp/vetor-review-qa-frames --json
           remotion-qa check /tmp/vetor-landscape-smoke.mp4 --beats /tmp/vetor-landscape-smoke-beats.json --channel yt-landscape --max-dead 1 --frames /tmp/vetor-landscape-qa-frames --json
 
+      - name: Smoke-test Lemo-Opuscar renderer without publishing
+        timeout-minutes: 15
+        env:
+          LEMO_OPUSCAR_HOME: ${{ runner.temp }}/vetor-lemo-opuscar-smoke
+        run: node video/scripts/lemo-opuscar-smoke.mjs
+
       - name: Preserve Remotion render evidence on failure
         if: failure()
         uses: actions/upload-artifact@v4
