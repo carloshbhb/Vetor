@@ -90,8 +90,8 @@ export function classifyNarrativeBeat(scene = {}, index = 0) {
   if (/limitacao|ponto de atencao|ressalva|contra|nao tem|sem gps|sem nfc|incompatib|garantia/.test(text)) return "tradeoff";
   if (/compar|versus|\bvs\b|alternativa|concorrente|qual comprar/.test(text)) return "comparison";
   if (/veredito|vale a pena|recomend|para quem|conclus/.test(text)) return "verdict";
+  if (/desmont|interno|componente|placa logica|sensor interno|arquitetura interna/.test(text)) return "teardown";
   if (/bateria|autonomia|mah|armazenamento|memoria ram|\bram\b|\bgb\b|\btb\b|\bhz\b|\bmp\b|\bw\b|\bghz\b|\bmhz\b|resolucao|\b2\.\d+k\b|processador|chip/.test(text)) return "specification";
-  if (/desmont|interno|componente|chip|processador|placa logica|sensor interno|arquitetura interna/.test(text)) return "teardown";
   if (/tela|display|camera|acabamento|material|construcao|design|porta|audio|microfone|bluetooth|conexao|ergonomia|sensor/.test(text)) return "detail";
   if (/rotina|dia a dia|estudo|trabalho|jogo|jogos|assistir|mobilidade|portatil|conforto|uso real|viagem|cozinha|treino/.test(text)) return "lifestyle";
   if (index === 0) return "hook";
