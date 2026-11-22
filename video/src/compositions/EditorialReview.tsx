@@ -62,6 +62,8 @@ export type EditorialReviewProps = {
   /** Optional background music (low volume under the narration). */
   musicUrl?: string;
   visualTemplateId?: string;
+  openingCreativeDirection?: SceneCreativeDirection;
+  closingCreativeDirection?: SceneCreativeDirection;
 };
 
 const colors = {
@@ -500,6 +502,13 @@ export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {
       {props.musicUrl ? <Audio src={resolveMediaSource(props.musicUrl)} volume={0.07} loop /> : null}
       <Sequence from={0} durationInFrames={hookFrames} premountFor={fps}>
         <OpeningScene title={props.title} category={props.category} hook={props.hook} imageUrl={image} />
+        <SceneCreativeTreatment
+          plan={props.openingCreativeDirection || props.scenes[0]?.creativeDirection}
+          accent={SCENE_TEMPLATE_ACCENTS[(props.openingCreativeDirection || props.scenes[0]?.creativeDirection)?.primaryTemplate || ""] || colors.cyan}
+          label={props.hook}
+          sceneText={props.hook}
+          metric={null}
+        />
       </Sequence>
       {props.scenes.map((scene, index) => {
         // Each scene leads with a different photo so consecutive scenes do not look alike.
@@ -527,6 +536,13 @@ export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {
       })}
       <Sequence from={scenesEndFrame} durationInFrames={closingDuration} premountFor={fps}>
         <ClosingScene title={props.title} score={props.score} callToAction={props.callToAction} imageUrl={image} />
+        <SceneCreativeTreatment
+          plan={props.closingCreativeDirection}
+          accent={SCENE_TEMPLATE_ACCENTS[props.closingCreativeDirection?.primaryTemplate || ""] || colors.cyan}
+          label="VEREDITO FINAL"
+          sceneText={props.callToAction}
+          metric={null}
+        />
       </Sequence>
       <SubtitleOverlay entries={props.subtitleEntries} frame={frame} fps={fps} />
     </AbsoluteFill>
