@@ -1,0 +1,37 @@
+import assert from "node:assert/strict";
+import { planVetorSceneMixes, classifyNarrativeBeat } from "./visual-sequence-planner.mjs";
+
+const scenes = [
+  { id: 1, text: "Veja o Redmi Pad 2 Pro em destaque", visualCue: "Revelação do produto" },
+  { id: 2, text: "Tela de 12,1 polegadas e resolução 2,5K", visualCue: "Especificações" },
+  { id: 3, text: "Bateria de 12.000 mAh", visualCue: "Autonomia" },
+  { id: 4, text: "Assista, estude e trabalhe em qualquer lugar", visualCue: "Rotina e uso real" },
+  { id: 5, text: "A tela é LCD, não AMOLED", visualCue: "Ponto de atenção" },
+  { id: 6, text: "Confira o preço e compare alternativas", visualCue: "Preço e comparação" },
+];
+
+assert.equal(classifyNarrativeBeat(scenes[1]), "specification");
+assert.equal(classifyNarrativeBeat(scenes[3]), "lifestyle");
+assert.equal(classifyNarrativeBeat(scenes[4]), "tradeoff");
+
+const plan = planVetorSceneMixes({
+  scenes,
+  title: "Redmi Pad 2 Pro",
+  category: "Tablets",
+  hasProductGallery: true,
+  hasBroll: true,
+});
+assert.equal(plan.length, scenes.length);
+assert.ok(plan.every((item) => item.templateIds.length >= 2));
+assert.ok(plan.every((item) => item.visualLayers.length >= 6));
+assert.ok(plan.some((item) => item.primaryTemplate === "hologram-hud"));
+assert.ok(plan.some((item) => item.primaryTemplate === "lifestyle-demo"));
+assert.ok(plan.some((item) => item.primaryTemplate === "kinetic-typography"));
+assert.equal(plan[0].assets.realProductImage, true);
+assert.equal(plan[3].assets.lifestyleFootage, true);
+
+const manual = planVetorSceneMixes({ scenes, manualTemplateId: "editorial-luxury" });
+assert.ok(manual.every((item) => item.primaryTemplate === "editorial-luxury"));
+assert.ok(manual.every((item) => item.supportTemplates.length >= 1));
+
+console.log("[visual-sequence-planner] semantic scene direction, mixed styles, manual override and asset-awareness passed.");
