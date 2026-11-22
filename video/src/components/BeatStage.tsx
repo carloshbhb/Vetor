@@ -9,7 +9,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import type { SceneBeat } from '../utils/visual-storyboard';
+import type { SceneBeat, SceneMotionPreset } from '../utils/visual-storyboard';
 import { fonts } from '../styles/fonts';
 import { resolveMediaSource } from '../utils/media-source';
 import { SHORTS_STAGE } from '../utils/shorts-safe-zone';
@@ -33,6 +33,7 @@ type BeatStageProps = {
   metric: string | null;
   metricLabel: string;
   accent: string;
+  motion: SceneMotionPreset;
 };
 
 const ease = Easing.bezier(0.2, 0.8, 0.2, 1);
@@ -65,7 +66,7 @@ const ProductBox: React.FC<{
   />
 );
 
-export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, metric, metricLabel, accent }) => {
+export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, metric, metricLabel, accent, motion }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const length = Math.max(1, beat.endFrame - beat.startFrame);
@@ -75,6 +76,21 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
   // Overshooting spring: the product "lands" instead of just fading in.
   const land = spring({ frame, fps, durationInFrames: 16, config: { damping: 13, stiffness: 170, mass: 0.7 } });
   const slide = interpolate(frame, [0, 12], [0, 1], { easing: ease, extrapolateRight: 'clamp' });
+  // AI visualIntent drives the real product-camera move, not just a text label.
+  const cameraX = motion === 'pan-left'
+    ? interpolate(progress, [0, 1], [24, -24])
+    : motion === 'pan-right'
+      ? interpolate(progress, [0, 1], [-24, 24])
+      : 0;
+  const cameraY = motion === 'float' ? Math.sin(progress * Math.PI * 2) * 12 : 0;
+  const cameraRotate = motion === 'tilt-left'
+    ? interpolate(progress, [0, 1], [1.8, -1.8])
+    : motion === 'tilt-right'
+      ? interpolate(progress, [0, 1], [-1.8, 1.8])
+      : 0;
+  const cameraScale = motion === 'push-in'
+    ? interpolate(progress, [0, 1], [1, 1.075])
+    : interpolate(progress, [0, 1], [1.025, 1]);
 
   if (beat.kind === 'detail') {
     // Macro push-in towards a point of the product.
@@ -98,7 +114,10 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
         <ProductBox
           src={main}
           box={{ left: 0, top: 0, width: STAGE.width, height: STAGE.height }}
-          scale={zoom}
+          scale={zoom * cameraScale}
+          x={cameraX}
+          y={cameraY}
+          rotate={cameraRotate}
           originX={beat.focusX}
           originY={beat.focusY}
           opacity={interpolate(frame, [0, 5], [0, 1], { extrapolateRight: 'clamp' })}
@@ -113,8 +132,10 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
     return (
       <ProductBox
         src={src}
-        scale={interpolate(slide, [0, 1], [0.92, 1]) * interpolate(progress, [0, 1], [1.0, 1.03])}
-        rotate={interpolate(slide, [0, 1], [-1.5, 0])}
+        scale={interpolate(slide, [0, 1], [0.92, 1]) * interpolate(progress, [0, 1], [1.0, 1.03]) * cameraScale}
+        x={cameraX}
+        y={cameraY}
+        rotate={interpolate(slide, [0, 1], [-1.5, 0]) + cameraRotate}
         opacity={interpolate(frame, [0, 6], [0, 1], { extrapolateRight: 'clamp' })}
       />
     );
@@ -127,8 +148,10 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
       <>
         <ProductBox
           src={main}
-          scale={interpolate(progress, [0, 1], [0.72, 0.78])}
-          y={72}
+          scale={interpolate(progress, [0, 1], [0.72, 0.78]) * cameraScale}
+          x={cameraX}
+          y={72 + cameraY}
+          rotate={cameraRotate}
           opacity={interpolate(frame, [0, 6], [0, 0.92], { extrapolateRight: 'clamp' })}
         />
         <div
@@ -207,8 +230,10 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
         <ProductBox
           src={main}
           box={{ left: 90, top: 700, width: 520, height: 420 }}
-          scale={interpolate(land, [0, 1], [0.7, 1])}
-          y={interpolate(progress, [0, 1], [0, -16])}
+          scale={interpolate(land, [0, 1], [0.7, 1]) * cameraScale}
+          x={cameraX}
+          y={interpolate(progress, [0, 1], [0, -16]) + cameraY}
+          rotate={cameraRotate}
         />
       </>
     );
@@ -218,8 +243,10 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
   return (
     <ProductBox
       src={main}
-      scale={interpolate(land, [0, 1], [1.03, 1]) * interpolate(progress, [0, 1], [1, 1.01])}
-      y={Math.sin(progress * Math.PI) * -10}
+      scale={interpolate(land, [0, 1], [1.03, 1]) * interpolate(progress, [0, 1], [1, 1.01]) * cameraScale}
+      x={cameraX}
+      y={Math.sin(progress * Math.PI) * -10 + cameraY}
+      rotate={cameraRotate}
     />
   );
 };
