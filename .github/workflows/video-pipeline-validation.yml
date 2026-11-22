@@ -87,6 +87,7 @@ jobs:
           node --check video/scripts/render-lemo-opuscar.mjs
           node --check video/scripts/render-engine-router.mjs
           node --check video/scripts/visual-template-registry.mjs
+          node --check video/scripts/render-ten-style-pilot.mjs
           node video/scripts/render-engine-router.test.mjs
           node video/scripts/visual-template-registry.test.mjs
 
@@ -105,7 +106,7 @@ jobs:
           set -euo pipefail
           ids="$(npx remotion compositions src/Root.tsx --quiet)"
           echo "Detected Remotion compositions: $ids"
-          for expected in ReviewVideo LongReviewVideo ComparisonVideo; do
+          for expected in ReviewVideo LongReviewVideo ComparisonVideo TemplateShowcase; do
             if ! grep -qw "$expected" <<< "$ids"; then
               echo "::error::Missing Remotion composition: $expected"
               exit 1
@@ -195,6 +196,20 @@ jobs:
 
       - name: Install Edge TTS for Lemo quality pilot
         run: python -m pip install --disable-pip-version-check edge-tts
+
+      - name: Render ten-style Remotion showcase (no publishing)
+        working-directory: video
+        timeout-minutes: 20
+        run: node scripts/render-ten-style-pilot.mjs
+
+      - name: Upload ten-style showcase pilot
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vetor-10-estilos-motion-pilot
+          path: video/artifacts/vetor-10-estilos-motion-pilot.mp4
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Render Galaxy Fit3 motion-graphics pilot with Lemo-Opuscar
         timeout-minutes: 20
