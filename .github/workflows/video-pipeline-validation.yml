@@ -135,10 +135,48 @@ jobs:
             "score": 8.5,
             "category": "Tecnologia",
             "visualTemplateId": "hologram-hud",
+            "openingCreativeDirection": {
+              "sceneId": "smoke-hook",
+              "narrativeBeat": "hook",
+              "primaryTemplate": "premium-product-3d",
+              "supportTemplates": ["kinetic-typography", "cinematic-2d"],
+              "templateIds": ["premium-product-3d", "kinetic-typography", "cinematic-2d"],
+              "templateNames": ["Premium Product 3D", "Kinetic Typography", "Cinematic 2D"],
+              "transitionIn": "cinematic-wipe",
+              "energy": "high",
+              "rhythmSeconds": 1.8,
+              "visualLayers": ["three-orbit", "kinetic-type", "2d-parallax"],
+              "assets": {"realProductImage": true, "galleryCutaway": false, "lifestyleFootage": false, "brollAvailable": false, "dataMustComeFromScene": true},
+              "artDirection": "CI smoke: hook with 3D, kinetic typography and parallax"
+            },
+            "closingCreativeDirection": {
+              "sceneId": "smoke-close",
+              "narrativeBeat": "verdict",
+              "primaryTemplate": "editorial-luxury",
+              "supportTemplates": ["premium-product-3d", "kinetic-typography"],
+              "templateIds": ["editorial-luxury", "premium-product-3d", "kinetic-typography"],
+              "templateNames": ["Editorial Luxury", "Premium Product 3D", "Kinetic Typography"],
+              "transitionIn": "soft-cut",
+              "energy": "medium",
+              "rhythmSeconds": 2.5,
+              "visualLayers": ["editorial-frame", "three-orbit", "kinetic-type"],
+              "assets": {"realProductImage": true, "galleryCutaway": false, "lifestyleFootage": false, "brollAvailable": false, "dataMustComeFromScene": true},
+              "artDirection": "CI smoke: restrained verdict with product hero and kinetic accent"
+            },
             "hook": "O detalhe que muda a decisão",
             "hookDuration": 1,
             "scenes": [
-              {"id": 1, "text": "Tela e desempenho para o uso cotidiano.", "duration": 4, "visualCue": "Tela e desempenho", "brollKeywords": [], "startFrame": 30, "endFrame": 150}
+              {"id": 1, "text": "Tela e desempenho para o uso cotidiano.", "duration": 4, "visualCue": "Tela e desempenho", "brollKeywords": [], "startFrame": 30, "endFrame": 150,
+                "creativeDirection": {
+                  "sceneId": 1, "narrativeBeat": "specification", "primaryTemplate": "hologram-hud",
+                  "supportTemplates": ["data-storytelling", "premium-product-3d"],
+                  "templateIds": ["hologram-hud", "data-storytelling", "premium-product-3d"],
+                  "templateNames": ["Hologram HUD", "Data Storytelling", "Premium Product 3D"],
+                  "transitionIn": "scan-reveal", "energy": "medium", "rhythmSeconds": 2.5,
+                  "visualLayers": ["hud-scan", "animated-metric", "three-orbit"],
+                  "assets": {"realProductImage": true, "galleryCutaway": false, "lifestyleFootage": false, "brollAvailable": true, "dataMustComeFromScene": true},
+                  "artDirection": "CI smoke: verified product image with HUD and data overlay"
+                }}
             ],
             "callToAction": "Confira a análise completa.",
             "subtitleEntries": [{"start": 1, "end": 5, "text": "Tela e desempenho para o uso cotidiano.", "segmentKind": "scene"}],
@@ -155,10 +193,48 @@ jobs:
             "audioUrl": "/audio/sample-review.mp3",
             "score": 8.5,
             "category": "Tecnologia",
+            "openingCreativeDirection": {
+              "sceneId": "smoke-hook",
+              "narrativeBeat": "hook",
+              "primaryTemplate": "premium-product-3d",
+              "supportTemplates": ["kinetic-typography", "cinematic-2d"],
+              "templateIds": ["premium-product-3d", "kinetic-typography", "cinematic-2d"],
+              "templateNames": ["Premium Product 3D", "Kinetic Typography", "Cinematic 2D"],
+              "transitionIn": "cinematic-wipe",
+              "energy": "high",
+              "rhythmSeconds": 1.8,
+              "visualLayers": ["three-orbit", "kinetic-type", "2d-parallax"],
+              "assets": {"realProductImage": true, "galleryCutaway": false, "lifestyleFootage": false, "brollAvailable": false, "dataMustComeFromScene": true},
+              "artDirection": "CI smoke: hook with 3D, kinetic typography and parallax"
+            },
+            "closingCreativeDirection": {
+              "sceneId": "smoke-close",
+              "narrativeBeat": "verdict",
+              "primaryTemplate": "editorial-luxury",
+              "supportTemplates": ["premium-product-3d", "kinetic-typography"],
+              "templateIds": ["editorial-luxury", "premium-product-3d", "kinetic-typography"],
+              "templateNames": ["Editorial Luxury", "Premium Product 3D", "Kinetic Typography"],
+              "transitionIn": "soft-cut",
+              "energy": "medium",
+              "rhythmSeconds": 2.5,
+              "visualLayers": ["editorial-frame", "three-orbit", "kinetic-type"],
+              "assets": {"realProductImage": true, "galleryCutaway": false, "lifestyleFootage": false, "brollAvailable": false, "dataMustComeFromScene": true},
+              "artDirection": "CI smoke: restrained verdict with product hero and kinetic accent"
+            },
             "hook": "O detalhe que muda a decisão",
             "hookDuration": 2,
             "scenes": [
-              {"id": 1, "text": "Tela ampla e autonomia para a rotina. Compare as especificações e limitações com seu perfil de uso antes de decidir.", "duration": 9, "visualCue": "Tela e desempenho", "brollKeywords": [], "startFrame": 60, "endFrame": 330}
+              {"id": 1, "text": "Tela ampla e autonomia para a rotina. Compare as especificações e limitações com seu perfil de uso antes de decidir.", "duration": 9, "visualCue": "Tela e desempenho", "brollKeywords": [], "startFrame": 60, "endFrame": 330,
+                "creativeDirection": {
+                  "sceneId": 1, "narrativeBeat": "specification", "primaryTemplate": "hologram-hud",
+                  "supportTemplates": ["data-storytelling", "premium-product-3d"],
+                  "templateIds": ["hologram-hud", "data-storytelling", "premium-product-3d"],
+                  "templateNames": ["Hologram HUD", "Data Storytelling", "Premium Product 3D"],
+                  "transitionIn": "scan-reveal", "energy": "medium", "rhythmSeconds": 2.5,
+                  "visualLayers": ["hud-scan", "animated-metric", "three-orbit"],
+                  "assets": {"realProductImage": true, "galleryCutaway": false, "lifestyleFootage": false, "brollAvailable": true, "dataMustComeFromScene": true},
+                  "artDirection": "CI smoke: verified product image with HUD and data overlay"
+                }}
             ],
             "callToAction": "Confira a análise completa.",
             "subtitleEntries": [{"start": 2, "end": 11, "text": "Tela ampla e autonomia para a rotina. Compare as especificações e limitações com seu perfil de uso antes de decidir.", "segmentKind": "scene"}],
