@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { resolveRenderEngine } from "./render-engine-router.mjs";
+import { resolveRenderEngine, shouldFallbackToRemotion } from "./render-engine-router.mjs";
 
 const manual = resolveRenderEngine({
   mediaAssets: [{ type: "render_engine", requested: "hyperframes" }],
@@ -51,3 +51,7 @@ assert.throws(() => resolveRenderEngine({
 }), /exclusivo do Remotion/);
 
 console.log("multi-render engine routing tests passed");
+
+assert.equal(shouldFallbackToRemotion({ mode: "automatic" }, "false"), true);
+assert.equal(shouldFallbackToRemotion({ mode: "manual" }, "false"), false);
+assert.equal(shouldFallbackToRemotion({ mode: "manual" }, "true"), true);
