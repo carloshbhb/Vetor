@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildCaptionEntries, buildNarrationTimings, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat, stripSpokenUrls } from './video-format.mjs';
 import { renderWithHyperFrames } from '../hyperframes/render-video.mjs';
-import { resolveRenderEngine, withRenderEngineSelection } from './render-engine-router.mjs';
+import { resolveRenderEngine, withRenderEngineSelection, shouldFallbackToRemotion } from './render-engine-router.mjs';
 import { renderWithLemoOpuscar } from './render-lemo-opuscar.mjs';
 import { researchProduct } from './research-product.mjs';
 import { resolveVisualTemplate } from './stickman-template.mjs';
@@ -1076,7 +1076,7 @@ async function processVideo(video) {
       try {
         await renderWithHyperFrames({ ...videoData, id: video.id }, videoPath);
       } catch (hyperframesError) {
-        if (process.env.HYPERFRAMES_REMOTION_FALLBACK !== "true") throw hyperframesError;
+        if (!shouldFallbackToRemotion(selection, process.env.HYPERFRAMES_REMOTION_FALLBACK)) throw hyperframesError;
         console.warn("[RENDER_FALLBACK] HyperFrames falhou; usando Remotion como contingência. " +
           (hyperframesError instanceof Error ? hyperframesError.message : String(hyperframesError)).slice(0, 1200));
         processingStage = "renderização Remotion (fallback HyperFrames)";
@@ -1088,7 +1088,7 @@ async function processVideo(video) {
         const audioPath = path.resolve("video/public/tmp", "video-" + video.id + ".mp3");
         await renderWithLemoOpuscar({ ...videoData, id: video.id }, videoPath, audioPath);
       } catch (lemoError) {
-        if (process.env.LEMO_REMOTION_FALLBACK !== "true") throw lemoError;
+        if (!shouldFallbackToRemotion(selection, process.env.LEMO_REMOTION_FALLBACK)) throw lemoError;
         console.warn("[RENDER_FALLBACK] Lemo-Opuscar falhou; usando Remotion como contingência. " +
           (lemoError instanceof Error ? lemoError.message : String(lemoError)).slice(0, 1400));
         processingStage = "renderização Remotion (fallback Lemo-Opuscar)";
