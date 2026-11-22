@@ -31,27 +31,31 @@ const fallbackDirection = ensureSceneVisualDirections([{
   text: "Bateria de 12.000 mAh",
   visualCue: "Autonomia",
 }]);
-assert.equal(fallbackDirection[0].visualTemplates[0], "hologram-hud");
-assert.ok(fallbackDirection[0].visualTemplates.length >= 2);
-assert.match(fallbackDirection[0].visualIntent, /HUD|dado confirmado/i);
+const fallbackScene = fallbackDirection[0];
+assert.ok(fallbackScene);
+assert.equal(fallbackScene.visualTemplates[0], "hologram-hud");
+assert.ok(fallbackScene.visualTemplates.length >= 2);
+assert.match(fallbackScene.visualIntent, /HUD|dado confirmado/i);
 
 const invalidDirection = ensureSceneVisualDirections([{
   id: 3,
   text: "Uso para estudo e trabalho",
   visualCue: "Rotina",
-  visualTemplates: ["invented-template", "also-invalid"],
+  visualTemplates: ["invented-template", "also-invalid"] as any,
 }]);
-assert.equal(invalidDirection[0].visualTemplates[0], "lifestyle-demo");
-assert.equal(invalidDirection[0].visualTemplates.length, 3);
+const invalidScene = invalidDirection[0];
+assert.ok(invalidScene);
+assert.equal(invalidScene.visualTemplates[0], "lifestyle-demo");
+assert.equal(invalidScene.visualTemplates.length, 3);
 
 const comparisonFallback = ensureSceneVisualDirections([
   { id: 4, type: "product1", text: "Confira a tela e o acabamento externo.", visualCue: "Detalhes do primeiro produto" },
   { id: 5, type: "product2", text: "Veja a bateria e autonomia confirmadas.", visualCue: "Autonomia do segundo produto" },
   { id: 6, type: "comparison", text: "Compare os critérios e avalie o que importa para seu uso.", visualCue: "Critérios lado a lado" },
 ], { comparison: true });
-assert.equal(comparisonFallback[0].visualTemplates[0], "premium-product-3d");
-assert.equal(comparisonFallback[1].visualTemplates[0], "hologram-hud");
-assert.equal(comparisonFallback[2].visualTemplates[0], "comparison-arena");
+assert.equal(comparisonFallback[0]?.visualTemplates[0], "premium-product-3d");
+assert.equal(comparisonFallback[1]?.visualTemplates[0], "hologram-hud");
+assert.equal(comparisonFallback[2]?.visualTemplates[0], "comparison-arena");
 
 const withoutBrief = buildScriptPrompt(baseProduct);
 assert.ok(withoutBrief.includes("PESQUISA SERP + YOUTUBE"), "prompt deve conter seção de pesquisa");
