@@ -32,6 +32,25 @@ assert.ok(plan.some((item) => item.primaryTemplate === "kinetic-typography"));
 assert.equal(plan[0].assets.realProductImage, true);
 assert.equal(plan[3].assets.lifestyleFootage, true);
 
+const aiDirected = planVetorSceneMixes({
+  scenes: [{
+    id: 99,
+    text: "Tela com dados técnicos",
+    visualIntent: "Orbit de câmera no produto com painéis holográficos",
+    visualTemplates: ["hologram-hud", "premium-product-3d", "kinetic-typography"],
+  }],
+});
+assert.equal(aiDirected[0].primaryTemplate, "hologram-hud");
+assert.deepEqual(aiDirected[0].supportTemplates, ["premium-product-3d", "kinetic-typography"]);
+assert.equal(aiDirected[0].directionSource, "ai-scene-direction");
+assert.match(aiDirected[0].artDirection, /Orbit de câmera/);
+
+const invalidAI = planVetorSceneMixes({
+  scenes: [{ id: 100, text: "Cena comum", visualTemplates: ["invented-style", "hud"] }],
+});
+assert.equal(invalidAI[0].primaryTemplate, "cinematic-2d");
+assert.equal(invalidAI[0].directionSource, "narrative-rules");
+
 const manual = planVetorSceneMixes({ scenes, manualTemplateId: "editorial-luxury" });
 assert.ok(manual.every((item) => item.primaryTemplate === "editorial-luxury"));
 assert.ok(manual.every((item) => item.supportTemplates.length >= 1));
