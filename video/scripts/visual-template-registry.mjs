@@ -15,6 +15,7 @@ export const VETOR_VISUAL_TEMPLATES = Object.freeze([
     motion: "slow-orbit",
     transition: "cinematic-wipe",
     renderer: "remotion",
+    capabilities: ["three-orbit", "macro-camera", "light-sweep", "product-hero"],
     priority: 100,
   },
   {
@@ -27,6 +28,7 @@ export const VETOR_VISUAL_TEMPLATES = Object.freeze([
     motion: "layer-separation",
     transition: "component-snap",
     renderer: "remotion",
+    capabilities: ["three-exploded", "component-callouts", "layer-reassembly"],
     priority: 95,
   },
   {
@@ -39,6 +41,7 @@ export const VETOR_VISUAL_TEMPLATES = Object.freeze([
     motion: "hud-orbit",
     transition: "scan-reveal",
     renderer: "remotion",
+    capabilities: ["hud-scan", "orbit-callouts", "spec-pulse"],
     priority: 90,
   },
   {
@@ -51,6 +54,7 @@ export const VETOR_VISUAL_TEMPLATES = Object.freeze([
     motion: "type-punch",
     transition: "word-swipe",
     renderer: "remotion",
+    capabilities: ["kinetic-type", "word-punch", "impact-cut"],
     priority: 88,
   },
   {
@@ -63,6 +67,7 @@ export const VETOR_VISUAL_TEMPLATES = Object.freeze([
     motion: "isometric-pan",
     transition: "diagram-build",
     renderer: "remotion",
+    capabilities: ["isometric-grid", "node-connectors", "diagram-build"],
     priority: 86,
   },
   {
@@ -75,6 +80,7 @@ export const VETOR_VISUAL_TEMPLATES = Object.freeze([
     motion: "2d-parallax",
     transition: "layered-wipe",
     renderer: "remotion",
+    capabilities: ["2d-parallax", "layered-reveal", "cinematic-light"],
     priority: 84,
   },
   {
@@ -87,6 +93,7 @@ export const VETOR_VISUAL_TEMPLATES = Object.freeze([
     motion: "handheld-drift",
     transition: "match-cut",
     renderer: "remotion",
+    capabilities: ["lifestyle-broll", "match-cut", "picture-in-picture"],
     priority: 82,
   },
   {
@@ -99,6 +106,7 @@ export const VETOR_VISUAL_TEMPLATES = Object.freeze([
     motion: "chart-build",
     transition: "data-wipe",
     renderer: "remotion",
+    capabilities: ["animated-metric", "data-viz", "number-counter"],
     priority: 92,
   },
   {
@@ -111,6 +119,7 @@ export const VETOR_VISUAL_TEMPLATES = Object.freeze([
     motion: "split-screen-impact",
     transition: "arena-slam",
     renderer: "remotion",
+    capabilities: ["split-screen", "scoreboard", "arena-impact"],
     priority: 98,
   },
   {
@@ -123,6 +132,7 @@ export const VETOR_VISUAL_TEMPLATES = Object.freeze([
     motion: "editorial-drift",
     transition: "soft-cut",
     renderer: "remotion",
+    capabilities: ["editorial-frame", "negative-space", "slow-drift"],
     priority: 80,
   },
 ]);
