@@ -1,6 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { ThreeMotionGraphicsScene, type ThreeMotionVariant } from '../motion-graphics/ThreeMotionGraphicsScene';
+import { SHORTS_SAFE_ZONE } from '../utils/shorts-safe-zone';
 
 export type SceneCreativeDirection = {
   sceneId: string | number;
@@ -172,8 +173,15 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
   const showIsometric = includes(plan, 'isometric-explainer');
   const showData = includes(plan, 'data-storytelling');
 
+  const safeOverlay = landscape
+    ? undefined
+    : 'inset(' + SHORTS_SAFE_ZONE.top + 'px ' +
+      (width - SHORTS_SAFE_ZONE.right) + 'px ' +
+      (height - SHORTS_SAFE_ZONE.bottom) + 'px ' +
+      SHORTS_SAFE_ZONE.left + 'px)';
+
   return (
-    <AbsoluteFill style={{ pointerEvents: 'none', overflow: 'hidden' }}>
+    <AbsoluteFill style={{ pointerEvents: 'none', overflow: 'hidden', clipPath: safeOverlay }}>
       {variant ? (
         <AbsoluteFill style={{ opacity: threeOpacity }}>
           <ThreeMotionGraphicsScene variant={variant} accentColor={accent} />
