@@ -190,6 +190,26 @@ jobs:
           LEMO_OPUSCAR_HOME: ${{ runner.temp }}/vetor-lemo-opuscar-smoke
         run: node video/scripts/lemo-opuscar-smoke.mjs
 
+      - name: Install Edge TTS for Lemo quality pilot
+        run: python -m pip install --disable-pip-version-check edge-tts
+
+      - name: Render Galaxy Fit3 motion-graphics pilot with Lemo-Opuscar
+        working-directory: video
+        timeout-minutes: 20
+        env:
+          LEMO_OPUSCAR_HOME: ${{ runner.temp }}/vetor-lemo-opuscar-smoke
+          EDGE_TTS_RATE: "+8%"
+        run: node scripts/render-lemo-galaxy-fit3-pilot.mjs
+
+      - name: Upload Lemo-Opuscar quality pilot (no YouTube publishing)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vetor-lemo-opuscar-galaxy-fit3-pilot
+          path: video/artifacts/vetor-lemo-galaxy-fit3-motion-pilot.mp4
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Preserve Remotion render evidence on failure
         if: failure()
         uses: actions/upload-artifact@v4
