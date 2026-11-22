@@ -32,6 +32,8 @@ interface ReviewVideoData {
   reviewUrl?: string;
   musicUrl?: string;
   visualTemplateId?: string;
+  openingCreativeDirection?: import('../compositions/SceneCreativeTreatment').SceneCreativeDirection;
+  closingCreativeDirection?: import('../compositions/SceneCreativeTreatment').SceneCreativeDirection;
 }
 
 interface ComparisonVideoData {
@@ -187,6 +189,8 @@ async function main() {
         type,
         templateId: typeof rawData.templateId === 'string' ? rawData.templateId : undefined,
         visualTemplateId: typeof rawData.visualTemplateId === 'string' ? rawData.visualTemplateId : undefined,
+        openingCreativeDirection: rawData.openingCreativeDirection,
+        closingCreativeDirection: rawData.closingCreativeDirection,
         title: rawData.title,
         imageUrl: rawData.imageUrl,
         score: rawData.score,
