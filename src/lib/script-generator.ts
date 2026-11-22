@@ -93,7 +93,11 @@ export function ensureSceneVisualDirections<T extends Partial<VideoScene>>(
   options: { comparison?: boolean } = {},
 ): Array<T & Pick<VideoScene, "visualIntent" | "visualTemplates">> {
   return scenes.map((scene, index) => {
-    const fallback = fallbackVisualDirection(scene, index, Boolean(options.comparison));
+    const fallback = fallbackVisualDirection(
+      scene,
+      index,
+      Boolean(options.comparison && (scene as Partial<ComparisonVideoScene>).type === "comparison"),
+    );
     const supplied = Array.isArray(scene.visualTemplates)
       ? [...new Set(scene.visualTemplates.filter((id): id is VideoVisualTemplateId =>
           typeof id === "string" && VISUAL_TEMPLATE_SET.has(id)
