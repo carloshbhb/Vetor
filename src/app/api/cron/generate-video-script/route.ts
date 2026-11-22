@@ -30,11 +30,16 @@ export async function POST(request: NextRequest) {
         const existing = JSON.parse(video.script_text);
         if (
           existing.generationVersion === 3 &&
+          existing.visualDirectionVersion === 1 &&
           existing.videoFormat === videoFormat &&
           typeof existing.creativeAngle === "string" &&
           existing.creativeAngle.trim() &&
           Array.isArray(existing.scenes) &&
-          existing.scenes.length >= 6
+          existing.scenes.length >= 6 &&
+          existing.scenes.every((scene: any) =>
+            typeof scene.visualIntent === "string" && scene.visualIntent.trim() &&
+            Array.isArray(scene.visualTemplates) && scene.visualTemplates.length >= 2 && scene.visualTemplates.length <= 3
+          )
         ) {
           cachedScript = existing;
         }
@@ -79,7 +84,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Comparativo precisa conter exatamente dois produtos distintos com nomes válidos." }, { status: 422 });
       }
 
-      if (cachedScript?.contentType === "comparison" && cachedScript.videoFormat === "short") {
+      if (cachedScript?.contentType === "comparison" && cachedScript.videoFormat === "short" &&
+          cachedScript.visualDirectionVersion === 1 &&
+          Array.isArray(cachedScript.scenes) &&
+          cachedScript.scenes.every((scene: any) =>
+            typeof scene.visualIntent === "string" && scene.visualIntent.trim() &&
+            Array.isArray(scene.visualTemplates) && scene.visualTemplates.length >= 2 && scene.visualTemplates.length <= 3
+          )) {
         return NextResponse.json({ success: true, reused: true, videoId, contentType: "comparison", productImages: [], script: cachedScript });
       }
 
@@ -93,6 +104,7 @@ export async function POST(request: NextRequest) {
       const finalComparisonScript = {
         ...comparisonScript,
         generationVersion: 3 as const,
+        visualDirectionVersion: 1 as const,
         videoFormat: "short" as const,
         creativeAngle: comparisonScript.creativeAngle || "Comparação factual baseada somente nos nomes e na categoria fornecidos.",
         contentType: "comparison" as const,
@@ -368,6 +380,7 @@ export async function POST(request: NextRequest) {
     const finalScript = {
       ...script,
       generationVersion: 3 as const,
+      visualDirectionVersion: 1 as const,
       videoFormat,
       creativeAngle,
       ...(Number.isFinite(rawScore) && rawScore > 0 && rawScore <= 10 ? { score: rawScore } : {}),
