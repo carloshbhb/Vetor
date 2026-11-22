@@ -15,6 +15,7 @@ import { KineticCaption } from '../components/KineticCaption';
 import { resolveMediaSource } from '../utils/media-source';
 import { createSceneVisualPlan, extractPrimaryMetric, type SceneVisualPlan } from '../utils/visual-storyboard';
 import { fitHeadlineSize, headlineFromText, toHeadline } from '../utils/scene-headline';
+import { SceneCreativeTreatment } from './SceneCreativeTreatment';
 import {
   LANDSCAPE_BROLL_BOX,
   LANDSCAPE_END_PRODUCT_BOX,
@@ -83,10 +84,10 @@ const Product: React.FC<{ src: string; style?: React.CSSProperties }> = ({ src, 
   />
 );
 
-const Eyebrow: React.FC<{ children: React.ReactNode; warning?: boolean }> = ({ children, warning }) => (
+const Eyebrow: React.FC<{ children: React.ReactNode; warning?: boolean; color?: string }> = ({ children, warning, color }) => (
   <div
     style={{
-      color: warning ? palette.amber : palette.cyan,
+      color: warning ? palette.amber : (color || palette.cyan),
       fontSize: 23,
       fontWeight: 850,
       letterSpacing: 4,
@@ -188,6 +189,9 @@ const LongFeature: React.FC<{
     : visual.motion === 'tilt-right' ? LANDSCAPE_SCENE_MOTION.tiltDegrees : 0;
   const metric = visual.mode === 'specification' ? extractPrimaryMetric(scene.text) : null;
   const warning = visual.mode === 'tradeoff';
+  const sceneAccent = warning
+    ? palette.amber
+    : TEMPLATE_ACCENTS[scene.creativeDirection?.primaryTemplate || ""] || palette.cyan;
   const label = visual.mode === 'price-check'
     ? 'DECISÃO DE COMPRA'
     : warning ? 'PONTO DE ATENÇÃO' : visual.label;
@@ -233,7 +237,7 @@ const LongFeature: React.FC<{
           transform: 'translateY(' + lift + 'px)',
         }}
       >
-        <Eyebrow warning={warning}>{label}</Eyebrow>
+        <Eyebrow warning={warning} color={sceneAccent}>{label}</Eyebrow>
         <div style={{ marginTop: 22, maxWidth: LANDSCAPE_TEXT_COLUMN.width, fontSize: titleSize, lineHeight: 1.06, fontWeight: 900, letterSpacing: titleSize < 46 ? -1.2 : -2.2 }}>
           {title}
         </div>
@@ -279,6 +283,14 @@ const LongFeature: React.FC<{
           transform: 'translateX(' + drift + 'px) scale(' + scale + ') rotate(' + rotate + 'deg)',
           filter: showBroll ? 'drop-shadow(0 14px 28px rgba(0,0,0,.65))' : undefined,
         }}
+      />
+
+      <SceneCreativeTreatment
+        plan={scene.creativeDirection}
+        accent={sceneAccent}
+        label={title}
+        sceneText={scene.text}
+        metric={metric}
       />
 
       <div style={{ position: 'absolute', left: LANDSCAPE_SCENE_FOOTER.left, right: LANDSCAPE_SCENE_FOOTER.right, bottom: LANDSCAPE_SCENE_FOOTER.progressBottom, display: 'flex', alignItems: 'center', gap: 18, color: palette.muted }}>
@@ -364,7 +376,9 @@ export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) 
         fontFamily: 'Inter, DM Sans, Arial, sans-serif',
       }}
     >
-      <LandscapeTemplateAtmosphere templateId={props.visualTemplateId} />
+      {props.scenes.some((scene) => scene.creativeDirection) ? null : (
+        <LandscapeTemplateAtmosphere templateId={props.visualTemplateId} />
+      )}
       {/* Static gradient ground: the camera moves foreground content only, so the frame edges never show a seam. */}
       <AbsoluteFill
         style={{
@@ -381,6 +395,13 @@ export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) 
       <AbsoluteFill style={{ transform: `translate3d(${camera.x}px, ${camera.y}px, 0)` }}>
         <Sequence from={0} durationInFrames={hookFrames} premountFor={fps}>
           <Opening title={props.title} category={props.category} hook={props.hook} imageUrl={image} />
+          <SceneCreativeTreatment
+            plan={props.openingCreativeDirection || props.scenes[0]?.creativeDirection}
+            accent={TEMPLATE_ACCENTS[(props.openingCreativeDirection || props.scenes[0]?.creativeDirection)?.primaryTemplate || ""] || palette.cyan}
+            label={props.hook}
+            sceneText={props.hook}
+            metric={null}
+          />
         </Sequence>
         {props.scenes.map((scene, index) => (
           <Sequence key={scene.id} from={scene.startFrame} durationInFrames={Math.max(1, scene.endFrame - scene.startFrame)} premountFor={fps}>
@@ -397,6 +418,13 @@ export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) 
         ))}
         <Sequence from={scenesEndFrame} durationInFrames={closingDuration} premountFor={fps}>
           <LongEnd title={props.title} score={props.score} callToAction={props.callToAction} imageUrl={image} />
+          <SceneCreativeTreatment
+            plan={props.closingCreativeDirection}
+            accent={TEMPLATE_ACCENTS[props.closingCreativeDirection?.primaryTemplate || ""] || palette.cyan}
+            label="VEREDITO FINAL"
+            sceneText={props.callToAction}
+            metric={null}
+          />
         </Sequence>
       </AbsoluteFill>
       <AbsoluteFill
