@@ -32,6 +32,10 @@ const safeComparisonResponse = JSON.stringify({
     duration: 9,
     visualCue: "Quadro visual distinto " + (index + 1),
     brollKeywords: ["smartphone comparison", "official product details"],
+    visualIntent: "Entrada visual dinâmica com foco no produto e transição cinética",
+    visualTemplates: index % 2 === 0
+      ? ["premium-product-3d", "kinetic-typography"]
+      : ["comparison-arena", "data-storytelling"],
   })),
   callToAction: "Veja o comparativo completo e confira os dados oficiais antes de comprar.",
 });
