@@ -4,6 +4,7 @@ import { EditorialReviewLandscape } from './compositions/EditorialReviewLandscap
 import { StickmanReviewLandscape } from './compositions/StickmanReviewLandscape';
 import { ComparisonVideo, calculateComparisonMetadata } from './compositions/ComparisonVideo';
 import { TemplateShowcase } from './compositions/TemplateShowcase';
+import { MixedCreativePilot } from './compositions/MixedCreativePilot';
 
 // Brand fonts come from public/fonts (no network at render time).
 import './styles/loadFonts';
@@ -136,6 +137,15 @@ export const RemotionRoot = () => {
         width={1080}
         height={1920}
         defaultProps={{ audioUrl: 'audio/vetor-10-style-pilot.mp3' }}
+      />
+      <Composition
+        id="MixedCreativePilot"
+        component={MixedCreativePilot as any}
+        durationInFrames={1800}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{ audioUrl: 'audio/vetor-mixed-creative-pilot.mp3' }}
       />
       <Composition
         id="ComparisonVideo"
