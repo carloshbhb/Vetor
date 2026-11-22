@@ -133,6 +133,7 @@ const normalize = (value) => String(value || "")
 
 const ALIASES = new Map([
   ["premium-3d", "premium-product-3d"],
+  ["premium 3d", "premium-product-3d"],
   ["premium product", "premium-product-3d"],
   ["exploded", "exploded-teardown"],
   ["teardown", "exploded-teardown"],
