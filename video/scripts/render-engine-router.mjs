@@ -114,3 +114,7 @@ export function withRenderEngineSelection(mediaAssets, selection) {
   });
   return assets;
 }
+
+export function shouldFallbackToRemotion(selection, explicitOverride = process.env.LEMO_REMOTION_FALLBACK || process.env.HYPERFRAMES_REMOTION_FALLBACK) {
+  return selection?.mode === "automatic" || explicitOverride === "true";
+}
