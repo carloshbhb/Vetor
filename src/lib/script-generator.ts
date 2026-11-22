@@ -12,12 +12,31 @@ export interface VideoScript {
   score?: number;
 }
 
+export const VIDEO_VISUAL_TEMPLATE_IDS = [
+  "premium-product-3d",
+  "exploded-teardown",
+  "hologram-hud",
+  "kinetic-typography",
+  "isometric-explainer",
+  "cinematic-2d",
+  "lifestyle-demo",
+  "data-storytelling",
+  "comparison-arena",
+  "editorial-luxury",
+] as const;
+
+export type VideoVisualTemplateId = typeof VIDEO_VISUAL_TEMPLATE_IDS[number];
+
 export interface VideoScene {
   id: number;
   text: string;
   duration: number;
   visualCue: string;
   brollKeywords: string[];
+  /** Creative intent written by the LLM director for this specific scene. */
+  visualIntent?: string;
+  /** 1-3 validated template IDs; first is the lead, remaining IDs are supporting layers. */
+  visualTemplates?: VideoVisualTemplateId[];
 }
 
 export interface ProductInfo {
@@ -56,10 +75,14 @@ export function buildScriptPrompt(product: ProductInfo): string {
     "CONTEXTO EDITORIAL REAL:\n" + context,
     "PESQUISA SERP + YOUTUBE:\n" + (product.researchBrief || "Não disponível."),    "ÂNGULO NARRATIVO OBRIGATÓRIO:\n" + (product.creativeAngle || "Escolha o ângulo mais específico para este produto."),
     "Esse ângulo deve guiar a abertura, ordem dos argumentos, exemplos e conclusão; não troque apenas o nome do produto num roteiro padrão.",
+    "DIREÇÃO CRIATIVA POR CENA: você também é diretor de motion design. Não aplique uma única estética de review em todo o vídeo. Escolha 1 template principal e 1 ou 2 templates de apoio PARA CADA CENA, combinando linguagens diferentes conforme o objetivo narrativo. Varie a sequência; uma mesma peça pode alternar 3D, HUD, tipografia cinética, parallax, lifestyle, infográficos, comparação e tratamento editorial.",
+    "IDs permitidos: " + VIDEO_VISUAL_TEMPLATE_IDS.join(", ") + ". Retorne visualTemplates como array com 2 ou 3 IDs exatos, sem inventar novos IDs; a primeira escolha é o template principal. Retorne também visualIntent com uma instrução visual concreta e executável, incluindo objeto em foco, ação, movimento de câmera e ritmo.",
+    "GUIA DE DIREÇÃO: premium-product-3d = hero shot, macro, luz e órbita; exploded-teardown = camadas internas somente quando o roteiro trouxer fatos internos documentados; hologram-hud = dados e interfaces; kinetic-typography = palavras e impactos sincronizados à fala; isometric-explainer = cenários e conexões em perspectiva; cinematic-2d = recortes e parallax; lifestyle-demo = contexto real ilustrativo, sem fingir teste ou experiência; data-storytelling = números confirmados virando gráficos; comparison-arena = duelo de alternativas e critérios; editorial-luxury = composição limpa, macro e movimentos precisos.",
+    "Não repita a mesma combinação em cenas consecutivas, a menos que haja continuidade narrativa. Não use exploded-teardown para detalhes externos, nem infográficos com números não fornecidos. Não peça B-roll que sugira testes que não ocorreram. visualCue e brollKeywords devem continuar concretos para orientar a busca de mídia real.",
     "ABERTURAS RECENTES A NÃO IMITAR:\n" + hooks,
     "TOM E PRECISÃO: seja conversacional, idiomático e seguro. Varie cadência e construção. Evite propaganda, superlativos vazios, listas mecânicas e frases burocráticas. Não alegue testes ou experiências pessoais. Não invente especificações, compatibilidade, autonomia, desempenho, acessórios, avaliações ou preços. Se um dado faltar, diga exatamente o que o comprador deve confirmar. Cada cena acrescenta uma ideia nova e concreta.",
     instructions,
-    'Retorne somente JSON válido com esta estrutura: {"hook":"abertura específica e curiosa","scenes":[{"id":1,"text":"narração factual e natural","duration":' + (isLong ? "32" : "9") + ',"visualCue":"ação ou capítulo visual único","brollKeywords":["termo visual concreto em inglês"]}],"callToAction":"convite para consultar review e preço atualizado"}',
+    'Retorne somente JSON válido com esta estrutura: {"hook":"abertura específica e curiosa","scenes":[{"id":1,"text":"narração factual e natural","duration":' + (isLong ? "32" : "9") + ',"visualCue":"ação ou capítulo visual único","brollKeywords":["termo visual concreto em inglês"],"visualIntent":"direção visual executável para esta cena","visualTemplates":["premium-product-3d","kinetic-typography"]}],"callToAction":"convite para consultar review e preço atualizado"}',
     'Não escreva URLs, domínios nem endereços no callToAction: diga apenas "no link da descrição".'
   ].join("\n\n");
 }
@@ -94,7 +117,10 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
       scene.text.trim().split(/\s+/).length < (isLong ? 35 : 8) ||
       !Number.isFinite(scene.duration) || scene.duration < minDuration || scene.duration > maxDuration ||
       typeof scene.visualCue !== "string" || !scene.visualCue.trim() ||
-      !Array.isArray(scene.brollKeywords)
+      !Array.isArray(scene.brollKeywords) ||
+      typeof scene.visualIntent !== "string" || !scene.visualIntent.trim() ||
+      !Array.isArray(scene.visualTemplates) || scene.visualTemplates.length < 2 || scene.visualTemplates.length > 3 ||
+      scene.visualTemplates.some((id: unknown) => !VIDEO_VISUAL_TEMPLATE_IDS.includes(id as VideoVisualTemplateId))
     )) return false;
     const cues = parsed.scenes.map((scene: any) => scene.visualCue.trim().toLowerCase());
     if (new Set(cues).size < Math.min(6, cues.length)) return false;
@@ -158,7 +184,10 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
       const item = scene as Partial<VideoScene>;
       return typeof item.text !== "string" || item.text.trim().split(/\s+/).length < (isLong ? 35 : 8) ||
         !Number.isFinite(item.duration) || (item.duration as number) < minDuration || (item.duration as number) > maxDuration ||
-        typeof item.visualCue !== "string" || !item.visualCue.trim() || !Array.isArray(item.brollKeywords);
+        typeof item.visualCue !== "string" || !item.visualCue.trim() || !Array.isArray(item.brollKeywords) ||
+        typeof item.visualIntent !== "string" || !item.visualIntent.trim() ||
+        !Array.isArray(item.visualTemplates) || item.visualTemplates.length < 2 || item.visualTemplates.length > 3 ||
+        item.visualTemplates.some((id: unknown) => !VIDEO_VISUAL_TEMPLATE_IDS.includes(id as VideoVisualTemplateId));
     })
   ) throw new Error("[video-script] Roteiro reprovado: estrutura, duração ou cenas incompletas.");
 
@@ -182,6 +211,7 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     callToAction: stripSpokenUrls(parsed.callToAction) ||
       "Veja o review completo e confira a oferta atual na descrição.",
     generationVersion: 3,
+    visualDirectionVersion: 1,
     videoFormat: product.videoFormat || "short",
     creativeAngle: product.creativeAngle || "Ângulo editorial definido pelo gerador.",
   };
@@ -224,7 +254,10 @@ export function isValidComparisonVideoScriptResponse(
       !validTypes.has(scene.type) ||
       typeof scene.visualCue !== "string" || !scene.visualCue.trim() ||
       !Array.isArray(scene.brollKeywords) ||
-      scene.brollKeywords.some((keyword: unknown) => typeof keyword !== "string" || !keyword.trim())
+      scene.brollKeywords.some((keyword: unknown) => typeof keyword !== "string" || !keyword.trim()) ||
+      typeof scene.visualIntent !== "string" || !scene.visualIntent.trim() ||
+      !Array.isArray(scene.visualTemplates) || scene.visualTemplates.length < 2 || scene.visualTemplates.length > 3 ||
+      scene.visualTemplates.some((id: unknown) => !VIDEO_VISUAL_TEMPLATE_IDS.includes(id as VideoVisualTemplateId))
     )) return false;
 
     const cues = parsed.scenes.map((scene: any) => scene.visualCue.trim().toLowerCase());
@@ -267,7 +300,8 @@ export async function generateComparisonVideoScript(input: {
     "DADOS CONFIRMADOS: somente os nomes dos produtos, a categoria e o título acima.",
     "Não foram fornecidas fichas técnicas verificadas, medições, preços atuais, recursos confirmados ou avaliações.",
     "",
-    "Retorne apenas JSON com hook, scenes e callToAction. Cada cena deve conter id, type, text, duration, visualCue e brollKeywords.",
+    "Retorne apenas JSON com hook, scenes e callToAction. Cada cena deve conter id, type, text, duration, visualCue, brollKeywords, visualIntent e visualTemplates.",
+    "Direção visual livre por cena, sem prender o vídeo ao layout fixo de review. Combine 2 ou 3 IDs: " + VIDEO_VISUAL_TEMPLATE_IDS.join(", ") + ". Escolha o primeiro como principal; use os demais como camadas de apoio. Dê variedade entre cenas. visualIntent deve explicar enquadramento, ação e ritmo. Exploded Teardown só com fatos internos documentados; nenhum dado visual ou comparação pode inventar medições ou atributos.",
     "Use 6 ou 7 cenas, cada uma com 9 ou 10 segundos. Cada type deve ser product1, product2 ou comparison.",
     "",
     "REGRAS FACTUAIS OBRIGATÓRIAS:",
@@ -313,6 +347,7 @@ export async function generateComparisonVideoScript(input: {
       generationVersion: 3,
       videoFormat: "short",
       creativeAngle: "Comparação factual: nomes e categoria confirmados; demais características devem ser conferidas nas fichas oficiais.",
+      visualDirectionVersion: 1,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
