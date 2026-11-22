@@ -1039,9 +1039,25 @@ async function processVideo(video) {
       ...scene,
       creativeDirection: visualSequence[index],
     }));
+    const openingCreativeDirection = planVetorSceneMixes({
+      scenes: [{ id: "opening-hook", text: spokenHook, visualCue: "Hook de impacto" }],
+      title: video.product_title,
+      category: video.product_category,
+      hasProductGallery: productImages.length > 1,
+      hasBroll: brollVideos.some(Boolean),
+    })[0];
+    const closingCreativeDirection = planVetorSceneMixes({
+      scenes: [{ id: "closing-verdict", text: spokenCallToAction, visualCue: "Veredito final" }],
+      title: video.product_title,
+      category: video.product_category,
+      hasProductGallery: productImages.length > 1,
+      hasBroll: brollVideos.some(Boolean),
+    })[0];
     console.log("[VISUAL_DIRECTOR] " + visualSequence.map((plan, index) =>
       "cena-" + (index + 1) + "=" + plan.templateIds.join("+") + "/" + plan.transitionIn
     ).join(" | "));
+    console.log("[VISUAL_DIRECTOR] abertura=" + openingCreativeDirection.templateIds.join("+") +
+      "; encerramento=" + closingCreativeDirection.templateIds.join("+"));
 
     const videoData = {
       type: videoFormat === "long" ? "long" : "review",
@@ -1051,6 +1067,8 @@ async function processVideo(video) {
       visualTemplateMotion: visualTemplate.motion,
       visualTemplateTransition: visualTemplate.transition,
       visualTemplateCues: visualTemplate.visualCues,
+      openingCreativeDirection,
+      closingCreativeDirection,
       title: video.product_title,
       imageUrl: productImageSource,
       score: Number.isFinite(Number(script.score)) && Number(script.score) > 0 && Number(script.score) <= 10 ? Number(script.score) : 0,
