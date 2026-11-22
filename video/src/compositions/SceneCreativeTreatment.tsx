@@ -157,8 +157,8 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
     ? { left: width * 0.43, top: height * 0.18, width: width * 0.49, height: height * 0.66 }
     : { left: 76, top: 610, width: 820, height: 620 };
   const kineticBox = landscape
-    ? { left: width * 0.49, right: width * 0.08, top: height * 0.72 }
-    : { left: 78, right: 190, top: 1200 };
+    ? { left: width * 0.49, right: width * 0.08, top: height * 0.66 }
+    : { left: 78, right: 190, top: 1035 };
   const editorialFrame = landscape
     ? { left: width * 0.035, right: width * 0.075, top: height * 0.16, bottom: height * 0.13 }
     : { left: 48, right: 190, top: 565, bottom: 385 };
