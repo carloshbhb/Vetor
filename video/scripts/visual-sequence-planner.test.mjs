@@ -13,6 +13,8 @@ const scenes = [
 assert.equal(classifyNarrativeBeat(scenes[1]), "specification");
 assert.equal(classifyNarrativeBeat(scenes[3]), "lifestyle");
 assert.equal(classifyNarrativeBeat(scenes[4]), "tradeoff");
+assert.equal(classifyNarrativeBeat({ text: "Tela grande e acabamento metálico", visualCue: "Detalhes externos" }), "detail");
+assert.equal(classifyNarrativeBeat({ text: "Chip interno e arquitetura dos componentes", visualCue: "Desmontagem técnica" }), "teardown");
 
 const plan = planVetorSceneMixes({
   scenes,
