@@ -87,9 +87,11 @@ jobs:
           node --check video/scripts/render-lemo-opuscar.mjs
           node --check video/scripts/render-engine-router.mjs
           node --check video/scripts/visual-template-registry.mjs
+          node --check video/scripts/visual-sequence-planner.mjs
           node --check video/scripts/render-ten-style-pilot.mjs
           node video/scripts/render-engine-router.test.mjs
           node video/scripts/visual-template-registry.test.mjs
+          node video/scripts/visual-sequence-planner.test.mjs
 
       - name: Type-check Remotion project
         working-directory: video
