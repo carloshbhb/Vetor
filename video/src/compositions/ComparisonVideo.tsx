@@ -19,6 +19,7 @@ import { ProductCard } from '../components/ProductCard';
 import { ScoreBar } from '../components/ScoreBar';
 import { KineticCaption } from '../components/KineticCaption';
 import { COMPARISON_BROLL_STAGE } from '../utils/shorts-safe-zone';
+import { SceneCreativeTreatment, type SceneCreativeDirection } from './SceneCreativeTreatment';
 
 export interface SubtitleEntry {
   start: number;
@@ -35,6 +36,7 @@ export interface ComparisonSceneData {
   startFrame: number;
   endFrame: number;
   type: 'intro' | 'product1' | 'product2' | 'comparison' | 'verdict';
+  creativeDirection?: SceneCreativeDirection;
 }
 
 type ComparisonVideoProps = {
@@ -53,6 +55,8 @@ type ComparisonVideoProps = {
   brollVideos?: string[];
   totalDuration: number;
   fps: number;
+  openingCreativeDirection?: SceneCreativeDirection;
+  closingCreativeDirection?: SceneCreativeDirection;
 };
 
 const HookScene: React.FC<{ hook: string; product1Image: string; product2Image: string }> = ({ hook, product1Image, product2Image }) => {
@@ -262,6 +266,19 @@ const VerdictScene: React.FC<{
     </GradientBackground>
   );
 };
+const comparisonAccent = (templateId?: string) => ({
+  "premium-product-3d": "#D6B269",
+  "exploded-teardown": "#38D2DC",
+  "hologram-hud": "#5AFFE1",
+  "kinetic-typography": "#FF49A6",
+  "isometric-explainer": "#5BCD91",
+  "cinematic-2d": "#FF975E",
+  "lifestyle-demo": "#FFC275",
+  "data-storytelling": "#599AFF",
+  "comparison-arena": "#FF6868",
+  "editorial-luxury": "#D8D0B8",
+} as Record<string, string>)[templateId || ""] || "#70C4FF";
+
 const SubtitleOverlay: React.FC<{ subtitles: SubtitleEntry[]; currentFrame: number; fps: number }> = ({ subtitles, currentFrame, fps }) => {
   const currentTime = currentFrame / fps;
   const activeSubtitle = subtitles.find(s => currentTime >= s.start && currentTime < s.end);
@@ -292,6 +309,8 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
   brollVideos = [],
   totalDuration,
   fps,
+  openingCreativeDirection,
+  closingCreativeDirection,
 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
@@ -313,6 +332,13 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
 
       <Sequence from={0} durationInFrames={hookFrames}>
         <HookScene hook={hook} product1Image={product1.imageUrl} product2Image={product2.imageUrl} />
+        <SceneCreativeTreatment
+          plan={openingCreativeDirection || scenes[0]?.creativeDirection}
+          accent={openingCreativeDirection?.primaryTemplate === "comparison-arena" ? "#FF6868" : "#D6B269"}
+          label={hook}
+          sceneText={hook}
+          metric={null}
+        />
       </Sequence>
 
       {scenes.map((scene) => (
@@ -356,6 +382,13 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
               fps={fps}
             />
           )}
+          <SceneCreativeTreatment
+            plan={scene.creativeDirection}
+            accent={comparisonAccent(scene.creativeDirection?.primaryTemplate)}
+            label={scene.visualCue}
+            sceneText={scene.text}
+            metric={null}
+          />
         </Sequence>
       ))}
 
@@ -372,6 +405,13 @@ export const ComparisonVideo: React.FC<ComparisonVideoProps> = ({
           startFrame={hookFrames + contentFrames}
           duration={verdictFrames}
           fps={fps}
+        />
+        <SceneCreativeTreatment
+          plan={closingCreativeDirection || scenes[scenes.length - 1]?.creativeDirection}
+          accent={comparisonAccent(closingCreativeDirection?.primaryTemplate || scenes[scenes.length - 1]?.creativeDirection?.primaryTemplate)}
+          label="VEREDITO"
+          sceneText={callToAction}
+          metric={null}
         />
       </Sequence>
 
