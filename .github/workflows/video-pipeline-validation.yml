@@ -194,12 +194,11 @@ jobs:
         run: python -m pip install --disable-pip-version-check edge-tts
 
       - name: Render Galaxy Fit3 motion-graphics pilot with Lemo-Opuscar
-        working-directory: video
         timeout-minutes: 20
         env:
           LEMO_OPUSCAR_HOME: ${{ runner.temp }}/vetor-lemo-opuscar-smoke
           EDGE_TTS_RATE: "+8%"
-        run: node scripts/render-lemo-galaxy-fit3-pilot.mjs
+        run: node video/scripts/render-lemo-galaxy-fit3-pilot.mjs
 
       - name: Upload Lemo-Opuscar quality pilot (no YouTube publishing)
         if: success()
