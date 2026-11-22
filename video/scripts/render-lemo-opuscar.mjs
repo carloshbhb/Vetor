@@ -24,7 +24,7 @@ function ensureLibrary() {
     fs.mkdirSync(path.dirname(home), { recursive: true });
     console.log("[LEMO_OPUSCAR] Clonando o núcleo oficial de renderização em modo sparse.");
     run("git", ["clone", "--depth", "1", "--filter=blob:none", "--sparse", "--branch", "main", REPOSITORY, home], { timeout: 10 * 60 * 1000 });
-    run("git", ["-C", home, "sparse-checkout", "set", "core", "package.json", "package-lock.json"]);
+    run("git", ["-C", home, "sparse-checkout", "set", "--no-cone", "/core/", "/package.json", "/package-lock.json"]);
   }
 
   const playwrightPackage = path.join(home, "node_modules", "playwright-core", "package.json");
