@@ -31,6 +31,7 @@ interface ReviewVideoData {
   fps: number;
   reviewUrl?: string;
   musicUrl?: string;
+  visualTemplateId?: string;
 }
 
 interface ComparisonVideoData {
@@ -185,6 +186,7 @@ async function main() {
       videoData = {
         type,
         templateId: typeof rawData.templateId === 'string' ? rawData.templateId : undefined,
+        visualTemplateId: typeof rawData.visualTemplateId === 'string' ? rawData.visualTemplateId : undefined,
         title: rawData.title,
         imageUrl: rawData.imageUrl,
         score: rawData.score,
