@@ -20,6 +20,7 @@ import {
   type SceneVisualPlan,
 } from '../utils/visual-storyboard';
 import { fonts } from '../styles/fonts';
+import { SceneCreativeTreatment, type SceneCreativeDirection } from './SceneCreativeTreatment';
 import { resolveMediaSource } from '../utils/media-source';
 import { fitHeadlineSize, headlineFromText, toHeadline, truncateHeadline } from '../utils/scene-headline';
 
@@ -31,6 +32,8 @@ export type EditorialScene = {
   brollKeywords: string[];
   startFrame: number;
   endFrame: number;
+  /** Scene-level art direction may combine several independent visual templates. */
+  creativeDirection?: SceneCreativeDirection;
 };
 
 export type EditorialSubtitle = {
@@ -307,6 +310,14 @@ const FeatureScene: React.FC<{
           {beat.kind === 'callout' ? <Audio src={staticFile('sfx/pop.mp3')} volume={0.5} /> : null}
         </Sequence>
       ))}
+
+      <SceneCreativeTreatment
+        plan={scene.creativeDirection}
+        accent={accent}
+        label={label}
+        sceneText={scene.text}
+        metric={metric}
+      />
 
       <div
         style={{
