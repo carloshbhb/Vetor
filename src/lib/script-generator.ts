@@ -7,6 +7,7 @@ export interface VideoScript {
   totalDuration: number;
   callToAction: string;
   generationVersion?: 3;
+  visualDirectionVersion?: 1;
   videoFormat?: "short" | "long";
   creativeAngle?: string;
   score?: number;
@@ -229,6 +230,7 @@ export interface ComparisonVideoScript {
   totalDuration: number;
   callToAction: string;
   generationVersion?: 3;
+  visualDirectionVersion?: 1;
   videoFormat?: "short";
   creativeAngle?: string;
 }
