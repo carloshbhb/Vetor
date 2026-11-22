@@ -86,7 +86,9 @@ jobs:
           node --check video/scripts/video-format.mjs
           node --check video/scripts/render-lemo-opuscar.mjs
           node --check video/scripts/render-engine-router.mjs
+          node --check video/scripts/visual-template-registry.mjs
           node video/scripts/render-engine-router.test.mjs
+          node video/scripts/visual-template-registry.test.mjs
 
       - name: Type-check Remotion project
         working-directory: video
@@ -129,6 +131,7 @@ jobs:
             "audioUrl": "/audio/sample-review.mp3",
             "score": 8.5,
             "category": "Tecnologia",
+            "visualTemplateId": "hologram-hud",
             "hook": "O detalhe que muda a decisão",
             "hookDuration": 1,
             "scenes": [
