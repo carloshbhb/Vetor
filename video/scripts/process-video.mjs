@@ -1028,7 +1028,7 @@ async function processVideo(video) {
     // A manual style remains the lead language, while supporting techniques can still
     // be mixed to make each scene serve its own storytelling purpose.
     const visualSequence = planVetorSceneMixes({
-      scenes: scenesWithVisualDirection,
+      scenes: scenesWithFrames,
       title: video.product_title,
       category: video.product_category,
       manualTemplateId: visualTemplate.selection === "manual" ? visualTemplate.id : null,
@@ -1074,7 +1074,7 @@ async function processVideo(video) {
       score: Number.isFinite(Number(script.score)) && Number(script.score) > 0 && Number(script.score) <= 10 ? Number(script.score) : 0,
       category: video.product_category,
       hook: spokenHook,
-      scenes: scenesWithFrames,
+      scenes: scenesWithVisualDirection,
       callToAction: spokenCallToAction,
       audioUrl: `tmp/video-${video.id}.mp3`,
       hookDuration,
