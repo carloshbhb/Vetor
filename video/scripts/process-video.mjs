@@ -1061,6 +1061,7 @@ async function processVideo(video) {
     console.log("[VISUAL_DIRECTOR] " + visualSequence.map((plan, index) =>
       "cena-" + (index + 1) + "=" + plan.templateIds.join("+") + "/" + plan.transitionIn
     ).join(" | "));
+    console.log("[SCENE_RENDERER] " + visualSequence.map((plan, index) => "cena-" + (index + 1) + "=" + plan.renderPlan.renderer + "/" + plan.renderPlan.shotType + "/" + plan.renderPlan.cameraMove + (plan.renderPlan.fallbackReason ? " [fallback]" : "")).join(" | "));
     console.log("[VISUAL_DIRECTOR] abertura=" + openingCreativeDirection.templateIds.join("+") +
       "; encerramento=" + closingCreativeDirection.templateIds.join("+"));
 
@@ -1076,6 +1077,7 @@ async function processVideo(video) {
       openingCreativeDirection,
       closingCreativeDirection,
       title: video.product_title,
+      productModelUrl: typeof video.product_model_url === 'string' ? video.product_model_url : (typeof video.product_3d_url === 'string' ? video.product_3d_url : undefined),
       imageUrl: productImageSource,
       score: Number.isFinite(Number(script.score)) && Number(script.score) > 0 && Number(script.score) <= 10 ? Number(script.score) : 0,
       category: video.product_category,
