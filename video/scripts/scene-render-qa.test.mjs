@@ -44,6 +44,20 @@ const lifestyleWithoutFootage = planVetorSceneMixes({
 assert.equal(lifestyleWithoutFootage[0].renderPlan.renderer, "layered-2d");
 assert.match(lifestyleWithoutFootage[0].renderPlan.fallbackReason, /sem simular uma demonstração real/);
 
+const perSceneFootage = planVetorSceneMixes({
+  scenes: [
+    { id: 1, text: "Na cozinha, acompanha sua rotina", visualCue: "Uso cotidiano", visualTemplates: ["lifestyle-demo"] },
+    { id: 2, text: "No escritório, acompanha sua rotina", visualCue: "Uso cotidiano", visualTemplates: ["lifestyle-demo"] },
+  ],
+  title: "Garrafa Térmica",
+  category: "Casa",
+  hasBroll: [false, true],
+});
+assert.equal(perSceneFootage[0].renderPlan.renderer, "layered-2d");
+assert.equal(perSceneFootage[0].renderPlan.hasMatchedBroll, false);
+assert.equal(perSceneFootage[1].renderPlan.renderer, "cinematic-footage");
+assert.equal(perSceneFootage[1].renderPlan.hasMatchedBroll, true);
+
 const glbProduct = planVetorSceneMixes({
   scenes: [{ id: 1, text: "Design premium", visualCue: "Hero", visualTemplates: ["premium-product-3d"] }],
   title: "Produto especial",
