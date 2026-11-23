@@ -61,8 +61,8 @@ jobs:
         working-directory: video
         run: npm ci
 
-      - name: Syntax-check Edge TTS metadata runner
-        run: python -m py_compile scripts/tts.py
+      - name: Syntax-check Edge TTS and Blender GLB export helpers
+        run: python -m py_compile scripts/tts.py video/blender/export_product_glb.py
 
       - name: Validate storyboard and local media source contracts
         working-directory: video
@@ -88,10 +88,12 @@ jobs:
           node --check video/scripts/render-engine-router.mjs
           node --check video/scripts/visual-template-registry.mjs
           node --check video/scripts/visual-sequence-planner.mjs
+          node --check video/scripts/shotcraft-recipe-registry.mjs
           node --check video/scripts/render-ten-style-pilot.mjs
           node video/scripts/render-engine-router.test.mjs
           node video/scripts/lemo-style-catalog.test.mjs
           node video/scripts/visual-template-registry.test.mjs
+          node video/scripts/shotcraft-recipe-registry.test.mjs
           node video/scripts/visual-sequence-planner.test.mjs
           node --check video/scripts/visual-render-qa.mjs
           node video/scripts/scene-render-qa.test.mjs
