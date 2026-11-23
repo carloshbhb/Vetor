@@ -122,8 +122,8 @@ const ScanlineFocus: React.FC<{ accent: string; label: string }> = ({ accent, la
 
 const MetricFrame: React.FC<{ accent: string; label: string; metric: string | null }> = ({ accent, label, metric }) => {
   const frame = useCurrentFrame();
-  const { width, fps } = useVideoConfig();
-  const landscape = width > useVideoConfig().height;
+  const { width, height, fps } = useVideoConfig();
+  const landscape = width > height;
   const enter = spring({ frame, fps, config: { damping: 19, stiffness: 135 } });
   const value = String(metric || label || 'INFORMAÇÃO').replace(/\s+/g, ' ').trim().slice(0, 48);
   const reveal = interpolate(frame, [0, 22], [0, 1], clamp);
