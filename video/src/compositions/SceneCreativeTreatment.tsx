@@ -1,6 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { ThreeMotionGraphicsScene, type ThreeMotionVariant } from '../motion-graphics/ThreeMotionGraphicsScene';
+import { SceneMotionGraphicsRenderer } from '../motion-graphics/SceneMotionGraphicsRenderer';
 import { SHORTS_SAFE_ZONE } from '../utils/shorts-safe-zone';
 
 export type SceneCreativeDirection = {
@@ -178,13 +179,13 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
   const cinematicCircle = landscape
     ? { left: width * 0.42 - height * 0.45, top: height * 0.05, size: height * 0.9 }
     : { left: -260, top: 590, size: 940 };
-  const showKinetic = includes(plan, 'kinetic-typography');
+  const showKinetic = includes(plan, 'kinetic-typography') && plan.primaryTemplate !== 'kinetic-typography';
   const showHud = includes(plan, 'hologram-hud');
   const showCinematic = includes(plan, 'cinematic-2d');
-  const showComparison = includes(plan, 'comparison-arena');
+  const showComparison = includes(plan, 'comparison-arena') && plan.primaryTemplate !== 'comparison-arena';
   const showEditorial = includes(plan, 'editorial-luxury');
   const showIsometric = includes(plan, 'isometric-explainer');
-  const showData = includes(plan, 'data-storytelling');
+  const showData = includes(plan, 'data-storytelling') && plan.primaryTemplate !== 'data-storytelling';
 
   const safeOverlay = landscape
     ? undefined
@@ -199,6 +200,16 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
         <AbsoluteFill style={{ opacity: threeOpacity }}>
           <ThreeMotionGraphicsScene variant={variant} accentColor={accent} />
         </AbsoluteFill>
+      ) : null}
+
+      {plan.renderPlan?.renderer === 'motion-graphics' ? (
+        <SceneMotionGraphicsRenderer
+          template={plan.primaryTemplate}
+          accent={accent}
+          label={label}
+          sceneText={sceneText}
+          metric={metric}
+        />
       ) : null}
 
       {showCinematic ? (
