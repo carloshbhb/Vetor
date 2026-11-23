@@ -102,6 +102,147 @@ function getTemplate(id) {
   return VETOR_VISUAL_TEMPLATES.find((template) => template.id === id);
 }
 
+function inferProductModelProfile(title = "", category = "") {
+  const text = normalize([title, category].join(" "));
+  if (/garrafa termica|garrafa de cafe|jarra termica|carafe|coffee pot|cafeteira/.test(text)) return "thermal-carafe";
+  if (/smartphone|celular|iphone|galaxy s|redmi note|poco [a-z0-9]+/.test(text)) return "smartphone";
+  if (/tablet|ipad|redmi pad|galaxy tab/.test(text)) return "tablet";
+  if (/notebook|laptop|macbook|chromebook/.test(text)) return "laptop";
+  if (/fone|headphone|headset|earbud|airpods|buds/.test(text)) return "headphones";
+  if (/smartwatch|smart band|smartband|galaxy fit|relogio inteligente/.test(text)) return "wearable";
+  return "unresolved";
+}
+
+const CAMERA_MOVES = Object.freeze([
+  "orbit",
+  "macro-dolly",
+  "lateral-dolly",
+  "crane",
+  "push-in",
+  "arc-reveal",
+]);
+
+function cameraMoveFor(beat, index, intent, previous) {
+  const text = normalize(intent);
+  let requested = null;
+  if (/orbita|orbit|gira em torno|rotacao/.test(text)) requested = "orbit";
+  else if (/macro|close up|close-up|aproxima|aproximacao|push.?in/.test(text)) requested = "macro-dolly";
+  else if (/desliza|panoramica|tracking|lateral|para a esquerda|para a direita/.test(text)) requested = "lateral-dolly";
+  else if (/de cima|top.?down|aerea|crane|elevacao/.test(text)) requested = "crane";
+  else if (/revelacao|reveal|surge|entrada/.test(text)) requested = "arc-reveal";
+  if (requested && requested !== previous) return requested;
+  const preferred = beat === "detail" ? "macro-dolly"
+    : beat === "lifestyle" ? "lateral-dolly"
+    : beat === "teardown" ? "crane"
+    : beat === "hook" ? "arc-reveal"
+    : CAMERA_MOVES[index % CAMERA_MOVES.length];
+  if (preferred !== previous) return preferred;
+  return CAMERA_MOVES.find((move) => move !== previous) || "push-in";
+}
+
+export function buildSceneRenderPlan({
+  scene = {},
+  beat = "feature",
+  primaryTemplate = "cinematic-2d",
+  index = 0,
+  title = "",
+  category = "",
+  hasBroll = false,
+  previousCameraMove = null,
+  hasVerified3DModel = false,
+} = {}) {
+  const productProfile = inferProductModelProfile(title, category);
+  const cameraMove = cameraMoveFor(beat, index, scene.visualIntent, previousCameraMove);
+  const verifiedComponents = Array.isArray(scene.verifiedComponents)
+    ? scene.verifiedComponents.filter((item) => typeof item === "string" && item.trim()).slice(0, 12)
+    : [];
+  const modelAvailable = Boolean(hasVerified3DModel || scene.productModelUrl);
+  let renderer = "layered-2d";
+  let shotType = "cinematic-product-parallax";
+  let action = "animate-product-image-layers-and-camera";
+  let productRepresentation = "verified-product-photo";
+  let fallbackReason = null;
+  let assetRequirement = "verified-product-photo";
+
+  if (primaryTemplate === "premium-product-3d" || primaryTemplate === "exploded-teardown") {
+    if (modelAvailable || productProfile !== "unresolved") {
+      renderer = "three-product";
+      productRepresentation = modelAvailable ? "verified-gltf-model" : "parametric-archetype";
+      shotType = primaryTemplate === "exploded-teardown" ? "exploded-product-stage" : beat === "detail" ? "3d-macro-tracking" : "3d-hero-orbit";
+      action = primaryTemplate === "exploded-teardown"
+        ? (verifiedComponents.length ? "separate-verified-components-and-reassemble" : "illustrative-layer-separation-only")
+        : "rotate-product-and-move-camera";
+      assetRequirement = modelAvailable ? "glb-or-gltf-model" : "supported-parametric-product-profile";
+      if (primaryTemplate === "exploded-teardown" && !verifiedComponents.length) {
+        fallbackReason = "Sem lista de componentes documentados: a separação é apenas esquemática e não representa uma desmontagem técnica.";
+      }
+    } else {
+      renderer = "layered-2d";
+      productRepresentation = "verified-product-photo";
+      shotType = "macro-parallax-photo";
+      action = "multi-plane-parallax-and-camera-dolly";
+      assetRequirement = "verified-product-gallery";
+      fallbackReason = "Modelo 3D do produto não disponível e categoria sem perfil paramétrico; preservar fotografia real com parallax 2.5D, sem fingir um modelo 3D.";
+    }
+  } else if (primaryTemplate === "lifestyle-demo") {
+    if (hasBroll) {
+      renderer = "cinematic-footage";
+      shotType = "full-bleed-lifestyle-action";
+      action = "play-real-footage-with-camera-drift-and-match-cut";
+      assetRequirement = "matched-lifestyle-video";
+    } else {
+      renderer = "layered-2d";
+      shotType = "editorial-context-parallax";
+      action = "animate-verified-images-with-context-panels";
+      assetRequirement = "matched-lifestyle-video";
+      fallbackReason = "B-roll contextual não encontrado; usar imagens verificadas e composição 2.5D, sem simular uma demonstração real.";
+    }
+  } else if (primaryTemplate === "hologram-hud" || primaryTemplate === "isometric-explainer") {
+    renderer = "three-motion-graphics";
+    shotType = primaryTemplate === "hologram-hud" ? "3d-hud-orbit" : "isometric-world-build";
+    action = primaryTemplate === "hologram-hud" ? "build-3d-data-panels-around-product" : "assemble-isometric-scene-and-camera-crane";
+    assetRequirement = "scene-data-and-verified-product-image";
+  } else if (primaryTemplate === "data-storytelling" || primaryTemplate === "comparison-arena") {
+    renderer = "motion-graphics";
+    shotType = primaryTemplate === "comparison-arena" ? "split-screen-arena" : "animated-data-sequence";
+    action = primaryTemplate === "comparison-arena" ? "animate-comparison-entries-and-scoreboard" : "build-metrics-as-narrative";
+    assetRequirement = "verified-scene-data";
+  } else if (primaryTemplate === "kinetic-typography") {
+    renderer = "motion-graphics";
+    shotType = "kinetic-type-impact";
+    action = "animate-words-to-narration-beats-with-impact-cuts";
+    assetRequirement = "narration-timing";
+  } else if (primaryTemplate === "editorial-luxury") {
+    renderer = productProfile !== "unresolved" || modelAvailable ? "three-product" : "layered-2d";
+    productRepresentation = modelAvailable ? "verified-gltf-model" : productProfile !== "unresolved" ? "parametric-archetype" : "verified-product-photo";
+    shotType = renderer === "three-product" ? "editorial-3d-hero" : "editorial-photo-dolly";
+    action = renderer === "three-product" ? "slow-product-orbit-with-light-sweep" : "slow-photo-dolly-with-depth-layers";
+    assetRequirement = renderer === "three-product" ? "product-model-or-parametric-profile" : "verified-product-photo";
+  }
+
+  return {
+    version: 2,
+    renderer,
+    shotType,
+    action,
+    cameraMove,
+    productProfile,
+    productRepresentation,
+    assetRequirement,
+    hasMatchedBroll: Boolean(hasBroll),
+    verifiedComponents,
+    usesTrueProductGeometry: renderer === "three-product" && (modelAvailable || productProfile !== "unresolved"),
+    visualFidelity: renderer === "three-product" ? (modelAvailable ? "verified-3d-asset" : "illustrative-parametric-3d") : "verified-media-2.5d",
+    motionContract: {
+      cameraMustMove: true,
+      objectMustMove: renderer === "three-product",
+      minCameraTravel: renderer === "three-product" ? 0.55 : 0.025,
+      minScaleDelta: renderer === "three-product" ? 0.08 : 0.035,
+    },
+    fallbackReason,
+  };
+}
+
 /**
  * Creates a mixed, scene-level art direction. A video is not locked to a single
  * template: each beat gets a leading visual language plus supporting techniques.
@@ -117,6 +258,7 @@ export function planVetorSceneMixes({
 } = {}) {
   const manual = normalizeVetorTemplateId(manualTemplateId);
   let previousPrimary = null;
+  let previousCameraMove = null;
 
   return (Array.isArray(scenes) ? scenes : []).map((scene, index) => {
     const beat = classifyNarrativeBeat(scene, index);
@@ -152,6 +294,8 @@ export function planVetorSceneMixes({
       dataMustComeFromScene: true,
     };
     const names = templateIds.map((id) => getTemplate(id)?.name).filter(Boolean);
+    const renderPlan = buildSceneRenderPlan({ scene, beat, primaryTemplate: primary, index, title, category, hasBroll, previousCameraMove });
+    previousCameraMove = renderPlan.cameraMove;
     return {
       sceneId: scene.id ?? index + 1,
       narrativeBeat: beat,
@@ -165,6 +309,7 @@ export function planVetorSceneMixes({
       energy: direction.energy,
       rhythmSeconds: beat === "hook" || beat === "comparison" ? 1.8 : 2.5,
       visualLayers,
+      renderPlan,
       assets,
       artDirection: [
         `Cena ${index + 1} de ${scenes.length}: ${beat}`,
