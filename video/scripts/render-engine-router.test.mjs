@@ -55,3 +55,23 @@ console.log("multi-render engine routing tests passed");
 assert.equal(shouldFallbackToRemotion({ mode: "automatic" }, "false"), true);
 assert.equal(shouldFallbackToRemotion({ mode: "manual" }, "false"), false);
 assert.equal(shouldFallbackToRemotion({ mode: "manual" }, "true"), true);
+
+const lemoCatalogStyle = resolveRenderEngine({
+  mediaAssets: [{ type: "lemo_style", style: "ukiyoe" }],
+  videoData: { templateId: "product-editorial", scenes: [] },
+});
+assert.equal(lemoCatalogStyle.engine, "lemo-opuscar");
+assert.equal(lemoCatalogStyle.mode, "automatic");
+
+const imageGenOnlyStyle = resolveRenderEngine({
+  mediaAssets: [{ type: "lemo_style", style: "manga-panels" }],
+  videoData: { templateId: "product-editorial", scenes: [] },
+});
+assert.equal(imageGenOnlyStyle.engine, "remotion");
+assert.match(imageGenOnlyStyle.reason, /arte gerada/);
+
+const manualEngineStillWins = resolveRenderEngine({
+  mediaAssets: [{ type: "render_engine", requested: "remotion" }, { type: "lemo_style", style: "ukiyoe" }],
+  videoData: { templateId: "product-editorial", scenes: [] },
+});
+assert.equal(manualEngineStillWins.engine, "remotion");

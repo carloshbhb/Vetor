@@ -1,3 +1,5 @@
+import { normalizeLemoStyleId, resolveLemoStyle } from "./lemo-style-catalog.mjs";
+
 const ENGINES = new Set(["auto", "remotion", "hyperframes", "lemo-opuscar"]);
 const LEMO_STYLES = new Set(["cinematic-motion", "cinematic-product", "kinetic-typography", "data-film"]);
 const HYPERFRAMES_STYLES = new Set(["rapid-montage", "newsreel", "documentary-montage", "kinetic-montage", "music-video"]);
@@ -15,7 +17,7 @@ export function getRequestedRenderEngine(mediaAssets) {
 
 function getVisualStyle(mediaAssets, videoData) {
   if (Array.isArray(mediaAssets)) {
-    const marker = mediaAssets.find((item) => item && ["visual_style", "motion_style", "render_profile"].includes(item.type));
+    const marker = mediaAssets.find((item) => item && ["visual_style", "motion_style", "render_profile", "lemo_style"].includes(item.type));
     if (marker) return String(marker.style || marker.profile || marker.value || "").trim().toLowerCase();
   }
   return String(videoData?.visualStyle || videoData?.motionStyle || videoData?.renderProfile || "").trim().toLowerCase();
@@ -31,6 +33,7 @@ export function resolveRenderEngine({ mediaAssets = [], videoData = {}, defaultE
   const requestedEngine = normalizeRenderEngine(markerValue || defaultEngine);
   const templateId = String(videoData.templateId || "").toLowerCase();
   const visualStyle = getVisualStyle(mediaAssets, videoData);
+  const lemoStyleId = normalizeLemoStyleId(videoData.lemoStyleId || visualStyle);
 
   if (templateId === "stickman-review" || visualStyle === "stickman") {
     if (requestedEngine !== "auto" && requestedEngine !== "remotion") {
@@ -51,6 +54,14 @@ export function resolveRenderEngine({ mediaAssets = [], videoData = {}, defaultE
       mode: "manual",
       reason: "Motor escolhido manualmente para este vídeo.",
     };
+  }
+
+  if (lemoStyleId) {
+    const style = resolveLemoStyle(lemoStyleId);
+    if (style.imageGenerationRequired && !(Array.isArray(videoData.imageGenerationAssets) && videoData.imageGenerationAssets.length)) {
+      return { requestedEngine, engine: "remotion", mode: "automatic", reason: "O estilo " + style.name + " depende de arte gerada; Remotion mantém a fila segura até o asset estar disponível." };
+    }
+    return { requestedEngine, engine: "lemo-opuscar", mode: "automatic", reason: "O estilo Lemo-Opuscar " + style.name + " foi selecionado para esta direção visual." };
   }
 
   if (LEMO_STYLES.has(visualStyle)) {

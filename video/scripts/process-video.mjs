@@ -6,6 +6,7 @@ import { buildCaptionEntries, buildNarrationTimings, buildTimedCaptionEntries, b
 import { renderWithHyperFrames } from '../hyperframes/render-video.mjs';
 import { resolveRenderEngine, withRenderEngineSelection, shouldFallbackToRemotion } from './render-engine-router.mjs';
 import { renderWithLemoOpuscar } from './render-lemo-opuscar.mjs';
+import { normalizeLemoStyleId } from './lemo-style-catalog.mjs';
 import { researchProduct } from './research-product.mjs';
 import { resolveVisualTemplate } from './stickman-template.mjs';
 import { resolveVetorVisualTemplate } from './visual-template-registry.mjs';
@@ -1016,6 +1017,10 @@ async function processVideo(video) {
     const brollVideos = await fetchPexelsBroll(script.scenes, video.product_category, video.id, videoFormat);
     temporaryVisualAssets.push(...brollVideos.filter(Boolean).map(source => path.resolve("video/public", source)));
 
+    const lemoStyleMarker = Array.isArray(video.media_assets)
+      ? video.media_assets.find((asset) => asset && (asset.type === "lemo_style" || asset.type === "visual_style"))
+      : null;
+    const lemoStyleId = normalizeLemoStyleId(lemoStyleMarker?.style || lemoStyleMarker?.profile || script.lemoStyleId || "");
     const visualTemplate = resolveVetorVisualTemplate({
       mediaAssets: video.media_assets,
       videoData: { title: video.product_title, category: video.product_category, scenes: script.scenes },
@@ -1066,6 +1071,7 @@ async function processVideo(video) {
       visualTemplateName: visualTemplate.name,
       visualTemplateMotion: visualTemplate.motion,
       visualTemplateTransition: visualTemplate.transition,
+      lemoStyleId,
       visualTemplateCues: visualTemplate.visualCues,
       openingCreativeDirection,
       closingCreativeDirection,

@@ -75,6 +75,7 @@ export default function AdminVideosPage() {
   const [newUrl, setNewUrl] = useState("");
   const [visualStyle, setVisualStyle] = useState<"standard" | "stickman">("standard");
   const [renderEngine, setRenderEngine] = useState<RenderEngine>("auto");
+  const [lemoStyleId, setLemoStyleId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -137,10 +138,11 @@ export default function AdminVideosPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!newUrl.trim()) return;
-    await createVideoJobs({ productUrl: newUrl.trim(), visualStyle, renderEngine }, (payload) => {
+    await createVideoJobs({ productUrl: newUrl.trim(), visualStyle, renderEngine, lemoStyleId: lemoStyleId.trim() || undefined }, (payload) => {
       setNewUrl("");
       setVisualStyle("standard");
       setRenderEngine("auto");
+      setLemoStyleId("");
       const video = payload.video as { product_title?: string } | undefined;
       return `Produto adicionado à fila: ${String(video?.product_title || "vídeo agendado")}.`;
     });
@@ -294,6 +296,7 @@ export default function AdminVideosPage() {
               <option value="hyperframes">HyperFrames</option>
               <option value="lemo-opuscar">Lemo-Opuscar</option>
             </select>
+            <input type="text" value={lemoStyleId} onChange={(event) => setLemoStyleId(event.target.value)} placeholder="Estilo Lemo (ex.: ukiyoe, neon-tubes, dataviz)" aria-label="Estilo Lemo-Opuscar opcional" disabled={visualStyle === "stickman"} className="min-w-[220px] rounded-lg border border-border bg-[var(--surface2)] px-3 py-2.5 text-sm" />
             <button type="submit" disabled={saving} className="rounded-lg bg-[var(--amber)] px-4 py-2.5 text-sm font-bold text-black disabled:opacity-50">
               {saving ? "Agendando…" : "Agendar produto"}
             </button>

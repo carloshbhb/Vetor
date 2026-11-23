@@ -18,6 +18,10 @@ export async function POST(request: NextRequest) {
     const visualStyle = body.visualStyle === 'stickman' ? 'stickman' : 'standard';
     const validEngines = new Set(['auto', 'remotion', 'hyperframes', 'lemo-opuscar']);
     const renderEngine = typeof body.renderEngine === 'string' && validEngines.has(body.renderEngine) ? body.renderEngine : 'auto';
+    const lemoStyleId = typeof body.lemoStyleId === 'string' ? body.lemoStyleId.trim().toLowerCase() : '';
+    if (lemoStyleId && !/^[a-z0-9-]{2,48}$/.test(lemoStyleId)) {
+      return NextResponse.json({ error: 'Slug de estilo Lemo inválido.' }, { status: 400 });
+    }
     if (body.renderEngine !== undefined && !validEngines.has(body.renderEngine)) {
       return NextResponse.json({ error: 'Motor de renderização inválido.' }, { status: 400 });
     }
@@ -40,6 +44,11 @@ export async function POST(request: NextRequest) {
     }
 
     const video = await createVideoJob({ productUrl, scheduledAt, visualStyle, renderEngine });
+    if (lemoStyleId) {
+      const assets = Array.isArray(video.media_assets) ? [...video.media_assets] : [];
+      assets.push({ type: "lemo_style", style: lemoStyleId });
+      await updateVideoStatus(video.id, { media_assets: assets });
+    }
     
     return NextResponse.json({
       success: true,

@@ -2,6 +2,8 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { resolveLemoStyle } from "./lemo-style-catalog.mjs";
+import { buildLemoCanvasScript } from "./lemo-style-canvas.mjs";
 
 const REPOSITORY = "https://github.com/lemomo-ai/lemo-opuscar.git";
 
@@ -81,6 +83,7 @@ function safeJson(value) {
 function makeFilmHtml(videoData, images, width, height) {
   const fps = Number(videoData.fps) > 0 ? Number(videoData.fps) : 30;
   const duration = Math.max(1, Number(videoData.totalDuration) || 30);
+  const style = resolveLemoStyle(videoData.lemoStyleId || videoData.visualStyle || videoData.visualTemplateId || "glass-product");
   const scenes = (Array.isArray(videoData.scenes) ? videoData.scenes : []).map((scene) => ({
     start: Number(scene.startFrame || 0) / fps,
     end: Number(scene.endFrame || 0) / fps,
@@ -99,6 +102,7 @@ function makeFilmHtml(videoData, images, width, height) {
     hook: String(videoData.hook || ""),
     callToAction: String(videoData.callToAction || ""),
     scenes, subtitles, images,
+    style: { id: style.id, name: style.name, family: style.family, accent: style.accent, background: style.background, imageGenerationRequired: style.imageGenerationRequired },
   });
   const lines = [
     "<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Vetor Motion Film</title>",
@@ -116,15 +120,17 @@ function makeFilmHtml(videoData, images, width, height) {
     "function roundedRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.5;ctx.stroke();}}",
     "function wrap(text,x,y,maxWidth,lineHeight,maxLines,font,color){ctx.font=font;ctx.fillStyle=color;ctx.textAlign='left';const words=String(text||'').split(/\\s+/).filter(Boolean);let line='',lines=[];for(const word of words){const next=line?line+' '+word:word;if(line&&ctx.measureText(next).width>maxWidth){lines.push(line);line=word;}else line=next;}if(line)lines.push(line);lines.slice(0,maxLines).forEach((value,index)=>ctx.fillText(value,x,y+index*lineHeight,maxWidth));return Math.min(lines.length,maxLines);}",
     "function contain(image,x,y,maxW,maxH,alpha=1,scale=1){if(!image||!image.complete||!image.naturalWidth)return;const ratio=Math.min(maxW/image.naturalWidth,maxH/image.naturalHeight)*scale;const w=image.naturalWidth*ratio,h=image.naturalHeight*ratio;ctx.save();ctx.globalAlpha=alpha;ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=44;ctx.drawImage(image,x-w/2,y-h/2,w,h);ctx.restore();}",
+    buildLemoCanvasScript(),
     "function activeScene(t){return cfg.scenes.find((scene,index)=>t>=scene.start&&(t<scene.end||index===cfg.scenes.length-1))||cfg.scenes[0]||{text:cfg.hook,cue:''};}",
     "function draw(t){",
     "const W=cfg.width,H=cfg.height,s=Math.max(1,Math.min(W/1080,H/1080)),portrait=H>W;ctx.clearRect(0,0,W,H);",
-    "const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#101a2b');bg.addColorStop(.52,'#080e19');bg.addColorStop(1,'#03060d');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);",
+    "const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,cfg.style.background);bg.addColorStop(.52,'#080e19');bg.addColorStop(1,'#03060d');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);",
+    "drawStyleMotif(t,W,H,s);",
     "const glow=ctx.createRadialGradient(W*.76,H*.38,0,W*.76,H*.38,Math.max(W,H)*.62);glow.addColorStop(0,'rgba(47,104,211,.24)');glow.addColorStop(1,'rgba(4,8,16,0)');ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);",
     "ctx.save();ctx.globalAlpha=.13;ctx.strokeStyle='#79a9ff';ctx.lineWidth=1;const step=56*s;for(let x=0;x<W;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(let y=0;y<H;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}ctx.restore();",
     "const scene=activeScene(t),sceneIndex=Math.max(0,cfg.scenes.indexOf(scene)),fade=smooth(t/.65),drift=Math.sin(t*.65)*8*s,hero=images[0],progress=clamp(t/cfg.duration);ctx.globalAlpha=fade;",
-    "ctx.fillStyle='#78a8ff';ctx.font='700 '+(17*s)+'px Inter,Arial,sans-serif';ctx.textAlign='left';ctx.fillText('VETOR  /  REVIEW VISUAL',64*s,68*s);ctx.fillStyle='rgba(229,238,255,.6)';ctx.font='500 '+(17*s)+'px Inter,Arial,sans-serif';ctx.textAlign='right';ctx.fillText(cfg.category.toUpperCase(),W-64*s,68*s);ctx.textAlign='left';",
-    "if(portrait){const heroY=H*.31+drift;roundedRect(76*s,H*.115,W-152*s,H*.39,34*s,'rgba(255,255,255,.045)','rgba(151,184,255,.18)');contain(hero,W*.5,heroY,W*.73,H*.32,1,1+smooth(t/2)*.035);ctx.fillStyle='#6fa4ff';ctx.fillRect(76*s,H*.545,68*s,5*s);wrap(t<3?cfg.hook:(scene.cue||scene.text),76*s,H*.61,W-152*s,56*s,3,'750 '+(42*s)+'px Inter,Arial,sans-serif','#f6f8ff');ctx.fillStyle='rgba(224,234,255,.68)';wrap(scene.text,76*s,H*.74,W-152*s,32*s,3,'500 '+(22*s)+'px Inter,Arial,sans-serif','rgba(231,239,255,.8)');}",
+    "ctx.fillStyle=cfg.style.accent;ctx.font='700 '+(17*s)+'px Inter,Arial,sans-serif';ctx.textAlign='left';ctx.fillText('VETOR  /  REVIEW VISUAL',64*s,68*s);ctx.fillStyle='rgba(229,238,255,.6)';ctx.font='500 '+(17*s)+'px Inter,Arial,sans-serif';ctx.textAlign='right';ctx.fillText(cfg.category.toUpperCase(),W-64*s,68*s);ctx.textAlign='left';",
+    "if(portrait){const heroY=H*.31+drift;roundedRect(76*s,H*.115,W-152*s,H*.39,34*s,'rgba(255,255,255,.045)','rgba(151,184,255,.18)');contain(hero,W*.5,heroY,W*.73,H*.32,1,1+smooth(t/2)*.035);ctx.fillStyle=cfg.style.accent;ctx.fillRect(76*s,H*.545,68*s,5*s);wrap(t<3?cfg.hook:(scene.cue||scene.text),76*s,H*.61,W-152*s,56*s,3,'750 '+(42*s)+'px Inter,Arial,sans-serif','#f6f8ff');ctx.fillStyle='rgba(224,234,255,.68)';wrap(scene.text,76*s,H*.74,W-152*s,32*s,3,'500 '+(22*s)+'px Inter,Arial,sans-serif','rgba(231,239,255,.8)');}",
     "else{const imageX=W*.72,imageY=H*.53+drift;roundedRect(W*.48,H*.16,W*.46,H*.7,34*s,'rgba(255,255,255,.035)','rgba(151,184,255,.18)');contain(hero,imageX,imageY,W*.38,H*.57,1,1+smooth(t/2)*.035);ctx.fillStyle='#6fa4ff';ctx.fillRect(76*s,H*.24,80*s,5*s);wrap(t<3?cfg.hook:(scene.cue||scene.text),76*s,H*.34,W*.36,58*s,4,'750 '+(48*s)+'px Inter,Arial,sans-serif','#f6f8ff');ctx.fillStyle='rgba(224,234,255,.68)';wrap(scene.text,76*s,H*.68,W*.34,32*s,4,'500 '+(22*s)+'px Inter,Arial,sans-serif','rgba(231,239,255,.8)');}",
     "ctx.globalAlpha=1;const caption=cfg.subtitles.find((entry)=>t>=entry.start&&t<entry.end);if(caption){const boxW=portrait?W-100*s:W*.78,boxH=portrait?112*s:96*s,boxX=(W-boxW)/2,boxY=H-(portrait?245*s:145*s);roundedRect(boxX,boxY,boxW,boxH,22*s,'rgba(5,10,20,.88)','rgba(132,171,245,.35)');ctx.fillStyle='#f7f9ff';ctx.textAlign='center';ctx.font='600 '+(portrait?27:29)*s+'px Inter,Arial,sans-serif';const words=caption.text.split(/\\s+/);let line='',lines=[];for(const word of words){const next=line?line+' '+word:word;if(line&&ctx.measureText(next).width>boxW-50*s){lines.push(line);line=word;}else line=next;}if(line)lines.push(line);lines.slice(0,2).forEach((value,index)=>ctx.fillText(value,W/2,boxY+(lines.length===1?67:43)*s+index*34*s,boxW-50*s));}",
     "const barY=H-42*s;ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(64*s,barY,W-128*s,4*s);ctx.fillStyle='#6fa4ff';ctx.fillRect(64*s,barY,(W-128*s)*progress,4*s);ctx.fillStyle='rgba(230,238,255,.58)';ctx.font='500 '+(14*s)+'px Inter,Arial,sans-serif';ctx.textAlign='left';ctx.fillText('VETOR.BLOG',64*s,H-17*s);ctx.textAlign='right';ctx.fillText(String(sceneIndex+1).padStart(2,'0')+' / '+String(Math.max(1,cfg.scenes.length)).padStart(2,'0'),W-64*s,H-17*s);",
@@ -136,6 +142,10 @@ function makeFilmHtml(videoData, images, width, height) {
 }
 
 export async function renderWithLemoOpuscar(videoData, outputPath, audioPath) {
+  const selectedStyle = resolveLemoStyle(videoData.lemoStyleId || videoData.visualStyle || videoData.visualTemplateId || "glass-product");
+  if (selectedStyle.imageGenerationRequired && !(Array.isArray(videoData.imageGenerationAssets) && videoData.imageGenerationAssets.length)) {
+    throw new Error("O estilo " + selectedStyle.name + " exige arte gerada antes do render. Forneça imageGenerationAssets ou escolha outro estilo.");
+  }
   const library = ensureLibrary();
   const fps = Math.max(24, Math.min(60, Math.round(Number(videoData.fps) || 30)));
   const isLong = videoData.type === "long";
@@ -150,7 +160,7 @@ export async function renderWithLemoOpuscar(videoData, outputPath, audioPath) {
   fs.writeFileSync(path.join(projectDir, "index.html"), makeFilmHtml(videoData, images, width, height), "utf8");
 
   try {
-    console.log("[LEMO_OPUSCAR] Renderizando composição Vetor no core oficial do Lemo-Opuscar.");
+    console.log("[LEMO_OPUSCAR] Estilo=" + selectedStyle.name + " (" + selectedStyle.family + "); renderizando no core oficial.");
     run(process.execPath, [
       path.join(library, "core", "render", "video.mjs"),
       projectDir, "--fps", String(fps), "--workers", "2",
