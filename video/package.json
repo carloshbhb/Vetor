@@ -10,7 +10,8 @@
     "render-comparison": "tsx src/utils/renderVideo.ts comparison",
     "process-video": "tsx scripts/process-video.ts",
     "upload-youtube": "node scripts/upload-to-youtube.js",
-    "hyperframes:catalog": "node hyperframes/install-catalog-library.mjs"
+    "hyperframes:catalog": "node hyperframes/install-catalog-library.mjs",
+    "references:search": "node scripts/search-creative-references.mjs"
   },
   "dependencies": {
     "@remotion/cli": "4.0.534",
