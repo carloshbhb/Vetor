@@ -29,6 +29,17 @@ Biblioteca interna inspirada em referências públicas de produção de vídeo c
 - Segredos ficam em variáveis de ambiente; nunca em prompts, logs ou arquivos.
 - Respeitar formato e FPS da composição de destino; não impor 60 fps a composições configuradas em 30 fps.
 
+## Bibliotecas importadas e habilidades reutilizáveis
+
+- **703 prompts originais indexados** de awesome-opus5-5-videos, importados em JSON sob a licença MIT e acompanhados da licença original. O texto integral fica no arquivo de referência; não é copiado para código de produção.
+- **54 casos catalogados** de opus-video-prompts: apenas metadados factuais (título, autor, categoria, método, custo declarado e URL). O repositório não declara licença; por isso os prompts e textos autorais não foram reproduzidos.
+- Busca local: `cd video && npm run references:search -- "product motion graphics threejs"`.
+- Verificação do catálogo: `cd video && npm run references:test`.
+- Skills operacionais em `video/skills/`: direção criativa, motion graphics determinístico e crítico independente.
+- Ferramentas já instaladas e reutilizadas: Remotion 4, Three.js, React Three Fiber, @remotion/three e GSAP. Não foi adicionada dependência de renderização nem um motor concorrente.
+
+A seleção automática deve usar o planejador visual existente e os estilos já implementados no Vetor. A biblioteca amplia a pesquisa e a instrução criativa; não substitui nem altera o pipeline de renderização/publicação.
+
 ## Biblioteca
 | Arquivo | Uso |
 |---|---|
