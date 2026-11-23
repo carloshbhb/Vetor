@@ -57,6 +57,7 @@ export type EditorialReviewProps = {
   audioUrl: string;
   subtitleEntries: EditorialSubtitle[];
   productImages?: string[];
+  productModelUrl?: string;
   brollVideos?: string[];
   totalDuration: number;
   fps: number;
@@ -269,7 +270,8 @@ const FeatureScene: React.FC<{
   brollUrl?: string;
   visual: SceneVisualPlan;
   seed: string;
-}> = ({ scene, index, count, category, images, brollUrl, visual, seed }) => {
+  productModelUrl?: string;
+}> = ({ scene, index, count, category, images, brollUrl, visual, seed, productModelUrl }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const durationFrames = Math.max(1, scene.endFrame - scene.startFrame);
@@ -325,6 +327,8 @@ const FeatureScene: React.FC<{
             metricLabel="ESPECIFICAÇÃO CITADA"
             accent={accent}
             motion={visual.motion}
+            creativeDirection={scene.creativeDirection}
+            productModelUrl={productModelUrl}
           />
           <BeatWipe strength={beatIndex === 0 ? 0.8 : 0.4} />
           {beat.kind === 'callout' ? <Audio src={staticFile('sfx/pop.mp3')} volume={0.5} /> : null}
@@ -533,6 +537,7 @@ export const EditorialReview: React.FC<EditorialReviewProps> = (props) => {
               brollUrl={props.brollVideos?.[index] || undefined}
               visual={visualPlan[index]}
               seed={props.title}
+              productModelUrl={props.productModelUrl}
             />
           </Sequence>
         );
