@@ -232,6 +232,8 @@ const Pedestal: React.FC<{ accent: string }> = ({ accent }) => (
 
 const ProductScene: React.FC<Props> = ({ profile, shot, cameraMove, accent, modelUrl }) => {
   const { seconds } = useFrameProgress();
+  const { width, height } = useVideoConfig();
+  const landscapeScale = width > height ? 0.68 : 1;
   return (
     <>
       <color attach="background" args={['#090F18']} />
@@ -240,7 +242,7 @@ const ProductScene: React.FC<Props> = ({ profile, shot, cameraMove, accent, mode
       <pointLight position={[-4, 1, 3]} intensity={36} color={accent} />
       <pointLight position={[3, -2, -4]} intensity={18} color="#8AB4FF" />
       <CameraRig move={cameraMove} />
-      <group position={[0, 0.05 + Math.sin(seconds * 1.4) * 0.025, 0]}>
+      <group position={[0, 0.05 + Math.sin(seconds * 1.4) * 0.025, 0]} scale={landscapeScale}>
         {modelUrl ? (
           <Suspense fallback={null}><GltfModel url={modelUrl} /></Suspense>
         ) : profile === 'thermal-carafe' ? (
@@ -268,11 +270,12 @@ const ProductScene: React.FC<Props> = ({ profile, shot, cameraMove, accent, mode
 
 export const SceneProductStage3D: React.FC<Props> = (props) => {
   const profileResolved = props.profile !== 'unresolved';
+  const { width, height } = useVideoConfig();
   return (
     <AbsoluteFill style={{ overflow: 'hidden', background: 'radial-gradient(ellipse at 50% 42%,#25394D 0%,#0D1420 58%,#080C14 100%)' }}>
       <ThreeCanvas
-        width={1080}
-        height={1920}
+        width={width}
+        height={height}
         camera={{ position: [0, 0.1, 6.8], fov: 38 }}
         gl={{ alpha: false, antialias: true, preserveDrawingBuffer: true }}
       >
