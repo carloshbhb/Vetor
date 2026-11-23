@@ -104,7 +104,7 @@ function getTemplate(id) {
 
 function inferProductModelProfile(title = "", category = "") {
   const text = normalize([title, category].join(" "));
-  if (/garrafa termica|garrafa de cafe|jarra termica|carafe|coffee pot|cafeteira/.test(text)) return "thermal-carafe";
+  if (/garrafa termica|garrafa de cafe|jarra termica|carafe|coffee pot/.test(text)) return "thermal-carafe";
   if (/smartphone|celular|iphone|galaxy s|redmi note|poco [a-z0-9]+/.test(text)) return "smartphone";
   if (/tablet|ipad|redmi pad|galaxy tab/.test(text)) return "tablet";
   if (/notebook|laptop|macbook|chromebook/.test(text)) return "laptop";
@@ -255,6 +255,7 @@ export function planVetorSceneMixes({
   manualTemplateId = null,
   hasProductGallery = false,
   hasBroll = false,
+  hasVerified3DModel = false,
 } = {}) {
   const manual = normalizeVetorTemplateId(manualTemplateId);
   let previousPrimary = null;
@@ -294,7 +295,7 @@ export function planVetorSceneMixes({
       dataMustComeFromScene: true,
     };
     const names = templateIds.map((id) => getTemplate(id)?.name).filter(Boolean);
-    const renderPlan = buildSceneRenderPlan({ scene, beat, primaryTemplate: primary, index, title, category, hasBroll, previousCameraMove });
+    const renderPlan = buildSceneRenderPlan({ scene, beat, primaryTemplate: primary, index, title, category, hasBroll, previousCameraMove, hasVerified3DModel });
     previousCameraMove = renderPlan.cameraMove;
     return {
       sceneId: scene.id ?? index + 1,
