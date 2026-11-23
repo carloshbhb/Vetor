@@ -139,7 +139,7 @@ const Opening: React.FC<{
           {title}
         </div>
       </div>
-      {scene.creativeDirection?.renderPlan?.renderer !== 'three-product' ? <Product
+      <Product
         src={imageUrl}
         style={{
           position: 'absolute',
@@ -291,6 +291,7 @@ const LongFeature: React.FC<{
         </div>
       ) : null}
 
+      {scene.creativeDirection?.renderPlan?.renderer !== 'three-product' ? (
       <Product
         src={imageUrl}
         style={{
@@ -302,7 +303,8 @@ const LongFeature: React.FC<{
           transform: 'translateX(' + drift + 'px) scale(' + scale + ') rotate(' + rotate + 'deg)',
           filter: showBroll ? 'drop-shadow(0 14px 28px rgba(0,0,0,.65))' : undefined,
         }}
-      /> : null}
+      />
+      ) : null}
 
       <SceneCreativeTreatment
         plan={scene.creativeDirection}
