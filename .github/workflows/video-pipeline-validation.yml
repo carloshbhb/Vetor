@@ -93,6 +93,8 @@ jobs:
           node video/scripts/lemo-style-catalog.test.mjs
           node video/scripts/visual-template-registry.test.mjs
           node video/scripts/visual-sequence-planner.test.mjs
+          node --check video/scripts/visual-render-qa.mjs
+          node video/scripts/scene-render-qa.test.mjs
 
       - name: Type-check Remotion project
         working-directory: video
@@ -176,7 +178,8 @@ jobs:
                   "transitionIn": "scan-reveal", "energy": "medium", "rhythmSeconds": 2.5,
                   "visualLayers": ["hud-scan", "animated-metric", "three-orbit"],
                   "assets": {"realProductImage": true, "galleryCutaway": false, "lifestyleFootage": false, "brollAvailable": true, "dataMustComeFromScene": true},
-                  "artDirection": "CI smoke: verified product image with HUD and data overlay"
+                  "artDirection": "CI smoke: verified product image with a native 3D product stage",
+                  "renderPlan": {"version":2,"renderer":"three-product","shotType":"3d-hero-orbit","action":"rotate-product-and-move-camera","cameraMove":"orbit","productProfile":"smartphone","productRepresentation":"parametric-archetype","assetRequirement":"supported-parametric-product-profile","hasMatchedBroll":true,"verifiedComponents":[],"usesTrueProductGeometry":true,"visualFidelity":"illustrative-parametric-3d","motionContract":{"cameraMustMove":true,"objectMustMove":true,"minCameraTravel":0.55,"minScaleDelta":0.08},"fallbackReason":null}
                 }}
             ],
             "callToAction": "Confira a análise completa.",

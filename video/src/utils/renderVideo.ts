@@ -27,6 +27,7 @@ interface ReviewVideoData {
   audioUrl: string;
   subtitleEntries: EditorialSubtitle[];
   productImages: string[];
+  productModelUrl?: string;
   brollVideos: string[];
   totalDuration: number;
   fps: number;
@@ -206,6 +207,7 @@ async function main() {
         subtitleEntries: rawData.subtitleEntries,
         reviewUrl: typeof rawData.reviewUrl === 'string' ? rawData.reviewUrl : 'https://www.vetor.blog/reviews/',
         productImages: rawData.productImages || [rawData.imageUrl],
+        productModelUrl: typeof rawData.productModelUrl === 'string' ? rawData.productModelUrl : undefined,
         brollVideos: rawData.brollVideos || [],
         musicUrl: typeof rawData.musicUrl === 'string' && rawData.musicUrl ? rawData.musicUrl : undefined,
         totalDuration: timings.totalDuration,

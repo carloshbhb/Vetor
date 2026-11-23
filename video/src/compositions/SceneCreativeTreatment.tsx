@@ -1,6 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { ThreeMotionGraphicsScene, type ThreeMotionVariant } from '../motion-graphics/ThreeMotionGraphicsScene';
+import { SceneMotionGraphicsRenderer } from '../motion-graphics/SceneMotionGraphicsRenderer';
 import { SHORTS_SAFE_ZONE } from '../utils/shorts-safe-zone';
 
 export type SceneCreativeDirection = {
@@ -22,6 +23,20 @@ export type SceneCreativeDirection = {
     dataMustComeFromScene: boolean;
   };
   artDirection: string;
+  renderPlan?: {
+    version: number;
+    renderer: string;
+    shotType: string;
+    action: string;
+    cameraMove: string;
+    productProfile: string;
+    productRepresentation: string;
+    assetRequirement: string;
+    hasMatchedBroll: boolean;
+    usesTrueProductGeometry: boolean;
+    visualFidelity: string;
+    fallbackReason: string | null;
+  };
 };
 
 type Props = {
@@ -37,10 +52,9 @@ function includes(plan: SceneCreativeDirection, id: string) {
 }
 
 function pickThreeVariant(plan: SceneCreativeDirection): ThreeMotionVariant | null {
-  if (includes(plan, 'exploded-teardown')) return 'exploded';
-  if (includes(plan, 'hologram-hud')) return 'hud';
-  if (includes(plan, 'isometric-explainer')) return 'isometric';
-  if (includes(plan, 'premium-product-3d')) return 'orbit';
+  if (plan.primaryTemplate === 'hologram-hud') return 'hud';
+  if (plan.primaryTemplate === 'isometric-explainer') return 'isometric';
+  // Product 3D is rendered by SceneProductStage3D, never as a decorative orbit overlay.
   return null;
 }
 
@@ -146,7 +160,7 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
   const { fps, width, height } = useVideoConfig();
   if (!plan) return null;
 
-  const variant = pickThreeVariant(plan);
+  const variant = plan.renderPlan?.renderer === 'three-product' ? null : pickThreeVariant(plan);
   const threeOpacity = interpolate(frame, [0, 10, 26], [0, 0.9, 0.58], { extrapolateRight: 'clamp' });
   const entrance = spring({ frame, fps, config: { damping: 13, stiffness: 180, mass: 0.65 } });
   const titleScale = interpolate(entrance, [0, 1], [0.72, 1]);
@@ -165,13 +179,13 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
   const cinematicCircle = landscape
     ? { left: width * 0.42 - height * 0.45, top: height * 0.05, size: height * 0.9 }
     : { left: -260, top: 590, size: 940 };
-  const showKinetic = includes(plan, 'kinetic-typography');
+  const showKinetic = includes(plan, 'kinetic-typography') && plan.primaryTemplate !== 'kinetic-typography';
   const showHud = includes(plan, 'hologram-hud');
   const showCinematic = includes(plan, 'cinematic-2d');
-  const showComparison = includes(plan, 'comparison-arena');
+  const showComparison = includes(plan, 'comparison-arena') && plan.primaryTemplate !== 'comparison-arena';
   const showEditorial = includes(plan, 'editorial-luxury');
   const showIsometric = includes(plan, 'isometric-explainer');
-  const showData = includes(plan, 'data-storytelling');
+  const showData = includes(plan, 'data-storytelling') && plan.primaryTemplate !== 'data-storytelling';
 
   const safeOverlay = landscape
     ? undefined
@@ -186,6 +200,16 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
         <AbsoluteFill style={{ opacity: threeOpacity }}>
           <ThreeMotionGraphicsScene variant={variant} accentColor={accent} />
         </AbsoluteFill>
+      ) : null}
+
+      {plan.renderPlan?.renderer === 'motion-graphics' ? (
+        <SceneMotionGraphicsRenderer
+          template={plan.primaryTemplate}
+          accent={accent}
+          label={label}
+          sceneText={sceneText}
+          metric={metric}
+        />
       ) : null}
 
       {showCinematic ? (

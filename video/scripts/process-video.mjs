@@ -1032,13 +1032,22 @@ async function processVideo(video) {
     // Visual direction is selected per narrative scene, not once for the whole video.
     // A manual style remains the lead language, while supporting techniques can still
     // be mixed to make each scene serve its own storytelling purpose.
+    const modelMarker = Array.isArray(video.media_assets)
+      ? video.media_assets.find((asset) => asset && ["product_model_3d", "gltf_model", "3d_model"].includes(asset.type))
+      : null;
+    const modelUrlCandidate = modelMarker?.url || modelMarker?.src || video.product_model_url || video.product_3d_url;
+    const productModelUrl = typeof modelUrlCandidate === "string" && modelUrlCandidate.trim()
+      ? modelUrlCandidate.trim()
+      : undefined;
+
     const visualSequence = planVetorSceneMixes({
       scenes: scenesWithFrames,
       title: video.product_title,
       category: video.product_category,
       manualTemplateId: visualTemplate.selection === "manual" ? visualTemplate.id : null,
       hasProductGallery: productImages.length > 1,
-      hasBroll: brollVideos.some(Boolean),
+      hasBroll: scenesWithFrames.map((_, sceneIndex) => Boolean(brollVideos[sceneIndex])),
+      hasVerified3DModel: Boolean(productModelUrl),
     });
     const scenesWithVisualDirection = scenesWithFrames.map((scene, index) => ({
       ...scene,
@@ -1050,6 +1059,7 @@ async function processVideo(video) {
       category: video.product_category,
       hasProductGallery: productImages.length > 1,
       hasBroll: brollVideos.some(Boolean),
+      hasVerified3DModel: Boolean(productModelUrl),
     })[0];
     const closingCreativeDirection = planVetorSceneMixes({
       scenes: [{ id: "closing-verdict", text: spokenCallToAction, visualCue: "Veredito final" }],
@@ -1057,10 +1067,12 @@ async function processVideo(video) {
       category: video.product_category,
       hasProductGallery: productImages.length > 1,
       hasBroll: brollVideos.some(Boolean),
+      hasVerified3DModel: Boolean(productModelUrl),
     })[0];
     console.log("[VISUAL_DIRECTOR] " + visualSequence.map((plan, index) =>
       "cena-" + (index + 1) + "=" + plan.templateIds.join("+") + "/" + plan.transitionIn
     ).join(" | "));
+    console.log("[SCENE_RENDERER] " + visualSequence.map((plan, index) => "cena-" + (index + 1) + "=" + plan.renderPlan.renderer + "/" + plan.renderPlan.shotType + "/" + plan.renderPlan.cameraMove + (plan.renderPlan.fallbackReason ? " [fallback]" : "")).join(" | "));
     console.log("[VISUAL_DIRECTOR] abertura=" + openingCreativeDirection.templateIds.join("+") +
       "; encerramento=" + closingCreativeDirection.templateIds.join("+"));
 
@@ -1076,6 +1088,7 @@ async function processVideo(video) {
       openingCreativeDirection,
       closingCreativeDirection,
       title: video.product_title,
+      productModelUrl,
       imageUrl: productImageSource,
       score: Number.isFinite(Number(script.score)) && Number(script.score) > 0 && Number(script.score) <= 10 ? Number(script.score) : 0,
       category: video.product_category,

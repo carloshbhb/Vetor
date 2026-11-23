@@ -16,6 +16,7 @@ import { resolveMediaSource } from '../utils/media-source';
 import { createSceneVisualPlan, extractPrimaryMetric, type SceneVisualPlan } from '../utils/visual-storyboard';
 import { fitHeadlineSize, headlineFromText, toHeadline } from '../utils/scene-headline';
 import { SceneCreativeTreatment } from './SceneCreativeTreatment';
+import { SceneProductStage3D, type ProductModelProfile, type ProductShot } from '../motion-graphics/SceneProductStage3D';
 import {
   LANDSCAPE_BROLL_BOX,
   LANDSCAPE_END_PRODUCT_BOX,
@@ -165,7 +166,8 @@ const LongFeature: React.FC<{
   imageUrl: string;
   brollUrl?: string;
   visual: SceneVisualPlan;
-}> = ({ scene, index, count, category, imageUrl, brollUrl, visual }) => {
+  productModelUrl?: string;
+}> = ({ scene, index, count, category, imageUrl, brollUrl, visual, productModelUrl }) => {
   const frame = useCurrentFrame();
   const duration = Math.max(1, scene.endFrame - scene.startFrame);
   const progress = Math.max(0, Math.min(1, frame / duration));
@@ -206,7 +208,25 @@ const LongFeature: React.FC<{
 
   return (
     <SceneSurface>
-      {showBroll && brollUrl ? (
+      {scene.creativeDirection?.renderPlan?.renderer === 'three-product' ? (
+        <SceneProductStage3D
+          profile={(scene.creativeDirection.renderPlan.productProfile || 'unresolved') as ProductModelProfile}
+          shot={scene.creativeDirection.renderPlan.shotType.includes('exploded') ? 'exploded' : scene.creativeDirection.renderPlan.shotType.includes('macro') ? 'macro' : 'hero'}
+          cameraMove={scene.creativeDirection.renderPlan.cameraMove}
+          accent={sceneAccent}
+          modelUrl={productModelUrl}
+          durationFrames={duration}
+        />
+      ) : null}
+      {scene.creativeDirection?.renderPlan?.renderer === 'cinematic-footage' && showBroll && brollUrl ? (
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+          <Loop durationInFrames={duration}>
+            <OffthreadVideo src={resolveMediaSource(brollUrl)} muted delayRenderTimeoutInMilliseconds={90000} delayRenderRetries={1} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(' + interpolate(phaseProgress, [0, 1], [1.06, 1.18]) + ')', filter: 'saturate(1.02) contrast(1.04)' }} />
+          </Loop>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(5,10,18,.72),rgba(5,10,18,.22) 68%,rgba(5,10,18,.28))' }} />
+        </div>
+      ) : null}
+      {scene.creativeDirection?.renderPlan?.renderer !== 'cinematic-footage' && showBroll && brollUrl ? (
         <div
           style={{
             position: 'absolute',
@@ -272,6 +292,7 @@ const LongFeature: React.FC<{
         </div>
       ) : null}
 
+      {scene.creativeDirection?.renderPlan?.renderer !== 'three-product' ? (
       <Product
         src={imageUrl}
         style={{
@@ -284,6 +305,7 @@ const LongFeature: React.FC<{
           filter: showBroll ? 'drop-shadow(0 14px 28px rgba(0,0,0,.65))' : undefined,
         }}
       />
+      ) : null}
 
       <SceneCreativeTreatment
         plan={scene.creativeDirection}
@@ -413,6 +435,7 @@ export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) 
               imageUrl={props.productImages?.[index % Math.max(1, props.productImages.length)] || image}
               brollUrl={props.brollVideos?.[index]}
               visual={visualPlan[index]}
+              productModelUrl={props.productModelUrl}
             />
           </Sequence>
         ))}

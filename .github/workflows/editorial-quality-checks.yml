@@ -47,7 +47,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install application dependencies
-        run: npm ci
+        run: npm ci --onnxruntime-node-install-cuda=skip
 
       - name: Run editorial quality tests
         run: |
