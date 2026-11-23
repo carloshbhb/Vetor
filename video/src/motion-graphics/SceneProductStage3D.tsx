@@ -41,7 +41,8 @@ const CARAFE_PROFILE = [
 const useFrameProgress = (durationOverride?: number) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
-  return { frame, fps, seconds: frame / fps, progress: Math.min(1, frame / Math.max(1, durationInFrames - 1)) };
+  const duration = durationOverride || durationInFrames;
+  return { frame, fps, seconds: frame / fps, progress: Math.min(1, frame / Math.max(1, duration - 1)) };
 };
 
 const CameraRig: React.FC<{ move: string; durationFrames?: number }> = ({ move, durationFrames }) => {
