@@ -8,6 +8,8 @@ export interface VisualDirectionSceneInput {
   brollKeywords?: string[];
   visualIntent?: string;
   visualTemplates?: string[];
+  productModelUrl?: string;
+  verifiedComponents?: string[];
 }
 
 export interface VisualDirectionPlan {
@@ -30,6 +32,27 @@ export interface VisualDirectionPlan {
     brollAvailable: boolean;
     dataMustComeFromScene: boolean;
   };
+  renderPlan: {
+    version: 2;
+    renderer: 'three-product' | 'three-motion-graphics' | 'cinematic-footage' | 'motion-graphics' | 'layered-2d';
+    shotType: string;
+    action: string;
+    cameraMove: string;
+    productProfile: string;
+    productRepresentation: string;
+    assetRequirement: string;
+    hasMatchedBroll: boolean;
+    verifiedComponents: string[];
+    usesTrueProductGeometry: boolean;
+    visualFidelity: string;
+    motionContract: {
+      cameraMustMove: boolean;
+      objectMustMove: boolean;
+      minCameraTravel: number;
+      minScaleDelta: number;
+    };
+    fallbackReason: string | null;
+  };
   artDirection: string;
 }
 
@@ -39,5 +62,19 @@ export function planVetorSceneMixes(input: {
   category?: string;
   manualTemplateId?: string | null;
   hasProductGallery?: boolean;
-  hasBroll?: boolean;
+  hasBroll?: boolean | boolean[];
+  hasVerified3DModel?: boolean;
 }): VisualDirectionPlan[];
+
+export function inferProductModelProfile(title?: string, category?: string): string;
+export function buildSceneRenderPlan(input?: {
+  scene?: VisualDirectionSceneInput;
+  beat?: string;
+  primaryTemplate?: string;
+  index?: number;
+  title?: string;
+  category?: string;
+  hasBroll?: boolean;
+  previousCameraMove?: string | null;
+  hasVerified3DModel?: boolean;
+}): VisualDirectionPlan['renderPlan'];
