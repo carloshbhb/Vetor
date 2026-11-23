@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { planVetorSceneMixes, classifyNarrativeBeat } from "./visual-sequence-planner.mjs";
+import { SHOTCRAFT_RECIPES } from "./shotcraft-recipe-registry.mjs";
 
 const scenes = [
   { id: 1, text: "Veja o Redmi Pad 2 Pro em destaque", visualCue: "Revelação do produto" },
@@ -56,4 +57,22 @@ const manual = planVetorSceneMixes({ scenes, manualTemplateId: "editorial-luxury
 assert.ok(manual.every((item) => item.primaryTemplate === "editorial-luxury"));
 assert.ok(manual.every((item) => item.supportTemplates.length >= 1));
 
-console.log("[visual-sequence-planner] semantic scene direction, mixed styles, manual override and asset-awareness passed.");
+assert.ok(plan.every((item) => Object.prototype.hasOwnProperty.call(SHOTCRAFT_RECIPES, item.shotcraftRecipeId)));
+assert.equal(plan[0].shotcraftRecipeId, "spotlight-hero-card");
+assert.equal(plan[5].shotcraftRecipeId, "product-card-progressive-assemble");
+assert.ok(plan.every((item) => ["narrative-auto", "manual", "scene-manual"].includes(item.shotcraftRecipeSelection)));
+
+const recipeManual = planVetorSceneMixes({
+  scenes,
+  manualShotcraftRecipeId: "flying-words",
+});
+assert.ok(recipeManual.every((item) => item.shotcraftRecipeId === "flying-words"));
+assert.ok(recipeManual.every((item) => item.shotcraftRecipeSelection === "manual"));
+
+const sceneRecipeManual = planVetorSceneMixes({
+  scenes: [{ id: "custom", text: "Detalhe do produto", shotcraftRecipeId: "chart-live-moves" }],
+});
+assert.equal(sceneRecipeManual[0].shotcraftRecipeId, "chart-live-moves");
+assert.equal(sceneRecipeManual[0].shotcraftRecipeSelection, "scene-manual");
+
+console.log("[visual-sequence-planner] semantic scene direction, mixed styles, Shotcraft routing, manual overrides and asset-awareness passed.");
