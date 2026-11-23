@@ -1039,6 +1039,10 @@ async function processVideo(video) {
     const productModelUrl = typeof modelUrlCandidate === "string" && modelUrlCandidate.trim()
       ? modelUrlCandidate.trim()
       : undefined;
+    const shotcraftMarker = Array.isArray(video.media_assets)
+      ? video.media_assets.find((asset) => asset && asset.type === "shotcraft_recipe")
+      : null;
+    const manualShotcraftRecipeId = shotcraftMarker?.recipeId || shotcraftMarker?.style || script.shotcraftRecipeId || null;
 
     const visualSequence = planVetorSceneMixes({
       scenes: scenesWithFrames,
@@ -1048,6 +1052,7 @@ async function processVideo(video) {
       hasProductGallery: productImages.length > 1,
       hasBroll: scenesWithFrames.map((_, sceneIndex) => Boolean(brollVideos[sceneIndex])),
       hasVerified3DModel: Boolean(productModelUrl),
+      manualShotcraftRecipeId,
     });
     const scenesWithVisualDirection = scenesWithFrames.map((scene, index) => ({
       ...scene,
@@ -1060,6 +1065,7 @@ async function processVideo(video) {
       hasProductGallery: productImages.length > 1,
       hasBroll: brollVideos.some(Boolean),
       hasVerified3DModel: Boolean(productModelUrl),
+      manualShotcraftRecipeId,
     })[0];
     const closingCreativeDirection = planVetorSceneMixes({
       scenes: [{ id: "closing-verdict", text: spokenCallToAction, visualCue: "Veredito final" }],
@@ -1068,11 +1074,13 @@ async function processVideo(video) {
       hasProductGallery: productImages.length > 1,
       hasBroll: brollVideos.some(Boolean),
       hasVerified3DModel: Boolean(productModelUrl),
+      manualShotcraftRecipeId,
     })[0];
     console.log("[VISUAL_DIRECTOR] " + visualSequence.map((plan, index) =>
       "cena-" + (index + 1) + "=" + plan.templateIds.join("+") + "/" + plan.transitionIn
     ).join(" | "));
     console.log("[SCENE_RENDERER] " + visualSequence.map((plan, index) => "cena-" + (index + 1) + "=" + plan.renderPlan.renderer + "/" + plan.renderPlan.shotType + "/" + plan.renderPlan.cameraMove + (plan.renderPlan.fallbackReason ? " [fallback]" : "")).join(" | "));
+    console.log("[SHOTCRAFT] " + visualSequence.map((plan, index) => "cena-" + (index + 1) + "=" + plan.shotcraftRecipeId + "/" + plan.shotcraftRecipeSelection).join(" | "));
     console.log("[VISUAL_DIRECTOR] abertura=" + openingCreativeDirection.templateIds.join("+") +
       "; encerramento=" + closingCreativeDirection.templateIds.join("+"));
 

@@ -10,6 +10,7 @@ export interface VisualDirectionSceneInput {
   visualTemplates?: string[];
   productModelUrl?: string;
   verifiedComponents?: string[];
+  shotcraftRecipeId?: string;
 }
 
 export interface VisualDirectionPlan {
@@ -22,6 +23,9 @@ export interface VisualDirectionPlan {
   templateIds: string[];
   templateNames: string[];
   transitionIn: string;
+  shotcraftRecipeId: string;
+  shotcraftRecipeCategory: string;
+  shotcraftRecipeSelection: 'narrative-auto' | 'manual' | 'scene-manual';
   energy: string;
   rhythmSeconds: number;
   visualLayers: string[];
@@ -64,6 +68,7 @@ export function planVetorSceneMixes(input: {
   hasProductGallery?: boolean;
   hasBroll?: boolean | boolean[];
   hasVerified3DModel?: boolean;
+  manualShotcraftRecipeId?: string | null;
 }): VisualDirectionPlan[];
 
 export function inferProductModelProfile(title?: string, category?: string): string;

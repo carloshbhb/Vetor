@@ -1,4 +1,5 @@
 import { normalizeVetorTemplateId, VETOR_VISUAL_TEMPLATES } from "./visual-template-registry.mjs";
+import { selectShotcraftRecipe } from "./shotcraft-recipe-registry.mjs";
 
 const DIRECTING = Object.freeze({
   "price-check": {
@@ -256,10 +257,12 @@ export function planVetorSceneMixes({
   hasProductGallery = false,
   hasBroll = false,
   hasVerified3DModel = false,
+  manualShotcraftRecipeId = null,
 } = {}) {
   const manual = normalizeVetorTemplateId(manualTemplateId);
   let previousPrimary = null;
   let previousCameraMove = null;
+  let previousShotcraftRecipeId = null;
 
   return (Array.isArray(scenes) ? scenes : []).map((scene, index) => {
     const beat = classifyNarrativeBeat(scene, index);
@@ -287,6 +290,13 @@ export function planVetorSceneMixes({
     const templateIds = [primary, ...support].filter((id, itemIndex, all) =>
       all.indexOf(id) === itemIndex && Boolean(getTemplate(id))
     );
+    const shotcraftRecipe = selectShotcraftRecipe({
+      beat,
+      sceneRecipeId: scene.shotcraftRecipeId,
+      manualRecipeId: manualShotcraftRecipeId,
+      previousRecipeId: previousShotcraftRecipeId,
+    });
+    previousShotcraftRecipeId = shotcraftRecipe.id;
     const visualLayers = [...new Set(templateIds.flatMap((id) => getTemplate(id)?.capabilities || LAYERS[id] || []))];
     const assets = {
       realProductImage: true,
@@ -308,6 +318,9 @@ export function planVetorSceneMixes({
       templateIds,
       templateNames: names,
       transitionIn: direction.transition,
+      shotcraftRecipeId: shotcraftRecipe.id,
+      shotcraftRecipeCategory: shotcraftRecipe.category,
+      shotcraftRecipeSelection: shotcraftRecipe.selection,
       energy: direction.energy,
       rhythmSeconds: beat === "hook" || beat === "comparison" ? 1.8 : 2.5,
       visualLayers,
@@ -317,6 +330,7 @@ export function planVetorSceneMixes({
         `Cena ${index + 1} de ${scenes.length}: ${beat}`,
         `Direção principal: ${getTemplate(primary)?.name || primary}`,
         `Combinação: ${names.slice(1).join(" + ") || "sem camada secundária"}`,
+        `Shotcraft: ${shotcraftRecipe.id} (${shotcraftRecipe.selection})`,
         title ? `Produto: ${title}` : "",
         category ? `Categoria: ${category}` : "",
         typeof scene.visualIntent === "string" ? `Intenção visual: ${scene.visualIntent.slice(0, 240)}` : "",
