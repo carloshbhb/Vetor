@@ -234,6 +234,7 @@ const ProductScene: React.FC<Props> = ({ profile, shot, cameraMove, accent, mode
   const { seconds } = useFrameProgress();
   const { width, height } = useVideoConfig();
   const landscapeScale = width > height ? 0.68 : 1;
+  const landscapeOffsetX = width > height ? 1.25 : 0;
   return (
     <>
       <color attach="background" args={['#090F18']} />
@@ -242,6 +243,7 @@ const ProductScene: React.FC<Props> = ({ profile, shot, cameraMove, accent, mode
       <pointLight position={[-4, 1, 3]} intensity={36} color={accent} />
       <pointLight position={[3, -2, -4]} intensity={18} color="#8AB4FF" />
       <CameraRig move={cameraMove} />
+      <group position={[landscapeOffsetX, 0, 0]}>
       <group position={[0, 0.05 + Math.sin(seconds * 1.4) * 0.025, 0]} scale={landscapeScale}>
         {modelUrl ? (
           <Suspense fallback={null}><GltfModel url={modelUrl} /></Suspense>
@@ -264,6 +266,7 @@ const ProductScene: React.FC<Props> = ({ profile, shot, cameraMove, accent, mode
         <circleGeometry args={[4.5, 72]} />
         <meshBasicMaterial color="#142235" transparent opacity={0.3} />
       </mesh>
+      </group>
     </>
   );
 };
