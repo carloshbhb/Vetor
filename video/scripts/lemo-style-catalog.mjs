@@ -919,7 +919,6 @@ const VETOR_ALIASES = Object.freeze({
 
 export function normalizeLemoStyleId(value) {
   const key = String(value || "").trim().toLowerCase()
-    .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   if (!key) return null;
   if (LEMO_STYLE_CATALOG.some((style) => style.id === key)) return key;
