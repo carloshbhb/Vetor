@@ -215,6 +215,7 @@ const LongFeature: React.FC<{
           cameraMove={scene.creativeDirection.renderPlan.cameraMove}
           accent={sceneAccent}
           modelUrl={productModelUrl}
+          durationFrames={duration}
         />
       ) : null}
       {scene.creativeDirection?.renderPlan?.renderer === 'cinematic-footage' && showBroll && brollUrl ? (
