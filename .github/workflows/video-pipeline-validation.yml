@@ -90,6 +90,7 @@ jobs:
           node --check video/scripts/visual-sequence-planner.mjs
           node --check video/scripts/render-ten-style-pilot.mjs
           node video/scripts/render-engine-router.test.mjs
+          node video/scripts/lemo-style-catalog.test.mjs
           node video/scripts/visual-template-registry.test.mjs
           node video/scripts/visual-sequence-planner.test.mjs
 

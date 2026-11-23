@@ -3,7 +3,7 @@
  * This is original renderer code; upstream style-guide text and demo assets are not bundled.
  */
 export function buildLemoCanvasScript() {
-  return String.raw\`function drawStyleMotif(t,W,H,s){
+  return String.raw`function drawStyleMotif(t,W,H,s){
     const f=cfg.style.family,a=cfg.style.accent;
     ctx.save();ctx.lineWidth=2*s;ctx.strokeStyle=a;ctx.fillStyle=a;ctx.globalAlpha=.3;
     const rnd=(n)=>Math.abs(Math.sin(n*91.7)*43758.5453)%1;
@@ -42,5 +42,5 @@ export function buildLemoCanvasScript() {
       ctx.globalAlpha=.42;for(let i=0;i<7;i++){const x=W*(.12+i*.11),h=H*(.08+(.15+.08*Math.sin(i*1.7+t*.6)));ctx.fillRect(x,H*.82-h,W*.055,h);}ctx.beginPath();for(let i=0;i<7;i++){const x=W*(.13+i*.11),y=H*(.34+Math.sin(i*.8+t*.4)*.055);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
     }
     ctx.restore();
-  }\`;
+  }`;
 }

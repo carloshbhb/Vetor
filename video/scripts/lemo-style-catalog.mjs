@@ -903,6 +903,7 @@ const VETOR_ALIASES = Object.freeze({
   "premium-product-3d": "glass-product",
   "exploded-teardown": "teardown",
   "hologram-hud": "hologram-hud",
+  "ukiyo-e": "ukiyoe",
   "kinetic-typography": "swiss-motion",
   "isometric-explainer": "iso-infographic",
   "cinematic-2d": "double-exposure",
