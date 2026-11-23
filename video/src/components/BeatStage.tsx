@@ -90,6 +90,7 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
         cameraMove={renderPlan.cameraMove}
         accent={accent}
         modelUrl={productModelUrl}
+        durationFrames={length}
       />
     );
   }
