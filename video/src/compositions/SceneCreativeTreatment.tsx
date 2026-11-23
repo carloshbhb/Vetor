@@ -22,6 +22,20 @@ export type SceneCreativeDirection = {
     dataMustComeFromScene: boolean;
   };
   artDirection: string;
+  renderPlan?: {
+    version: number;
+    renderer: string;
+    shotType: string;
+    action: string;
+    cameraMove: string;
+    productProfile: string;
+    productRepresentation: string;
+    assetRequirement: string;
+    hasMatchedBroll: boolean;
+    usesTrueProductGeometry: boolean;
+    visualFidelity: string;
+    fallbackReason: string | null;
+  };
 };
 
 type Props = {
@@ -146,7 +160,7 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
   const { fps, width, height } = useVideoConfig();
   if (!plan) return null;
 
-  const variant = pickThreeVariant(plan);
+  const variant = plan.renderPlan?.renderer === 'three-product' ? null : pickThreeVariant(plan);
   const threeOpacity = interpolate(frame, [0, 10, 26], [0, 0.9, 0.58], { extrapolateRight: 'clamp' });
   const entrance = spring({ frame, fps, config: { damping: 13, stiffness: 180, mass: 0.65 } });
   const titleScale = interpolate(entrance, [0, 1], [0.72, 1]);
