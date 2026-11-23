@@ -264,6 +264,7 @@ export function planVetorSceneMixes({
   return (Array.isArray(scenes) ? scenes : []).map((scene, index) => {
     const beat = classifyNarrativeBeat(scene, index);
     const direction = DIRECTING[beat] || DIRECTING.feature;
+    const sceneHasBroll = Array.isArray(hasBroll) ? Boolean(hasBroll[index]) : Boolean(hasBroll);
     const aiSuggestions = Array.isArray(scene.visualTemplates)
       ? scene.visualTemplates.map(normalizeVetorTemplateId).filter(Boolean).slice(0, 3)
       : [];
@@ -290,12 +291,12 @@ export function planVetorSceneMixes({
     const assets = {
       realProductImage: true,
       galleryCutaway: Boolean(hasProductGallery),
-      lifestyleFootage: Boolean(hasBroll && (beat === "lifestyle" || beat === "feature")),
-      brollAvailable: Boolean(hasBroll),
+      lifestyleFootage: Boolean(sceneHasBroll && (beat === "lifestyle" || beat === "feature")),
+      brollAvailable: sceneHasBroll,
       dataMustComeFromScene: true,
     };
     const names = templateIds.map((id) => getTemplate(id)?.name).filter(Boolean);
-    const renderPlan = buildSceneRenderPlan({ scene, beat, primaryTemplate: primary, index, title, category, hasBroll, previousCameraMove, hasVerified3DModel });
+    const renderPlan = buildSceneRenderPlan({ scene, beat, primaryTemplate: primary, index, title, category, hasBroll: sceneHasBroll, previousCameraMove, hasVerified3DModel });
     previousCameraMove = renderPlan.cameraMove;
     return {
       sceneId: scene.id ?? index + 1,
