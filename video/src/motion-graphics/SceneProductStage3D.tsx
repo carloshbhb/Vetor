@@ -22,6 +22,7 @@ type Props = {
   cameraMove: string;
   accent: string;
   modelUrl?: string;
+  durationFrames?: number;
 };
 
 const CARAFE_PROFILE = [
@@ -37,15 +38,15 @@ const CARAFE_PROFILE = [
   new THREE.Vector2(0, 1.4),
 ];
 
-const useFrameProgress = () => {
+const useFrameProgress = (durationOverride?: number) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   return { frame, fps, seconds: frame / fps, progress: Math.min(1, frame / Math.max(1, durationInFrames - 1)) };
 };
 
-const CameraRig: React.FC<{ move: string }> = ({ move }) => {
+const CameraRig: React.FC<{ move: string; durationFrames?: number }> = ({ move, durationFrames }) => {
   const { camera } = useThree();
-  const { progress, seconds } = useFrameProgress();
+  const { progress, seconds } = useFrameProgress(durationFrames);
   let x = 0;
   let y = 0.1;
   let z = 6.8;
@@ -239,7 +240,7 @@ const Pedestal: React.FC<{ accent: string }> = ({ accent }) => (
   </group>
 );
 
-const ProductScene: React.FC<Props> = ({ profile, shot, cameraMove, accent, modelUrl }) => {
+const ProductScene: React.FC<Props> = ({ profile, shot, cameraMove, accent, modelUrl, durationFrames }) => {
   const { seconds } = useFrameProgress();
   const { width, height } = useVideoConfig();
   const landscapeScale = width > height ? 0.68 : 1;
@@ -251,7 +252,7 @@ const ProductScene: React.FC<Props> = ({ profile, shot, cameraMove, accent, mode
       <directionalLight position={[4, 6, 7]} intensity={2.2} />
       <pointLight position={[-4, 1, 3]} intensity={36} color={accent} />
       <pointLight position={[3, -2, -4]} intensity={18} color="#8AB4FF" />
-      <CameraRig move={cameraMove} />
+      <CameraRig move={cameraMove} durationFrames={durationFrames} />
       <group position={[landscapeOffsetX, 0, 0]}>
       <group position={[0, 0.05 + Math.sin(seconds * 1.4) * 0.025, 0]} scale={landscapeScale}>
         {modelUrl ? (
