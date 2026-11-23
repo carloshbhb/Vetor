@@ -1039,6 +1039,7 @@ async function processVideo(video) {
       manualTemplateId: visualTemplate.selection === "manual" ? visualTemplate.id : null,
       hasProductGallery: productImages.length > 1,
       hasBroll: brollVideos.some(Boolean),
+      hasVerified3DModel: Boolean(productModelUrl),
     });
     const scenesWithVisualDirection = scenesWithFrames.map((scene, index) => ({
       ...scene,
@@ -1050,6 +1051,7 @@ async function processVideo(video) {
       category: video.product_category,
       hasProductGallery: productImages.length > 1,
       hasBroll: brollVideos.some(Boolean),
+      hasVerified3DModel: Boolean(productModelUrl),
     })[0];
     const closingCreativeDirection = planVetorSceneMixes({
       scenes: [{ id: "closing-verdict", text: spokenCallToAction, visualCue: "Veredito final" }],
@@ -1057,6 +1059,7 @@ async function processVideo(video) {
       category: video.product_category,
       hasProductGallery: productImages.length > 1,
       hasBroll: brollVideos.some(Boolean),
+      hasVerified3DModel: Boolean(productModelUrl),
     })[0];
     console.log("[VISUAL_DIRECTOR] " + visualSequence.map((plan, index) =>
       "cena-" + (index + 1) + "=" + plan.templateIds.join("+") + "/" + plan.transitionIn
@@ -1077,7 +1080,7 @@ async function processVideo(video) {
       openingCreativeDirection,
       closingCreativeDirection,
       title: video.product_title,
-      productModelUrl: typeof video.product_model_url === 'string' ? video.product_model_url : (typeof video.product_3d_url === 'string' ? video.product_3d_url : undefined),
+      productModelUrl,
       imageUrl: productImageSource,
       score: Number.isFinite(Number(script.score)) && Number(script.score) > 0 && Number(script.score) <= 10 ? Number(script.score) : 0,
       category: video.product_category,
