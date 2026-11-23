@@ -1032,6 +1032,14 @@ async function processVideo(video) {
     // Visual direction is selected per narrative scene, not once for the whole video.
     // A manual style remains the lead language, while supporting techniques can still
     // be mixed to make each scene serve its own storytelling purpose.
+    const modelMarker = Array.isArray(video.media_assets)
+      ? video.media_assets.find((asset) => asset && ["product_model_3d", "gltf_model", "3d_model"].includes(asset.type))
+      : null;
+    const modelUrlCandidate = modelMarker?.url || modelMarker?.src || video.product_model_url || video.product_3d_url;
+    const productModelUrl = typeof modelUrlCandidate === "string" && modelUrlCandidate.trim()
+      ? modelUrlCandidate.trim()
+      : undefined;
+
     const visualSequence = planVetorSceneMixes({
       scenes: scenesWithFrames,
       title: video.product_title,
