@@ -121,16 +121,19 @@ const MetricFrame: React.FC<{ accent: string; label: string; metric: string | nu
   const { width, height, fps } = useVideoConfig();
   const enter = spring({ frame, fps, config: { damping: 18, stiffness: 125 } });
   const value = String(metric || label || 'INFORMAÇÃO').slice(0, 42);
-  const points = [0, 1, 2, 3, 4].map((index) => ({
-    x: width * (0.16 + index * 0.17),
-    y: height * (0.53 - [0.05, 0.13, 0.08, 0.2, 0.15][index]),
-  }));
+  const travel = interpolate(frame, [0, 36], [width * 0.08, width * 0.92], clamp);
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
-      <svg width={width} height={height} viewBox={'0 0 ' + width + ' ' + height} style={{ position: 'absolute', inset: 0, opacity: enter * 0.72 }}>
-        <polyline points={points.map((point) => point.x + ',' + point.y).join(' ')} fill="none" stroke={accent} strokeWidth="3" strokeDasharray="12 8" strokeDashoffset={interpolate(frame, [0, 24], [90, 0], clamp)} />
-        {points.map((point, index) => <circle key={index} cx={point.x} cy={point.y} r="6" fill={accent} opacity={interpolate(frame, [index * 4, 20 + index * 2], [0, 1], clamp)} />)}
-      </svg>
+      <div style={{
+        position: 'absolute', left: '8%', right: '8%', top: height * 0.43,
+        height: 1, background: 'linear-gradient(90deg,transparent,' + accent + '99,transparent)',
+        opacity: enter * 0.72,
+      }} />
+      <div style={{
+        position: 'absolute', left: travel, top: height * 0.43 - 5,
+        width: 10, height: 10, borderRadius: '50%', background: accent,
+        boxShadow: '0 0 20px ' + accent, opacity: enter,
+      }} />
       <div style={{
         position: 'absolute', left: '9%', right: '9%', top: height * 0.61, padding: '14px 20px',
         background: '#07111DE8', borderLeft: '4px solid ' + accent, color: '#FFFFFF',
