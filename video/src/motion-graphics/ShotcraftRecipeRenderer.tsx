@@ -52,35 +52,39 @@ const ProgressiveCard: React.FC<{ accent: string; label: string; sceneText: stri
   const frame = useCurrentFrame();
   const { width, height, fps } = useVideoConfig();
   const landscape = width > height;
-  const enter = spring({ frame, fps, config: { damping: 18, stiffness: 150, mass: 0.7 } });
-  const x = interpolate(enter, [0, 1], [landscape ? 95 : 72, 0]);
-  const main = String(metric || sceneText || label).replace(/\s+/g, ' ').trim().slice(0, 74);
+  const enter = spring({ frame, fps, config: { damping: 20, stiffness: 145, mass: 0.72 } });
+  const source = String(metric || sceneText || label).replace(/\s+/g, ' ').trim();
+  const compact = source.split(' ').slice(0, 5).join(' ');
+  const main = String(metric || compact || label || 'Destaque da cena').slice(0, 52);
+
   return (
-    <AbsoluteFill style={{ pointerEvents: 'none' }}>
+    <AbsoluteFill style={{ pointerEvents: 'none', overflow: 'hidden' }}>
       <div style={{
         position: 'absolute',
-        left: landscape ? '62%' : '8%',
         right: landscape ? '7%' : '8%',
-        bottom: landscape ? '15%' : '27%',
-        minHeight: landscape ? 108 : 126,
-        padding: landscape ? '18px 24px' : '20px 22px',
-        background: 'linear-gradient(115deg,#07111DED,#101D2BE8)',
-        borderLeft: '4px solid ' + accent,
-        borderTop: '1px solid ' + accent + '77',
-        boxShadow: '0 22px 70px #0009, 0 0 28px ' + accent + '22',
+        bottom: landscape ? '13%' : '26%',
+        width: 'fit-content',
+        maxWidth: landscape ? '42%' : '78%',
+        boxSizing: 'border-box',
+        padding: landscape ? '12px 16px' : '14px 18px',
+        background: 'linear-gradient(115deg,rgba(7,17,29,.94),rgba(16,29,43,.88))',
+        borderLeft: '3px solid ' + accent,
+        borderTop: '1px solid ' + accent + '66',
+        borderRadius: 8,
+        boxShadow: '0 12px 34px #0008',
         opacity: interpolate(enter, [0, 1], [0, 1]),
-        transform: 'translateX(' + x + 'px)',
+        transform: 'translate3d(' + interpolate(enter, [0, 1], [26, 0]) + 'px,0,0)',
       }}>
-        <div style={{ color: accent, fontSize: landscape ? 14 : 15, fontWeight: 900, letterSpacing: 3, textTransform: 'uppercase' }}>
-          {label || 'EM FOCO'}
-        </div>
         <div style={{
-          marginTop: 8, color: '#FFFFFF', fontSize: landscape ? 24 : 25, lineHeight: 1.12,
-          fontWeight: 850, letterSpacing: -0.5,
-        }}>{main || 'Detalhe do produto'}</div>
-        <div style={{ marginTop: 12, width: '100%', height: 2, background: '#FFFFFF22', overflow: 'hidden' }}>
-          <div style={{ width: (enter * 100) + '%', height: '100%', background: accent, boxShadow: '0 0 14px ' + accent }} />
-        </div>
+          color: accent, fontSize: landscape ? 11 : 12, fontWeight: 900,
+          letterSpacing: 2.4, textTransform: 'uppercase',
+        }}>{metric ? 'DADO DA CENA' : 'EM FOCO'}</div>
+        <div style={{
+          marginTop: 5, color: '#FFFFFF',
+          fontSize: landscape ? 18 : 21, lineHeight: 1.12,
+          fontWeight: 850, letterSpacing: -0.25,
+          overflowWrap: 'anywhere',
+        }}>{main}</div>
       </div>
     </AbsoluteFill>
   );
@@ -118,31 +122,39 @@ const ScanlineFocus: React.FC<{ accent: string; label: string }> = ({ accent, la
 
 const MetricFrame: React.FC<{ accent: string; label: string; metric: string | null }> = ({ accent, label, metric }) => {
   const frame = useCurrentFrame();
-  const { width, height, fps } = useVideoConfig();
-  const enter = spring({ frame, fps, config: { damping: 18, stiffness: 125 } });
-  const value = String(metric || label || 'INFORMAÇÃO').slice(0, 42);
-  const travel = interpolate(frame, [0, 36], [width * 0.08, width * 0.92], clamp);
+  const { width, fps } = useVideoConfig();
+  const landscape = width > useVideoConfig().height;
+  const enter = spring({ frame, fps, config: { damping: 19, stiffness: 135 } });
+  const value = String(metric || label || 'INFORMAÇÃO').replace(/\s+/g, ' ').trim().slice(0, 48);
+  const reveal = interpolate(frame, [0, 22], [0, 1], clamp);
+
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
       <div style={{
-        position: 'absolute', left: '8%', right: '8%', top: height * 0.43,
-        height: 1, background: 'linear-gradient(90deg,transparent,' + accent + '99,transparent)',
-        opacity: enter * 0.72,
-      }} />
-      <div style={{
-        position: 'absolute', left: travel, top: height * 0.43 - 5,
-        width: 10, height: 10, borderRadius: '50%', background: accent,
-        boxShadow: '0 0 20px ' + accent, opacity: enter,
-      }} />
-      <div style={{
-        position: 'absolute', left: '9%', right: '9%', top: height * 0.61, padding: '14px 20px',
-        background: '#07111DE8', borderLeft: '4px solid ' + accent, color: '#FFFFFF',
-        fontSize: width > height ? 25 : 26, fontWeight: 900,
-        transform: 'translateY(' + interpolate(enter, [0, 1], [24, 0]) + 'px)',
-        boxShadow: '0 18px 44px #0008',
+        position: 'absolute', right: landscape ? '7%' : '8%',
+        bottom: landscape ? '13%' : '26%',
+        width: 'fit-content', maxWidth: landscape ? '38%' : '76%',
+        padding: landscape ? '12px 16px' : '14px 18px',
+        boxSizing: 'border-box',
+        background: '#07111DEB',
+        border: '1px solid ' + accent + '66',
+        borderLeft: '3px solid ' + accent,
+        borderRadius: 8,
+        boxShadow: '0 12px 36px #0008',
+        opacity: enter,
+        transform: 'translateY(' + interpolate(enter, [0, 1], [20, 0]) + 'px)',
       }}>
-        <span style={{ color: accent, display: 'block', fontSize: 13, letterSpacing: 3 }}>{metric ? 'DADO DA CENA' : 'PONTO EM FOCO'}</span>
-        <span>{value}</span>
+        <div style={{
+          color: accent, fontSize: landscape ? 11 : 12, fontWeight: 900,
+          letterSpacing: 2.3,
+        }}>{metric ? 'VALOR INFORMADO' : 'INFORMAÇÃO DA CENA'}</div>
+        <div style={{
+          marginTop: 6, color: '#FFFFFF', fontSize: landscape ? 19 : 22,
+          lineHeight: 1.12, fontWeight: 900, overflowWrap: 'anywhere',
+        }}>{value}</div>
+        <div style={{ marginTop: 9, height: 2, background: '#FFFFFF22', overflow: 'hidden' }}>
+          <div style={{ width: (reveal * 100) + '%', height: '100%', background: accent, boxShadow: '0 0 12px ' + accent }} />
+        </div>
       </div>
     </AbsoluteFill>
   );
@@ -168,25 +180,39 @@ const RhythmicAccents: React.FC<{ accent: string }> = ({ accent }) => {
   );
 };
 
-const FlyingWords: React.FC<{ accent: string; sceneText: string }> = ({ accent, sceneText }) => {
+const FlyingWords: React.FC<{ accent: string; sceneText: string; label: string }> = ({ accent, sceneText, label }) => {
   const frame = useCurrentFrame();
   const { width, height, fps } = useVideoConfig();
-  const words = String(sceneText || '').replace(/[.,!?;:]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 3);
-  const enter = spring({ frame, fps, config: { damping: 12, stiffness: 190, mass: 0.6 } });
-  if (!words.length) return null;
+  const landscape = width > height;
+  const source = String(label || sceneText || '').replace(/[.,!?;:]/g, ' ').trim();
+  const words = source.split(/\s+/).filter(Boolean);
+  const stopWords = new Set(['a', 'o', 'as', 'os', 'de', 'da', 'do', 'das', 'dos', 'e', 'em', 'para', 'por', 'com', 'um', 'uma', 'que', 'se', 'no', 'na', 'nos', 'nas']);
+  const punch = [...words].reverse().find((word) => !stopWords.has(word.toLowerCase())) || words[0];
+  const enter = spring({ frame, fps, config: { damping: 15, stiffness: 165, mass: 0.7 } });
+  if (!punch) return null;
+
   return (
-    <AbsoluteFill style={{ pointerEvents: 'none', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: width > height ? 16 : 10, maxWidth: '88%' }}>
-        {words.map((word, index) => (
-          <span key={index} style={{
-            color: index === words.length - 1 ? accent : '#FFFFFF',
-            fontSize: width > height ? 58 : 68, fontWeight: 1000, lineHeight: 0.94,
-            letterSpacing: -3, textTransform: 'uppercase',
-            textShadow: '0 10px 40px #000D',
-            transform: 'translate3d(' + interpolate(enter, [0, 1], [(index % 2 ? 1 : -1) * 115, 0]) + 'px,' + interpolate(frame, [index * 4, index * 4 + 12], [height * 0.16, 0], clamp) + 'px,0) scale(' + interpolate(enter, [0, 1], [0.7, 1]) + ')',
-            opacity: interpolate(frame, [index * 4, index * 4 + 10], [0, 1], clamp),
-          }}>{word}</span>
-        ))}
+    <AbsoluteFill style={{ pointerEvents: 'none' }}>
+      <div style={{
+        position: 'absolute', right: landscape ? '8%' : '8%',
+        bottom: landscape ? '16%' : '28%',
+        display: 'flex', alignItems: 'center',
+        padding: landscape ? '9px 15px' : '12px 18px',
+        border: '1px solid ' + accent + '99',
+        borderRadius: 999,
+        background: 'rgba(7,17,29,.88)',
+        boxShadow: '0 8px 28px #0008, 0 0 22px ' + accent + '22',
+        color: '#FFFFFF',
+        fontSize: landscape ? 18 : 24,
+        fontWeight: 950,
+        letterSpacing: landscape ? 2 : 2.8,
+        lineHeight: 1,
+        textTransform: 'uppercase',
+        opacity: interpolate(enter, [0, 1], [0, 1]),
+        transform: 'translate3d(' + interpolate(enter, [0, 1], [24, 0]) + 'px,0,0)',
+      }}>
+        <span style={{ width: 7, height: 7, borderRadius: 7, background: accent, marginRight: 10, boxShadow: '0 0 12px ' + accent }} />
+        {punch.slice(0, 18)}
       </div>
     </AbsoluteFill>
   );
@@ -216,7 +242,7 @@ export const ShotcraftRecipeRenderer: React.FC<Props> = (props) => {
     case 'scanline-annotate-focus': return <ScanlineFocus accent={props.accent} label={props.label} />;
     case 'chart-live-moves': return <MetricFrame accent={props.accent} label={props.label} metric={props.metric} />;
     case 'beat-cut-moves': return <RhythmicAccents accent={props.accent} />;
-    case 'flying-words': return <FlyingWords accent={props.accent} sceneText={props.sceneText} />;
+    case 'flying-words': return <FlyingWords accent={props.accent} sceneText={props.sceneText} label={props.label} />;
     case 'light-play-moves': return <LightSweep accent={props.accent} />;
     default: return null;
   }
