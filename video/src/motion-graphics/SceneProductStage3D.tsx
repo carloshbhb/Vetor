@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { useLoader, useThree } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ThreeCanvas } from '@remotion/three';
+import { SHORTS_STAGE } from '../utils/shorts-safe-zone';
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 
 export type ProductModelProfile =
@@ -50,27 +51,30 @@ const CameraRig: React.FC<{ move: string; durationFrames?: number }> = ({ move, 
   const { progress, seconds } = useFrameProgress(durationFrames);
   let x = 0;
   let y = 0.1;
-  let z = 6.8;
+  const { width, height } = useVideoConfig();
+  const portrait = height > width;
+  const baseDistance = portrait ? 5.5 : 6.8;
+  let z = baseDistance;
   let lookY = 0;
   if (move === 'orbit') {
     x = Math.sin(seconds * 0.62) * 1.05;
-    z = 6.8 + Math.cos(seconds * 0.62) * 0.3;
+    z = baseDistance + Math.cos(seconds * 0.62) * 0.3;
   } else if (move === 'macro-dolly') {
-    z = interpolate(progress, [0, 1], [6.2, 4.55]);
+    z = interpolate(progress, [0, 1], [portrait ? 5.2 : 6.2, portrait ? 4.15 : 4.55]);
     y = interpolate(progress, [0, 1], [0.02, 0.28]);
     lookY = 0.12;
   } else if (move === 'lateral-dolly') {
     x = interpolate(progress, [0, 1], [-0.95, 0.95]);
-    z = 6.7;
+    z = portrait ? 5.5 : 6.7;
   } else if (move === 'crane') {
     y = interpolate(progress, [0, 1], [0.95, -0.35]);
-    z = 6.9;
+    z = portrait ? 5.7 : 6.9;
     lookY = -0.12;
   } else if (move === 'push-in') {
-    z = interpolate(progress, [0, 1], [7.5, 5.25]);
+    z = interpolate(progress, [0, 1], [portrait ? 6.1 : 7.5, portrait ? 4.35 : 5.25]);
   } else if (move === 'arc-reveal') {
     x = interpolate(progress, [0, 1], [-1.45, 0.4]);
-    z = interpolate(progress, [0, 1], [7.7, 6.1]);
+    z = interpolate(progress, [0, 1], [portrait ? 6.1 : 7.7, portrait ? 4.9 : 6.1]);
     y = interpolate(progress, [0, 1], [0.55, 0.08]);
   }
   camera.position.set(x, y, z);
@@ -274,7 +278,7 @@ const ProductScene: React.FC<Props> = ({ profile, shot, cameraMove, accent, mode
       </group>
       <Pedestal accent={accent} />
       <mesh position={[0, -1.88, -0.5]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[4.5, 72]} />
+        <circleGeometry args={[3.2, 72]} />
         <meshBasicMaterial color="#142235" transparent opacity={0.3} />
       </mesh>
       </group>
@@ -285,25 +289,33 @@ const ProductScene: React.FC<Props> = ({ profile, shot, cameraMove, accent, mode
 export const SceneProductStage3D: React.FC<Props> = (props) => {
   const profileResolved = props.profile !== 'unresolved';
   const { width, height } = useVideoConfig();
+  const portrait = height > width;
+  const canvasWidth = portrait ? SHORTS_STAGE.width : width;
+  const canvasHeight = portrait ? SHORTS_STAGE.height : height;
+  const viewportStyle: React.CSSProperties = portrait
+    ? { position: 'absolute', left: SHORTS_STAGE.left, top: SHORTS_STAGE.top, width: SHORTS_STAGE.width, height: SHORTS_STAGE.height, overflow: 'hidden' }
+    : { position: 'absolute', inset: 0, overflow: 'hidden' };
   return (
     <AbsoluteFill style={{ overflow: 'hidden', background: 'radial-gradient(ellipse at 50% 42%,#25394D 0%,#0D1420 58%,#080C14 100%)' }}>
-      <ThreeCanvas
-        width={width}
-        height={height}
-        camera={{ position: [0, 0.1, 6.8], fov: width > height ? 38 : 48 }}
-        gl={{ alpha: false, antialias: true, preserveDrawingBuffer: true }}
-      >
-        <ProductScene {...props} />
-      </ThreeCanvas>
-      {!props.modelUrl ? (
-        <div style={{
-          position: 'absolute', left: 38, bottom: 24, padding: '7px 12px',
-          color: '#D8E0EA', background: '#07111CCB', border: '1px solid #FFFFFF22',
-          borderRadius: 8, fontSize: 12, fontWeight: 800, letterSpacing: 1.2,
-        }}>
-          {profileResolved ? 'MODELO 3D PARAMÉTRICO ILUSTRATIVO' : 'ESTÁGIO 3D'}
-        </div>
-      ) : null}
+      <div style={viewportStyle}>
+        <ThreeCanvas
+          width={canvasWidth}
+          height={canvasHeight}
+          camera={{ position: [0, 0.1, portrait ? 5.5 : 6.8], fov: 38 }}
+          gl={{ alpha: false, antialias: true, preserveDrawingBuffer: true }}
+        >
+          <ProductScene {...props} />
+        </ThreeCanvas>
+        {!props.modelUrl ? (
+          <div style={{
+            position: 'absolute', left: 16, top: 16, padding: '7px 12px',
+            color: '#D8E0EA', background: '#07111CCB', border: '1px solid #FFFFFF22',
+            borderRadius: 8, fontSize: 12, fontWeight: 800, letterSpacing: 1.2,
+          }}>
+            {profileResolved ? '3D ILUSTRATIVO' : 'ESTÁGIO 3D'}
+          </div>
+        ) : null}
+      </div>
     </AbsoluteFill>
   );
 };
