@@ -13,6 +13,8 @@ import type { SceneBeat, SceneMotionPreset } from '../utils/visual-storyboard';
 import { fonts } from '../styles/fonts';
 import { resolveMediaSource } from '../utils/media-source';
 import { SHORTS_STAGE } from '../utils/shorts-safe-zone';
+import { SceneProductStage3D, type ProductModelProfile, type ProductShot } from '../motion-graphics/SceneProductStage3D';
+import type { SceneCreativeDirection } from '../compositions/SceneCreativeTreatment';
 
 /**
  * Vertical (Shorts) stage for one beat. Rendered inside a <Sequence> that starts at the
@@ -34,6 +36,8 @@ type BeatStageProps = {
   metricLabel: string;
   accent: string;
   motion: SceneMotionPreset;
+  creativeDirection?: SceneCreativeDirection;
+  productModelUrl?: string;
 };
 
 const ease = Easing.bezier(0.2, 0.8, 0.2, 1);
@@ -66,12 +70,29 @@ const ProductBox: React.FC<{
   />
 );
 
-export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, metric, metricLabel, accent, motion }) => {
+export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, metric, metricLabel, accent, motion, creativeDirection, productModelUrl }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const length = Math.max(1, beat.endFrame - beat.startFrame);
   const progress = Math.min(1, Math.max(0, frame / length));
   const main = images[0];
+  const renderPlan = creativeDirection?.renderPlan;
+  if (renderPlan?.renderer === 'three-product' && beat.kind !== 'callout' && beat.kind !== 'broll') {
+    const shot: ProductShot = renderPlan.shotType.includes('exploded')
+      ? 'exploded'
+      : beat.kind === 'detail' || renderPlan.shotType.includes('macro')
+        ? 'macro'
+        : 'hero';
+    return (
+      <SceneProductStage3D
+        profile={(renderPlan.productProfile || 'unresolved') as ProductModelProfile}
+        shot={shot}
+        cameraMove={renderPlan.cameraMove}
+        accent={accent}
+        modelUrl={productModelUrl}
+      />
+    );
+  }
 
   // Overshooting spring: the product "lands" instead of just fading in.
   const land = spring({ frame, fps, durationInFrames: 16, config: { damping: 13, stiffness: 170, mass: 0.7 } });
@@ -191,51 +212,33 @@ export const BeatStage: React.FC<BeatStageProps> = ({ beat, images, brollUrl, me
   }
 
   if (beat.kind === 'broll' && brollUrl) {
+    const footageScale = interpolate(progress, [0, 1], [1.04, 1.18]);
+    const footageDrift = motion === 'pan-left'
+      ? interpolate(progress, [0, 1], [22, -22])
+      : motion === 'pan-right'
+        ? interpolate(progress, [0, 1], [-22, 22])
+        : Math.sin(progress * Math.PI * 2) * 10;
     return (
-      <>
-        {/* B-roll is a visual supporting asset, not a full-bleed layer. Keep it in
-            the same Shorts-safe stage as the product so platform UI never covers
-            important visual details and pixel QA does not mistake background
-            footage for foreground text. */}
-        <div
+      <AbsoluteFill style={{ overflow: 'hidden', background: '#080C14' }}>
+        <OffthreadVideo
+          src={resolveMediaSource(brollUrl)}
+          muted
+          delayRenderTimeoutInMilliseconds={90000}
+          delayRenderRetries={1}
           style={{
-            position: 'absolute',
-            left: STAGE.left,
-            top: STAGE.top,
-            width: STAGE.width,
-            height: STAGE.height,
-            overflow: 'hidden',
-            borderRadius: 44,
-            border: '2px solid rgba(112,196,255,.28)',
-            boxShadow: '0 24px 70px rgba(0,0,0,.4)',
-            opacity: interpolate(frame, [0, 6], [0, 1], { extrapolateRight: 'clamp' }),
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            objectFit: 'cover',
+            transform: 'translateX(' + footageDrift + 'px) scale(' + footageScale + ')',
+            filter: 'saturate(1.06) contrast(1.04)',
           }}
-        >
-          <OffthreadVideo
-            src={resolveMediaSource(brollUrl)}
-            muted
-            delayRenderTimeoutInMilliseconds={90000}
-            delayRenderRetries={1}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'saturate(.9) brightness(.72)' }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(180deg,rgba(8,12,20,.58) 0%,rgba(8,12,20,.08) 42%,rgba(8,12,20,.62) 100%)',
-              pointerEvents: 'none',
-            }}
-          />
-        </div>
-        <ProductBox
-          src={main}
-          box={{ left: 90, top: 700, width: 520, height: 420 }}
-          scale={interpolate(land, [0, 1], [0.7, 1]) * cameraScale}
-          x={cameraX}
-          y={interpolate(progress, [0, 1], [0, -16]) + cameraY}
-          rotate={cameraRotate}
         />
-      </>
+        <AbsoluteFill style={{ background: 'linear-gradient(180deg,rgba(4,9,17,.22),transparent 35%,rgba(4,9,17,.58))' }} />
+        <div style={{
+          position: 'absolute', left: 74, bottom: 72, padding: '12px 18px',
+          borderLeft: '4px solid ' + accent, background: 'rgba(5,12,22,.72)',
+          color: '#F7FAFF', fontSize: 20, fontWeight: 900, letterSpacing: 2,
+        }}>CENA DE USO REAL</div>
+      </AbsoluteFill>
     );
   }
 
