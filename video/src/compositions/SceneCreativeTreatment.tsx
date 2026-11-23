@@ -51,10 +51,9 @@ function includes(plan: SceneCreativeDirection, id: string) {
 }
 
 function pickThreeVariant(plan: SceneCreativeDirection): ThreeMotionVariant | null {
-  if (includes(plan, 'exploded-teardown')) return 'exploded';
-  if (includes(plan, 'hologram-hud')) return 'hud';
-  if (includes(plan, 'isometric-explainer')) return 'isometric';
-  if (includes(plan, 'premium-product-3d')) return 'orbit';
+  if (plan.primaryTemplate === 'hologram-hud') return 'hud';
+  if (plan.primaryTemplate === 'isometric-explainer') return 'isometric';
+  // Product 3D is rendered by SceneProductStage3D, never as a decorative orbit overlay.
   return null;
 }
 
