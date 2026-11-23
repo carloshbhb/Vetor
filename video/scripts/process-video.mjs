@@ -1046,7 +1046,7 @@ async function processVideo(video) {
       category: video.product_category,
       manualTemplateId: visualTemplate.selection === "manual" ? visualTemplate.id : null,
       hasProductGallery: productImages.length > 1,
-      hasBroll: brollVideos.some(Boolean),
+      hasBroll: scenesWithFrames.map((_, sceneIndex) => Boolean(brollVideos[sceneIndex])),
       hasVerified3DModel: Boolean(productModelUrl),
     });
     const scenesWithVisualDirection = scenesWithFrames.map((scene, index) => ({
