@@ -39,8 +39,8 @@ const CARAFE_PROFILE = [
 
 const useFrameProgress = () => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  return { frame, fps, seconds: frame / fps, progress: Math.min(1, frame / (fps * 7.5)) };
+  const { fps, durationInFrames } = useVideoConfig();
+  return { frame, fps, seconds: frame / fps, progress: Math.min(1, frame / Math.max(1, durationInFrames - 1)) };
 };
 
 const CameraRig: React.FC<{ move: string }> = ({ move }) => {
@@ -213,8 +213,17 @@ const WearableModel: React.FC = () => {
 
 const GltfModel: React.FC<{ url: string }> = ({ url }) => {
   const gltf = useLoader(GLTFLoader, url);
-  const object = useMemo(() => gltf.scene.clone(true), [gltf.scene]);
-  return <primitive object={object} scale={1.5} />;
+  const object = useMemo(() => {
+    const clone = gltf.scene.clone(true);
+    const bounds = new THREE.Box3().setFromObject(clone);
+    const size = bounds.getSize(new THREE.Vector3());
+    const center = bounds.getCenter(new THREE.Vector3());
+    const factor = 2.8 / Math.max(size.x, size.y, size.z, 0.001);
+    clone.position.sub(center.multiplyScalar(factor));
+    clone.scale.multiplyScalar(factor);
+    return clone;
+  }, [gltf.scene]);
+  return <primitive object={object} />;
 };
 
 const Pedestal: React.FC<{ accent: string }> = ({ accent }) => (
@@ -279,7 +288,7 @@ export const SceneProductStage3D: React.FC<Props> = (props) => {
       <ThreeCanvas
         width={width}
         height={height}
-        camera={{ position: [0, 0.1, 6.8], fov: 38 }}
+        camera={{ position: [0, 0.1, 6.8], fov: width > height ? 38 : 48 }}
         gl={{ alpha: false, antialias: true, preserveDrawingBuffer: true }}
       >
         <ProductScene {...props} />
