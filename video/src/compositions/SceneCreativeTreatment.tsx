@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { ThreeMotionGraphicsScene, type ThreeMotionVariant } from '../motion-graphics/ThreeMotionGraphicsScene';
 import { SceneMotionGraphicsRenderer } from '../motion-graphics/SceneMotionGraphicsRenderer';
+import { ShotcraftRecipeRenderer } from '../motion-graphics/ShotcraftRecipeRenderer';
 import { SHORTS_SAFE_ZONE } from '../utils/shorts-safe-zone';
 
 export type SceneCreativeDirection = {
@@ -23,6 +24,9 @@ export type SceneCreativeDirection = {
     dataMustComeFromScene: boolean;
   };
   artDirection: string;
+  shotcraftRecipeId?: string;
+  shotcraftRecipeCategory?: string;
+  shotcraftRecipeSelection?: 'narrative-auto' | 'manual' | 'scene-manual';
   renderPlan?: {
     version: number;
     renderer: string;
@@ -292,6 +296,16 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
           borderTop: '1px solid ' + accent + '88', borderBottom: '1px solid ' + accent + '88',
           opacity: 0.48,
         }} />
+      ) : null}
+
+      {plan.shotcraftRecipeId ? (
+        <ShotcraftRecipeRenderer
+          recipeId={plan.shotcraftRecipeId}
+          accent={accent}
+          label={label}
+          sceneText={sceneText}
+          metric={metric}
+        />
       ) : null}
 
       <SceneTransition kind={plan.transitionIn} accent={accent} />
