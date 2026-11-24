@@ -257,6 +257,7 @@ export function buildSceneRenderPlan({
     modelAssetSha256: modelAvailable ? verified3DModel.sha256 : null,
     modelAssetVerifiedBy: modelAvailable ? verified3DModel.verifiedBy : null,
     modelAssetVerifiedAt: modelAvailable ? verified3DModel.verifiedAt : null,
+    modelAssetSourceReferences: modelAvailable ? verified3DModel.sourceReferences : [],
     motionContract: {
       cameraMustMove: true,
       objectMustMove: renderer === "three-product",
