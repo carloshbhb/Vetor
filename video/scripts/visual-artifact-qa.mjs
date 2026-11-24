@@ -71,6 +71,7 @@ function measureFrame(frame) {
 
 export function evaluateVisualSamples(samples, {
   allowRepeatedScenes = false,
+  allowDarkScenes = false,
   minSamplesForDiversity = 4,
 } = {}) {
   const errors = [];
@@ -86,7 +87,7 @@ export function evaluateVisualSamples(samples, {
   });
 
   for (const sample of measured) {
-    if (sample.averageLuma < DARK_AVERAGE && sample.darkPixelRatio > DARK_RATIO) {
+    if (sample.averageLuma < DARK_AVERAGE && sample.darkPixelRatio > DARK_RATIO && !allowDarkScenes) {
       errors.push(
         "Cena " + sample.id + " (" + sample.timeSeconds.toFixed(2) +
         "s) está visualmente subexposta: luminância média " + sample.averageLuma +
@@ -214,6 +215,7 @@ function main() {
   }));
   const result = evaluateVisualSamples(samples, {
     allowRepeatedScenes: sceneDocument.allowRepeatedScenes === true,
+    allowDarkScenes: sceneDocument.allowDarkScenes === true,
   });
   const document = {
     schemaVersion: 1,
