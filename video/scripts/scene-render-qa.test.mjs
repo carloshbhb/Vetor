@@ -62,12 +62,57 @@ const glbProduct = planVetorSceneMixes({
   scenes: [{ id: 1, text: "Design premium", visualCue: "Hero", visualTemplates: ["premium-product-3d"] }],
   title: "Produto especial",
   category: "Casa",
-  hasVerified3DModel: true,
+  verified3DModel: {
+    verified: true,
+    integrityVerified: true,
+    url: "https://storage.example.com/product.glb",
+    sha256: "a".repeat(64),
+    verifiedBy: "Vetor QA",
+    verifiedAt: "2026-11-23T12:00:00.000Z",
+    sourceReferences: ["https://merchant.example.com/product"],
+  },
 });
 assert.equal(glbProduct[0].renderPlan.productRepresentation, "verified-gltf-model");
 assert.equal(glbProduct[0].renderPlan.visualFidelity, "verified-3d-asset");
+assert.equal(glbProduct[0].renderPlan.usesTrueProductGeometry, true);
+assert.equal(glbProduct[0].renderPlan.modelAssetIntegrityVerified, true);
+assert.equal(assertSceneRenderPlans(glbProduct).ok, true);
+
+const unverifiedGlb = planVetorSceneMixes({
+  scenes: [{ id: 1, text: "Design premium", visualCue: "Hero", visualTemplates: ["premium-product-3d"] }],
+  title: "Garrafa Térmica Nórdica 1L",
+  category: "Casa",
+  hasUnverified3DModel: true,
+});
+assert.equal(unverifiedGlb[0].renderPlan.visualFidelity, "illustrative-parametric-3d");
+assert.equal(unverifiedGlb[0].renderPlan.usesTrueProductGeometry, false);
+assert.equal(unverifiedGlb[0].renderPlan.modelAssetStatus, "unverified");
+assert.match(unverifiedGlb[0].renderPlan.fallbackReason, /ilustrativo/);
+assert.equal(assertSceneRenderPlans(unverifiedGlb).ok, true);
+
+const forged = plans.map((scene) => ({
+  ...scene,
+  renderPlan: {
+    ...scene.renderPlan,
+    usesTrueProductGeometry: true,
+    visualFidelity: "illustrative-parametric-3d",
+  },
+}));
+assert.equal(evaluateSceneRenderPlans(forged).ok, false);
 
 const invalid = plans.map((scene) => ({ ...scene, renderPlan: { ...scene.renderPlan, cameraMove: "" } }));
 assert.equal(evaluateSceneRenderPlans(invalid).ok, false);
 
-console.log("[scene-render-qa] true 3D, immersive matched B-roll, 2.5D fallback honesty, GLB selection and camera diversity passed.");
+const duplicateIds = [
+  { ...plans[0], sceneId: "duplicate" },
+  { ...plans[1], sceneId: "duplicate" },
+];
+assert.equal(evaluateSceneRenderPlans(duplicateIds).ok, false);
+
+const unsupportedRenderer = [{
+  ...plans[0],
+  renderPlan: { ...plans[0].renderPlan, renderer: "imaginary-engine" },
+}];
+assert.equal(evaluateSceneRenderPlans(unsupportedRenderer).ok, false);
+
+console.log("[scene-render-qa] true 3D manifest, illustrative fallback honesty, B-roll, scene identity and visual variety passed.");

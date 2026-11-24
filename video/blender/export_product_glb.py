@@ -27,6 +27,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--output", required=True, help="Destination .glb file.")
     parser.add_argument("--product-id", required=True, help="Stable Vetor product slug or identifier.")
     parser.add_argument("--verified-by", default="", help="Human reviewer who checked geometry against source product photos.")
+    parser.add_argument("--source-reference", action="append", default=[], help="Product listing, official spec page or reference image URL/path used for human review; repeat as needed.")
     parser.add_argument("--skip-apply-transforms", action="store_true", help="Preserve object rotation and scale instead of applying them.")
     return parser.parse_args(argv)
 
@@ -56,6 +57,9 @@ def scene_bounds(objects: list[bpy.types.Object]) -> dict:
 
 
 def export_glb(args: argparse.Namespace) -> dict:
+    if args.verified_by.strip() and not args.source_reference:
+        raise ValueError("--verified-by requires at least one --source-reference used for the product-fidelity review.")
+
     output_path = os.path.abspath(os.path.expanduser(args.output))
     if not output_path.lower().endswith(".glb"):
         raise ValueError("--output must end in .glb")
@@ -113,9 +117,11 @@ def export_glb(args: argparse.Namespace) -> dict:
         "bounds": scene_bounds(mesh_objects),
         "format": "glb",
         "review": {
-            "status": "verified" if args.verified_by.strip() else "pending-human-review",
+            "status": "verified" if args.verified_by.strip() and args.source_reference else "pending-human-review",
             "verifiedBy": args.verified_by.strip() or None,
-            "rule": "Compare silhouette, proportions, ports, controls, materials and included parts with the actual product listing before using as a verified product model.",
+            "verifiedAt": datetime.now(timezone.utc).isoformat() if args.verified_by.strip() and args.source_reference else None,
+            "sourceReferences": [item.strip() for item in args.source_reference if item.strip()][:12],
+            "rule": "Compare silhouette, proportions, ports, controls, materials and included parts with the exact product SKU before using as a verified product model.",
         },
     }
     manifest_path = os.path.splitext(output_path)[0] + ".manifest.json"
