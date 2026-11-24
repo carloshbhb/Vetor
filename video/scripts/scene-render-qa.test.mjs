@@ -64,6 +64,7 @@ const glbProduct = planVetorSceneMixes({
   category: "Casa",
   verified3DModel: {
     verified: true,
+    integrityVerified: true,
     url: "https://storage.example.com/product.glb",
     sha256: "a".repeat(64),
     verifiedBy: "Vetor QA",
@@ -74,6 +75,7 @@ const glbProduct = planVetorSceneMixes({
 assert.equal(glbProduct[0].renderPlan.productRepresentation, "verified-gltf-model");
 assert.equal(glbProduct[0].renderPlan.visualFidelity, "verified-3d-asset");
 assert.equal(glbProduct[0].renderPlan.usesTrueProductGeometry, true);
+assert.equal(glbProduct[0].renderPlan.modelAssetIntegrityVerified, true);
 assert.equal(assertSceneRenderPlans(glbProduct).ok, true);
 
 const unverifiedGlb = planVetorSceneMixes({
