@@ -818,7 +818,7 @@ export async function POST(request: NextRequest) {
           .gte("completed_at", getSaoPauloDayStartIso()),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .in("status", ["pending", "processing"]).eq("publication_mode", "automatic")
-          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }])),
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format }])),
       ]);
       if (productsError) throw productsError;
       if (existingError) throw existingError;
@@ -831,7 +831,7 @@ export async function POST(request: NextRequest) {
       const allowed = Math.min(limit, dailySlots);
       if (allowed <= 0) {
         return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true,
-          completedToday: completed, pendingAutomaticLong: pending, source: "product_links_catalog" });
+          completedToday: completed, pendingAutomaticForFormat: pending, source: "product_links_catalog" });
       }
 
       const existingLong = (existing || []).filter((row: any) => getPublicationFormat(row.media_assets) === format);
@@ -881,7 +881,7 @@ export async function POST(request: NextRequest) {
         purchase.searchParams.set("utm_medium", "video");
         purchase.searchParams.set("utm_campaign", "catalog-fallback-" + format);
         purchase.searchParams.set("utm_content", queueId);
-        purchase.searchParams.set("utm_term", "long");
+        purchase.searchParams.set("utm_term", format);
         purchase.searchParams.set("placement", "description");
         const priceValue = Number(product.price);
         const price = Number.isFinite(priceValue) && priceValue > 0
