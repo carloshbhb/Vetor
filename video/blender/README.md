@@ -67,18 +67,42 @@ blender --background ./product.blend \
   --product-id product-slug
 ~~~
 
+A revisão humana deve citar a listagem exata e/ou documentação oficial usada para conferir o SKU:
+
+~~~
+blender --background ./product.blend \
+  --python ./video/blender/export_product_glb.py -- \
+  --output ./dist/product-slug.glb \
+  --product-id product-slug \
+  --verified-by "Nome do revisor" \
+  --source-reference "https://loja.example/produto-sku" \
+  --source-reference "https://fabricante.example/especificacoes"
+~~~
+
+Sem `--verified-by` e ao menos um `--source-reference`, o manifesto permanece `pending-human-review`.
+
 The script exports visible mesh objects, applies rotation/scale by default, preserves materials, and writes a .manifest.json containing dimensions, mesh count and SHA-256. The manifest remains pending-human-review unless the export is explicitly marked with --verified-by "Reviewer".
 
-Only after visual verification, upload the .glb to the product-model storage bucket and attach it to the product record as:
+Only after visual verification, upload the .glb to the product-model storage bucket and attach the manifest fields (SHA-256 plus review metadata) to the same product media asset marker as:
 
 ~~~json
 {
   "type": "product_model_3d",
-  "url": "https://YOUR_SUPABASE_PROJECT.supabase.co/storage/v1/object/public/product-models/product-slug.glb"
+  "url": "https://YOUR_SUPABASE_PROJECT.supabase.co/storage/v1/object/public/product-models/product-slug.glb",
+  "sha256": "<sha256 from the manifest>",
+  "review": {
+    "status": "verified",
+    "verifiedBy": "Nome do revisor",
+    "verifiedAt": "2026-11-23T12:00:00Z",
+    "sourceReferences": [
+      "https://loja.example/produto-sku",
+      "https://fabricante.example/especificacoes"
+    ]
+  }
 }
 ~~~
 
-The URL must be publicly readable by the render worker (or use a supported signed URL with enough lifetime for the render). The current pipeline reads this marker from media_assets, product_model_url or product_3d_url; no new renderer or publication step is introduced.
+The URL must be publicly readable by the render worker (or use a supported signed URL with enough lifetime for the render). The current pipeline reads this marker from media_assets, product_model_url or product_3d_url, downloads the candidate GLB (maximum 50 MB), recalculates SHA-256 over the actual bytes, then stages those exact bytes as a temporary Remotion static asset so the renderer does not download the model from storage again. If the digest differs from the reviewed manifest, the worker rejects the model and falls back to the illustrative/photo path; the temporary asset is cleaned after processing and no new renderer or publication step is introduced.
 
 ## 4. Quality gate before use
 
@@ -89,4 +113,4 @@ A model is ready for product video only after:
 4. GLB opens in a clean Blender scene and in the Remotion 3D smoke render.
 5. The product owner has reviewed the exported result.
 
-If these checks are not met, keep the existing real product photos and 2.5D path. Never substitute a generic parametric object and label it as the exact product.
+If these checks are not met, keep the existing real product photos and 2.5D or explicitly illustrative parametric 3D path. The render worker ignores an unreviewed GLB as an exact product model. Never substitute a generic parametric object and label it as the exact product.

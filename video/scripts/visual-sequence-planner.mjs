@@ -150,14 +150,23 @@ export function buildSceneRenderPlan({
   category = "",
   hasBroll = false,
   previousCameraMove = null,
-  hasVerified3DModel = false,
+  verified3DModel = null,
+  hasUnverified3DModel = false,
 } = {}) {
   const productProfile = inferProductModelProfile(title, category);
   const cameraMove = cameraMoveFor(beat, index, scene.visualIntent, previousCameraMove);
   const verifiedComponents = Array.isArray(scene.verifiedComponents)
     ? scene.verifiedComponents.filter((item) => typeof item === "string" && item.trim()).slice(0, 12)
     : [];
-  const modelAvailable = Boolean(hasVerified3DModel || scene.productModelUrl);
+  const modelAvailable = Boolean(
+    verified3DModel?.verified === true &&
+    verified3DModel?.integrityVerified === true &&
+    typeof verified3DModel.url === "string" &&
+    /^https:\/\//i.test(verified3DModel.url) &&
+    /^[a-f0-9]{64}$/i.test(String(verified3DModel.sha256 || "")) &&
+    typeof verified3DModel.verifiedBy === "string" && verified3DModel.verifiedBy.trim() &&
+    Number.isFinite(Date.parse(String(verified3DModel.verifiedAt || "")))
+  );
   let renderer = "layered-2d";
   let shotType = "cinematic-product-parallax";
   let action = "animate-product-image-layers-and-camera";
@@ -174,8 +183,14 @@ export function buildSceneRenderPlan({
         ? (verifiedComponents.length ? "separate-verified-components-and-reassemble" : "illustrative-layer-separation-only")
         : "rotate-product-and-move-camera";
       assetRequirement = modelAvailable ? "glb-or-gltf-model" : "supported-parametric-product-profile";
+      if (!modelAvailable) {
+        fallbackReason = hasUnverified3DModel
+          ? "Um arquivo GLB foi encontrado, mas não possui manifesto de revisão humana completo; a cena usa somente um arquétipo 3D ilustrativo."
+          : "Modelo 3D específico do produto não verificado; a cena usa somente um arquétipo 3D ilustrativo, sem afirmar fidelidade geométrica."; 
+      }
       if (primaryTemplate === "exploded-teardown" && !verifiedComponents.length) {
-        fallbackReason = "Sem lista de componentes documentados: a separação é apenas esquemática e não representa uma desmontagem técnica.";
+        const schematicWarning = "Sem lista de componentes documentados: a separação é apenas esquemática e não representa uma desmontagem técnica.";
+        fallbackReason = fallbackReason ? fallbackReason + " " + schematicWarning : schematicWarning;
       }
     } else {
       renderer = "layered-2d";
@@ -219,6 +234,11 @@ export function buildSceneRenderPlan({
     shotType = renderer === "three-product" ? "editorial-3d-hero" : "editorial-photo-dolly";
     action = renderer === "three-product" ? "slow-product-orbit-with-light-sweep" : "slow-photo-dolly-with-depth-layers";
     assetRequirement = renderer === "three-product" ? "product-model-or-parametric-profile" : "verified-product-photo";
+    if (renderer === "three-product" && !modelAvailable) {
+      fallbackReason = hasUnverified3DModel
+        ? "O arquivo GLB não foi aprovado pelo contrato de revisão; usar apenas o arquétipo 3D ilustrativo."
+        : "Sem modelo 3D do produto aprovado; usar apenas o arquétipo 3D ilustrativo.";
+    }
   }
 
   return {
@@ -232,8 +252,14 @@ export function buildSceneRenderPlan({
     assetRequirement,
     hasMatchedBroll: Boolean(hasBroll),
     verifiedComponents,
-    usesTrueProductGeometry: renderer === "three-product" && (modelAvailable || productProfile !== "unresolved"),
+    usesTrueProductGeometry: renderer === "three-product" && modelAvailable,
     visualFidelity: renderer === "three-product" ? (modelAvailable ? "verified-3d-asset" : "illustrative-parametric-3d") : "verified-media-2.5d",
+    modelAssetStatus: modelAvailable ? "verified" : hasUnverified3DModel ? "unverified" : "missing",
+    modelAssetIntegrityVerified: modelAvailable,
+    modelAssetSha256: modelAvailable ? verified3DModel.sha256 : null,
+    modelAssetVerifiedBy: modelAvailable ? verified3DModel.verifiedBy : null,
+    modelAssetVerifiedAt: modelAvailable ? verified3DModel.verifiedAt : null,
+    modelAssetSourceReferences: modelAvailable ? verified3DModel.sourceReferences : [],
     motionContract: {
       cameraMustMove: true,
       objectMustMove: renderer === "three-product",
@@ -256,7 +282,8 @@ export function planVetorSceneMixes({
   manualTemplateId = null,
   hasProductGallery = false,
   hasBroll = false,
-  hasVerified3DModel = false,
+  verified3DModel = null,
+  hasUnverified3DModel = false,
   manualShotcraftRecipeId = null,
 } = {}) {
   const manual = normalizeVetorTemplateId(manualTemplateId);
@@ -306,7 +333,7 @@ export function planVetorSceneMixes({
       dataMustComeFromScene: true,
     };
     const names = templateIds.map((id) => getTemplate(id)?.name).filter(Boolean);
-    const renderPlan = buildSceneRenderPlan({ scene, beat, primaryTemplate: primary, index, title, category, hasBroll: sceneHasBroll, previousCameraMove, hasVerified3DModel });
+    const renderPlan = buildSceneRenderPlan({ scene, beat, primaryTemplate: primary, index, title, category, hasBroll: sceneHasBroll, previousCameraMove, verified3DModel, hasUnverified3DModel });
     previousCameraMove = renderPlan.cameraMove;
     return {
       sceneId: scene.id ?? index + 1,

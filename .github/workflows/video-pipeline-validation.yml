@@ -15,6 +15,13 @@ on:
       - "scripts/video-queue-quota.test.ts"
       - ".github/workflows/process-video-queue.yml"
       - ".github/workflows/video-pipeline-validation.yml"
+  workflow_dispatch:
+    inputs:
+      run_visual_pilots:
+        description: "Render os três pilotos visuais completos (execução manual)"
+        required: false
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -88,6 +95,12 @@ jobs:
           node --check video/scripts/render-engine-router.mjs
           node --check video/scripts/visual-template-registry.mjs
           node --check video/scripts/visual-sequence-planner.mjs
+          node --check video/scripts/product-model-verification.mjs
+          node --check video/scripts/render-artifact-qa.mjs
+          node --check video/scripts/visual-artifact-qa.mjs
+          node video/scripts/product-model-verification.test.mjs
+          node video/scripts/render-artifact-qa.test.mjs
+          node video/scripts/visual-artifact-qa.test.mjs
           node --check video/scripts/shotcraft-recipe-registry.mjs
           node --check video/scripts/render-ten-style-pilot.mjs
           node video/scripts/render-engine-router.test.mjs
@@ -130,13 +143,18 @@ jobs:
         working-directory: video
         run: |
           test -s public/smoke-product.svg
-          test -s public/audio/sample-review.mp3
+          # The previous sample-review.mp3 fixture contains silence. Generate a
+          # deterministic audible narration stand-in so both compositions prove
+          # that Remotion carries the supplied audio prop into the final MP4.
+          ffmpeg -y -f lavfi -i "sine=frequency=440:sample_rate=48000:duration=12" \
+            -af "volume=0.12" -ac 2 -c:a libmp3lame -b:a 128k public/smoke-narration.mp3
+          test -s public/smoke-narration.mp3
           cat > /tmp/vetor-review-smoke-props.json <<'JSON'
           {
             "title": "Produto de demonstração",
             "imageUrl": "/smoke-product.svg",
             "productImages": ["/smoke-product.svg"],
-            "audioUrl": "/audio/sample-review.mp3",
+            "audioUrl": "/smoke-narration.mp3",
             "score": 8.5,
             "category": "Tecnologia",
             "visualTemplateId": "hologram-hud",
@@ -181,7 +199,7 @@ jobs:
                   "visualLayers": ["hud-scan", "animated-metric", "three-orbit"],
                   "assets": {"realProductImage": true, "galleryCutaway": false, "lifestyleFootage": false, "brollAvailable": true, "dataMustComeFromScene": true},
                   "artDirection": "CI smoke: verified product image with a native 3D product stage",
-                  "renderPlan": {"version":2,"renderer":"three-product","shotType":"3d-hero-orbit","action":"rotate-product-and-move-camera","cameraMove":"orbit","productProfile":"smartphone","productRepresentation":"parametric-archetype","assetRequirement":"supported-parametric-product-profile","hasMatchedBroll":true,"verifiedComponents":[],"usesTrueProductGeometry":true,"visualFidelity":"illustrative-parametric-3d","motionContract":{"cameraMustMove":true,"objectMustMove":true,"minCameraTravel":0.55,"minScaleDelta":0.08},"fallbackReason":null}
+                  "renderPlan": {"version":2,"renderer":"three-product","shotType":"3d-hero-orbit","action":"rotate-product-and-move-camera","cameraMove":"orbit","productProfile":"smartphone","productRepresentation":"parametric-archetype","assetRequirement":"supported-parametric-product-profile","hasMatchedBroll":true,"verifiedComponents":[],"usesTrueProductGeometry":false,"modelAssetStatus":"missing","visualFidelity":"illustrative-parametric-3d","motionContract":{"cameraMustMove":true,"objectMustMove":true,"minCameraTravel":0.55,"minScaleDelta":0.08},"fallbackReason":"Modelo 3D específico não verificado; usar somente arquétipo 3D ilustrativo."}
                 }}
             ],
             "callToAction": "Confira a análise completa.",
@@ -196,7 +214,7 @@ jobs:
             "title": "Produto de demonstração",
             "imageUrl": "/smoke-product.svg",
             "productImages": ["/smoke-product.svg"],
-            "audioUrl": "/audio/sample-review.mp3",
+            "audioUrl": "/smoke-narration.mp3",
             "score": 8.5,
             "category": "Tecnologia",
             "openingCreativeDirection": {
@@ -272,6 +290,35 @@ jobs:
           remotion-qa check /tmp/vetor-review-smoke.mp4 --beats /tmp/vetor-review-smoke-beats.json --channel yt-shorts --max-dead 1 --frames /tmp/vetor-review-qa-frames --json
           remotion-qa check /tmp/vetor-landscape-smoke.mp4 --beats /tmp/vetor-landscape-smoke-beats.json --channel yt-landscape --max-dead 1 --frames /tmp/vetor-landscape-qa-frames --json
 
+      - name: Validate final MP4 artifacts at delivery specifications
+        run: |
+          node video/scripts/render-artifact-qa.mjs --input /tmp/vetor-review-smoke.mp4 --profile shorts --require-audio true --max-black-seconds 1.2 --report /tmp/vetor-review-artifact-qa.json
+          node video/scripts/render-artifact-qa.mjs --input /tmp/vetor-landscape-smoke.mp4 --profile landscape --require-audio true --max-black-seconds 1.2 --report /tmp/vetor-landscape-artifact-qa.json
+
+      - name: Validate visual diversity and exposure in rendered samples
+        run: |
+          cat > /tmp/vetor-review-visual-scenes.json <<'JSON'
+          {"fps":30,"allowRepeatedScenes":true,"scenes":[{"id":"opening","startFrame":0,"endFrame":60},{"id":"feature","startFrame":60,"endFrame":120},{"id":"closing","startFrame":120,"endFrame":180}]}
+          JSON
+          cat > /tmp/vetor-landscape-visual-scenes.json <<'JSON'
+          {"fps":30,"allowRepeatedScenes":true,"scenes":[{"id":"opening","startFrame":0,"endFrame":120},{"id":"feature","startFrame":120,"endFrame":240},{"id":"closing","startFrame":240,"endFrame":360}]}
+          JSON
+          node video/scripts/visual-artifact-qa.mjs --input /tmp/vetor-review-smoke.mp4 --scenes-json /tmp/vetor-review-visual-scenes.json --report /tmp/vetor-review-visual-qa.json
+          node video/scripts/visual-artifact-qa.mjs --input /tmp/vetor-landscape-smoke.mp4 --scenes-json /tmp/vetor-landscape-visual-scenes.json --report /tmp/vetor-landscape-visual-qa.json
+
+      - name: Preserve render quality evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vetor-render-quality-evidence-${{ github.run_id }}
+          path: |
+            /tmp/vetor-review-artifact-qa.json
+            /tmp/vetor-landscape-artifact-qa.json
+            /tmp/vetor-review-visual-qa.json
+            /tmp/vetor-landscape-visual-qa.json
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Smoke-test Lemo-Opuscar renderer without publishing
         timeout-minutes: 15
         env:
@@ -279,15 +326,17 @@ jobs:
         run: node video/scripts/lemo-opuscar-smoke.mjs
 
       - name: Install Edge TTS for Lemo quality pilot
+        if: github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
         run: python -m pip install --disable-pip-version-check edge-tts
 
       - name: Render mixed creative direction pilot (no publishing)
+        if: github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
         working-directory: video
         timeout-minutes: 20
         run: node scripts/render-mixed-creative-pilot.mjs
 
       - name: Upload mixed creative direction pilot
-        if: success()
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
         uses: actions/upload-artifact@v4
         with:
           name: vetor-piloto-direcao-criativa-mista
@@ -296,12 +345,13 @@ jobs:
           retention-days: 7
 
       - name: Render ten-style Remotion showcase (no publishing)
+        if: github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
         working-directory: video
         timeout-minutes: 20
         run: node scripts/render-ten-style-pilot.mjs
 
       - name: Upload ten-style showcase pilot
-        if: success()
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
         uses: actions/upload-artifact@v4
         with:
           name: vetor-10-estilos-motion-pilot
@@ -310,6 +360,7 @@ jobs:
           retention-days: 7
 
       - name: Render Galaxy Fit3 motion-graphics pilot with Lemo-Opuscar
+        if: github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
         timeout-minutes: 20
         env:
           LEMO_OPUSCAR_HOME: ${{ runner.temp }}/vetor-lemo-opuscar-smoke
@@ -317,7 +368,7 @@ jobs:
         run: node video/scripts/render-lemo-galaxy-fit3-pilot.mjs
 
       - name: Upload Lemo-Opuscar quality pilot (no YouTube publishing)
-        if: success()
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
         uses: actions/upload-artifact@v4
         with:
           name: vetor-lemo-opuscar-galaxy-fit3-pilot

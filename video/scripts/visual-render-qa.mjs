@@ -9,6 +9,8 @@ export function evaluateSceneRenderPlans(plans = []) {
   const warnings = [];
   const rendererCounts = {};
   const cameraMoves = [];
+  const shotTypes = new Set();
+  const sceneIds = new Set();
 
   if (!Array.isArray(plans) || plans.length === 0) {
     return { ok: false, errors: ["Storyboard sem cenas para validar."], warnings, rendererCounts, cameraMoves };
@@ -28,15 +30,53 @@ export function evaluateSceneRenderPlans(plans = []) {
     }
     rendererCounts[render.renderer] = (rendererCounts[render.renderer] || 0) + 1;
     cameraMoves.push(render.cameraMove);
+    shotTypes.add(render.shotType);
+    const sceneId = scene?.sceneId ?? scene?.id ?? number;
+    if (sceneIds.has(String(sceneId))) {
+      errors.push("Cena " + number + ": identificador de cena duplicado (" + sceneId + ").");
+    }
+    sceneIds.add(String(sceneId));
+    if (!["three-product", "three-motion-graphics", "cinematic-footage", "motion-graphics", "layered-2d"].includes(render.renderer)) {
+      errors.push("Cena " + number + ": renderer não suportado (" + render.renderer + ").");
+    }
+    if (scene?.assets?.dataMustComeFromScene === false) {
+      errors.push("Cena " + number + ": dados visuais não podem ser fabricados fora das fontes da cena.");
+    }
 
-    if (!render.motionContract || render.motionContract.cameraMustMove !== true) {
+    if (!render.motionContract || render.motionContract.cameraMustMove !== true ||
+        !Number.isFinite(render.motionContract.minCameraTravel) || render.motionContract.minCameraTravel <= 0 ||
+        !Number.isFinite(render.motionContract.minScaleDelta) || render.motionContract.minScaleDelta <= 0) {
       errors.push("Cena " + number + ": movimento de câmera não está contratado.");
     }
-    if (render.renderer === "three-product" && render.usesTrueProductGeometry !== true) {
-      errors.push("Cena " + number + ": renderer three-product sem geometria de produto verificável.");
-    }
-    if (render.renderer === "three-product" && !["verified-3d-asset", "illustrative-parametric-3d"].includes(render.visualFidelity)) {
-      errors.push("Cena " + number + ": fidelidade 3D não identificada corretamente.");
+    if (render.renderer === "three-product") {
+      if (render.motionContract?.objectMustMove !== true) {
+        errors.push("Cena " + number + ": produto 3D precisa declarar movimento do objeto.");
+      }
+      if (render.visualFidelity === "verified-3d-asset") {
+        if (render.usesTrueProductGeometry !== true ||
+            render.productRepresentation !== "verified-gltf-model" ||
+            render.modelAssetStatus !== "verified" ||
+            render.modelAssetIntegrityVerified !== true ||
+            !/^[a-f0-9]{64}$/i.test(String(render.modelAssetSha256 || "")) ||
+            typeof render.modelAssetVerifiedBy !== "string" || !render.modelAssetVerifiedBy.trim() ||
+            !Number.isFinite(Date.parse(String(render.modelAssetVerifiedAt || ""))) ||
+            !Array.isArray(render.modelAssetSourceReferences) || !render.modelAssetSourceReferences.some((item) => typeof item === "string" && item.trim())) {
+          errors.push("Cena " + number + ": modelo 3D marcado como verificado sem manifesto, checksum, revisor e data válidos.");
+        }
+      } else if (render.visualFidelity === "illustrative-parametric-3d") {
+        if (render.usesTrueProductGeometry !== false ||
+            render.productRepresentation !== "parametric-archetype" ||
+            render.modelAssetStatus === "verified") {
+          errors.push("Cena " + number + ": arquétipo paramétrico não pode ser declarado como geometria real do produto.");
+        }
+        if (!/ilustrativo/i.test(String(render.fallbackReason || ""))) {
+          errors.push("Cena " + number + ": 3D paramétrico precisa informar explicitamente que é ilustrativo.");
+        }
+      } else {
+        errors.push("Cena " + number + ": fidelidade 3D não identificada corretamente.");
+      }
+    } else if (render.usesTrueProductGeometry === true) {
+      errors.push("Cena " + number + ": geometria real declarada por um renderer que não é de produto 3D.");
     }
     if (render.renderer === "cinematic-footage" && render.hasMatchedBroll !== true) {
       errors.push("Cena " + number + ": footage selecionado sem B-roll correspondente.");
@@ -56,8 +96,20 @@ export function evaluateSceneRenderPlans(plans = []) {
     if (index > 0 && render.cameraMove === plans[index - 1]?.renderPlan?.cameraMove) {
       warnings.push("Cenas " + index + " e " + number + ": movimento de câmera repetido consecutivamente.");
     }
+    if (index > 1 && render.shotType === plans[index - 1]?.renderPlan?.shotType &&
+        render.shotType === plans[index - 2]?.renderPlan?.shotType) {
+      warnings.push("Cena " + number + ": três planos consecutivos usam o mesmo tipo de tomada.");
+    }
+    if (index > 1 && scene?.primaryTemplate &&
+        scene.primaryTemplate === plans[index - 1]?.primaryTemplate &&
+        scene.primaryTemplate === plans[index - 2]?.primaryTemplate) {
+      warnings.push("Cena " + number + ": três cenas consecutivas repetem a mesma linguagem visual principal.");
+    }
   });
 
+  if (plans.length >= 4 && shotTypes.size < 2) {
+    warnings.push("Sequência longa com apenas um tipo de tomada; revisar variedade visual.");
+  }
   if (plans.length >= 4 && Object.keys(rendererCounts).length < 2) {
     warnings.push("Sequência longa com um único motor visual; revisar variedade de enquadramentos e linguagem.");
   }

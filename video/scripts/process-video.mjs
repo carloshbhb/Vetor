@@ -11,6 +11,7 @@ import { researchProduct } from './research-product.mjs';
 import { resolveVisualTemplate } from './stickman-template.mjs';
 import { resolveVetorVisualTemplate } from './visual-template-registry.mjs';
 import { planVetorSceneMixes } from './visual-sequence-planner.mjs';
+import { verifyProductModelAssetIntegrity } from './product-model-verification.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -455,7 +456,7 @@ async function renderWithRemotion(videoData, outputPath) {
   }
 }
 
-function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId) {
+function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId, videoData = {}) {
   const safeId = safeVideoAssetId(videoId);
   const outputDir = path.dirname(videoPath);
   const beatsPath = path.join(outputDir, "video-" + safeId + "-beats.json");
@@ -508,8 +509,84 @@ function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId)
     );
   }
 
+  const artifactQaPath = fileURLToPath(new URL("./render-artifact-qa.mjs", import.meta.url));
+  const artifactReportPath = path.join(outputDir, "video-" + safeId + "-artifact-qa.json");
+  const artifactProfile = videoFormat === "long" ? "landscape" : "shorts";
+  const artifactResult = spawnSync(process.execPath, [
+    artifactQaPath,
+    "--input", videoPath,
+    "--profile", artifactProfile,
+    "--require-audio", "true",
+    "--max-black-seconds", "1.2",
+    "--report", artifactReportPath,
+  ], options);
+  if (artifactResult.error || artifactResult.status !== 0) {
+    const artifactOutput = [artifactResult.stdout, artifactResult.stderr]
+      .filter(Boolean).join("\n").replace(/\s+/g, " ").slice(-6500);
+    throw new Error(
+      "[VIDEO_ARTIFACT_QA_FAILED] " + channel + " bloqueou o upload de " + videoId +
+      ". Diagnóstico: " + (artifactOutput || (artifactResult.error ? artifactResult.error.message : "QA exit=" + artifactResult.status))
+    );
+  }
+  console.log("[VIDEO_ARTIFACT_QA_PASS] queue_id=" + videoId + " profile=" + artifactProfile +
+    " report=" + artifactReportPath);
+
+  const visualQaScript = fileURLToPath(new URL("./visual-artifact-qa.mjs", import.meta.url));
+  const visualScenesPath = path.join(outputDir, "video-" + safeId + "-visual-scenes.json");
+  const visualReportPath = path.join(outputDir, "video-" + safeId + "-visual-qa.json");
+  const visualFps = Number(videoData.fps) > 0 ? Number(videoData.fps) : 30;
+  const visualTotalFrames = Math.max(1, Math.round(Number(videoData.totalDuration || 0) * visualFps));
+  const sceneFrames = (Array.isArray(videoData.scenes) ? videoData.scenes : [])
+    .map((scene, index) => ({
+      id: scene.id ?? scene.sceneId ?? "scene-" + (index + 1),
+      startFrame: Number(scene.startFrame),
+      endFrame: Number(scene.endFrame),
+    }))
+    .filter((scene) => Number.isFinite(scene.startFrame) && Number.isFinite(scene.endFrame) &&
+      scene.endFrame > scene.startFrame);
+  const hookFrames = Math.max(0, Math.round(Number(videoData.hookDuration || 0) * visualFps));
+  if (hookFrames > visualFps) {
+    sceneFrames.unshift({ id: "opening-hook", startFrame: 0, endFrame: hookFrames });
+  }
+  const latestSceneEnd = sceneFrames.reduce((max, scene) => Math.max(max, scene.endFrame), hookFrames);
+  if (visualTotalFrames - latestSceneEnd > visualFps) {
+    sceneFrames.push({ id: "closing-verdict", startFrame: latestSceneEnd, endFrame: visualTotalFrames });
+  }
+  const selectedStyle = [
+    videoData.templateId,
+    videoData.visualTemplateId,
+    videoData.renderProfile,
+    videoData.lemoStyleId,
+    videoData.contentType,
+  ].join(" ").toLowerCase();
+  const allowRepeatedScenes = /(talking.?head|interview|podcast|single.?camera)/i.test(selectedStyle);
+  const allowDarkScenes = /(horror|film.?noir|thriller|suspense|low.?key.?cinema|night.?sequence)/i.test(selectedStyle);
+  fs.writeFileSync(visualScenesPath, JSON.stringify({
+    fps: visualFps,
+    scenes: sceneFrames,
+    allowRepeatedScenes,
+    allowDarkScenes,
+  }, null, 2));
+  const visualResult = spawnSync(process.execPath, [
+    visualQaScript,
+    "--input", videoPath,
+    "--scenes-json", visualScenesPath,
+    "--report", visualReportPath,
+  ], options);
+  if (visualResult.error || visualResult.status !== 0) {
+    const visualOutput = [visualResult.stdout, visualResult.stderr]
+      .filter(Boolean).join("\n").replace(/\s+/g, " ").slice(-6500);
+    throw new Error(
+      "[VIDEO_VISUAL_QA_FAILED] " + channel + " bloqueou o upload de " + videoId +
+      ". Diagnóstico: " + (visualOutput || (visualResult.error ? visualResult.error.message : "QA exit=" + visualResult.status))
+    );
+  }
+  console.log("[VIDEO_VISUAL_QA_PASS] queue_id=" + videoId +
+    " report=" + visualReportPath + "; samples=" + sceneFrames.length);
+  if (fs.existsSync(visualScenesPath)) fs.unlinkSync(visualScenesPath);
+
   console.log("[VIDEO_QA_PASS] queue_id=" + videoId + " channel=" + channel +
-    " checks=caption-readability,dead-air,safe-zones");
+    " checks=caption-readability,dead-air,safe-zones,media-streams,resolution,fps,audio-levels,black-frames,visual-diversity,exposure");
   if (fs.existsSync(beatsPath)) fs.unlinkSync(beatsPath);
   if (fs.existsSync(framesDir)) fs.rmSync(framesDir, { recursive: true, force: true });
 }
@@ -1036,9 +1113,29 @@ async function processVideo(video) {
       ? video.media_assets.find((asset) => asset && ["product_model_3d", "gltf_model", "3d_model"].includes(asset.type))
       : null;
     const modelUrlCandidate = modelMarker?.url || modelMarker?.src || video.product_model_url || video.product_3d_url;
-    const productModelUrl = typeof modelUrlCandidate === "string" && modelUrlCandidate.trim()
-      ? modelUrlCandidate.trim()
-      : undefined;
+    const modelAssetInspection = await verifyProductModelAssetIntegrity({
+      ...(modelMarker && typeof modelMarker === "object" ? modelMarker : {}),
+      url: modelUrlCandidate,
+    });
+    // Never hand an unreviewed GLB to the product stage: the URL alone is not
+    // proof that the mesh matches the exact SKU in the listing.
+    let productModelUrl;
+    if (modelAssetInspection.verified && Buffer.isBuffer(modelAssetInspection.modelBytes)) {
+      // Reuse the already-verified bytes as a Remotion static asset. This avoids
+      // downloading the same GLB from Supabase a second time during composition.
+      const modelDirectory = path.resolve("video/public/tmp");
+      fs.mkdirSync(modelDirectory, { recursive: true });
+      const modelFileName = "product-model-" + safeVideoAssetId(video.id) + ".glb";
+      const modelFilePath = path.join(modelDirectory, modelFileName);
+      fs.writeFileSync(modelFilePath, modelAssetInspection.modelBytes);
+      temporaryVisualAssets.push(modelFilePath);
+      productModelUrl = "/tmp/" + modelFileName;
+      console.log("[PRODUCT_3D] GLB conferido por SHA-256 e armazenado localmente para o render (" +
+        modelAssetInspection.bytes + " bytes).");
+    }
+    if (modelAssetInspection.available && !modelAssetInspection.verified) {
+      console.warn("[PRODUCT_3D] GLB ignorado como modelo fiel: " + modelAssetInspection.reason);
+    }
     const shotcraftMarker = Array.isArray(video.media_assets)
       ? video.media_assets.find((asset) => asset && asset.type === "shotcraft_recipe")
       : null;
@@ -1051,7 +1148,8 @@ async function processVideo(video) {
       manualTemplateId: visualTemplate.selection === "manual" ? visualTemplate.id : null,
       hasProductGallery: productImages.length > 1,
       hasBroll: scenesWithFrames.map((_, sceneIndex) => Boolean(brollVideos[sceneIndex])),
-      hasVerified3DModel: Boolean(productModelUrl),
+      verified3DModel: modelAssetInspection.verified ? modelAssetInspection : null,
+      hasUnverified3DModel: modelAssetInspection.available && !modelAssetInspection.verified,
       manualShotcraftRecipeId,
     });
     const scenesWithVisualDirection = scenesWithFrames.map((scene, index) => ({
@@ -1064,7 +1162,8 @@ async function processVideo(video) {
       category: video.product_category,
       hasProductGallery: productImages.length > 1,
       hasBroll: brollVideos.some(Boolean),
-      hasVerified3DModel: Boolean(productModelUrl),
+      verified3DModel: modelAssetInspection.verified ? modelAssetInspection : null,
+      hasUnverified3DModel: modelAssetInspection.available && !modelAssetInspection.verified,
       manualShotcraftRecipeId,
     })[0];
     const closingCreativeDirection = planVetorSceneMixes({
@@ -1073,7 +1172,8 @@ async function processVideo(video) {
       category: video.product_category,
       hasProductGallery: productImages.length > 1,
       hasBroll: brollVideos.some(Boolean),
-      hasVerified3DModel: Boolean(productModelUrl),
+      verified3DModel: modelAssetInspection.verified ? modelAssetInspection : null,
+      hasUnverified3DModel: modelAssetInspection.available && !modelAssetInspection.verified,
       manualShotcraftRecipeId,
     })[0];
     console.log("[VISUAL_DIRECTOR] " + visualSequence.map((plan, index) =>
@@ -1180,7 +1280,7 @@ async function processVideo(video) {
       throw new Error("Motor de renderização inválido: " + renderEngine);
     }
     processingStage = "controle de qualidade do vídeo";
-    runRemotionQualityGate(videoPath, videoData.subtitleEntries, videoFormat, video.id);
+    runRemotionQualityGate(videoPath, videoData.subtitleEntries, videoFormat, video.id, videoData);
 
     processingStage = 'upload YouTube';
     console.log('   [4/4] Upload para YouTube...');
