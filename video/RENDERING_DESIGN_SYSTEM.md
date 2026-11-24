@@ -30,3 +30,6 @@ Automated quality gates are not a promise of virality. Actual retention gains mu
 - GitHub Actions renders vertical and landscape fixtures and preserves JSON quality evidence as an artifact.
 
 See [PRO_VIDEO_PRODUCTION_SYSTEM.md](./PRO_VIDEO_PRODUCTION_SYSTEM.md) for the complete architecture and reference audit.
+
+
+The reviewed GLB contract now includes a worker-side download and SHA-256 recomputation over the actual model bytes; a stale or replaced URL is rejected before the product stage is rendered.
