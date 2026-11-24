@@ -48,13 +48,13 @@ Produce videos with a scene-specific creative direction, an honest asset-fidelit
 A product model is verified only when its asset marker carries all of the following from the Blender manifest:
 
 - An HTTPS GLB URL.
-- The exact exported GLB SHA-256 (64 hex characters).
+- The exact exported GLB SHA-256 (64 hex characters), recomputed over the actual downloaded GLB bytes by the worker.
 - review.status = verified.
 - A non-empty review.verifiedBy.
 - A valid review.verifiedAt.
 - At least one review.sourceReferences entry used to compare the exact SKU.
 
-The Blender exporter keeps models at pending-human-review unless the reviewer and references are supplied. A missing/incomplete review never passes the GLB into the final product stage. The director may still use a category archetype, but it is labeled illustrative-parametric-3d and usesTrueProductGeometry=false. Products without a supported archetype use verified product photography and 2.5D. An exploded view without documented components is explicitly schematic, not a factual teardown.
+The Blender exporter keeps models at pending-human-review unless the reviewer and references are supplied. A missing/incomplete review never passes the GLB into the final product stage. The worker downloads the candidate GLB (up to 50 MB), recalculates SHA-256 and compares it with the reviewed manifest before passing the asset to Remotion. The director may still use a category archetype, but it is labeled illustrative-parametric-3d and usesTrueProductGeometry=false. Products without a supported archetype use verified product photography and 2.5D. An exploded view without documented components is explicitly schematic, not a factual teardown.
 
 ## Render artifact QA contract
 
