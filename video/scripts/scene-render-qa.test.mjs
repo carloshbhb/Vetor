@@ -78,7 +78,7 @@ assert.equal(assertSceneRenderPlans(glbProduct).ok, true);
 
 const unverifiedGlb = planVetorSceneMixes({
   scenes: [{ id: 1, text: "Design premium", visualCue: "Hero", visualTemplates: ["premium-product-3d"] }],
-  title: "Produto especial",
+  title: "Garrafa Térmica Nórdica 1L",
   category: "Casa",
   hasUnverified3DModel: true,
 });
