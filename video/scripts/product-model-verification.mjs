@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 const SHA256 = /^[a-f0-9]{64}$/i;
 
 function asRecord(value) {
@@ -60,4 +62,90 @@ export function inspectProductModelAsset(asset) {
     status: verified ? "verified" : url ? "unverified" : "missing",
     reason,
   };
+}
+
+
+/**
+ * Verify the downloaded GLB bytes against the digest in the human-reviewed
+ * manifest. Metadata alone is insufficient: a URL can point to a replaced file.
+ */
+export async function verifyProductModelAssetIntegrity(asset, {
+  fetchImpl = globalThis.fetch,
+  maxBytes = 50 * 1024 * 1024,
+  timeoutMs = 45000,
+} = {}) {
+  const inspection = inspectProductModelAsset(asset);
+  if (!inspection.verified) {
+    return { ...inspection, integrityVerified: false };
+  }
+  if (typeof fetchImpl !== "function") {
+    return {
+      ...inspection,
+      verified: false,
+      integrityVerified: false,
+      status: "unverified",
+      reason: "Fetch indisponível para verificar os bytes do modelo 3D.",
+    };
+  }
+
+  try {
+    const response = await fetchImpl(inspection.url, {
+      method: "GET",
+      redirect: "follow",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status + " ao baixar o GLB.");
+    }
+    const declaredLength = Number(response.headers?.get?.("content-length") || 0);
+    if (declaredLength > maxBytes) {
+      throw new Error("GLB excede o limite de " + maxBytes + " bytes para verificação.");
+    }
+    if (!response.body) {
+      throw new Error("Resposta do GLB sem corpo para calcular SHA-256.");
+    }
+
+    const digest = createHash("sha256");
+    let bytes = 0;
+    for await (const chunk of response.body) {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      bytes += buffer.length;
+      if (bytes > maxBytes) {
+        throw new Error("GLB excede o limite de " + maxBytes + " bytes durante o download.");
+      }
+      digest.update(buffer);
+    }
+    if (bytes === 0) {
+      throw new Error("O GLB recebido está vazio.");
+    }
+
+    const actualSha256 = digest.digest("hex");
+    if (actualSha256 !== inspection.sha256) {
+      return {
+        ...inspection,
+        verified: false,
+        integrityVerified: false,
+        status: "unverified",
+        actualSha256,
+        bytes,
+        reason: "SHA-256 do GLB baixado não corresponde ao manifesto aprovado.",
+      };
+    }
+    return {
+      ...inspection,
+      integrityVerified: true,
+      actualSha256,
+      bytes,
+      reason: null,
+    };
+  } catch (error) {
+    return {
+      ...inspection,
+      verified: false,
+      integrityVerified: false,
+      status: "unverified",
+      reason: "Não foi possível validar a integridade do GLB: " +
+        (error instanceof Error ? error.message : String(error)),
+    };
+  }
 }
