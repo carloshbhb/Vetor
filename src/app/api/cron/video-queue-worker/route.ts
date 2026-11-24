@@ -793,6 +793,138 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (action === "queueFromProductCatalog") {
+      const limit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
+      const [
+        { data: products, error: productsError },
+        { data: existing, error: existingError },
+        { count: doneToday, error: doneError },
+        { count: pendingCount, error: pendingError },
+      ] = await Promise.all([
+        supabase.from("product_links")
+          .select("id,slug,product_name,category,product_url,affiliate_url,image_url,marketplace,status,has_video,priority,tags,price,updated_at")
+          .neq("status", "archived")
+          .order("priority", { ascending: false })
+          .order("updated_at", { ascending: false })
+          .limit(2000),
+        supabase.from("video_queue")
+          .select("product_title,product_url,affiliate_url,media_assets,status")
+          .in("status", ["pending", "processing", "completed"])
+          .limit(5000),
+        supabase.from("video_queue").select("id", { count: "exact", head: true })
+          .eq("status", "completed").eq("publication_mode", "automatic")
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }]))
+          .gte("completed_at", getSaoPauloDayStartIso()),
+        supabase.from("video_queue").select("id", { count: "exact", head: true })
+          .in("status", ["pending", "processing"]).eq("publication_mode", "automatic")
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }])),
+      ]);
+      if (productsError) throw productsError;
+      if (existingError) throw existingError;
+      if (doneError) throw doneError;
+      if (pendingError) throw pendingError;
+
+      const completed = doneToday || 0;
+      const pending = pendingCount || 0;
+      const dailySlots = Math.max(0, MAX_DAILY_PUBLICATIONS - completed - pending);
+      const allowed = Math.min(limit, dailySlots);
+      if (allowed <= 0) {
+        return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true,
+          completedToday: completed, pendingAutomaticLong: pending, source: "product_links_catalog" });
+      }
+
+      const existingLong = (existing || []).filter((row: any) => getPublicationFormat(row.media_assets) === "long");
+      const existingItemIds = new Set<string>();
+      const existingTitles = new Set<string>();
+      for (const row of existingLong) {
+        const itemId = normalizeMercadoLivreItemId(row.product_url) || normalizeMercadoLivreItemId(row.affiliate_url);
+        if (itemId) existingItemIds.add(itemId);
+        const titleKey = normalizeVideoProductTitle(row.product_title);
+        if (titleKey) existingTitles.add(titleKey);
+      }
+
+      const candidates: any[] = [];
+      const seenProducts = new Set<string>();
+      let skippedUnsafe = 0;
+      let skippedDuplicate = 0;
+      for (const product of products || []) {
+        const title = String(product.product_name || "").trim();
+        const productUrl = String(product.product_url || "").trim();
+        const affiliateUrl = String(product.affiliate_url || "").trim();
+        const imageUrl = String(product.image_url || "").trim();
+        const itemId = normalizeMercadoLivreItemId(productUrl) || normalizeMercadoLivreItemId(affiliateUrl);
+        const titleKey = normalizeVideoProductTitle(title);
+        if (!title || !isSafeMercadoLivreProductUrl(productUrl) ||
+            !isSafeMercadoLivreAffiliateUrl(affiliateUrl) ||
+            !/^https:\/\//i.test(imageUrl) || /vetor\.blog|\/og\.png(?:$|\?)/i.test(imageUrl)) {
+          skippedUnsafe += 1;
+          continue;
+        }
+        const key = itemId ? "item:" + itemId : "title:" + titleKey;
+        if (!titleKey || seenProducts.has(key) ||
+            (itemId && existingItemIds.has(itemId)) || existingTitles.has(titleKey)) {
+          skippedDuplicate += 1;
+          continue;
+        }
+        seenProducts.add(key);
+        candidates.push(product);
+        if (candidates.length >= allowed) break;
+      }
+
+      const queued = [];
+      for (const product of candidates) {
+        if (completed + pending + queued.length >= MAX_DAILY_PUBLICATIONS) break;
+        const queueId = randomUUID();
+        const purchase = new URL(String(product.affiliate_url));
+        purchase.searchParams.set("utm_source", "youtube");
+        purchase.searchParams.set("utm_medium", "video");
+        purchase.searchParams.set("utm_campaign", "catalog-fallback-long");
+        purchase.searchParams.set("utm_content", queueId);
+        purchase.searchParams.set("utm_term", "long");
+        purchase.searchParams.set("placement", "description");
+        const priceValue = Number(product.price);
+        const price = Number.isFinite(priceValue) && priceValue > 0
+          ? "R$" + priceValue.toFixed(2).replace(".", ",")
+          : "Consulte o preço atual";
+        const { data: inserted, error: insertError } = await supabase.from("video_queue")
+          .insert({
+            id: queueId,
+            product_url: String(product.product_url),
+            product_title: String(product.product_name),
+            product_category: String(product.category || "Tecnologia"),
+            product_price: price,
+            product_image_url: String(product.image_url),
+            affiliate_url: String(product.affiliate_url),
+            shortened_affiliate_url: purchase.toString(),
+            script_text: "",
+            script_hook: "Vale a pena conhecer " + String(product.product_name) + "?",
+            voiceover_url: "",
+            voiceover_duration: 0,
+            media_assets: [
+              { type: "publication_format", format: "long" },
+              { type: "catalog-fallback", productLinkId: String(product.id), source: "product_links" },
+            ],
+            status: "pending",
+            publication_mode: "automatic",
+            review_url: product.slug ? "https://www.vetor.blog/reviews/" + String(product.slug).replace(/^\/+|\/+$/g, "") + "/" : null,
+            scheduled_at: new Date().toISOString(),
+          })
+          .select("id,product_title,status,review_url,affiliate_url,product_url,media_assets")
+          .single();
+        if (insertError) throw insertError;
+        queued.push(inserted);
+        const titleKey = normalizeVideoProductTitle(product.product_name);
+        if (titleKey) existingTitles.add(titleKey);
+        const itemId = normalizeMercadoLivreItemId(product.product_url) || normalizeMercadoLivreItemId(product.affiliate_url);
+        if (itemId) existingItemIds.add(itemId);
+      }
+      return NextResponse.json({
+        success: true, queued: queued.length, videos: queued, source: "product_links_catalog",
+        format: "long", fallback: true, skippedUnsafe, skippedDuplicate,
+        completedToday: completed, pendingAutomaticLong: pending, dailyLimit: MAX_DAILY_PUBLICATIONS,
+      });
+    }
+
     if (action === "queueTrendingShorts") {
       const limit = Math.min(Math.max(Number(body.limit || 5), 1), 5);
       const topics = (Array.isArray(body.trendTopics) ? body.trendTopics : [])
