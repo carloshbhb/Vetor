@@ -50,6 +50,7 @@ export interface VisualDirectionPlan {
     usesTrueProductGeometry: boolean;
     visualFidelity: string;
     modelAssetStatus: 'verified' | 'unverified' | 'missing';
+    modelAssetIntegrityVerified: boolean;
     modelAssetSha256: string | null;
     modelAssetVerifiedBy: string | null;
     modelAssetVerifiedAt: string | null;
@@ -74,6 +75,7 @@ export function planVetorSceneMixes(input: {
   hasBroll?: boolean | boolean[];
   verified3DModel?: {
     verified: boolean;
+    integrityVerified: boolean;
     url: string;
     sha256: string;
     verifiedBy: string;
@@ -95,6 +97,7 @@ export function buildSceneRenderPlan(input?: {
   previousCameraMove?: string | null;
   verified3DModel?: {
     verified: boolean;
+    integrityVerified: boolean;
     url: string;
     sha256: string;
     verifiedBy: string;
