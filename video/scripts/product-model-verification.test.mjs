@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { inspectProductModelAsset } from "./product-model-verification.mjs";
+import { createHash } from "node:crypto";
+import {
+  inspectProductModelAsset,
+  verifyProductModelAssetIntegrity,
+} from "./product-model-verification.mjs";
 
 const base = {
   url: "https://storage.example.com/models/product.glb",
@@ -49,4 +53,41 @@ const nested = inspectProductModelAsset({
 });
 assert.equal(nested.verified, true);
 
-console.log("[product-model-verification] URL, review, references, timestamp and SHA-256 contract passed.");
+const payload = Buffer.from("glTF exact product asset");
+const payloadSha = createHash("sha256").update(payload).digest("hex");
+const exactAsset = {
+  ...base,
+  sha256: payloadSha,
+};
+const exact = await verifyProductModelAssetIntegrity(exactAsset, {
+  fetchImpl: async () => new Response(payload, {
+    status: 200,
+    headers: { "content-length": String(payload.length) },
+  }),
+});
+assert.equal(exact.verified, true);
+assert.equal(exact.integrityVerified, true);
+assert.equal(exact.actualSha256, payloadSha);
+assert.equal(exact.bytes, payload.length);
+
+const replaced = await verifyProductModelAssetIntegrity(exactAsset, {
+  fetchImpl: async () => new Response("different GLB bytes", { status: 200 }),
+});
+assert.equal(replaced.verified, false);
+assert.equal(replaced.integrityVerified, false);
+assert.match(replaced.reason, /não corresponde/);
+
+const oversized = await verifyProductModelAssetIntegrity(exactAsset, {
+  maxBytes: 4,
+  fetchImpl: async () => new Response(payload, { status: 200 }),
+});
+assert.equal(oversized.verified, false);
+assert.match(oversized.reason, /excede o limite/);
+
+const unavailable = await verifyProductModelAssetIntegrity(exactAsset, {
+  fetchImpl: async () => new Response("", { status: 503 }),
+});
+assert.equal(unavailable.verified, false);
+assert.match(unavailable.reason, /HTTP 503/);
+
+console.log("[product-model-verification] metadata, source evidence and downloaded GLB SHA-256 integrity passed.");
