@@ -288,6 +288,17 @@ jobs:
           node video/scripts/render-artifact-qa.mjs --input /tmp/vetor-review-smoke.mp4 --profile shorts --require-audio true --max-black-seconds 1.2 --report /tmp/vetor-review-artifact-qa.json
           node video/scripts/render-artifact-qa.mjs --input /tmp/vetor-landscape-smoke.mp4 --profile landscape --require-audio true --max-black-seconds 1.2 --report /tmp/vetor-landscape-artifact-qa.json
 
+      - name: Validate visual diversity and exposure in rendered samples
+        run: |
+          cat > /tmp/vetor-review-visual-scenes.json <<'JSON'
+          {"fps":30,"allowRepeatedScenes":true,"scenes":[{"id":"opening","startFrame":0,"endFrame":60},{"id":"feature","startFrame":60,"endFrame":120},{"id":"closing","startFrame":120,"endFrame":180}]}
+          JSON
+          cat > /tmp/vetor-landscape-visual-scenes.json <<'JSON'
+          {"fps":30,"allowRepeatedScenes":true,"scenes":[{"id":"opening","startFrame":0,"endFrame":120},{"id":"feature","startFrame":120,"endFrame":240},{"id":"closing","startFrame":240,"endFrame":360}]}
+          JSON
+          node video/scripts/visual-artifact-qa.mjs --input /tmp/vetor-review-smoke.mp4 --scenes-json /tmp/vetor-review-visual-scenes.json --report /tmp/vetor-review-visual-qa.json
+          node video/scripts/visual-artifact-qa.mjs --input /tmp/vetor-landscape-smoke.mp4 --scenes-json /tmp/vetor-landscape-visual-scenes.json --report /tmp/vetor-landscape-visual-qa.json
+
       - name: Preserve render quality evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -296,6 +307,8 @@ jobs:
           path: |
             /tmp/vetor-review-artifact-qa.json
             /tmp/vetor-landscape-artifact-qa.json
+            /tmp/vetor-review-visual-qa.json
+            /tmp/vetor-landscape-visual-qa.json
           if-no-files-found: ignore
           retention-days: 14
 
