@@ -39,7 +39,8 @@ export function evaluateSceneRenderPlans(plans = []) {
             render.modelAssetStatus !== "verified" ||
             !/^[a-f0-9]{64}$/i.test(String(render.modelAssetSha256 || "")) ||
             typeof render.modelAssetVerifiedBy !== "string" || !render.modelAssetVerifiedBy.trim() ||
-            !Number.isFinite(Date.parse(String(render.modelAssetVerifiedAt || "")))) {
+            !Number.isFinite(Date.parse(String(render.modelAssetVerifiedAt || ""))) ||
+            !Array.isArray(render.modelAssetSourceReferences) || !render.modelAssetSourceReferences.some((item) => typeof item === "string" && item.trim())) {
           errors.push("Cena " + number + ": modelo 3D marcado como verificado sem manifesto, checksum, revisor e data válidos.");
         }
       } else if (render.visualFidelity === "illustrative-parametric-3d") {
