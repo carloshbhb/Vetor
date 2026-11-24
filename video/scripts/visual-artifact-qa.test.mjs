@@ -43,6 +43,11 @@ const darkResult = evaluateVisualSamples([
 ]);
 assert.equal(darkResult.ok, false);
 assert.match(darkResult.errors.join(" "), /subexposta/);
+const intentionalLowKey = evaluateVisualSamples([
+  { id: "noir-scene", timeSeconds: 10, frame: almostBlack },
+], { allowDarkScenes: true });
+assert.equal(intentionalLowKey.ok, true);
+assert.match(intentionalLowKey.warnings.join(" "), /está escura/);
 
 const times = buildSceneSampleTimes({
   fps: 30,
