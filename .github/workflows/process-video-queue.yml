@@ -180,6 +180,14 @@ jobs:
           queued_social_list="$(jq -r '.queued // 0' queue-social-list.json)"
 
           echo "Independent Social List long-form queue: $queued_social_list item(s); batch cap=5; daily cap=15."
+
+          if [ "$queued_social_list" -lt "$slots" ]; then
+            remaining_slots=$((slots - queued_social_list))
+            echo "Social List supplied $queued_social_list/$slots items; requesting verified product catalog fallback for $remaining_slots slot(s)."
+            call_api "queueFromProductCatalog" "$remaining_slots" queue-product-catalog.json
+            queued_catalog="$(jq -r '.queued // 0' queue-product-catalog.json)"
+            echo "Verified product catalog fallback: $queued_catalog item(s)."
+          fi
       - name: Render, describe, and upload videos
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
