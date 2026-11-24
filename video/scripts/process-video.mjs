@@ -1399,6 +1399,18 @@ async function main() {
           (error instanceof Error ? error.message : String(error)));
       }
       videos = await getPendingVideos(limit, manualRun);
+      if (videos.length < limit) {
+        const catalogSlots = limit - videos.length;
+        try {
+          console.log('[QUEUE_REFILL] Lista Social insuficiente; tentando catálogo verificado de produtos (' + catalogSlots + ' vaga(s)).');
+          const catalog = await queueApi('queueFromProductCatalog', { limit: catalogSlots });
+          console.log('[QUEUE_REFILL] Catálogo verificado adicionou ' + Number(catalog.queued || 0) + ' vídeo(s).');
+          videos = await getPendingVideos(limit, manualRun);
+        } catch (error) {
+          console.warn('[QUEUE_REFILL] Fallback do catálogo indisponível: ' +
+            (error instanceof Error ? error.message : String(error)));
+        }
+      }
     }
 
     console.log(`   ${videos.length} vídeos pendentes encontrados (limite: ${limit}; cota automática restante: ${quota.remaining})`);
