@@ -49,6 +49,10 @@ export interface VisualDirectionPlan {
     verifiedComponents: string[];
     usesTrueProductGeometry: boolean;
     visualFidelity: string;
+    modelAssetStatus: 'verified' | 'unverified' | 'missing';
+    modelAssetSha256: string | null;
+    modelAssetVerifiedBy: string | null;
+    modelAssetVerifiedAt: string | null;
     motionContract: {
       cameraMustMove: boolean;
       objectMustMove: boolean;
@@ -67,7 +71,14 @@ export function planVetorSceneMixes(input: {
   manualTemplateId?: string | null;
   hasProductGallery?: boolean;
   hasBroll?: boolean | boolean[];
-  hasVerified3DModel?: boolean;
+  verified3DModel?: {
+    verified: boolean;
+    url: string;
+    sha256: string;
+    verifiedBy: string;
+    verifiedAt: string;
+  } | null;
+  hasUnverified3DModel?: boolean;
   manualShotcraftRecipeId?: string | null;
 }): VisualDirectionPlan[];
 
@@ -81,5 +92,12 @@ export function buildSceneRenderPlan(input?: {
   category?: string;
   hasBroll?: boolean;
   previousCameraMove?: string | null;
-  hasVerified3DModel?: boolean;
+  verified3DModel?: {
+    verified: boolean;
+    url: string;
+    sha256: string;
+    verifiedBy: string;
+    verifiedAt: string;
+  } | null;
+  hasUnverified3DModel?: boolean;
 }): VisualDirectionPlan['renderPlan'];
