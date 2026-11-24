@@ -11,6 +11,7 @@ import { researchProduct } from './research-product.mjs';
 import { resolveVisualTemplate } from './stickman-template.mjs';
 import { resolveVetorVisualTemplate } from './visual-template-registry.mjs';
 import { planVetorSceneMixes } from './visual-sequence-planner.mjs';
+import { inspectProductModelAsset } from './product-model-verification.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -1036,9 +1037,16 @@ async function processVideo(video) {
       ? video.media_assets.find((asset) => asset && ["product_model_3d", "gltf_model", "3d_model"].includes(asset.type))
       : null;
     const modelUrlCandidate = modelMarker?.url || modelMarker?.src || video.product_model_url || video.product_3d_url;
-    const productModelUrl = typeof modelUrlCandidate === "string" && modelUrlCandidate.trim()
-      ? modelUrlCandidate.trim()
-      : undefined;
+    const modelAssetInspection = inspectProductModelAsset({
+      ...(modelMarker && typeof modelMarker === "object" ? modelMarker : {}),
+      url: modelUrlCandidate,
+    });
+    // Never hand an unreviewed GLB to the product stage: the URL alone is not
+    // proof that the mesh matches the exact SKU in the listing.
+    const productModelUrl = modelAssetInspection.verified ? modelAssetInspection.url : undefined;
+    if (modelAssetInspection.available && !modelAssetInspection.verified) {
+      console.warn("[PRODUCT_3D] GLB ignorado como modelo fiel: " + modelAssetInspection.reason);
+    }
     const shotcraftMarker = Array.isArray(video.media_assets)
       ? video.media_assets.find((asset) => asset && asset.type === "shotcraft_recipe")
       : null;
@@ -1051,7 +1059,8 @@ async function processVideo(video) {
       manualTemplateId: visualTemplate.selection === "manual" ? visualTemplate.id : null,
       hasProductGallery: productImages.length > 1,
       hasBroll: scenesWithFrames.map((_, sceneIndex) => Boolean(brollVideos[sceneIndex])),
-      hasVerified3DModel: Boolean(productModelUrl),
+      verified3DModel: modelAssetInspection.verified ? modelAssetInspection : null,
+      hasUnverified3DModel: modelAssetInspection.available && !modelAssetInspection.verified,
       manualShotcraftRecipeId,
     });
     const scenesWithVisualDirection = scenesWithFrames.map((scene, index) => ({
@@ -1064,7 +1073,8 @@ async function processVideo(video) {
       category: video.product_category,
       hasProductGallery: productImages.length > 1,
       hasBroll: brollVideos.some(Boolean),
-      hasVerified3DModel: Boolean(productModelUrl),
+      verified3DModel: modelAssetInspection.verified ? modelAssetInspection : null,
+      hasUnverified3DModel: modelAssetInspection.available && !modelAssetInspection.verified,
       manualShotcraftRecipeId,
     })[0];
     const closingCreativeDirection = planVetorSceneMixes({
@@ -1073,7 +1083,8 @@ async function processVideo(video) {
       category: video.product_category,
       hasProductGallery: productImages.length > 1,
       hasBroll: brollVideos.some(Boolean),
-      hasVerified3DModel: Boolean(productModelUrl),
+      verified3DModel: modelAssetInspection.verified ? modelAssetInspection : null,
+      hasUnverified3DModel: modelAssetInspection.available && !modelAssetInspection.verified,
       manualShotcraftRecipeId,
     })[0];
     console.log("[VISUAL_DIRECTOR] " + visualSequence.map((plan, index) =>
