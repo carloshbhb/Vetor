@@ -88,6 +88,10 @@ jobs:
           node --check video/scripts/render-engine-router.mjs
           node --check video/scripts/visual-template-registry.mjs
           node --check video/scripts/visual-sequence-planner.mjs
+          node --check video/scripts/product-model-verification.mjs
+          node --check video/scripts/render-artifact-qa.mjs
+          node scripts/product-model-verification.test.mjs
+          node scripts/render-artifact-qa.test.mjs
           node --check video/scripts/shotcraft-recipe-registry.mjs
           node --check video/scripts/render-ten-style-pilot.mjs
           node video/scripts/render-engine-router.test.mjs
@@ -181,7 +185,7 @@ jobs:
                   "visualLayers": ["hud-scan", "animated-metric", "three-orbit"],
                   "assets": {"realProductImage": true, "galleryCutaway": false, "lifestyleFootage": false, "brollAvailable": true, "dataMustComeFromScene": true},
                   "artDirection": "CI smoke: verified product image with a native 3D product stage",
-                  "renderPlan": {"version":2,"renderer":"three-product","shotType":"3d-hero-orbit","action":"rotate-product-and-move-camera","cameraMove":"orbit","productProfile":"smartphone","productRepresentation":"parametric-archetype","assetRequirement":"supported-parametric-product-profile","hasMatchedBroll":true,"verifiedComponents":[],"usesTrueProductGeometry":true,"visualFidelity":"illustrative-parametric-3d","motionContract":{"cameraMustMove":true,"objectMustMove":true,"minCameraTravel":0.55,"minScaleDelta":0.08},"fallbackReason":null}
+                  "renderPlan": {"version":2,"renderer":"three-product","shotType":"3d-hero-orbit","action":"rotate-product-and-move-camera","cameraMove":"orbit","productProfile":"smartphone","productRepresentation":"parametric-archetype","assetRequirement":"supported-parametric-product-profile","hasMatchedBroll":true,"verifiedComponents":[],"usesTrueProductGeometry":false,"modelAssetStatus":"missing","visualFidelity":"illustrative-parametric-3d","motionContract":{"cameraMustMove":true,"objectMustMove":true,"minCameraTravel":0.55,"minScaleDelta":0.08},"fallbackReason":null}
                 }}
             ],
             "callToAction": "Confira a análise completa.",
@@ -271,6 +275,22 @@ jobs:
           JSON
           remotion-qa check /tmp/vetor-review-smoke.mp4 --beats /tmp/vetor-review-smoke-beats.json --channel yt-shorts --max-dead 1 --frames /tmp/vetor-review-qa-frames --json
           remotion-qa check /tmp/vetor-landscape-smoke.mp4 --beats /tmp/vetor-landscape-smoke-beats.json --channel yt-landscape --max-dead 1 --frames /tmp/vetor-landscape-qa-frames --json
+
+      - name: Validate final MP4 artifacts at delivery specifications
+        run: |
+          node video/scripts/render-artifact-qa.mjs --input /tmp/vetor-review-smoke.mp4 --profile shorts --require-audio true --max-black-seconds 1.2 --report /tmp/vetor-review-artifact-qa.json
+          node video/scripts/render-artifact-qa.mjs --input /tmp/vetor-landscape-smoke.mp4 --profile landscape --require-audio true --max-black-seconds 1.2 --report /tmp/vetor-landscape-artifact-qa.json
+
+      - name: Preserve render quality evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vetor-render-quality-evidence-${{ github.run_id }}
+          path: |
+            /tmp/vetor-review-artifact-qa.json
+            /tmp/vetor-landscape-artifact-qa.json
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Smoke-test Lemo-Opuscar renderer without publishing
         timeout-minutes: 15
