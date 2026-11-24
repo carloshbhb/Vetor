@@ -43,6 +43,19 @@ Produce videos with a scene-specific creative direction, an honest asset-fidelit
 - yihui-dev/awesome-opus5-5-videos and joeseesun/opus-video-prompts — reference collections only at this stage. Their complete prompts have not been turned into tested, versioned, selectable scene recipes. Treat the content/licensing of each source file independently before copying it.
 - Digital Maker AI — the earlier pilot did not meet production quality. No production dependency on its API has been introduced.
 
+## Visual artifact QA contract
+
+Every rendered video now receives a scene-level perceptual inspection before the upload step:
+
+- The worker extracts one representative frame from the midpoint of each planned scene.
+- A 64-bit DCT perceptual hash compares neighboring scene compositions and blocks a sequence where at least 70% of transitions are near-duplicates (Hamming distance at most 6/64), with at least four sampled scenes.
+- Frame luminance is measured separately from the MP4 black-frame detector. A scene with average luma below 16 and more than 90% of pixels below luma 20 is blocked as visually underexposed.
+- Warnings are emitted for scenes with low contrast that do not cross the hard block threshold.
+- Intentionally fixed-camera interviews, podcasts and talking-head formats may permit repeated compositions; horror, film-noir, suspense and explicit low-key cinema styles may keep dark scenes. These exceptions are derived from the selected video style, not guessed from the footage.
+- The gate is applied after all render engines (Remotion, Lemo-Opuscar and HyperFrames) and before YouTube upload. A failure prevents the upload.
+
+This checks visual repetition and exposure, not aesthetic taste, source accuracy, retention or virality. Human review is still required for those outcomes.
+
 ## Product 3D truth contract
 
 A product model is verified only when its asset marker carries all of the following from the Blender manifest:
