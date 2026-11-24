@@ -795,6 +795,7 @@ export async function POST(request: NextRequest) {
 
     if (action === "queueFromProductCatalog") {
       const limit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
+      const format = body.format === "short" ? "short" : "long";
       const [
         { data: products, error: productsError },
         { data: existing, error: existingError },
@@ -813,7 +814,7 @@ export async function POST(request: NextRequest) {
           .limit(5000),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .eq("status", "completed").eq("publication_mode", "automatic")
-          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }]))
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format }]))
           .gte("completed_at", getSaoPauloDayStartIso()),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .in("status", ["pending", "processing"]).eq("publication_mode", "automatic")
@@ -833,7 +834,7 @@ export async function POST(request: NextRequest) {
           completedToday: completed, pendingAutomaticLong: pending, source: "product_links_catalog" });
       }
 
-      const existingLong = (existing || []).filter((row: any) => getPublicationFormat(row.media_assets) === "long");
+      const existingLong = (existing || []).filter((row: any) => getPublicationFormat(row.media_assets) === format);
       const existingItemIds = new Set<string>();
       const existingTitles = new Set<string>();
       for (const row of existingLong) {
@@ -878,7 +879,7 @@ export async function POST(request: NextRequest) {
         const purchase = new URL(String(product.affiliate_url));
         purchase.searchParams.set("utm_source", "youtube");
         purchase.searchParams.set("utm_medium", "video");
-        purchase.searchParams.set("utm_campaign", "catalog-fallback-long");
+        purchase.searchParams.set("utm_campaign", "catalog-fallback-" + format);
         purchase.searchParams.set("utm_content", queueId);
         purchase.searchParams.set("utm_term", "long");
         purchase.searchParams.set("placement", "description");
@@ -901,7 +902,7 @@ export async function POST(request: NextRequest) {
             voiceover_url: "",
             voiceover_duration: 0,
             media_assets: [
-              { type: "publication_format", format: "long" },
+              { type: "publication_format", format },
               { type: "catalog-fallback", productLinkId: String(product.id), source: "product_links" },
             ],
             status: "pending",
@@ -920,7 +921,7 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({
         success: true, queued: queued.length, videos: queued, source: "product_links_catalog",
-        format: "long", fallback: true, skippedUnsafe, skippedDuplicate,
+        format, fallback: true, skippedUnsafe, skippedDuplicate,
         completedToday: completed, pendingAutomaticLong: pending, dailyLimit: MAX_DAILY_PUBLICATIONS,
       });
     }
