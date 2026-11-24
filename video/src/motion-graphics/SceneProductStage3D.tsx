@@ -5,6 +5,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ThreeCanvas } from '@remotion/three';
 import { SHORTS_STAGE } from '../utils/shorts-safe-zone';
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
+import { resolveMediaSource } from '../utils/media-source';
 
 export type ProductModelProfile =
   | 'thermal-carafe'
@@ -218,7 +219,7 @@ const WearableModel: React.FC = () => {
 };
 
 const GltfModel: React.FC<{ url: string }> = ({ url }) => {
-  const gltf = useLoader(GLTFLoader, url);
+  const gltf = useLoader(GLTFLoader, resolveMediaSource(url));
   const object = useMemo(() => {
     const clone = gltf.scene.clone(true);
     const bounds = new THREE.Box3().setFromObject(clone);
