@@ -11,7 +11,7 @@ import { researchProduct } from './research-product.mjs';
 import { resolveVisualTemplate } from './stickman-template.mjs';
 import { resolveVetorVisualTemplate } from './visual-template-registry.mjs';
 import { planVetorSceneMixes } from './visual-sequence-planner.mjs';
-import { inspectProductModelAsset } from './product-model-verification.mjs';
+import { verifyProductModelAssetIntegrity } from './product-model-verification.mjs';
 
 const SITE_URL = (process.env.VETOR_SITE_URL || 'https://www.vetor.blog').replace(/\/$/, '');
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -1058,7 +1058,7 @@ async function processVideo(video) {
       ? video.media_assets.find((asset) => asset && ["product_model_3d", "gltf_model", "3d_model"].includes(asset.type))
       : null;
     const modelUrlCandidate = modelMarker?.url || modelMarker?.src || video.product_model_url || video.product_3d_url;
-    const modelAssetInspection = inspectProductModelAsset({
+    const modelAssetInspection = await verifyProductModelAssetIntegrity({
       ...(modelMarker && typeof modelMarker === "object" ? modelMarker : {}),
       url: modelUrlCandidate,
     });
