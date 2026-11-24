@@ -509,8 +509,29 @@ function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId)
     );
   }
 
+  const artifactQaPath = fileURLToPath(new URL("./render-artifact-qa.mjs", import.meta.url));
+  const artifactReportPath = path.join(outputDir, "video-" + safeId + "-artifact-qa.json");
+  const artifactProfile = videoFormat === "long" ? "landscape" : "shorts";
+  const artifactResult = spawnSync(process.execPath, [
+    artifactQaPath,
+    "--input", videoPath,
+    "--profile", artifactProfile,
+    "--require-audio", "true",
+    "--max-black-seconds", "1.2",
+    "--report", artifactReportPath,
+  ], options);
+  if (artifactResult.error || artifactResult.status !== 0) {
+    const artifactOutput = [artifactResult.stdout, artifactResult.stderr]
+      .filter(Boolean).join("\n").replace(/\s+/g, " ").slice(-6500);
+    throw new Error(
+      "[VIDEO_ARTIFACT_QA_FAILED] " + channel + " bloqueou o upload de " + videoId +
+      ". Diagnóstico: " + (artifactOutput || (artifactResult.error ? artifactResult.error.message : "QA exit=" + artifactResult.status))
+    );
+  }
+  console.log("[VIDEO_ARTIFACT_QA_PASS] queue_id=" + videoId + " profile=" + artifactProfile +
+    " report=" + artifactReportPath);
   console.log("[VIDEO_QA_PASS] queue_id=" + videoId + " channel=" + channel +
-    " checks=caption-readability,dead-air,safe-zones");
+    " checks=caption-readability,dead-air,safe-zones,media-streams,resolution,fps,audio-levels,black-frames");
   if (fs.existsSync(beatsPath)) fs.unlinkSync(beatsPath);
   if (fs.existsSync(framesDir)) fs.rmSync(framesDir, { recursive: true, force: true });
 }
