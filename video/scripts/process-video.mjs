@@ -456,7 +456,7 @@ async function renderWithRemotion(videoData, outputPath) {
   }
 }
 
-function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId) {
+function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId, videoData = {}) {
   const safeId = safeVideoAssetId(videoId);
   const outputDir = path.dirname(videoPath);
   const beatsPath = path.join(outputDir, "video-" + safeId + "-beats.json");
@@ -530,8 +530,60 @@ function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId)
   }
   console.log("[VIDEO_ARTIFACT_QA_PASS] queue_id=" + videoId + " profile=" + artifactProfile +
     " report=" + artifactReportPath);
+
+  const visualQaScript = fileURLToPath(new URL("./visual-artifact-qa.mjs", import.meta.url));
+  const visualScenesPath = path.join(outputDir, "video-" + safeId + "-visual-scenes.json");
+  const visualReportPath = path.join(outputDir, "video-" + safeId + "-visual-qa.json");
+  const visualFps = Number(videoData.fps) > 0 ? Number(videoData.fps) : 30;
+  const visualTotalFrames = Math.max(1, Math.round(Number(videoData.totalDuration || 0) * visualFps));
+  const sceneFrames = (Array.isArray(videoData.scenes) ? videoData.scenes : [])
+    .map((scene, index) => ({
+      id: scene.id ?? scene.sceneId ?? "scene-" + (index + 1),
+      startFrame: Number(scene.startFrame),
+      endFrame: Number(scene.endFrame),
+    }))
+    .filter((scene) => Number.isFinite(scene.startFrame) && Number.isFinite(scene.endFrame) &&
+      scene.endFrame > scene.startFrame);
+  const hookFrames = Math.max(0, Math.round(Number(videoData.hookDuration || 0) * visualFps));
+  if (hookFrames > visualFps) {
+    sceneFrames.unshift({ id: "opening-hook", startFrame: 0, endFrame: hookFrames });
+  }
+  const latestSceneEnd = sceneFrames.reduce((max, scene) => Math.max(max, scene.endFrame), hookFrames);
+  if (visualTotalFrames - latestSceneEnd > visualFps) {
+    sceneFrames.push({ id: "closing-verdict", startFrame: latestSceneEnd, endFrame: visualTotalFrames });
+  }
+  const selectedStyle = [
+    videoData.templateId,
+    videoData.visualTemplateId,
+    videoData.renderProfile,
+    videoData.lemoStyleId,
+    videoData.contentType,
+  ].join(" ").toLowerCase();
+  const allowRepeatedScenes = /(talking.?head|interview|podcast|single.?camera)/i.test(selectedStyle);
+  fs.writeFileSync(visualScenesPath, JSON.stringify({
+    fps: visualFps,
+    scenes: sceneFrames,
+    allowRepeatedScenes,
+  }, null, 2));
+  const visualResult = spawnSync(process.execPath, [
+    visualQaScript,
+    "--input", videoPath,
+    "--scenes-json", visualScenesPath,
+    "--report", visualReportPath,
+  ], options);
+  if (visualResult.error || visualResult.status !== 0) {
+    const visualOutput = [visualResult.stdout, visualResult.stderr]
+      .filter(Boolean).join("\n").replace(/\s+/g, " ").slice(-6500);
+    throw new Error(
+      "[VIDEO_VISUAL_QA_FAILED] " + channel + " bloqueou o upload de " + videoId +
+      ". Diagnóstico: " + (visualOutput || (visualResult.error ? visualResult.error.message : "QA exit=" + visualResult.status))
+    );
+  }
+  console.log("[VIDEO_VISUAL_QA_PASS] queue_id=" + videoId +
+    " report=" + visualReportPath + "; samples=" + sceneFrames.length);
+
   console.log("[VIDEO_QA_PASS] queue_id=" + videoId + " channel=" + channel +
-    " checks=caption-readability,dead-air,safe-zones,media-streams,resolution,fps,audio-levels,black-frames");
+    " checks=caption-readability,dead-air,safe-zones,media-streams,resolution,fps,audio-levels,black-frames,visual-diversity,exposure");
   if (fs.existsSync(beatsPath)) fs.unlinkSync(beatsPath);
   if (fs.existsSync(framesDir)) fs.rmSync(framesDir, { recursive: true, force: true });
 }
@@ -1225,7 +1277,7 @@ async function processVideo(video) {
       throw new Error("Motor de renderização inválido: " + renderEngine);
     }
     processingStage = "controle de qualidade do vídeo";
-    runRemotionQualityGate(videoPath, videoData.subtitleEntries, videoFormat, video.id);
+    runRemotionQualityGate(videoPath, videoData.subtitleEntries, videoFormat, video.id, videoData);
 
     processingStage = 'upload YouTube';
     console.log('   [4/4] Upload para YouTube...');
