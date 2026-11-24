@@ -87,7 +87,8 @@ The gate complements, rather than replaces, remotion-qa. Neither gate measures a
 - No change to Supabase queue contracts, job claiming, cron schedule, retries, YouTube OAuth or upload flow.
 - Preserve automatic publishing at 15/day in 3 batches of 5, and the existing manual-run behavior.
 - A manual pilot is a render artifact, not a YouTube upload.
-- GitHub Actions checks and artifacts are for QA; merging to main may trigger the project's normal Production deployment. Do not create Preview deployments.
+- Pull request and main-branch CI always run contract tests, vertical/landscape Remotion smoke renders, engine smoke tests and all pre-upload QA gates. The three full creative showcases are opt-in through Actions → Validate Video Pipeline → Run workflow → run_visual_pilots=true; they remain CI artifacts and are never published to YouTube.
+- Merging to main may trigger the project's normal Production deployment. Do not create Preview deployments.
 - Keep secrets in GitHub/Vercel secrets; do not place provider credentials in model assets or manifests.
 
 ## Definition of done for a new visual capability
