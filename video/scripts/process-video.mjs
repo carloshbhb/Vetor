@@ -583,6 +583,7 @@ function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId,
   }
   console.log("[VIDEO_VISUAL_QA_PASS] queue_id=" + videoId +
     " report=" + visualReportPath + "; samples=" + sceneFrames.length);
+  if (fs.existsSync(visualScenesPath)) fs.unlinkSync(visualScenesPath);
 
   console.log("[VIDEO_QA_PASS] queue_id=" + videoId + " channel=" + channel +
     " checks=caption-readability,dead-air,safe-zones,media-streams,resolution,fps,audio-levels,black-frames,visual-diversity,exposure");
