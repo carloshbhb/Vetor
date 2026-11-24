@@ -101,4 +101,16 @@ assert.equal(evaluateSceneRenderPlans(forged).ok, false);
 const invalid = plans.map((scene) => ({ ...scene, renderPlan: { ...scene.renderPlan, cameraMove: "" } }));
 assert.equal(evaluateSceneRenderPlans(invalid).ok, false);
 
-console.log("[scene-render-qa] true 3D, immersive matched B-roll, 2.5D fallback honesty, GLB selection and camera diversity passed.");
+const duplicateIds = [
+  { ...plans[0], sceneId: "duplicate" },
+  { ...plans[1], sceneId: "duplicate" },
+];
+assert.equal(evaluateSceneRenderPlans(duplicateIds).ok, false);
+
+const unsupportedRenderer = [{
+  ...plans[0],
+  renderPlan: { ...plans[0].renderPlan, renderer: "imaginary-engine" },
+}];
+assert.equal(evaluateSceneRenderPlans(unsupportedRenderer).ok, false);
+
+console.log("[scene-render-qa] true 3D manifest, illustrative fallback honesty, B-roll, scene identity and visual variety passed.");
