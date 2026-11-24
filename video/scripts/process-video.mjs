@@ -1064,7 +1064,20 @@ async function processVideo(video) {
     });
     // Never hand an unreviewed GLB to the product stage: the URL alone is not
     // proof that the mesh matches the exact SKU in the listing.
-    const productModelUrl = modelAssetInspection.verified ? modelAssetInspection.url : undefined;
+    let productModelUrl;
+    if (modelAssetInspection.verified && Buffer.isBuffer(modelAssetInspection.modelBytes)) {
+      // Reuse the already-verified bytes as a Remotion static asset. This avoids
+      // downloading the same GLB from Supabase a second time during composition.
+      const modelDirectory = path.resolve("video/public/tmp");
+      fs.mkdirSync(modelDirectory, { recursive: true });
+      const modelFileName = "product-model-" + safeVideoAssetId(video.id) + ".glb";
+      const modelFilePath = path.join(modelDirectory, modelFileName);
+      fs.writeFileSync(modelFilePath, modelAssetInspection.modelBytes);
+      temporaryVisualAssets.push(modelFilePath);
+      productModelUrl = "/tmp/" + modelFileName;
+      console.log("[PRODUCT_3D] GLB conferido por SHA-256 e armazenado localmente para o render (" +
+        modelAssetInspection.bytes + " bytes).");
+    }
     if (modelAssetInspection.available && !modelAssetInspection.verified) {
       console.warn("[PRODUCT_3D] GLB ignorado como modelo fiel: " + modelAssetInspection.reason);
     }
