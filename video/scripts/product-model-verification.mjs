@@ -106,6 +106,7 @@ export async function verifyProductModelAssetIntegrity(asset, {
     }
 
     const digest = createHash("sha256");
+    const chunks = [];
     let bytes = 0;
     for await (const chunk of response.body) {
       const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
@@ -114,6 +115,7 @@ export async function verifyProductModelAssetIntegrity(asset, {
         throw new Error("GLB excede o limite de " + maxBytes + " bytes durante o download.");
       }
       digest.update(buffer);
+      chunks.push(buffer);
     }
     if (bytes === 0) {
       throw new Error("O GLB recebido está vazio.");
@@ -136,6 +138,7 @@ export async function verifyProductModelAssetIntegrity(asset, {
       integrityVerified: true,
       actualSha256,
       bytes,
+      modelBytes: Buffer.concat(chunks, bytes),
       reason: null,
     };
   } catch (error) {
