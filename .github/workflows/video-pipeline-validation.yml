@@ -90,8 +90,8 @@ jobs:
           node --check video/scripts/visual-sequence-planner.mjs
           node --check video/scripts/product-model-verification.mjs
           node --check video/scripts/render-artifact-qa.mjs
-          node scripts/product-model-verification.test.mjs
-          node scripts/render-artifact-qa.test.mjs
+          node video/scripts/product-model-verification.test.mjs
+          node video/scripts/render-artifact-qa.test.mjs
           node --check video/scripts/shotcraft-recipe-registry.mjs
           node --check video/scripts/render-ten-style-pilot.mjs
           node video/scripts/render-engine-router.test.mjs
