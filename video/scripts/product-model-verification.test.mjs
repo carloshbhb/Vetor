@@ -69,6 +69,7 @@ assert.equal(exact.verified, true);
 assert.equal(exact.integrityVerified, true);
 assert.equal(exact.actualSha256, payloadSha);
 assert.equal(exact.bytes, payload.length);
+assert.deepEqual(exact.modelBytes, payload);
 
 const replaced = await verifyProductModelAssetIntegrity(exactAsset, {
   fetchImpl: async () => new Response("different GLB bytes", { status: 200 }),
