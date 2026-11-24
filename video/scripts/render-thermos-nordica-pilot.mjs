@@ -1,0 +1,10 @@
+import {execFileSync} from "node:child_process";
+import {mkdirSync,statSync} from "node:fs";
+import {resolve} from "node:path";
+const audio=resolve("public/audio/thermos-nordica-pilot.mp3");
+const output=resolve("artifacts/vetor-garrafa-termica-nordica-piloto.mp4");
+mkdirSync(resolve("public/audio"),{recursive:true});mkdirSync(resolve("artifacts"),{recursive:true});
+const narration="Seu cantinho do café pode ganhar um detalhe que chama atenção antes mesmo da primeira xícara. O corpo canelado, o aro dourado e o acabamento creme criam uma composição elegante para a mesa. Com capacidade de um litro, ela acompanha o café da manhã, a pausa da tarde e a mesa posta. O cabo com acabamento amadeirado dá contraste ao corpo claro e reforça a inspiração nórdica. Por dentro, a ampola de vidro ajuda a conservar a bebida. E pede cuidado: evite quedas e impactos. O anúncio informa conservação de bebidas quentes ou frias por até seis horas. O resultado varia conforme o uso. Na cozinha, no escritório ou recebendo visitas, o visual combina com uma rotina mais acolhedora. Se você procura uma garrafa de um litro com visual nórdico, cabo amadeirado e ampola de vidro, vale conferir o anúncio. Veja preço e disponibilidade no link.";
+execFileSync("python",["-m","edge_tts","--voice","pt-BR-FranciscaNeural","--rate","+5%","--text",narration,"--write-media",audio],{stdio:"inherit"});
+execFileSync("npx",["remotion","render","src/Root.tsx","ThermosNordicaPilot",output,"--codec=h264","--crf=18","--log=error"],{stdio:"inherit"});
+const size=statSync(output).size;if(size<500000)throw new Error("Arquivo de render menor que o esperado");console.log("MP4 gerado: "+output+" ("+size+" bytes). Nenhum upload ao YouTube foi executado.");

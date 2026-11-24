@@ -281,6 +281,21 @@ jobs:
       - name: Install Edge TTS for Lemo quality pilot
         run: python -m pip install --disable-pip-version-check edge-tts
 
+
+      - name: Render Nórdica thermal carafe pilot (no publishing)
+        working-directory: video
+        timeout-minutes: 15
+        run: node scripts/render-thermos-nordica-pilot.mjs
+
+      - name: Upload Nórdica thermal carafe pilot
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vetor-garrafa-termica-nordica-piloto
+          path: video/artifacts/vetor-garrafa-termica-nordica-piloto.mp4
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Render mixed creative direction pilot (no publishing)
         working-directory: video
         timeout-minutes: 20
