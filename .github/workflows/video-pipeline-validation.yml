@@ -134,13 +134,18 @@ jobs:
         working-directory: video
         run: |
           test -s public/smoke-product.svg
-          test -s public/audio/sample-review.mp3
+          # The previous sample-review.mp3 fixture contains silence. Generate a
+          # deterministic audible narration stand-in so both compositions prove
+          # that Remotion carries the supplied audio prop into the final MP4.
+          ffmpeg -y -f lavfi -i "sine=frequency=440:sample_rate=48000:duration=12" \
+            -af "volume=0.12" -ac 2 -c:a libmp3lame -b:a 128k public/smoke-narration.mp3
+          test -s public/smoke-narration.mp3
           cat > /tmp/vetor-review-smoke-props.json <<'JSON'
           {
             "title": "Produto de demonstração",
             "imageUrl": "/smoke-product.svg",
             "productImages": ["/smoke-product.svg"],
-            "audioUrl": "/audio/sample-review.mp3",
+            "audioUrl": "/smoke-narration.mp3",
             "score": 8.5,
             "category": "Tecnologia",
             "visualTemplateId": "hologram-hud",
@@ -200,7 +205,7 @@ jobs:
             "title": "Produto de demonstração",
             "imageUrl": "/smoke-product.svg",
             "productImages": ["/smoke-product.svg"],
-            "audioUrl": "/audio/sample-review.mp3",
+            "audioUrl": "/smoke-narration.mp3",
             "score": 8.5,
             "category": "Tecnologia",
             "openingCreativeDirection": {
