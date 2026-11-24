@@ -53,6 +53,7 @@ export interface VisualDirectionPlan {
     modelAssetSha256: string | null;
     modelAssetVerifiedBy: string | null;
     modelAssetVerifiedAt: string | null;
+    modelAssetSourceReferences: string[];
     motionContract: {
       cameraMustMove: boolean;
       objectMustMove: boolean;
