@@ -59,7 +59,8 @@ assert.doesNotMatch(workflow, /workflow_run/);
 assert.doesNotMatch(workflow, /queueFromReviews/);
 assert.doesNotMatch(workflow, /Generate Daily Review/);
 
-assert.match(processVideo, /queueApi\('queueFromSocialList'/);\nassert.match(processVideo, /queueApi\('queueFromProductCatalog'/);
+assert.match(processVideo, /queueApi\('queueFromSocialList'/);
+assert.match(processVideo, /queueApi\('queueFromProductCatalog'/);
 assert.doesNotMatch(processVideo, /queueApi\('queueFromReviews'/);
 assert.doesNotMatch(processVideo, /review_url ausente/);
 assert.match(processVideo, /Pesquisa independente gerada para item da Lista Social/);
