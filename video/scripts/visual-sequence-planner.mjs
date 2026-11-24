@@ -160,6 +160,7 @@ export function buildSceneRenderPlan({
     : [];
   const modelAvailable = Boolean(
     verified3DModel?.verified === true &&
+    verified3DModel?.integrityVerified === true &&
     typeof verified3DModel.url === "string" &&
     /^https:\/\//i.test(verified3DModel.url) &&
     /^[a-f0-9]{64}$/i.test(String(verified3DModel.sha256 || "")) &&
@@ -254,6 +255,7 @@ export function buildSceneRenderPlan({
     usesTrueProductGeometry: renderer === "three-product" && modelAvailable,
     visualFidelity: renderer === "three-product" ? (modelAvailable ? "verified-3d-asset" : "illustrative-parametric-3d") : "verified-media-2.5d",
     modelAssetStatus: modelAvailable ? "verified" : hasUnverified3DModel ? "unverified" : "missing",
+    modelAssetIntegrityVerified: modelAvailable,
     modelAssetSha256: modelAvailable ? verified3DModel.sha256 : null,
     modelAssetVerifiedBy: modelAvailable ? verified3DModel.verifiedBy : null,
     modelAssetVerifiedAt: modelAvailable ? verified3DModel.verifiedAt : null,
