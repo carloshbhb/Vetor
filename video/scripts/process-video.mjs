@@ -560,10 +560,12 @@ function runRemotionQualityGate(videoPath, captionEntries, videoFormat, videoId,
     videoData.contentType,
   ].join(" ").toLowerCase();
   const allowRepeatedScenes = /(talking.?head|interview|podcast|single.?camera)/i.test(selectedStyle);
+  const allowDarkScenes = /(horror|film.?noir|thriller|suspense|low.?key.?cinema|night.?sequence)/i.test(selectedStyle);
   fs.writeFileSync(visualScenesPath, JSON.stringify({
     fps: visualFps,
     scenes: sceneFrames,
     allowRepeatedScenes,
+    allowDarkScenes,
   }, null, 2));
   const visualResult = spawnSync(process.execPath, [
     visualQaScript,
