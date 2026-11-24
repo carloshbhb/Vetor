@@ -68,6 +68,7 @@ const glbProduct = planVetorSceneMixes({
     sha256: "a".repeat(64),
     verifiedBy: "Vetor QA",
     verifiedAt: "2026-11-23T12:00:00.000Z",
+    sourceReferences: ["https://merchant.example.com/product"],
   },
 });
 assert.equal(glbProduct[0].renderPlan.productRepresentation, "verified-gltf-model");
