@@ -336,8 +336,7 @@ jobs:
         run: node scripts/render-mixed-creative-pilot.mjs
 
       - name: Upload mixed creative direction pilot
-        if: github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
-        if: success()
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
         uses: actions/upload-artifact@v4
         with:
           name: vetor-piloto-direcao-criativa-mista
@@ -352,8 +351,7 @@ jobs:
         run: node scripts/render-ten-style-pilot.mjs
 
       - name: Upload ten-style showcase pilot
-        if: github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
-        if: success()
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
         uses: actions/upload-artifact@v4
         with:
           name: vetor-10-estilos-motion-pilot
@@ -370,8 +368,7 @@ jobs:
         run: node video/scripts/render-lemo-galaxy-fit3-pilot.mjs
 
       - name: Upload Lemo-Opuscar quality pilot (no YouTube publishing)
-        if: github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
-        if: success()
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.run_visual_pilots
         uses: actions/upload-artifact@v4
         with:
           name: vetor-lemo-opuscar-galaxy-fit3-pilot
