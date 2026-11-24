@@ -41,6 +41,16 @@ assert.match(block, /existingLongProductLinkIds/);
 assert.match(block, /getPublicationFormat\(row\.media_assets\) === "long"/);
 assert.doesNotMatch(block, /link\.has_video === true \|\| link\.video_id/);
 assert.doesNotMatch(block, /from\("reviews"\)/);
+const catalogStart = route.indexOf('if (action === "queueFromProductCatalog")');
+const catalogEnd = route.indexOf('if (action === "queueTrendingShorts")', catalogStart);
+assert.ok(catalogStart >= 0 && catalogEnd > catalogStart, "verified product catalog fallback action exists");
+const catalogBlock = route.slice(catalogStart, catalogEnd);
+assert.match(catalogBlock, /const format = body\.format === "short" \? "short" : "long"/);
+assert.match(catalogBlock, /\.eq\("status", "active"\)/);
+assert.match(catalogBlock, /isSafeMercadoLivreAffiliateUrl/);
+assert.match(catalogBlock, /isSafeMercadoLivreProductUrl/);
+assert.match(catalogBlock, /format, fallback: true/);
+
 
 assert.ok(route.includes('pendingQuery = pendingQuery\n          .eq("publication_mode", "automatic")\n          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }]))'), "automatic dequeue is long-only and JSONB-safe");
 assert.equal((route.match(/\.contains\("media_assets", JSON\.stringify/g) || []).length, 11, "all JSONB media_assets filters serialize their array as JSON");
