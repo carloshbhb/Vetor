@@ -32,11 +32,30 @@ export function evaluateSceneRenderPlans(plans = []) {
     if (!render.motionContract || render.motionContract.cameraMustMove !== true) {
       errors.push("Cena " + number + ": movimento de câmera não está contratado.");
     }
-    if (render.renderer === "three-product" && render.usesTrueProductGeometry !== true) {
-      errors.push("Cena " + number + ": renderer three-product sem geometria de produto verificável.");
-    }
-    if (render.renderer === "three-product" && !["verified-3d-asset", "illustrative-parametric-3d"].includes(render.visualFidelity)) {
-      errors.push("Cena " + number + ": fidelidade 3D não identificada corretamente.");
+    if (render.renderer === "three-product") {
+      if (render.visualFidelity === "verified-3d-asset") {
+        if (render.usesTrueProductGeometry !== true ||
+            render.productRepresentation !== "verified-gltf-model" ||
+            render.modelAssetStatus !== "verified" ||
+            !/^[a-f0-9]{64}$/i.test(String(render.modelAssetSha256 || "")) ||
+            typeof render.modelAssetVerifiedBy !== "string" || !render.modelAssetVerifiedBy.trim() ||
+            !Number.isFinite(Date.parse(String(render.modelAssetVerifiedAt || "")))) {
+          errors.push("Cena " + number + ": modelo 3D marcado como verificado sem manifesto, checksum, revisor e data válidos.");
+        }
+      } else if (render.visualFidelity === "illustrative-parametric-3d") {
+        if (render.usesTrueProductGeometry !== false ||
+            render.productRepresentation !== "parametric-archetype" ||
+            render.modelAssetStatus === "verified") {
+          errors.push("Cena " + number + ": arquétipo paramétrico não pode ser declarado como geometria real do produto.");
+        }
+        if (!/ilustrativo/i.test(String(render.fallbackReason || ""))) {
+          errors.push("Cena " + number + ": 3D paramétrico precisa informar explicitamente que é ilustrativo.");
+        }
+      } else {
+        errors.push("Cena " + number + ": fidelidade 3D não identificada corretamente.");
+      }
+    } else if (render.usesTrueProductGeometry === true) {
+      errors.push("Cena " + number + ": geometria real declarada por um renderer que não é de produto 3D.");
     }
     if (render.renderer === "cinematic-footage" && render.hasMatchedBroll !== true) {
       errors.push("Cena " + number + ": footage selecionado sem B-roll correspondente.");
