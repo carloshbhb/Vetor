@@ -56,6 +56,7 @@ export function evaluateSceneRenderPlans(plans = []) {
         if (render.usesTrueProductGeometry !== true ||
             render.productRepresentation !== "verified-gltf-model" ||
             render.modelAssetStatus !== "verified" ||
+            render.modelAssetIntegrityVerified !== true ||
             !/^[a-f0-9]{64}$/i.test(String(render.modelAssetSha256 || "")) ||
             typeof render.modelAssetVerifiedBy !== "string" || !render.modelAssetVerifiedBy.trim() ||
             !Number.isFinite(Date.parse(String(render.modelAssetVerifiedAt || ""))) ||
