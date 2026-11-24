@@ -91,8 +91,9 @@ jobs:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}
           GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
-          VIDEO_RENDER_ENGINE: remotion
-          HYPERFRAMES_REMOTION_FALLBACK: 'false'
+          VIDEO_RENDER_ENGINE: auto
+          HYPERFRAMES_REMOTION_FALLBACK: 'true'
+          LEMO_REMOTION_FALLBACK: 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -150,6 +151,25 @@ jobs:
               echo "::error::Could not queue Shorts batch $batch (HTTP=$code)."
               cat "shorts-batch-$batch.json"
               exit 1
+            fi
+            queued_now="$(jq -r '.queued // 0' "shorts-batch-$batch.json")"
+            if [ "$queued_now" -lt 5 ]; then
+              catalog_slots=$((5 - queued_now))
+              echo "Social/trend sources filled $queued_now/5; supplementing from verified product catalog ($catalog_slots slot(s))."
+              catalog_payload="$(jq -cn --argjson limit "$catalog_slots" '{action:"queueFromProductCatalog",limit:$limit,format:"short"}')"
+              catalog_code="$(curl -sS --max-time 60 -o "shorts-catalog-$batch.json" -w '%{http_code}' \
+                -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+                -H "Authorization: Bearer $CRON_SECRET" \
+                -H "Content-Type: application/json" \
+                -d "$catalog_payload")"
+              if [ "$catalog_code" = "200" ] && jq -e '.success == true' "shorts-catalog-$batch.json" >/dev/null; then
+                jq -s '.[0] as $a | .[1] as $b | $a + {queued: (($a.queued // 0) + ($b.queued // 0)), videos: (($a.videos // []) + ($b.videos // [])), catalogFallbackQueued: ($b.queued // 0)}' \
+                  "shorts-batch-$batch.json" "shorts-catalog-$batch.json" > "shorts-batch-$batch-merged.json"
+                mv "shorts-batch-$batch-merged.json" "shorts-batch-$batch.json"
+              else
+                echo "::warning::Catalog fallback unavailable for Shorts batch $batch (HTTP=$catalog_code)."
+                cat "shorts-catalog-$batch.json" 2>/dev/null || true
+              fi
             fi
             jq -r '"Queued: " + ((.queued // 0)|tostring) + " | skipped duplicates: " + ((.skippedAlreadyPublished // 0)|tostring)' "shorts-batch-$batch.json"
             while IFS= read -r video_id; do
