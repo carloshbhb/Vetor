@@ -20,3 +20,13 @@ The automated renderer uses the Remotion engine already present in Vetor. Extern
 - Remotion, Edge TTS, Supabase queue, YouTube uploader and the 5-video batch / 15-video daily cap remain intact.
 
 Automated quality gates are not a promise of virality. Actual retention gains must be measured with YouTube Analytics after publication.
+
+## Production contracts (November 2026)
+
+- A GLB URL is not a verified product model. Product fidelity requires a human-reviewed manifest with SHA-256, reviewer, timestamp and source references for the exact SKU.
+- Parametric category geometry remains available as explicitly illustrative 3D. It must not be labeled true product geometry.
+- The worker ignores unreviewed GLB files and falls back to the illustrative archetype or verified product photography.
+- Before YouTube upload, the final MP4 must pass both remotion-qa and render-artifact-qa. The latter checks stream presence, delivery resolution, FPS, audio audibility and long near-black segments.
+- GitHub Actions renders vertical and landscape fixtures and preserves JSON quality evidence as an artifact.
+
+See [PRO_VIDEO_PRODUCTION_SYSTEM.md](./PRO_VIDEO_PRODUCTION_SYSTEM.md) for the complete architecture and reference audit.
