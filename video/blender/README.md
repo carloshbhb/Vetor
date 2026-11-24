@@ -102,7 +102,7 @@ Only after visual verification, upload the .glb to the product-model storage buc
 }
 ~~~
 
-The URL must be publicly readable by the render worker (or use a supported signed URL with enough lifetime for the render). The current pipeline reads this marker from media_assets, product_model_url or product_3d_url; no new renderer or publication step is introduced.
+The URL must be publicly readable by the render worker (or use a supported signed URL with enough lifetime for the render). The current pipeline reads this marker from media_assets, product_model_url or product_3d_url, downloads the candidate GLB (maximum 50 MB) and recalculates SHA-256 over the actual bytes before using it in Remotion. If the digest differs from the reviewed manifest, the worker rejects the model and falls back to the illustrative/photo path; no new renderer or publication step is introduced.
 
 ## 4. Quality gate before use
 
