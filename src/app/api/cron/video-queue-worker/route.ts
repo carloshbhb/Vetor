@@ -803,7 +803,7 @@ export async function POST(request: NextRequest) {
       ] = await Promise.all([
         supabase.from("product_links")
           .select("id,slug,product_name,category,product_url,affiliate_url,image_url,marketplace,status,has_video,priority,tags,price,updated_at")
-          .neq("status", "archived")
+          .eq("status", "active")
           .order("priority", { ascending: false })
           .order("updated_at", { ascending: false })
           .limit(2000),
@@ -1714,7 +1714,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, videos: data || [] });
     }
 
-    return NextResponse.json({ success: false, error: "Ação inválida. Use quota, queueFromSocialList, queueFromComparatives, retryRemotionTimeouts, retryQuotaFailures, next, get, update, pendingComments ou recent." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Ação inválida. Use quota, queueFromSocialList, queueFromProductCatalog, queueFromComparatives, retryRemotionTimeouts, retryQuotaFailures, next, get, update, pendingComments ou recent." }, { status: 400 });
   } catch (error: unknown) {
     const message = formatVideoQueueError(error);
     console.error(`[video-queue-worker] failed: action=${action} ${message}`);
