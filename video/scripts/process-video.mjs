@@ -95,7 +95,8 @@ async function getPendingVideos(
   limit = Number(process.env.MAX_VIDEOS || 1),
   manualOverride = process.env.MANUAL_RUN === 'true'
 ) {
-  const result = await queueApi('next', { limit, manualOverride });
+  const format = process.env.PUBLICATION_FORMAT === 'short' ? 'short' : 'long';
+  const result = await queueApi('next', { limit, manualOverride, format });
   return Array.isArray(result.videos) ? result.videos : [];
 }
 
@@ -1437,7 +1438,8 @@ async function main() {
   await retryPendingCtaComments();
 
   const manualRun = process.env.MANUAL_RUN === 'true';
-  const quota = await queueApi('quota');
+  const publicationFormat = process.env.PUBLICATION_FORMAT === 'short' ? 'short' : 'long';
+  const quota = await queueApi('quota', { format: publicationFormat });
   if (!manualRun && Number(quota.remaining) <= 0) {
     console.log(`Limite automático diário atingido: ${quota.completedToday}/${quota.dailyLimit} publicações automáticas no horário de São Paulo. Execução encerrada sem reivindicar itens.`);
     return;
@@ -1491,7 +1493,7 @@ async function main() {
       console.log('Fila abaixo do lote solicitado (' + videos.length + '/' + limit + '); completando diretamente com produtos elegíveis da Lista Social do Mercado Livre.');
       let queuedFromSocialList = 0;
       try {
-        const refill = await queueApi('queueFromSocialList', { limit: slotsNeeded });
+        const refill = await queueApi('queueFromSocialList', { limit: slotsNeeded, manualOverride: manualRun });
         queuedFromSocialList = Math.min(slotsNeeded, Math.max(0, Number(refill.queued) || 0));
         console.log(`Reposição independente da fila: ${queuedFromSocialList} vídeo(s) longo(s) da Lista Social adicionado(s).`);
       } catch (error) {
@@ -1503,7 +1505,7 @@ async function main() {
         const catalogSlots = limit - videos.length;
         try {
           console.log('[QUEUE_REFILL] Lista Social insuficiente; tentando catálogo verificado de produtos (' + catalogSlots + ' vaga(s)).');
-          const catalog = await queueApi('queueFromProductCatalog', { limit: catalogSlots });
+          const catalog = await queueApi('queueFromProductCatalog', { limit: catalogSlots, format: publicationFormat, manualOverride: manualRun });
           console.log('[QUEUE_REFILL] Catálogo verificado adicionou ' + Number(catalog.queued || 0) + ' vídeo(s).');
           videos = await getPendingVideos(limit, manualRun);
         } catch (error) {
