@@ -4,6 +4,8 @@ import { ThreeMotionGraphicsScene, type ThreeMotionVariant } from '../motion-gra
 import { SceneMotionGraphicsRenderer } from '../motion-graphics/SceneMotionGraphicsRenderer';
 import { ShotcraftRecipeRenderer } from '../motion-graphics/ShotcraftRecipeRenderer';
 import { SHORTS_SAFE_ZONE } from '../utils/shorts-safe-zone';
+import { LANDSCAPE_OVERLAY_SAFE_ZONE } from '../utils/landscape-safe-zone';
+import { fitHeadlineSize, truncateHeadline } from '../utils/scene-headline';
 
 export type SceneCreativeDirection = {
   sceneId: string | number;
@@ -175,14 +177,23 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
     ? { left: width * 0.43, top: height * 0.18, width: width * 0.49, height: height * 0.66 }
     : { left: 76, top: 610, width: 820, height: 620 };
   const kineticBox = landscape
-    ? { left: width * 0.49, right: width * 0.08, top: height * 0.66 }
+    ? { left: width * 0.47, right: width * 0.19, top: height * 0.66 }
     : { left: 78, right: 190, top: 1035 };
+  const kineticLabel = truncateHeadline(punch, landscape ? 32 : 24);
+  const kineticFontSize = fitHeadlineSize(kineticLabel, {
+    width: landscape ? width * 0.31 : width * 0.68,
+    maxHeight: landscape ? 176 : 190,
+    maxSize: landscape ? 56 : 50,
+    minSize: 34,
+    lineHeight: 1.02,
+    charWidthRatio: 0.62,
+  });
   const editorialFrame = landscape
     ? { left: width * 0.035, right: width * 0.075, top: height * 0.16, bottom: height * 0.13 }
     : { left: 48, right: 190, top: 565, bottom: 385 };
   const cinematicCircle = landscape
-    ? { left: width * 0.42 - height * 0.45, top: height * 0.05, size: height * 0.9 }
-    : { left: -260, top: 590, size: 940 };
+    ? { left: width * 0.42 - height * 0.36, top: height * 0.16, size: height * 0.68 }
+    : { left: 120, top: 620, size: 640 };
   const showKinetic = includes(plan, 'kinetic-typography') && plan.primaryTemplate !== 'kinetic-typography';
   const showHud = includes(plan, 'hologram-hud');
   const showCinematic = includes(plan, 'cinematic-2d');
@@ -191,12 +202,13 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
   const showIsometric = includes(plan, 'isometric-explainer');
   const showData = includes(plan, 'data-storytelling') && plan.primaryTemplate !== 'data-storytelling';
 
-  const safeOverlay = landscape
-    ? undefined
-    : 'inset(' + SHORTS_SAFE_ZONE.top + 'px ' +
-      (width - SHORTS_SAFE_ZONE.right) + 'px ' +
-      (height - SHORTS_SAFE_ZONE.bottom) + 'px ' +
-      SHORTS_SAFE_ZONE.left + 'px)';
+  // Clip every decorative/template layer to the platform safe rectangle.
+  // Landscape uses a further inset because this overlay moves with the camera.
+  const overlaySafeZone = landscape ? LANDSCAPE_OVERLAY_SAFE_ZONE : SHORTS_SAFE_ZONE;
+  const safeOverlay = 'inset(' + overlaySafeZone.top + 'px ' +
+    (width - overlaySafeZone.right) + 'px ' +
+    (height - overlaySafeZone.bottom) + 'px ' +
+    overlaySafeZone.left + 'px)';
 
   return (
     <AbsoluteFill style={{ pointerEvents: 'none', overflow: 'hidden', clipPath: safeOverlay }}>
@@ -280,13 +292,15 @@ export const SceneCreativeTreatment: React.FC<Props> = ({ plan, accent, label, s
       {showKinetic ? (
         <div style={{
           position: 'absolute', left: kineticBox.left, right: kineticBox.right, top: kineticBox.top,
-          color: '#FFFFFF', fontSize: 64, lineHeight: 0.98, fontWeight: 1000,
-          letterSpacing: -3, textTransform: 'uppercase',
+          maxWidth: '100%', maxHeight: landscape ? height * 0.2 : height * 0.19,
+          overflow: 'hidden', overflowWrap: 'anywhere', wordBreak: 'break-word',
+          color: '#FFFFFF', fontSize: kineticFontSize, lineHeight: 0.98, fontWeight: 1000,
+          letterSpacing: kineticFontSize < 46 ? -1.5 : -2, textTransform: 'uppercase',
           textShadow: '0 8px 36px rgba(0,0,0,.8), 0 0 30px ' + accent + '55',
           transform: 'translateX(' + titleX + 'px) scale(' + titleScale + ')',
           transformOrigin: 'left center',
         }}>
-          <span style={{ color: accent }}>{punch}</span>
+          <span style={{ color: accent }}>{kineticLabel}</span>
         </div>
       ) : null}
 
