@@ -27,8 +27,8 @@ export const OPENROUTER_FREE_MODEL_PRIORITY = [
 
 const OPENROUTER_FREE_CATALOG_TTL_MS = 5 * 60_000;
 const OPENROUTER_FREE_CATALOG_TIMEOUT_MS = 3_500;
-const DEFAULT_GROQ_MODEL = 'qwen/qwen3.8-27b';
-const DEFAULT_GROQ_FALLBACK_MODEL = 'openai/gpt-oss-120b';
+const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
+const DEFAULT_GROQ_FALLBACK_MODEL = 'qwen/qwen3.8-27b';
 const DEFAULT_NVIDIA_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b';
 const DEFAULT_NVIDIA_FALLBACK_MODELS = [
   'nvidia/nemotron-3.5-lightning-30b-a3b',
@@ -149,6 +149,18 @@ function uniqueModels(values: Array<string | undefined>): string[] {
   return models;
 }
 
+export function buildGroqModelOrder(configuredPrimary?: string, configuredFallback?: string): string[] {
+  // GPT-OSS 120B has produced valid Vetor scripts. Qwen remains an alternate;
+  // environment overrides are kept after the verified default to avoid a
+  // depleted or lower-quality configured model blocking the long-form fallback.
+  return uniqueModels([
+    DEFAULT_GROQ_MODEL,
+    configuredPrimary,
+    DEFAULT_GROQ_FALLBACK_MODEL,
+    configuredFallback,
+  ]);
+}
+
 function configuredProviders(): LLMProvider[] {
   if (cachedProviders) return cachedProviders;
 
@@ -156,12 +168,10 @@ function configuredProviders(): LLMProvider[] {
   const groqKey = process.env.GROQ_API_KEY?.trim();
   const nvidiaKey = process.env.NVIDIA_API_KEY?.trim();
   const order = buildLLMProviderOrder(Boolean(openRouterKey), Boolean(groqKey), Boolean(nvidiaKey));
-  const groqModels = uniqueModels([
+  const groqModels = buildGroqModelOrder(
     process.env.GROQ_MODEL,
     process.env.GROQ_FALLBACK_MODEL,
-    DEFAULT_GROQ_MODEL,
-    DEFAULT_GROQ_FALLBACK_MODEL,
-  ]);
+  );
   const nvidiaModels = uniqueModels([
     DEFAULT_NVIDIA_MODEL,
     process.env.NVIDIA_MODEL,
