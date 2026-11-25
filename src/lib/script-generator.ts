@@ -175,7 +175,7 @@ export function isShortSpokenWordBudgetValid(script: {
     String(script.callToAction || ""),
   ].join(" ").trim();
   const words = spoken ? spoken.split(/\s+/).filter(Boolean).length : 0;
-  return words >= 95 && words <= 160;
+  return words >= 100 && words <= 150;
 }
 
 export function buildScriptPrompt(product: ProductInfo): string {
