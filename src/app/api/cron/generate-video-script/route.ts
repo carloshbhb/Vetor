@@ -379,7 +379,7 @@ export async function POST(request: NextRequest) {
     const productResearchBrief = typeof body.researchBrief === "string" ? body.researchBrief.trim() : "";
     const researchBrief = [trendResearchBrief, productResearchBrief
       ? "PESQUISA DO PRODUTO (dados complementares; não substituem a notícia):\n" + productResearchBrief
-      : ""].filter(Boolean).join("\\n\\n---\\n\\n");
+      : ""].filter(Boolean).join("\n\n---\n\n");
     const script = await generateVideoScript({
       title: String(video.product_title || reviewFacts?.product || "Produto de tecnologia"),
       category: String(reviewFacts?.category || selectedProductRow?.category || video.product_category || "Tecnologia"),
