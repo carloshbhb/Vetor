@@ -383,7 +383,7 @@ export function validateSpokenScriptBudget(script, format) {
   const isLong = format === "long";
   const scenes = Array.isArray(script?.scenes) ? script.scenes : [];
   const sceneWordCounts = scenes.map((scene) =>
-    stripSpokenUrls(scene?.text).split(/\\s+/).filter(Boolean).length
+    stripSpokenUrls(scene?.text).split(/\s+/).filter(Boolean).length
   );
   const hook = stripSpokenUrls(script?.hook);
   const callToAction = stripSpokenUrls(script?.callToAction) ||
@@ -392,7 +392,7 @@ export function validateSpokenScriptBudget(script, format) {
     .filter(Boolean)
     .join(" ")
     .trim();
-  const totalWords = spoken ? spoken.split(/\\s+/).filter(Boolean).length : 0;
+  const totalWords = spoken ? spoken.split(/\s+/).filter(Boolean).length : 0;
 
   if (isLong) {
     const valid = scenes.length >= 8 && scenes.length <= 10 &&
