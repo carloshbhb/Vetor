@@ -135,7 +135,7 @@ assert.match(pythonTts, /VOICE = "pt-BR-FranciscaNeural"/);
 assert.doesNotMatch(pythonTts, /sys\.argv\[3\]/, 'Python TTS does not accept alternate voices');
 assert.match(dailyReviewWorkflow, /github\.event_name == 'workflow_dispatch' && inputs\.dry_run/, 'manual review dispatch controls dry-run behavior');
 assert.match(processVideoQueueWorkflow, /\n  schedule:/, 'video batches have an independent daily schedule');
-assert.equal((processVideoQueueWorkflow.match(/^\s+- cron:/gm) || []).length, 3, 'three independent batches run daily');
+assert.equal((processVideoQueueWorkflow.match(/^\s+- cron:/gm) || []).length, 2, 'two independent long-form batches run daily');
 assert.match(processVideoQueueWorkflow, /queueFromSocialList/, 'video queue is filled directly from Mercado Livre Social List');
 assert.doesNotMatch(processVideoQueueWorkflow, /workflow_run|Generate Daily Review|queueFromReviews/, 'video production is independent of editorial review generation');
 assert.match(processVideoQueueWorkflow, /MAX_VIDEOS: '5'/, 'each scheduled invocation is limited to five videos');
@@ -147,7 +147,7 @@ assert.match(invalidation, /revalidateProductLinkSurfaces/);
 
 // Video queue contract: long-form videos are sourced directly from the Social List,
 // can be generated without a review URL, and remain protected against duplicates.
-const queueFromSocialList = videoQueueWorker.match(/if \(action === "queueFromSocialList"\) \{[\s\S]*?\n    \}\n\n    if \(action === "queueFromComparatives"\)/);
+const queueFromSocialList = videoQueueWorker.match(/if \(action === "queueFromSocialList"\) \{[\s\S]*?\n    \}\n\n    if \(action === "queueFromProductCatalog"\)/);
 assert.ok(queueFromSocialList, 'queueFromSocialList action exists');
 assert.match(queueFromSocialList[0], /script_text: ""/);
 assert.match(queueFromSocialList[0], /review_url: null/);
@@ -158,9 +158,9 @@ assert.match(queueFromSocialList[0], /isSafeMercadoLivreAffiliateUrl/);
 assert.match(videoQueueWorker, /function formatVideoQueueError\(error: unknown\)/);
 assert.match(videoQueueWorker, /from\("ml_social_list_items"\)/, 'video discovery is driven by the Mercado Livre Social List');
 assert.match(videoQueueWorker, /function isLikelySameVideoProductTitle/);
-assert.match(videoQueueWorker, /MAX_DAILY_PUBLICATIONS = 15/);
+assert.match(videoQueueWorker, /DAILY_PUBLICATION_LIMITS = \{ short: 15, long: 10 \} as const/);
 assert.match(videoQueueWorker, /if \(getPublicationFormat\(item\.media_assets\) !== "long"\)/);
-assert.match(videoQueueWorker, /\.eq\("publication_mode", "automatic"\)/);
+assert.match(videoQueueWorker, /\.eq\("publication_mode", manualOverride \? "manual" : "automatic"\)/);
 assert.match(contentPipeline, /buildGeneratedReviewContent/);
 assert.match(contentPipeline, /sectionsHtml/);
 assert.match(reviewGenerator, /normalizeEditorialIdentity\(visibleContent\)/);

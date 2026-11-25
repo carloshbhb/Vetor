@@ -548,6 +548,30 @@ export function buildVideoTitle(input) {
     : ((hook || "Vale a pena comprar?") + " | " + productTitle + " #Shorts").slice(0, 100);
 }
 
+function buildTrendSourceLines(sources) {
+  return (Array.isArray(sources) ? sources : [])
+    .slice(0, 3)
+    .map((source) => {
+      const title = String(source?.title || "").replace(/[\x00-\x1F\x7F]/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
+      const publisher = String(source?.source || "Fonte jornalística").replace(/[\x00-\x1F\x7F]/g, " ").trim().slice(0, 100);
+      const url = String(source?.url || "").trim();
+      if (!title || !url.startsWith("https://")) return "";
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== "https:" || !parsed.hostname || parsed.username || parsed.password ||
+            parsed.hostname === "localhost" || parsed.hostname.endsWith(".local") || parsed.hostname.endsWith(".internal")) return "";
+      } catch {
+        return "";
+      }
+      const publishedAt = String(source?.publishedAt || "").trim();
+      const dateLabel = publishedAt && Number.isFinite(Date.parse(publishedAt))
+        ? " (" + new Date(publishedAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) + ")"
+        : "";
+      return "• " + publisher + dateLabel + ": " + title + " — " + url;
+    })
+    .filter(Boolean);
+}
+
 export function buildVideoDescription(input) {
   const productTitle = String(input.productTitle || "Produto").trim();
   const category = String(input.category || "Tecnologia").trim();
@@ -557,6 +581,7 @@ export function buildVideoDescription(input) {
 
   if (input.format === "short" && input.contentType === "trend") {
     const topicTitle = String(input.topicTitle || hook || "Tendência em alta").trim();
+    const trendSourceLines = buildTrendSourceLines(input.trendSources);
     const highlights = [...new Set((Array.isArray(input.highlights) ? input.highlights : [])
       .map((item) => String(item || "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim())
       .filter(Boolean))]
@@ -579,6 +604,7 @@ export function buildVideoDescription(input) {
       "",
       "Este Short comenta uma pauta em alta no YouTube e termina com uma sugestão de produto relacionado para quem quer explorar melhor esse universo. A recomendação não representa patrocínio do assunto comentado.",
     );
+    if (trendSourceLines.length) lines.push("", "📰 FONTES DA PAUTA (consultadas nesta geração):", ...trendSourceLines);
     if (highlights.length) lines.push("", "🔎 NESTE SHORT:", ...highlights);
     lines.push(
       "",
@@ -604,6 +630,7 @@ export function buildVideoDescription(input) {
     .filter((chapter, index, list) => index === 0 || chapter.time - list[index - 1].time >= 10)
     .map((chapter) => formatYouTubeTimestamp(chapter.time) + " " + String(chapter.title).replace(/[\r\n]+/g, " ").slice(0, 70));
   if (chapters.length && !chapters[0].startsWith("0:00 ")) chapters.unshift("0:00 Introdução e decisão de compra");
+  const trendSourceLines = buildTrendSourceLines(input.trendSources);
 
   const opening = input.format === "short"
     ? productTitle + ": vale a pena comprar? Veja os pontos importantes antes de escolher."
@@ -623,6 +650,8 @@ export function buildVideoDescription(input) {
       ? "Esta análise de " + productTitle + " (" + category + ") reúne os critérios que mais pesam na decisão de compra: recursos, limitações, compatibilidade e custo-benefício. Consulte o conteúdo completo e confira as condições atuais do anúncio antes de fechar o pedido."
       : "Este vídeo independente sobre " + productTitle + " (" + category + ") apresenta critérios de compra, recursos documentados e pontos que merecem conferência. Verifique as condições atuais no anúncio antes de fechar o pedido.",
   );
+
+  if (trendSourceLines.length) lines.push("", "📰 FONTES DA PAUTA (consultadas nesta geração):", ...trendSourceLines);
 
   if (highlights.length) lines.push("", "🔎 PRINCIPAIS PONTOS ABORDADOS NO VÍDEO:", ...highlights);
   if (chapters.length) lines.push("", "CAPÍTULOS:", ...chapters);

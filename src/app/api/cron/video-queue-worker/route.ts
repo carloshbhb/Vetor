@@ -9,7 +9,24 @@ import { buildVideoDescription, resolveVideoFormat } from "../../../../../video/
 export const runtime = "nodejs";
 export const maxDuration = 15;
 
-const MAX_DAILY_PUBLICATIONS = 15;
+const DAILY_PUBLICATION_LIMITS = { short: 15, long: 10 } as const;
+
+function getDailyPublicationLimit(format: "short" | "long"): number {
+  return DAILY_PUBLICATION_LIMITS[format];
+}
+
+function isSafePublicNewsUrl(value: unknown): boolean {
+  if (typeof value !== "string" || !value.trim()) return false;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    return url.protocol === "https:" && !url.username && !url.password &&
+      host !== "localhost" && !host.endsWith(".local") && !host.endsWith(".internal") &&
+      !/^127\.|^10\.|^192\.168\.|^169\.254\.|^172\.(1[6-9]|2[0-9]|3[01])\./.test(host);
+  } catch {
+    return false;
+  }
+}
 
 function normalizeMercadoLivreItemId(value: unknown): string {
   const match = String(value || '').match(/MLB-?(\d+)/i);
@@ -122,20 +139,22 @@ function getSaoPauloDayStartIso(now = new Date()) {
   return new Date(`${year}-${month}-${day}T00:00:00-03:00`).toISOString();
 }
 
-async function getDailyPublicationQuota(supabase: SupabaseServiceClient) {
+async function getDailyPublicationQuota(supabase: SupabaseServiceClient, format: "short" | "long" = "long") {
+  const dailyLimit = getDailyPublicationLimit(format);
   const { count, error } = await supabase
     .from("video_queue")
     .select("id", { count: "exact", head: true })
     .eq("status", "completed")
     .eq("publication_mode", "automatic")
-    .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }]))
+    .contains("media_assets", JSON.stringify([{ type: "publication_format", format }]))
     .gte("completed_at", getSaoPauloDayStartIso());
   if (error) throw error;
   const completedToday = count || 0;
   return {
-    dailyLimit: MAX_DAILY_PUBLICATIONS,
+    format,
+    dailyLimit,
     completedToday,
-    remaining: Math.max(0, MAX_DAILY_PUBLICATIONS - completedToday),
+    remaining: Math.max(0, dailyLimit - completedToday),
   };
 }
 
@@ -579,12 +598,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "quota") {
-      const quota = await getDailyPublicationQuota(supabase);
+      const format = body.format === "short" ? "short" : "long";
+      const quota = await getDailyPublicationQuota(supabase, format);
       return NextResponse.json({ success: true, ...quota, canPublish: quota.remaining > 0 });
     }
 
     if (action === "queueFromSocialList") {
       const limit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
+      const manualOverride = body.manualOverride === true;
       const [
         { data: listItems, error: listError },
         { data: productLinks, error: productLinksError },
@@ -623,7 +644,7 @@ export async function POST(request: NextRequest) {
 
       const completed = doneToday || 0;
       const pending = pendingCount || 0;
-      const dailySlots = Math.max(0, MAX_DAILY_PUBLICATIONS - completed - pending);
+      const dailySlots = manualOverride ? limit : Math.max(0, DAILY_PUBLICATION_LIMITS.long - completed - pending);
       if (dailySlots <= 0) {
         return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true, completedToday: completed, pendingAutomaticLong: pending });
       }
@@ -725,7 +746,7 @@ export async function POST(request: NextRequest) {
 
       const queued = [];
       for (const candidate of candidates) {
-        if (completed + pending + queued.length >= MAX_DAILY_PUBLICATIONS) break;
+        if (!manualOverride && completed + pending + queued.length >= DAILY_PUBLICATION_LIMITS.long) break;
         const queueId = randomUUID();
         const priceValue = Number(candidate.item.price ?? candidate.link.price);
         const price = Number.isFinite(priceValue) && priceValue > 0
@@ -762,7 +783,7 @@ export async function POST(request: NextRequest) {
               { type: "ml-social-list-item", itemId: candidate.itemId, productLinkId: candidate.link.id },
             ],
             status: "pending",
-            publication_mode: "automatic",
+            publication_mode: manualOverride ? "manual" : "automatic",
             review_url: null,
             scheduled_at: new Date().toISOString(),
           })
@@ -787,7 +808,7 @@ export async function POST(request: NextRequest) {
         skippedUnmatched,
         skippedUnsafe,
         skippedAlreadyPublished,
-        dailyLimit: MAX_DAILY_PUBLICATIONS,
+        dailyLimit: DAILY_PUBLICATION_LIMITS.long,
         completedToday: completed,
         pendingAutomaticLong: pending,
       });
@@ -796,6 +817,7 @@ export async function POST(request: NextRequest) {
     if (action === "queueFromProductCatalog") {
       const limit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
       const format = body.format === "short" ? "short" : "long";
+      const manualOverride = body.manualOverride === true;
       const [
         { data: products, error: productsError },
         { data: existing, error: existingError },
@@ -827,7 +849,7 @@ export async function POST(request: NextRequest) {
 
       const completed = doneToday || 0;
       const pending = pendingCount || 0;
-      const dailySlots = Math.max(0, MAX_DAILY_PUBLICATIONS - completed - pending);
+      const dailySlots = manualOverride ? limit : Math.max(0, DAILY_PUBLICATION_LIMITS[format] - completed - pending);
       const allowed = Math.min(limit, dailySlots);
       if (allowed <= 0) {
         return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true,
@@ -874,7 +896,7 @@ export async function POST(request: NextRequest) {
 
       const queued = [];
       for (const product of candidates) {
-        if (completed + pending + queued.length >= MAX_DAILY_PUBLICATIONS) break;
+        if (!manualOverride && completed + pending + queued.length >= DAILY_PUBLICATION_LIMITS[format]) break;
         const queueId = randomUUID();
         const purchase = new URL(String(product.affiliate_url));
         purchase.searchParams.set("utm_source", "youtube");
@@ -906,7 +928,7 @@ export async function POST(request: NextRequest) {
               { type: "catalog-fallback", productLinkId: String(product.id), source: "product_links" },
             ],
             status: "pending",
-            publication_mode: "automatic",
+            publication_mode: manualOverride ? "manual" : "automatic",
             review_url: product.slug ? "https://www.vetor.blog/reviews/" + String(product.slug).replace(/^\/+|\/+$/g, "") + "/" : null,
             scheduled_at: new Date().toISOString(),
           })
@@ -922,22 +944,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true, queued: queued.length, videos: queued, source: "product_links_catalog",
         format, fallback: true, skippedUnsafe, skippedDuplicate,
-        completedToday: completed, pendingAutomaticLong: pending, dailyLimit: MAX_DAILY_PUBLICATIONS,
+        completedToday: completed, pendingAutomaticLong: pending, dailyLimit: DAILY_PUBLICATION_LIMITS[format],
       });
     }
 
-    if (action === "queueTrendingShorts") {
+    if (action === "queueTrendingShorts" || action === "queueTrendingVideos") {
+      const format: "short" | "long" = action === "queueTrendingShorts" ? "short" : "long";
+      const dailyLimit = getDailyPublicationLimit(format);
+      const manualOverride = body.manualOverride === true;
       const limit = Math.min(Math.max(Number(body.limit || 5), 1), 5);
       const topics = (Array.isArray(body.trendTopics) ? body.trendTopics : [])
-        .map((entry: any) => ({
-          title: String(entry?.title || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 180),
-          traffic: String(entry?.traffic || "").slice(0, 40),
-          source: String(entry?.source || "Google Trends BR").slice(0, 80),
-        }))
-        .filter((entry: any) => entry.title.length >= 3)
+        .map((entry: any) => {
+          const news = (Array.isArray(entry?.news) ? entry.news : [])
+            .map((article: any) => ({
+              title: String(article?.title || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 240),
+              url: String(article?.url || "").trim().slice(0, 1200),
+              source: String(article?.source || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 120),
+              publishedAt: String(article?.publishedAt || "").slice(0, 40),
+              snippet: String(article?.snippet || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 500),
+            }))
+            .filter((article: any) => article.title.length >= 8 && isSafePublicNewsUrl(article.url))
+            .slice(0, 3);
+          return {
+            title: String(entry?.title || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 180),
+            traffic: String(entry?.traffic || "").slice(0, 40),
+            source: String(entry?.source || "Google Trends Brasil").slice(0, 80),
+            publishedAt: String(entry?.publishedAt || "").slice(0, 40),
+            news,
+          };
+        })
+        .filter((entry: any) => entry.title.length >= 3 && entry.news.length > 0)
         .slice(0, 30);
       if (!topics.length) {
-        return NextResponse.json({ success: true, queued: 0, videos: [], reason: "no_trend_topics", fallbackRequired: true });
+        return NextResponse.json({ success: true, queued: 0, videos: [], reason: "no_fresh_news_topics", fallbackRequired: true, format });
       }
       const [
         { data: listItems, error: listError },
@@ -955,14 +994,14 @@ export async function POST(request: NextRequest) {
           .order("priority", { ascending: false }).order("updated_at", { ascending: false }).limit(2000),
         supabase.from("video_queue")
           .select("product_title,product_url,affiliate_url,media_assets,status")
-          .in("status", ["pending", "processing", "completed"]).limit(2000),
+          .in("status", ["pending", "processing", "completed"]).limit(3000),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .eq("status", "completed").eq("publication_mode", "automatic")
-          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "short" }]))
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format }]))
           .gte("completed_at", getSaoPauloDayStartIso()),
         supabase.from("video_queue").select("id", { count: "exact", head: true })
           .in("status", ["pending", "processing"]).eq("publication_mode", "automatic")
-          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "short" }])),
+          .contains("media_assets", JSON.stringify([{ type: "publication_format", format }])),
       ]);
       if (listError) throw listError;
       if (linksError) throw linksError;
@@ -971,8 +1010,11 @@ export async function POST(request: NextRequest) {
       if (pendingError) throw pendingError;
       const completed = doneToday || 0;
       const pending = pendingCount || 0;
-      const slots = Math.min(limit, Math.max(0, MAX_DAILY_PUBLICATIONS - completed - pending));
-      if (!slots) return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true, completedToday: completed, pendingAutomaticShorts: pending });
+      const slots = manualOverride ? limit : Math.min(limit, Math.max(0, dailyLimit - completed - pending));
+      if (!slots) {
+        return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true,
+          completedToday: completed, pendingAutomaticForFormat: pending, dailyLimit, format });
+      }
 
       const linksByItemId = new Map<string, any>();
       const linksByTitle = new Map<string, any[]>();
@@ -983,19 +1025,26 @@ export async function POST(request: NextRequest) {
         const key = normalizeVideoProductTitle(link.product_name);
         if (key) linksByTitle.set(key, [...(linksByTitle.get(key) || []), link]);
       }
-      const usedTitles = (existing || [])
-        .filter((row: any) => getPublicationFormat(row.media_assets) === "short")
-        .map((row: any) => String(row.product_title || ""));
-      const usedItems = new Set((existing || [])
-        .filter((row: any) => getPublicationFormat(row.media_assets) === "short")
+      const existingForFormat = (existing || []).filter((row: any) =>
+        getPublicationFormat(row.media_assets) === format
+      );
+      const usedTitles = existingForFormat.map((row: any) => String(row.product_title || ""));
+      const usedItems = new Set(existingForFormat
         .map((row: any) => socialListMarker(row.media_assets)?.itemId || normalizeMercadoLivreItemId(row.product_url))
         .filter(Boolean));
       const stop = new Set(["para","com","como","mais","menos","sobre","de","da","do","das","dos","uma","um","the","and","for","new","novo","nova","hoje","brasil","brasileiro","brasileira"]);
       const tokens = (value: unknown) => normalizeVideoProductTitle(value).split(" ").filter((word) => word.length > 2 && !stop.has(word));
       const synonym: Record<string,string[]> = {
-        celular:["smartphone","telefone"], smartphone:["celular","telefone"], games:["game","gamer","gaming","controle"], gaming:["game","gamer","games"], gamer:["gaming","games","game"],
-        notebook:["laptop","pc"], laptop:["notebook"], fone:["headset","earbuds","audio"], earbuds:["fone","audio"], headset:["fone","audio"],
+        celular:["smartphone","telefone","iphone","android"], smartphone:["celular","telefone","iphone","android"], iphone:["celular","smartphone"],
+        games:["game","gamer","gaming","controle","headset"], gaming:["game","gamer","games","controle","headset"], gamer:["gaming","games","game"],
+        notebook:["laptop","pc","computador"], laptop:["notebook","pc"], computador:["notebook","pc"],
+        fone:["headset","earbuds","audio"], earbuds:["fone","audio"], headset:["fone","audio"],
         camera:["webcam","filmadora"], webcam:["camera"], tv:["televisao","smart"], televisao:["tv","smart"],
+        "inteligencia":["ia","artificial","notebook","smartphone"], ia:["inteligencia","notebook","smartphone","tablet"],
+        artificial:["ia","inteligencia","notebook","smartphone"], chatgpt:["ia","notebook","smartphone","tablet"],
+        "inteligencia artificial":["ia","notebook","smartphone","tablet"], tecnologia:["notebook","smartphone","tablet","fone"],
+        "home office":["notebook","webcam","microfone","headset"], streaming:["microfone","webcam","fone","tv"],
+        "black friday":["smartphone","notebook","fone","tv","tablet"], "copa do mundo":["tv","smart","fone"],
       };
       const candidates = (listItems || []).map((item: any) => {
         const itemId = normalizeMercadoLivreItemId(item.item_id);
@@ -1018,24 +1067,35 @@ export async function POST(request: NextRequest) {
       const ranked: Array<{ topic: any; product: any; score: number }> = [];
       const selectedItems = new Set<string>();
       for (const topic of topics) {
-        const topicTokens = tokens(topic.title);
-        let best: any = null;
+        const topicEvidence = [topic.title, ...topic.news.map((article: any) => article.title), ...topic.news.map((article: any) => article.snippet)].join(" ");
+        const topicTokens = tokens(topicEvidence);
+        const topicSynonyms = [...new Set(topicTokens.flatMap((token: string) => synonym[token] || []))];
+        for (const phrase of Object.keys(synonym)) {
+          if (topicEvidence.toLowerCase().includes(phrase) && phrase.includes(" ")) topicSynonyms.push(...(synonym[phrase] || []));
+        }
+        const bestForTopic = new Map<string, any>();
         for (const product of candidates) {
           if (selectedItems.has(product.itemId)) continue;
           let score = 0;
           for (const token of topicTokens) {
             if (product.productTokens.has(token)) score += 3;
-            for (const related of synonym[token] || []) if (product.productTokens.has(related)) score += 2;
           }
-          if (score > (best?.score || 0)) best = { product, score };
+          for (const related of topicSynonyms) {
+            if (product.productTokens.has(related)) score += 3;
+          }
+          if (!bestForTopic.has(product.itemId) || score > bestForTopic.get(product.itemId).score) {
+            bestForTopic.set(product.itemId, { product, score });
+          }
         }
-        // Require at least one strong product/topic match; never force an irrelevant affiliate recommendation.
+        const best = [...bestForTopic.values()].sort((left, right) => right.score - left.score)[0] || null;
+        // A product must match the story or an explicit topical category alias; no generic affiliate insertion.
         if (best && best.score >= 3) {
           ranked.push({ topic, product: best.product, score: best.score });
           selectedItems.add(best.product.itemId);
         }
         if (ranked.length >= slots) break;
       }
+
       const queued = [];
       for (const match of ranked) {
         const product = match.product;
@@ -1045,10 +1105,20 @@ export async function POST(request: NextRequest) {
         const category = String(product.link.category || "Tecnologia").trim() || "Tecnologia";
         const purchase = new URL(product.affiliateUrl);
         purchase.searchParams.set("utm_source", "youtube");
-        purchase.searchParams.set("utm_medium", "short");
-        purchase.searchParams.set("utm_campaign", "trending-topic-ml-social-list");
+        purchase.searchParams.set("utm_medium", format === "short" ? "short" : "video");
+        purchase.searchParams.set("utm_campaign", "trending-news-ml-social-list-" + format);
         purchase.searchParams.set("utm_content", queueId);
         purchase.searchParams.set("utm_term", "trend");
+        const trendMarker = {
+          type: "trend-topic",
+          title: match.topic.title,
+          traffic: match.topic.traffic,
+          source: match.topic.source,
+          publishedAt: match.topic.publishedAt,
+          fetchedAt: new Date().toISOString(),
+          news: match.topic.news,
+          relevanceScore: match.score,
+        };
         const { data: inserted, error: insertError } = await supabase.from("video_queue").insert({
           id: queueId,
           product_url: product.productUrl,
@@ -1059,16 +1129,16 @@ export async function POST(request: NextRequest) {
           affiliate_url: product.affiliateUrl,
           shortened_affiliate_url: purchase.toString(),
           script_text: "",
-          script_hook: "Em alta: " + match.topic.title + ". O que vale observar em " + product.title + "?",
+          script_hook: "Notícia em alta: " + match.topic.title + ". Entenda o contexto e o que isso muda para o público.",
           voiceover_url: "",
           voiceover_duration: 0,
           media_assets: [
-            { type: "publication_format", format: "short" },
+            { type: "publication_format", format },
             { type: "ml-social-list-item", itemId: product.itemId, productLinkId: product.link.id },
-            { type: "trend-topic", title: match.topic.title, traffic: match.topic.traffic, source: match.topic.source, relevanceScore: match.score },
+            trendMarker,
           ],
           status: "pending",
-          publication_mode: "automatic",
+          publication_mode: manualOverride ? "manual" : "automatic",
           review_url: null,
           scheduled_at: new Date().toISOString(),
         }).select("id,product_title,status,media_assets").single();
@@ -1078,15 +1148,17 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({
         success: true, queued: queued.length, videos: queued,
-        source: "google-trends-br+ml-social-list", format: "short", trendTopicsReceived: topics.length,
-        matchedProducts: ranked.length, unmatchedTopics: Math.max(0, topics.length - ranked.length),
-        completedToday: completed, pendingAutomaticShorts: pending, dailyLimit: MAX_DAILY_PUBLICATIONS,
+        source: "google-trends-brazil-related-news+ml-social-list", format,
+        trendTopicsReceived: topics.length, matchedProducts: ranked.length,
+        unmatchedTopics: Math.max(0, topics.length - ranked.length),
+        completedToday: completed, pendingAutomaticForFormat: pending, dailyLimit,
         fallbackRequired: queued.length === 0,
       });
     }
 
     if (action === "queueFromSocialListShorts") {
       const limit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
+      const manualOverride = body.manualOverride === true;
       const [
         { data: listItems, error: listError },
         { data: productLinks, error: productLinksError },
@@ -1125,7 +1197,7 @@ export async function POST(request: NextRequest) {
 
       const completed = doneToday || 0;
       const pending = pendingCount || 0;
-      const dailySlots = Math.max(0, MAX_DAILY_PUBLICATIONS - completed - pending);
+      const dailySlots = manualOverride ? limit : Math.max(0, DAILY_PUBLICATION_LIMITS.short - completed - pending);
       if (dailySlots <= 0) {
         return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true, completedToday: completed, pendingAutomaticShorts: pending });
       }
@@ -1227,7 +1299,7 @@ export async function POST(request: NextRequest) {
 
       const queued = [];
       for (const candidate of candidates) {
-        if (completed + pending + queued.length >= MAX_DAILY_PUBLICATIONS) break;
+        if (!manualOverride && completed + pending + queued.length >= DAILY_PUBLICATION_LIMITS.short) break;
         const queueId = randomUUID();
         const priceValue = Number(candidate.item.price ?? candidate.link.price);
         const price = Number.isFinite(priceValue) && priceValue > 0
@@ -1264,7 +1336,7 @@ export async function POST(request: NextRequest) {
               { type: "ml-social-list-item", itemId: candidate.itemId, productLinkId: candidate.link.id },
             ],
             status: "pending",
-            publication_mode: "automatic",
+            publication_mode: manualOverride ? "manual" : "automatic",
             review_url: null,
             scheduled_at: new Date().toISOString(),
           })
@@ -1289,7 +1361,7 @@ export async function POST(request: NextRequest) {
         skippedUnmatched,
         skippedUnsafe,
         skippedAlreadyPublished,
-        dailyLimit: MAX_DAILY_PUBLICATIONS,
+        dailyLimit: DAILY_PUBLICATION_LIMITS.short,
         completedToday: completed,
         pendingAutomaticShorts: pending,
       });
@@ -1538,25 +1610,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, retried: retried.length, videos: retried });
     }
 
+    if (action === "markManual") {
+      const videoId = String(body.videoId || body.id || "").trim();
+      if (!videoId) return NextResponse.json({ success: false, error: "video_id_required" }, { status: 400 });
+      const { data, error } = await supabase
+        .from("video_queue")
+        .update({ publication_mode: "manual" })
+        .eq("id", videoId)
+        .in("status", ["pending", "failed"])
+        .select("id,status,publication_mode")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return NextResponse.json({ success: false, error: "video_not_available_for_manual_run" }, { status: 409 });
+      return NextResponse.json({ success: true, video: data, quotaImpact: "none" });
+    }
+
     if (action === "next") {
       const manualOverride = body.manualOverride === true;
-      const quota = await getDailyPublicationQuota(supabase);
+      const format = body.format === "short" ? "short" : "long";
+      const quota = await getDailyPublicationQuota(supabase, format);
       if (!manualOverride && quota.remaining <= 0) {
         return NextResponse.json({ success: true, videos: [], ...quota, dailyLimitReached: true, manualOverride: false });
       }
-      // Automatic and manual runs are always limited to five videos per invocation.
-      const requestedLimit = Math.min(Math.max(Number(body.limit || 1), 1), manualOverride ? 5 : 15);
+      // One invocation renders at most one production batch.
+      const requestedLimit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
       const limit = manualOverride ? requestedLimit : Math.min(requestedLimit, quota.remaining);
       let pendingQuery = supabase
         .from("video_queue")
         .select("*")
         .eq("status", "pending")
         .lte("scheduled_at", new Date().toISOString());
-      if (!manualOverride) {
-        pendingQuery = pendingQuery
-          .eq("publication_mode", "automatic")
-          .contains("media_assets", JSON.stringify([{ type: "publication_format", format: "long" }]));
-      }
+      pendingQuery = pendingQuery
+        .contains("media_assets", JSON.stringify([{ type: "publication_format", format }]))
+        .eq("publication_mode", manualOverride ? "manual" : "automatic");
       const { data, error } = await pendingQuery
         .order("scheduled_at", { ascending: true })
         .limit(limit);

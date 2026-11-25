@@ -95,7 +95,8 @@ async function getPendingVideos(
   limit = Number(process.env.MAX_VIDEOS || 1),
   manualOverride = process.env.MANUAL_RUN === 'true'
 ) {
-  const result = await queueApi('next', { limit, manualOverride });
+  const format = process.env.PUBLICATION_FORMAT === 'short' ? 'short' : 'long';
+  const result = await queueApi('next', { limit, manualOverride, format });
   return Array.isArray(result.videos) ? result.videos : [];
 }
 
@@ -1288,6 +1289,12 @@ async function processVideo(video) {
     const reviewUrl = (typeof video.review_url === 'string' && video.review_url.startsWith('https://'))
       ? video.review_url
       : '';
+    const trendMarker = Array.isArray(video.media_assets)
+      ? video.media_assets.find((asset) => asset && asset.type === 'trend-topic')
+      : null;
+    const trendSources = Array.isArray(script.trendSources)
+      ? script.trendSources
+      : Array.isArray(trendMarker?.news) ? trendMarker.news : [];
     const purchaseUrl = video.shortened_affiliate_url || video.affiliate_url;
     if (!purchaseUrl || !/^https:\/\//i.test(String(purchaseUrl))) {
       throw new Error('Link de compra/afiliado ausente ou inválido; upload bloqueado.');
@@ -1313,6 +1320,7 @@ async function processVideo(video) {
       format: videoFormat,
       contentType: script.contentType,
       topicTitle: script.topicTitle,
+      trendSources,
       topicalTags: script.tags,
       productTitle: video.product_title,
       category: video.product_category,
@@ -1437,16 +1445,24 @@ async function main() {
   await retryPendingCtaComments();
 
   const manualRun = process.env.MANUAL_RUN === 'true';
-  const quota = await queueApi('quota');
+  const publicationFormat = process.env.PUBLICATION_FORMAT === 'short' ? 'short' : 'long';
+  const quota = await queueApi('quota', { format: publicationFormat });
   if (!manualRun && Number(quota.remaining) <= 0) {
     console.log(`Limite automático diário atingido: ${quota.completedToday}/${quota.dailyLimit} publicações automáticas no horário de São Paulo. Execução encerrada sem reivindicar itens.`);
     return;
   }
   if (manualRun) {
-    console.log(`[MANUAL_RUN] Execução manual autorizada; não consome a cota automática de 15/dia. Limite deste lote: 5 vídeos. Publicações automáticas hoje: ${quota.completedToday}/${quota.dailyLimit}.`);
+    console.log(`[MANUAL_RUN] Execução manual autorizada; não consome a cota automática de ${quota.dailyLimit}/dia para o formato ${publicationFormat}. Limite deste lote: 5 vídeos. Publicações automáticas hoje: ${quota.completedToday}/${quota.dailyLimit}.`);
   }
 
   const videoId = process.env.VIDEO_ID;
+  if (manualRun && videoId) {
+    const manualSelection = await queueApi('markManual', { videoId });
+    if (!manualSelection.success) {
+      throw new Error('Não foi possível separar o item manual da cota automática: ' + String(manualSelection.error || 'falha desconhecida'));
+    }
+    console.log('[MANUAL_RUN] Item individual marcado como manual; impacto na cota automática: zero.');
+  }
   const requestedLimit = videoId
     ? 1
     : Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 10, manualRun ? 10 : Number(quota.remaining));
@@ -1491,7 +1507,7 @@ async function main() {
       console.log('Fila abaixo do lote solicitado (' + videos.length + '/' + limit + '); completando diretamente com produtos elegíveis da Lista Social do Mercado Livre.');
       let queuedFromSocialList = 0;
       try {
-        const refill = await queueApi('queueFromSocialList', { limit: slotsNeeded });
+        const refill = await queueApi('queueFromSocialList', { limit: slotsNeeded, manualOverride: manualRun });
         queuedFromSocialList = Math.min(slotsNeeded, Math.max(0, Number(refill.queued) || 0));
         console.log(`Reposição independente da fila: ${queuedFromSocialList} vídeo(s) longo(s) da Lista Social adicionado(s).`);
       } catch (error) {
@@ -1503,7 +1519,7 @@ async function main() {
         const catalogSlots = limit - videos.length;
         try {
           console.log('[QUEUE_REFILL] Lista Social insuficiente; tentando catálogo verificado de produtos (' + catalogSlots + ' vaga(s)).');
-          const catalog = await queueApi('queueFromProductCatalog', { limit: catalogSlots });
+          const catalog = await queueApi('queueFromProductCatalog', { limit: catalogSlots, format: publicationFormat, manualOverride: manualRun });
           console.log('[QUEUE_REFILL] Catálogo verificado adicionou ' + Number(catalog.queued || 0) + ' vídeo(s).');
           videos = await getPendingVideos(limit, manualRun);
         } catch (error) {

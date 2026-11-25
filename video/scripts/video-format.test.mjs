@@ -184,6 +184,50 @@ assert.ok(longDescription.includes(reviewUrl));
 assert.ok(longDescription.includes("0:00 Introdução"));
 assert.ok(longDescription.includes("1:05 Limitações"));
 
+const newsSources = [
+  {
+    title: "Fabricantes anunciam nova geração de notebooks com IA",
+    source: "Agência Exemplo",
+    url: "https://news.example.com/noticia-ia",
+    publishedAt: "2026-11-24T17:30:00Z",
+  },
+  {
+    title: "Link inseguro não deve aparecer nas fontes",
+    source: "Fonte inválida",
+    url: "http://news.example.com/inseguro",
+  },
+];
+const longNewsDescription = buildVideoDescription({
+  format: "long",
+  contentType: "trend",
+  topicTitle: "Inteligência artificial",
+  productTitle: "Notebook Exemplo",
+  category: "Notebooks",
+  purchaseUrl,
+  reviewUrl: "",
+  hook: "O que mudou hoje?",
+  trendSources: newsSources,
+});
+assert.ok(longNewsDescription.includes("FONTES DA PAUTA"));
+assert.ok(longNewsDescription.includes("Agência Exemplo"));
+assert.ok(longNewsDescription.includes("Fabricantes anunciam nova geração"));
+assert.ok(longNewsDescription.includes("https://news.example.com/noticia-ia"));
+assert.ok(!longNewsDescription.includes("Link inseguro"));
+const shortNewsDescription = buildVideoDescription({
+  format: "short",
+  contentType: "trend",
+  topicTitle: "Inteligência artificial",
+  productTitle: "Notebook Exemplo",
+  category: "Notebooks",
+  purchaseUrl,
+  reviewUrl,
+  hook: "O que mudou hoje?",
+  trendSources: newsSources,
+});
+assert.ok(shortNewsDescription.includes("PRODUTO RELACIONADO RECOMENDADO"));
+assert.ok(shortNewsDescription.includes("FONTES DA PAUTA"));
+assert.ok(shortNewsDescription.includes("https://news.example.com/noticia-ia"));
+
 const standaloneLongDescription = buildVideoDescription({
   format: "long",
   productTitle: "Samsung Galaxy A07",

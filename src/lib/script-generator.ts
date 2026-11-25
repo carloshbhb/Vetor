@@ -158,6 +158,10 @@ export function buildScriptPrompt(product: ProductInfo): string {
     .replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").slice(0, 6500);
   const hooks = (product.recentHooksToAvoid || []).filter(Boolean).slice(0, 12)
     .map((hook) => "- " + String(hook).slice(0, 180)).join("\n") || "- Nenhum roteiro anterior foi fornecido.";
+  const isTrendNews = Boolean(product.researchBrief?.includes("PAUTA JORNALÍSTICA EM ALTA"));
+  const trendInstructions = isTrendNews
+    ? "FORMATO NOTÍCIA + RECOMENDAÇÃO: este vídeo precisa contar a pauta jornalística descrita nas fontes, não virar um review comum. Organize contexto, fatos que as manchetes confirmam, impacto plausível sem especulação e o que acompanhar a seguir. Diferencie notícia de opinião; não invente dados, citações, datas ou desdobramentos. Só apresente o produto no encerramento, explique a conexão real com o interesse do público e recomende explicitamente seu nome e categoria na última cena e no CTA. Transparência: é uma recomendação de afiliado independente, não patrocínio da notícia."
+    : "";
   const instructions = isLong
     ? "VÍDEO LONGO HORIZONTAL, 4–7 MINUTOS. Crie 8–10 cenas de 29–40 segundos e aproximadamente 55–85 palavras por cena. Conte uma decisão de compra completa: pergunta central, contexto, recursos que importam, implicações práticas baseadas nos fatos fornecidos, limitações, para quem serve/não serve, critérios de comparação e veredito. Cada visualCue deve ser um capítulo específico. Não leia a ficha técnica."
     : "YOUTUBE SHORTS VERTICAL, 60–90 SEGUNDOS. Crie 6–7 cenas de 9–10 segundos e aproximadamente 18–28 palavras por cena. Um único assunto, gancho nos dois primeiros segundos, argumentos específicos e decisão rápida.";
@@ -170,7 +174,9 @@ export function buildScriptPrompt(product: ProductInfo): string {
     "Formato: " + (isLong ? "Vídeo longo" : "Short"),
     "ESPECIFICAÇÕES DOCUMENTADAS:\n" + specs,
     "CONTEXTO EDITORIAL REAL:\n" + context,
-    "PESQUISA SERP + YOUTUBE:\n" + (product.researchBrief || "Não disponível."),    "ÂNGULO NARRATIVO OBRIGATÓRIO:\n" + (product.creativeAngle || "Escolha o ângulo mais específico para este produto."),
+    "PESQUISA SERP + YOUTUBE:\n" + (product.researchBrief || "Não disponível."),
+    trendInstructions,
+    "ÂNGULO NARRATIVO OBRIGATÓRIO:\n" + (product.creativeAngle || "Escolha o ângulo mais específico para este produto."),
     "Esse ângulo deve guiar a abertura, ordem dos argumentos, exemplos e conclusão; não troque apenas o nome do produto num roteiro padrão.",
     "DIREÇÃO CRIATIVA POR CENA: você também é diretor de motion design. Não aplique uma única estética de review em todo o vídeo. Escolha 1 template principal e 1 ou 2 templates de apoio PARA CADA CENA, combinando linguagens diferentes conforme o objetivo narrativo. Varie a sequência; uma mesma peça pode alternar 3D, HUD, tipografia cinética, parallax, lifestyle, infográficos, comparação e tratamento editorial.",
     "IDs permitidos: " + VIDEO_VISUAL_TEMPLATE_IDS.join(", ") + ". Retorne visualTemplates como array com 2 ou 3 IDs exatos, sem inventar novos IDs; a primeira escolha é o template principal. Retorne também visualIntent com uma instrução visual concreta e executável, incluindo objeto em foco, ação, movimento de câmera e ritmo.",

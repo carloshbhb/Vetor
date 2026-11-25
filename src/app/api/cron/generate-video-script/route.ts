@@ -335,7 +335,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (cachedScript && cachedScript.contentType !== "comparison") {
+    if (cachedScript && cachedScript.contentType !== "comparison" && !existingMediaAssets.some((asset: any) => asset?.type === "trend-topic")) {
       await updateVideoStatus(videoId, { media_assets: mediaAssets });
       return NextResponse.json({
         success: true,
@@ -348,13 +348,38 @@ export async function POST(request: NextRequest) {
     }
 
     const trendMarker = existingMediaAssets.find((asset: any) => asset && asset.type === "trend-topic") || null;
+    const trendNews = Array.isArray(trendMarker?.news)
+      ? trendMarker.news.slice(0, 3).map((article: any) => ({
+          title: String(article?.title || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 240),
+          source: String(article?.source || "Fonte jornalística").slice(0, 120),
+          url: String(article?.url || "").trim().slice(0, 1200),
+          publishedAt: String(article?.publishedAt || "").slice(0, 40),
+          snippet: String(article?.snippet || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 500),
+        }))
+        .filter((article: any) => article.title && article.url.startsWith("https://"))
+      : [];
     const trendResearchBrief = trendMarker?.title
-      ? "Pauta em alta identificada no Google Trends Brasil: " + String(trendMarker.title).slice(0, 180) +
-        ". Conecte o assunto ao produto apenas quando houver relação factual clara. Explique a utilidade do produto para quem acompanha esse assunto, sem alegar que o produto está em alta, sem inventar especificações, compatibilidade ou resultados. Se a relação for indireta, deixe isso explícito e priorize uma recomendação honesta. Na última cena, recomende de forma explícita o produto selecionado da Lista Social do Mercado Livre, explique em uma frase por que ele combina com o assunto e encerre com CTA para conferir o link de compra na descrição."
-      : undefined;
-    const researchBrief = typeof body.researchBrief === "string"
-      ? body.researchBrief
-      : trendResearchBrief;
+      ? [
+          "PAUTA JORNALÍSTICA EM ALTA — Google Trends Brasil",
+          "Tema em alta: " + String(trendMarker.title).slice(0, 180),
+          "Volume aproximado informado pelo Google Trends: " + String(trendMarker.traffic || "não informado"),
+          "Momento da coleta: " + String(trendMarker.fetchedAt || "durante esta execução"),
+          "Manchetes e fontes relacionadas (usar como trilha de apuração; não extrapolar além do conteúdo fornecido):",
+          ...trendNews.map((article: any, index: number) =>
+            (index + 1) + ". " + article.title + " | Fonte: " + article.source +
+            (article.publishedAt ? " | Publicação: " + article.publishedAt : "") +
+            " | URL original: " + article.url +
+            (article.snippet ? " | Trecho: " + article.snippet : "")
+          ),
+          "ESTRUTURA OBRIGATÓRIA: explique o que aconteceu segundo as manchetes/fontes, por que o assunto ganhou atenção, o que está confirmado e o que ainda precisa ser acompanhado. Diferencie fatos de análise. Use as manchetes como evidência, nunca invente datas, números, declarações, causas, consequências ou detalhes ausentes. Se os dados forem escassos, diga isso claramente.",
+          "O produto não é a notícia: ele é uma recomendação comercial relacionada ao interesse do público. Desenvolva o assunto primeiro e só recomende o produto selecionado na cena final e no CTA. Explique de modo honesto a relação entre o tema e a categoria do produto; não alegue que o produto participou do acontecimento, não insinue patrocínio e não invente utilidade, compatibilidade, teste ou benefício.",
+          "A última cena deve fechar a pauta e recomendar explicitamente o produto selecionado, informando o nome exato e a categoria. O CTA falado deve repetir a recomendação e convidar a conferir preço e condições atuais no link da descrição."
+        ].join("\n")
+      : "";
+    const productResearchBrief = typeof body.researchBrief === "string" ? body.researchBrief.trim() : "";
+    const researchBrief = [trendResearchBrief, productResearchBrief
+      ? "PESQUISA DO PRODUTO (dados complementares; não substituem a notícia):\n" + productResearchBrief
+      : ""].filter(Boolean).join("\n\n---\n\n");
     const script = await generateVideoScript({
       title: String(video.product_title || reviewFacts?.product || "Produto de tecnologia"),
       category: String(reviewFacts?.category || selectedProductRow?.category || video.product_category || "Tecnologia"),
@@ -377,8 +402,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Roteiro personalizado não passou pela validação de estrutura." }, { status: 422 });
     }
     const rawScore = Number(reviewFacts?.verdict_score ?? reviewFacts?.hero_overall_score);
+    const productTitle = String(video.product_title || reviewFacts?.product || "produto selecionado");
+    const productCategory = String(reviewFacts?.category || selectedProductRow?.category || video.product_category || "Tecnologia");
+    const finalScenes = Array.isArray(script.scenes) ? [...script.scenes] : [];
+    let callToAction = String(script.callToAction || "Confira os detalhes no link da descrição.");
+    if (trendMarker?.title && finalScenes.length) {
+      const lastScene = { ...finalScenes[finalScenes.length - 1] };
+      const normalize = (value: string) => value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+      if (!normalize(String(lastScene.text || "")).includes(normalize(productTitle))) {
+        lastScene.text = String(lastScene.text || "").trim() +
+          " A recomendação relacionada é " + productTitle + ", da categoria " + productCategory + "; confira se atende ao seu uso.";
+      }
+      finalScenes[finalScenes.length - 1] = lastScene;
+      if (!normalize(callToAction).includes(normalize(productTitle))) {
+        callToAction = callToAction.trim() + " A recomendação relacionada a esta pauta é " +
+          productTitle + ", da categoria " + productCategory +
+          ". Confira o preço e as condições atuais no link da descrição.";
+      }
+    }
     const finalScript = {
       ...script,
+      scenes: finalScenes,
+      callToAction,
+      ...(trendMarker?.title ? {
+        contentType: "trend",
+        topicTitle: String(trendMarker.title).slice(0, 180),
+        trendSources: trendNews,
+      } : {}),
       generationVersion: 3 as const,
       visualDirectionVersion: 1 as const,
       videoFormat,
