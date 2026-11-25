@@ -375,6 +375,39 @@ export function stripSpokenUrls(value) {
 }
 
 /**
+ * Mirrors the production script-generator speech budget at the runner boundary.
+ * This is intentionally rechecked after API/cache fallback and before Edge TTS,
+ * so stale cached scripts cannot bypass duration constraints.
+ */
+export function validateSpokenScriptBudget(script, format) {
+  const isLong = format === "long";
+  const scenes = Array.isArray(script?.scenes) ? script.scenes : [];
+  const sceneWordCounts = scenes.map((scene) =>
+    stripSpokenUrls(scene?.text).split(/\\s+/).filter(Boolean).length
+  );
+  const hook = stripSpokenUrls(script?.hook);
+  const callToAction = stripSpokenUrls(script?.callToAction) ||
+    "Confira os detalhes e as condições atuais no link da descrição.";
+  const spoken = [hook, ...scenes.map((scene) => stripSpokenUrls(scene?.text)), callToAction]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const totalWords = spoken ? spoken.split(/\\s+/).filter(Boolean).length : 0;
+
+  if (isLong) {
+    const valid = scenes.length >= 8 && scenes.length <= 10 &&
+      sceneWordCounts.every((count) => count >= 65 && count <= 110) &&
+      totalWords >= 640 && totalWords <= 1120;
+    return { valid, format: "long", totalWords, sceneWordCounts };
+  }
+
+  const valid = scenes.length === 7 &&
+    sceneWordCounts.every((count) => count >= 18 && count <= 24) &&
+    totalWords >= 155 && totalWords <= 190;
+  return { valid, format: "short", totalWords, sceneWordCounts };
+}
+
+/**
  * Exact per-segment timing (seconds) from Edge TTS word boundaries.
  *
  * Each segment starts when its first word is spoken. A segment ends when the next
