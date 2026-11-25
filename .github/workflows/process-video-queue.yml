@@ -11,6 +11,7 @@ on:
     branches: [main]
     paths:
       - '.ops/run-manual-video-generation'
+      - '.ops/run-manual-long-video-batch-2'
   # Independent long-form video production: 08:00 and 20:00 in Sao Paulo (UTC-03), 5 videos per batch.
   schedule:
     - cron: '0 11 * * *'
