@@ -158,11 +158,11 @@ test('creative overlays are clipped and kinetic headlines are fitted to platform
 
   assert.match(treatment, /LANDSCAPE_OVERLAY_SAFE_ZONE/);
   assert.match(treatment, /clipPath: safeOverlay/);
-  assert.match(treatment, /const cinematicCircle = landscape[\\s\\S]*size: height \\* 0\\.68/);
+  assert.match(treatment, /const cinematicCircle = landscape[\s\S]*size: height \* 0\.68/);
   assert.match(renderer, /LANDSCAPE_OVERLAY_SAFE_ZONE/);
   assert.match(renderer, /SHORTS_SAFE_ZONE/);
-  assert.match(renderer, /fitHeadlineSize\\(text/);
-  assert.match(renderer, /truncateHeadline\\(label/);
+  assert.match(renderer, /fitHeadlineSize\(text/);
+  assert.match(renderer, /truncateHeadline\(label/);
   assert.match(renderer, /left: contentLeft/);
   assert.match(renderer, /right: width - contentRight/);
   assert.doesNotMatch(renderer, /fontSize: landscape \\? 88 : 104/);
