@@ -14,6 +14,7 @@ on:
       - "src/app/api/cron/video-queue-worker/route.ts"
       - "scripts/video-queue-quota.test.ts"
       - ".github/workflows/process-video-queue.yml"
+      - ".github/workflows/publish-daily-shorts.yml"
       - ".github/workflows/video-pipeline-validation.yml"
   workflow_dispatch:
     inputs:
@@ -35,6 +36,7 @@ on:
       - "scripts/script-generator-budget.test.ts"
       - "src/app/api/cron/video-queue-worker/route.ts"
       - ".github/workflows/process-video-queue.yml"
+      - ".github/workflows/publish-daily-shorts.yml"
       - ".github/workflows/video-pipeline-validation.yml"
 
 permissions:
@@ -69,7 +71,7 @@ jobs:
         run: npm ci
 
       - name: Syntax-check Edge TTS and Blender GLB export helpers
-        run: python -m py_compile scripts/tts.py video/blender/export_product_glb.py
+        run: python -m py_compile scripts/tts.py video/blender/export_product_glb.py video/scripts/fetch-trending-news.py
 
       - name: Validate storyboard and local media source contracts
         working-directory: video
@@ -81,8 +83,10 @@ jobs:
           node --import tsx scripts/scene-headline.test.mjs
           node scripts/media-source.test.mjs
 
-      - name: Validate independent long-video queue and daily quota
-        run: npx tsx scripts/video-queue-quota.test.ts
+      - name: Validate independent short/long quotas and news feed parser
+        run: |
+          npx tsx scripts/video-queue-quota.test.ts
+          python video/scripts/fetch-trending-news.py --self-test
 
       - name: Validate format, affiliate-link and chapter contracts
         run: node video/scripts/video-format.test.mjs
