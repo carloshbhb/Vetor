@@ -149,6 +149,35 @@ export interface ProductInfo {
   researchBrief?: string;
 }
 
+export function toSpokenProductName(value: string): string {
+  const raw = String(value || "").replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim();
+  if (!raw) return "produto selecionado";
+  const featureTail = /\\b(?:wi-?fi|bluetooth|google tv|hdr10\\+|dolby(?: atmos| vision)?|assistente de voz|controle por voz)\\b/i;
+  const match = featureTail.exec(raw);
+  const compact = (match && match.index >= 16 ? raw.slice(0, match.index) : raw).trim();
+  const words = compact.split(/\\s+/);
+  let result = compact;
+  while (result.length > 72 && words.length > 3) {
+    words.pop();
+    result = words.join(" ");
+  }
+  return result.slice(0, 72).trim();
+}
+
+export function isShortSpokenWordBudgetValid(script: {
+  hook?: unknown;
+  scenes?: Array<{ text?: unknown }>;
+  callToAction?: unknown;
+}): boolean {
+  const spoken = [
+    String(script.hook || ""),
+    ...(Array.isArray(script.scenes) ? script.scenes.map((scene) => String(scene?.text || "")) : []),
+    String(script.callToAction || ""),
+  ].join(" ").trim();
+  const words = spoken ? spoken.split(/\\s+/).filter(Boolean).length : 0;
+  return words >= 95 && words <= 160;
+}
+
 export function buildScriptPrompt(product: ProductInfo): string {
   const isLong = product.videoFormat === "long";
   const specs = product.specifications && Object.keys(product.specifications).length
@@ -164,7 +193,7 @@ export function buildScriptPrompt(product: ProductInfo): string {
     : "";
   const instructions = isLong
     ? "VÍDEO LONGO HORIZONTAL, 4–7 MINUTOS. Crie 8–10 cenas de 29–40 segundos e aproximadamente 55–85 palavras por cena. Conte uma decisão de compra completa: pergunta central, contexto, recursos que importam, implicações práticas baseadas nos fatos fornecidos, limitações, para quem serve/não serve, critérios de comparação e veredito. Cada visualCue deve ser um capítulo específico. Não leia a ficha técnica."
-    : "YOUTUBE SHORTS VERTICAL, 60–90 SEGUNDOS. Crie 6–7 cenas de 9–10 segundos e aproximadamente 18–28 palavras por cena. Um único assunto, gancho nos dois primeiros segundos, argumentos específicos e decisão rápida.";
+    : "YOUTUBE SHORTS VERTICAL, 60–90 SEGUNDOS. Crie 6–7 cenas de 9–10 segundos e aproximadamente 14–18 palavras por cena. Mantenha o roteiro falado completo (gancho + cenas + CTA) entre 95 e 160 palavras; não repita o título completo do anúncio. Um único assunto, gancho nos dois primeiros segundos, argumentos específicos e decisão rápida.";
 
   return [
     "Você é roteirista editorial e apresentador de tecnologia do Vetor.blog. Escreva em português brasileiro natural, para ser falado por uma pessoa real.",
@@ -224,6 +253,11 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
     )) return false;
     const cues = parsed.scenes.map((scene: any) => scene.visualCue.trim().toLowerCase());
     if (new Set(cues).size < Math.min(6, cues.length)) return false;
+    if (!isLong) {
+      const sceneWordCounts = parsed.scenes.map((scene: any) => scene.text.trim().split(/\\s+/).filter(Boolean).length);
+      if (sceneWordCounts.some((count: number) => count > 20)) return false;
+      if (!isShortSpokenWordBudgetValid(parsed)) return false;
+    }
     const banned = [/está na categoria/i, /o preço informado é/i, /antes de comprar .{0,100} confira a versão exata/i, /pare! antes de comprar/i, /testamos|em nossos testes|nos nossos testes|medimos|testei pessoalmente/i];
     if (banned.some((pattern) => pattern.test([parsed.hook, ...parsed.scenes.map((scene: any) => scene.text)].join(" ")))) return false;
     const seconds = parsed.scenes.reduce((sum: number, scene: any) => sum + Number(scene.duration || 0), 8);
