@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   buildLLMProviderOrder,
+  buildGroqModelOrder,
   OPENROUTER_FREE_MODEL_PRIORITY,
   getGroqRequestPolicy,
   rankOpenRouterFreeModels,
@@ -85,10 +86,16 @@ assert.deepEqual(
   "Qwen output must stay below the observed 1000-token-per-minute ceiling"
 );
 assert.deepEqual(
-  getGroqRequestPolicy("openai/gpt-oss-120b", 2600),
-  { maxTokens: 1_300, minimumIntervalMs: 60_000 },
-  "GPT-OSS output must be bounded and paced under the observed Groq TPM ceiling"
+  getGroqRequestPolicy("openai/gpt-oss-120b", 3600),
+  { maxTokens: 2_600, minimumIntervalMs: 60_000 },
+  "GPT-OSS allows a bounded 2600-token output for 4–7 minute scripts while retaining the 60-second model pacing"
 );
+assert.deepEqual(
+  buildGroqModelOrder("qwen/qwen3.8-27b", "custom/fallback"),
+  ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "custom/fallback"],
+  "the model with verified valid script output is tried before Qwen, while configured alternates remain available"
+);
+
 assert.deepEqual(
   getGroqRequestPolicy("other/model", 2600),
   { maxTokens: 2600, minimumIntervalMs: 30_000 },
