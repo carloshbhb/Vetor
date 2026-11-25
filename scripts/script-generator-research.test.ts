@@ -108,7 +108,8 @@ assert.ok(withoutBrief.includes("PESQUISA SERP + YOUTUBE"), "prompt deve conter 
 assert.ok(withoutBrief.includes("Não disponível."), "prompt sem brief deve indicar indisponível");
 assert.ok(withoutBrief.includes("14–18 palavras por cena"), "Short prompt is sized for spoken duration");
 assert.ok(withoutBrief.includes("entre 100 e 150 palavras"), "Short prompt explicitly limits total narration length");
-assert.ok(withoutBrief.includes("entre 640 e 1.120 palavras"), "long prompt explicitly targets 4–7 minutes of spoken narration");
-assert.ok(withoutBrief.includes("70–100 palavras por cena"), "long scene lengths support natural narration pacing");
+const longWithoutBrief = buildScriptPrompt({ ...baseProduct, videoFormat: "long" });
+assert.ok(longWithoutBrief.includes("entre 640 e 1.120 palavras"), "long prompt explicitly targets 4–7 minutes of spoken narration");
+assert.ok(longWithoutBrief.includes("70–100 palavras por cena"), "long scene lengths support natural narration pacing");
 
 console.log("script generator research brief tests passed");
