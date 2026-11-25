@@ -1081,7 +1081,7 @@ export async function POST(request: NextRequest) {
             if (product.productTokens.has(token)) score += 3;
           }
           for (const related of topicSynonyms) {
-            if (product.productTokens.has(related)) score += 2;
+            if (product.productTokens.has(related)) score += 3;
           }
           if (!bestForTopic.has(product.itemId) || score > bestForTopic.get(product.itemId).score) {
             bestForTopic.set(product.itemId, { product, score });
