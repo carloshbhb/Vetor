@@ -152,10 +152,10 @@ export interface ProductInfo {
 export function toSpokenProductName(value: string): string {
   const raw = String(value || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   if (!raw) return "produto selecionado";
-  const featureTail = /\b(?:wi-?fi|bluetooth|google tv|hdr10\+|dolby(?: atmos| vision)?|assistente de voz|controle por voz)\\b/i;
+  const featureTail = /\b(?:wi-?fi|bluetooth|google tv|hdr10\+|dolby(?: atmos| vision)?|assistente de voz|controle por voz)\b/i;
   const match = featureTail.exec(raw);
   const compact = (match && match.index >= 16 ? raw.slice(0, match.index) : raw).trim();
-  const words = compact.split(/\\s+/);
+  const words = compact.split(/\s+/);
   let result = compact;
   while (result.length > 72 && words.length > 3) {
     words.pop();
@@ -174,7 +174,7 @@ export function isShortSpokenWordBudgetValid(script: {
     ...(Array.isArray(script.scenes) ? script.scenes.map((scene) => String(scene?.text || "")) : []),
     String(script.callToAction || ""),
   ].join(" ").trim();
-  const words = spoken ? spoken.split(/\\s+/).filter(Boolean).length : 0;
+  const words = spoken ? spoken.split(/\s+/).filter(Boolean).length : 0;
   return words >= 95 && words <= 160;
 }
 
@@ -254,7 +254,7 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
     const cues = parsed.scenes.map((scene: any) => scene.visualCue.trim().toLowerCase());
     if (new Set(cues).size < Math.min(6, cues.length)) return false;
     if (!isLong) {
-      const sceneWordCounts = parsed.scenes.map((scene: any) => scene.text.trim().split(/\\s+/).filter(Boolean).length);
+      const sceneWordCounts = parsed.scenes.map((scene: any) => scene.text.trim().split(/\s+/).filter(Boolean).length);
       if (sceneWordCounts.some((count: number) => count > 20)) return false;
       if (!isShortSpokenWordBudgetValid(parsed)) return false;
     }
