@@ -74,6 +74,9 @@ assert.ok(shortsBlock.includes("publication_mode: manualOverride ? \"manual\" : 
 
 assert.ok(route.includes('pendingQuery = pendingQuery\n        .contains("media_assets", JSON.stringify([{ type: "publication_format", format }]))'));
 assert.ok(route.includes('.eq("publication_mode", manualOverride ? "manual" : "automatic");'));
+assert.ok(route.includes('if (action === "markManual")'));
+assert.ok(route.includes('.in("status", ["pending", "failed"])'));
+assert.ok(route.includes('quotaImpact: "none"'));
 assert.equal(route.split('.contains("media_assets", JSON.stringify').length - 1, 11,
   "all JSONB media_assets filters serialize the array marker explicitly");
 
@@ -105,6 +108,8 @@ assert.match(shortsWorkflow, /manual_run=/);
 
 assert.match(processVideo, /queueApi\('quota', \{ format: publicationFormat \}\)/);
 assert.match(processVideo, /queueApi\('next', \{ limit, manualOverride, format \}\)/);
+assert.ok(processVideo.includes("queueApi('markManual', { videoId })"));
+assert.ok(processVideo.includes("impacto na cota automática: zero"));
 assert.match(processVideo, /trendSources,/);
 assert.match(processVideo, /queueApi\('queueFromSocialList', \{ limit: slotsNeeded, manualOverride: manualRun \}\)/);
 assert.doesNotMatch(processVideo, /queueApi\('queueFromReviews'/);
