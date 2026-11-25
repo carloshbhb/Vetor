@@ -142,7 +142,7 @@ assert.match(processVideoQueueWorkflow, /MAX_VIDEOS: '5'/, 'each scheduled invoc
 assert.match(processVideoQueueWorkflow, /\n  workflow_dispatch:/, 'video queue remains manually triggerable');
 assert.match(processVideoQueueWorkflow, /paths:\s*\n\s+- '\.ops\/run-manual-video-generation'/, 'only the explicit manual marker can trigger a push batch');
 assert.match(processVideoQueueWorkflow, /github\.event\.head_commit\.message == 'run-manual-video-generation'/, 'only an explicit manual marker commit can start video publishing');
-assert.match(processVideoQueueWorkflow, /github\.event\.head_commit\.message == 'run-manual-video-generation'.*MANUAL_RUN/s, 'manual marker runs bypass automatic publication quota');
+assert.match(processVideoQueueWorkflow, /github\.event\.head_commit\.message == 'run-manual-video-generation'[\s\S]*MANUAL_RUN/, 'manual marker runs bypass automatic publication quota');
 assert.match(read('.github/workflows/publish-daily-shorts.yml'), /run-manual-video-generation/, 'Shorts workflow supports the same explicit manual trigger');
 assert.match(invalidation, /revalidateAffiliateLinkSurfaces/);
 assert.match(invalidation, /revalidateProductLinkSurfaces/);
