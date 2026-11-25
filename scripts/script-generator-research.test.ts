@@ -8,25 +8,31 @@ const spokenName = toSpokenProductName(
 assert.equal(spokenName, "Smart TV TCL 50 Polegadas QLED 4K P7K", "spoken product name removes repetitive listing features");
 
 const validShortBudget = {
-  hook: "O que mudou e por que isso importa agora?",
-  scenes: Array.from({ length: 7 }, (_, index) => ({
-    text: [
-      "Veja os pontos confirmados e o que ainda precisa ser verificado antes de tomar sua decisão.",
-      "Compare os recursos principais com o seu uso diário e evite pagar por funções desnecessárias.",
-      "A compatibilidade precisa ser conferida na ficha oficial e nas condições do anúncio escolhido.",
-      "Observe os limites documentados, a garantia e o suporte antes de considerar a compra.",
-      "O preço final depende de frete, disponibilidade e condições que podem mudar no anúncio.",
-      "Considere as alternativas e confirme se os recursos realmente atendem ao seu objetivo.",
-      "A recomendação é este modelo para quem prioriza os recursos apresentados nesta pauta.",
-    ][index],
-  })),
-  callToAction: "Confira as fontes, o preço atualizado e as condições no link da descrição.",
+  hook: "Antes de comprar, há detalhes que merecem atenção.",
+  scenes: [
+    "Compare os pontos confirmados com sua rotina antes de escolher; capacidade, espaço disponível e tipo de preparo mudam a experiência diária.",
+    "Confira a potência informada na ficha oficial e confirme se a instalação elétrica da sua casa suporta o modelo com segurança.",
+    "O tamanho do cesto deve combinar com as porções que você prepara, sem ocupar mais espaço na bancada do que pode reservar.",
+    "Observe os controles, timer e temperatura disponíveis; confirme esses detalhes no anúncio, porque as versões podem variar conforme a voltagem.",
+    "A limpeza depende do revestimento e das orientações do fabricante; prefira materiais macios e siga as instruções para preservar o cesto.",
+    "Compare preço final, frete, garantia e avaliações recentes com modelos equivalentes antes de decidir se os recursos justificam o investimento.",
+    "A melhor escolha depende da sua voltagem, do espaço disponível e da frequência de uso, não apenas do acabamento externo.",
+  ].map((text) => ({ text })),
+  callToAction: "Confira a ficha completa e as condições atuais no link da descrição antes de decidir.",
 };
-assert.equal(isShortSpokenWordBudgetValid(validShortBudget), true, "Short script respects the full spoken-word budget");
+assert.equal(isShortSpokenWordBudgetValid(validShortBudget), true, "Short narration is long enough to reach at least 60 seconds at the configured Edge TTS rate");
+assert.equal(isShortSpokenWordBudgetValid({
+  ...validShortBudget,
+  scenes: validShortBudget.scenes.slice(0, 6),
+}), false, "Shorts require seven distinct scenes");
 assert.equal(isShortSpokenWordBudgetValid({
   ...validShortBudget,
   scenes: Array.from({ length: 7 }, () => ({ text: "palavra ".repeat(25) })),
 }), false, "overlong Shorts scripts are rejected before TTS");
+assert.equal(isShortSpokenWordBudgetValid({
+  ...validShortBudget,
+  scenes: Array.from({ length: 7 }, () => ({ text: "curto demais para sustentar uma locução com duração mínima sem espaços vazios." })),
+}), false, "underwritten Shorts scripts are rejected before TTS");
 
 const validLongBudget = {
   hook: "Antes de decidir, entenda os pontos que realmente importam para o seu uso diário.",
@@ -106,8 +112,9 @@ assert.equal(comparisonArena.visualTemplates[0], "comparison-arena");
 const withoutBrief = buildScriptPrompt(baseProduct);
 assert.ok(withoutBrief.includes("PESQUISA SERP + YOUTUBE"), "prompt deve conter seção de pesquisa");
 assert.ok(withoutBrief.includes("Não disponível."), "prompt sem brief deve indicar indisponível");
-assert.ok(withoutBrief.includes("14–18 palavras por cena"), "Short prompt is sized for spoken duration");
-assert.ok(withoutBrief.includes("entre 100 e 150 palavras"), "Short prompt explicitly limits total narration length");
+assert.ok(withoutBrief.includes("18–22 palavras faladas por cena"), "Short prompt is sized for measured Edge TTS duration");
+assert.ok(withoutBrief.includes("entre 155 e 190 palavras"), "Short prompt explicitly limits total narration length for at least 60 seconds");
+assert.ok(withoutBrief.includes("exatamente 7 cenas"), "Short prompt fixes scene count for reliable timing");
 const longWithoutBrief = buildScriptPrompt({ ...baseProduct, videoFormat: "long" });
 assert.ok(longWithoutBrief.includes("entre 640 e 1.120 palavras"), "long prompt explicitly targets 4–7 minutes of spoken narration");
 assert.ok(longWithoutBrief.includes("70–100 palavras por cena"), "long scene lengths support natural narration pacing");
