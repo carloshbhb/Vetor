@@ -6,6 +6,11 @@ concurrency:
   cancel-in-progress: false
 
 on:
+  # One-shot manual end-to-end validation (generation + YouTube upload, outside auto quota).
+  push:
+    branches: [main]
+    paths:
+      - '.ops/run-manual-video-generation'
   # 08:00 Sao Paulo (UTC-03), one run containing three sequential batches.
   schedule:
     - cron: '0 11 * * *'
@@ -16,6 +21,7 @@ permissions:
 
 jobs:
   publish:
+    if: ${{ github.event_name != 'push' || github.event.head_commit.message == 'run-manual-video-generation' }}
     name: Generate, render and publish 15 Shorts
     runs-on: ubuntu-latest
     timeout-minutes: 240
@@ -100,7 +106,7 @@ jobs:
           set -euo pipefail
           failed=0
           attempted=0
-          manual_run="${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}"
+          manual_run="${{ (github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'run-manual-video-generation') && 'true' || 'false' }}"
           manual_json=false
           [ "$manual_run" = "true" ] && manual_json=true
           echo "Cadência: 15 Shorts/dia em 3 lotes; cada lote consulta notícias novamente."
