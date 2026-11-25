@@ -417,11 +417,11 @@ export async function POST(request: NextRequest) {
       const matchedTokens = coreTokens.filter((token) => normalize(String(lastScene.text || "")).includes(normalize(token)));
       if (matchedTokens.length < Math.min(2, coreTokens.length)) {
         lastScene.text = String(lastScene.text || "").trim() +
-          " A recomendação relacionada é " + spokenProductTitle + ".";
+          " A recomendação relacionada é " + spokenProductTitle + ", da categoria " + productCategory + ".";
       }
       finalScenes[finalScenes.length - 1] = lastScene;
-      callToAction = "A recomendação relacionada a esta pauta é " + spokenProductTitle +
-        ". Confira o preço e as condições atuais no link da descrição.";
+      callToAction = "A recomendação relacionada é " + spokenProductTitle + ", categoria " + productCategory +
+        ". Confira preço e condições atuais no link da descrição.";
     }
     const finalScript = {
       ...script,
