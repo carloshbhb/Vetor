@@ -147,7 +147,7 @@ assert.match(invalidation, /revalidateProductLinkSurfaces/);
 
 // Video queue contract: long-form videos are sourced directly from the Social List,
 // can be generated without a review URL, and remain protected against duplicates.
-const queueFromSocialList = videoQueueWorker.match(/if \(action === "queueFromSocialList"\) \{[\s\S]*?\n    \}\n\n    if \(action === "queueFromComparatives"\)/);
+const queueFromSocialList = videoQueueWorker.match(/if \(action === "queueFromSocialList"\) \{[\s\S]*?\n    \}\n\n    if \(action === "queueFromProductCatalog"\)/);
 assert.ok(queueFromSocialList, 'queueFromSocialList action exists');
 assert.match(queueFromSocialList[0], /script_text: ""/);
 assert.match(queueFromSocialList[0], /review_url: null/);
@@ -158,9 +158,9 @@ assert.match(queueFromSocialList[0], /isSafeMercadoLivreAffiliateUrl/);
 assert.match(videoQueueWorker, /function formatVideoQueueError\(error: unknown\)/);
 assert.match(videoQueueWorker, /from\("ml_social_list_items"\)/, 'video discovery is driven by the Mercado Livre Social List');
 assert.match(videoQueueWorker, /function isLikelySameVideoProductTitle/);
-assert.match(videoQueueWorker, /MAX_DAILY_PUBLICATIONS = 15/);
+assert.match(videoQueueWorker, /DAILY_PUBLICATION_LIMITS = \{ short: 15, long: 10 \} as const/);
 assert.match(videoQueueWorker, /if \(getPublicationFormat\(item\.media_assets\) !== "long"\)/);
-assert.match(videoQueueWorker, /\.eq\("publication_mode", "automatic"\)/);
+assert.match(videoQueueWorker, /\.eq\("publication_mode", manualOverride \? "manual" : "automatic"\)/);
 assert.match(contentPipeline, /buildGeneratedReviewContent/);
 assert.match(contentPipeline, /sectionsHtml/);
 assert.match(reviewGenerator, /normalizeEditorialIdentity\(visibleContent\)/);
