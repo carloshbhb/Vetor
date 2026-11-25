@@ -73,7 +73,7 @@ assert.ok(shortsBlock.includes('format: "short"'));
 assert.ok(shortsBlock.includes("publication_mode: manualOverride ? \"manual\" : \"automatic\""));
 
 assert.ok(route.includes('pendingQuery = pendingQuery\n        .contains("media_assets", JSON.stringify([{ type: "publication_format", format }]))'));
-assert.ok(route.includes('if (!manualOverride) pendingQuery = pendingQuery.eq("publication_mode", "automatic");'));
+assert.ok(route.includes('.eq("publication_mode", manualOverride ? "manual" : "automatic");'));
 assert.equal(route.split('.contains("media_assets", JSON.stringify').length - 1, 11,
   "all JSONB media_assets filters serialize the array marker explicitly");
 
