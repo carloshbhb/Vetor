@@ -140,7 +140,7 @@ assert.match(processVideoQueueWorkflow, /queueFromSocialList/, 'video queue is f
 assert.doesNotMatch(processVideoQueueWorkflow, /workflow_run|Generate Daily Review|queueFromReviews/, 'video production is independent of editorial review generation');
 assert.match(processVideoQueueWorkflow, /MAX_VIDEOS: '5'/, 'each scheduled invocation is limited to five videos');
 assert.match(processVideoQueueWorkflow, /\n  workflow_dispatch:/, 'video queue remains manually triggerable');
-assert.match(processVideoQueueWorkflow, /paths:\s*\n\s+- '\.ops\/run-manual-video-generation'/, 'only the explicit manual marker can trigger a push batch');
+assert.match(processVideoQueueWorkflow, /paths:\s*\n\s+- '\.ops\/run-manual-video-generation'\s*\n\s+- '\.ops\/run-manual-long-video-batch-2'/, 'two explicit markers can trigger manual long runs without touching the Shorts workflow');
 assert.match(processVideoQueueWorkflow, /github\.event\.head_commit\.message == 'run-manual-video-generation'/, 'only an explicit manual marker commit can start video publishing');
 assert.match(processVideoQueueWorkflow, /github\.event\.head_commit\.message == 'run-manual-video-generation'[\s\S]*MANUAL_RUN/, 'manual marker runs bypass automatic publication quota');
 assert.match(read('.github/workflows/publish-daily-shorts.yml'), /run-manual-video-generation/, 'Shorts workflow supports the same explicit manual trigger');
