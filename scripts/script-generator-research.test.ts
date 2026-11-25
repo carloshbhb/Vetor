@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { buildScriptPrompt, ensureSceneVisualDirections, isShortSpokenWordBudgetValid, toSpokenProductName } from "../src/lib/script-generator";
+import { buildScriptPrompt, ensureSceneVisualDirections, isLongSpokenWordBudgetValid, isShortSpokenWordBudgetValid, toSpokenProductName } from "../src/lib/script-generator";
 import type { ProductInfo } from "../src/lib/script-generator";
 
 const spokenName = toSpokenProductName(
@@ -27,6 +27,23 @@ assert.equal(isShortSpokenWordBudgetValid({
   ...validShortBudget,
   scenes: Array.from({ length: 7 }, () => ({ text: "palavra ".repeat(25) })),
 }), false, "overlong Shorts scripts are rejected before TTS");
+
+const validLongBudget = {
+  hook: "Antes de decidir, entenda os pontos que realmente importam para o seu uso diário.",
+  scenes: Array.from({ length: 8 }, (_, sceneIndex) => ({
+    text: Array.from({ length: 80 }, (_, wordIndex) => "informacao" + sceneIndex + "_" + wordIndex).join(" "),
+  })),
+  callToAction: "Confira os detalhes do produto, a análise completa e as condições atuais no link da descrição.",
+};
+assert.equal(isLongSpokenWordBudgetValid(validLongBudget), true, "long videos require enough spoken words for 4–7 minutes");
+assert.equal(isLongSpokenWordBudgetValid({
+  ...validLongBudget,
+  scenes: Array.from({ length: 8 }, () => ({ text: "curto ".repeat(40) })),
+}), false, "underwritten long scripts are rejected before TTS");
+assert.equal(isLongSpokenWordBudgetValid({
+  ...validLongBudget,
+  scenes: Array.from({ length: 8 }, () => ({ text: "longo ".repeat(120) })),
+}), false, "overlong long scripts are rejected before TTS");
 
 const baseProduct: ProductInfo = {
   title: "Fone Bluetooth X",
@@ -91,5 +108,7 @@ assert.ok(withoutBrief.includes("PESQUISA SERP + YOUTUBE"), "prompt deve conter 
 assert.ok(withoutBrief.includes("Não disponível."), "prompt sem brief deve indicar indisponível");
 assert.ok(withoutBrief.includes("14–18 palavras por cena"), "Short prompt is sized for spoken duration");
 assert.ok(withoutBrief.includes("entre 100 e 150 palavras"), "Short prompt explicitly limits total narration length");
+assert.ok(withoutBrief.includes("entre 640 e 1.120 palavras"), "long prompt explicitly targets 4–7 minutes of spoken narration");
+assert.ok(withoutBrief.includes("70–100 palavras por cena"), "long scene lengths support natural narration pacing");
 
 console.log("script generator research brief tests passed");
