@@ -9,6 +9,7 @@ import {
   LANDSCAPE_OPENING_PRODUCT_BOX,
   LANDSCAPE_PRODUCT_BOX,
   LANDSCAPE_SAFE_ZONE,
+  LANDSCAPE_OVERLAY_SAFE_ZONE,
   LANDSCAPE_SCENE_FOOTER,
   LANDSCAPE_TEXT_COLUMN,
   expandLandscapeRect,
@@ -34,6 +35,19 @@ test('safe zone matches remotion-qa yt-landscape insets', () => {
   assert.equal(LANDSCAPE_SAFE_ZONE.top, 120);
   assert.equal(LANDSCAPE_SAFE_ZONE.right, LANDSCAPE_CANVAS.width - 300);
   assert.equal(LANDSCAPE_SAFE_ZONE.bottom, LANDSCAPE_CANVAS.height - 60);
+});
+
+test('motion-graphics clip remains inside the platform safe zone at both camera extremes', () => {
+  assert.deepEqual(LANDSCAPE_OVERLAY_SAFE_ZONE, {
+    left: 92,
+    top: 142,
+    right: 1588,
+    bottom: 998,
+  });
+  assert.ok(LANDSCAPE_OVERLAY_SAFE_ZONE.left - LANDSCAPE_CAMERA.xAmplitude >= LANDSCAPE_SAFE_ZONE.left);
+  assert.ok(LANDSCAPE_OVERLAY_SAFE_ZONE.right + LANDSCAPE_CAMERA.xAmplitude <= LANDSCAPE_SAFE_ZONE.right);
+  assert.ok(LANDSCAPE_OVERLAY_SAFE_ZONE.top - LANDSCAPE_CAMERA.yAmplitude >= LANDSCAPE_SAFE_ZONE.top);
+  assert.ok(LANDSCAPE_OVERLAY_SAFE_ZONE.bottom + LANDSCAPE_CAMERA.yAmplitude <= LANDSCAPE_SAFE_ZONE.bottom);
 });
 
 test('b-roll card stays inside the safe zone at both camera extremes', () => {
