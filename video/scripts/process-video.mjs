@@ -1456,6 +1456,13 @@ async function main() {
   }
 
   const videoId = process.env.VIDEO_ID;
+  if (manualRun && videoId) {
+    const manualSelection = await queueApi('markManual', { videoId });
+    if (!manualSelection.success) {
+      throw new Error('Não foi possível separar o item manual da cota automática: ' + String(manualSelection.error || 'falha desconhecida'));
+    }
+    console.log('[MANUAL_RUN] Item individual marcado como manual; impacto na cota automática: zero.');
+  }
   const requestedLimit = videoId
     ? 1
     : Math.min(Math.max(Number(process.env.MAX_VIDEOS || 1), 1), 10, manualRun ? 10 : Number(quota.remaining));
