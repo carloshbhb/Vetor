@@ -1289,6 +1289,12 @@ async function processVideo(video) {
     const reviewUrl = (typeof video.review_url === 'string' && video.review_url.startsWith('https://'))
       ? video.review_url
       : '';
+    const trendMarker = Array.isArray(video.media_assets)
+      ? video.media_assets.find((asset) => asset && asset.type === 'trend-topic')
+      : null;
+    const trendSources = Array.isArray(script.trendSources)
+      ? script.trendSources
+      : Array.isArray(trendMarker?.news) ? trendMarker.news : [];
     const purchaseUrl = video.shortened_affiliate_url || video.affiliate_url;
     if (!purchaseUrl || !/^https:\/\//i.test(String(purchaseUrl))) {
       throw new Error('Link de compra/afiliado ausente ou inválido; upload bloqueado.');
@@ -1314,6 +1320,7 @@ async function processVideo(video) {
       format: videoFormat,
       contentType: script.contentType,
       topicTitle: script.topicTitle,
+      trendSources,
       topicalTags: script.tags,
       productTitle: video.product_title,
       category: video.product_category,
