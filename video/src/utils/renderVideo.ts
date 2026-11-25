@@ -6,6 +6,7 @@ import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition, ensureBrowser } from '@remotion/renderer';
 import path from 'path';
 import fs from 'fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -74,29 +75,57 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
     console.log('[Remotion] Confirmando Chrome Headless Shell local no cache do projeto...');
     await ensureBrowser({ logLevel: 'info' });
   }
-  console.log('[Remotion] Chrome pronto. Iniciando bundle da composição...');
-  const bundleLocation = await bundle({
-    entryPoint: path.resolve(projectRoot, 'src/Root.tsx'),
-    webpackOverride: (config) => config,
-    publicDir: path.resolve(projectRoot, 'public'),
-  });
+  console.log('[Remotion] Chrome pronto. Verificando bundle reutilizável...');
 
-  // Copy all public directory contents recursively to bundle root
-  function copyDirRecursive(src: string, dest: string) {
-    if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
-    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-      const srcPath = path.join(src, entry.name);
-      const destPath = path.join(dest, entry.name);
-      if (entry.isDirectory()) {
-        copyDirRecursive(srcPath, destPath);
-      } else {
-        fs.copyFileSync(srcPath, destPath);
+  // Each queue item runs in a fresh Node process. Keep one deterministic bundle
+  // in video/out so all 15 Shorts in the same GitHub Actions job avoid rebuilding
+  // the identical React/Remotion application for every product.
+  const fingerprint = createHash('sha256');
+  const hashDirectory = (directory: string) => {
+    if (!fs.existsSync(directory)) return;
+    const visit = (current: string) => {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+        const absolute = path.join(current, entry.name);
+        const relative = path.relative(projectRoot, absolute).split(path.sep).join('/');
+        fingerprint.update(relative + '\\0');
+        if (entry.isDirectory()) visit(absolute);
+        else if (entry.isFile()) fingerprint.update(fs.readFileSync(absolute));
       }
+    };
+    visit(directory);
+  };
+  hashDirectory(path.resolve(projectRoot, 'src'));
+  hashDirectory(path.resolve(projectRoot, 'public'));
+  for (const file of ['package-lock.json', 'remotion.config.ts', 'tsconfig.json']) {
+    const absolute = path.resolve(projectRoot, file);
+    if (fs.existsSync(absolute)) {
+      fingerprint.update(file + '\\0');
+      fingerprint.update(fs.readFileSync(absolute));
     }
   }
-  const publicDir = path.resolve(projectRoot, 'public');
-  if (fs.existsSync(publicDir)) {
-    copyDirRecursive(publicDir, bundleLocation);
+
+  const bundleFingerprint = fingerprint.digest('hex').slice(0, 20);
+  const bundleCacheRoot = path.resolve(projectRoot, 'out', '.remotion-bundle-cache');
+  const bundleLocation = path.join(bundleCacheRoot, bundleFingerprint);
+  const bundleIndex = path.join(bundleLocation, 'index.html');
+  const bundleStartedAt = Date.now();
+
+  if (fs.existsSync(bundleIndex)) {
+    console.log('[Remotion] Bundle cache HIT (' + bundleFingerprint + '); pulando webpack.');
+  } else {
+    console.log('[Remotion] Bundle cache MISS (' + bundleFingerprint + '); compilando uma vez para este lote.');
+    fs.rmSync(bundleCacheRoot, { recursive: true, force: true });
+    fs.mkdirSync(bundleCacheRoot, { recursive: true });
+    await bundle({
+      entryPoint: path.resolve(projectRoot, 'src/Root.tsx'),
+      outDir: bundleLocation,
+      webpackOverride: (config) => config,
+      publicDir: path.resolve(projectRoot, 'public'),
+    });
+    if (!fs.existsSync(bundleIndex)) {
+      throw new Error('[Remotion] Webpack terminou sem gerar index.html no bundle persistente.');
+    }
+    console.log('[Remotion] Bundle compilado em ' + ((Date.now() - bundleStartedAt) / 1000).toFixed(1) + 's.');
   }
 
   const compositionId = data.type === 'comparison'
@@ -106,6 +135,7 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
       : data.type === 'long' ? 'LongReviewVideo' : 'ReviewVideo';
   // selectComposition avalia calculateMetadata com as props reais, então a duração do MP4
   // acompanha totalDuration (a narração) em vez do valor fixo do <Composition>.
+  const selectStartedAt = Date.now();
   const composition = await selectComposition({
     serveUrl: bundleLocation,
     id: compositionId,
@@ -113,11 +143,13 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
     browserExecutable,
     chromeMode,
   });
+  console.log('[Remotion] Composição selecionada em ' + ((Date.now() - selectStartedAt) / 1000).toFixed(1) + 's.');
 
   const timestamp = Date.now();
   const prefix = data.type === 'long' ? 'long-review' : data.type === 'review' ? 'review' : 'comparison';
   const outputLocation = path.resolve(outputPath, `${prefix}-${timestamp}.mp4`);
 
+  const renderStartedAt = Date.now();
   await renderMedia({
     composition,
     serveUrl: bundleLocation,
@@ -130,7 +162,9 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
     // yuv420p + bt709: faixa limitada, o que o YouTube e os celulares decodificam corretamente.
     pixelFormat: 'yuv420p',
     colorSpace: 'bt709',
-    x264Preset: 'medium',
+    // "fast" preserves CRF 18 visual quality while reducing CPU spent in x264
+    // on GitHub-hosted runners; frame rendering and visual QA remain unchanged.
+    x264Preset: 'fast',
     audioBitrate: '192k',
     enforceAudioTrack: true,
     imageFormat: 'jpeg',
@@ -141,6 +175,8 @@ async function renderVideo(data: VideoData, outputPath: string): Promise<string>
       console.log('[Remotion] Render iniciado: ' + frameCount + ' frames; concorrência=' + resolvedConcurrency + '.');
     },
   });
+  console.log('[Remotion] Render concluído em ' + ((Date.now() - renderStartedAt) / 1000).toFixed(1) +
+    's; bundle=' + (fs.existsSync(bundleIndex) ? 'persistente' : 'temporário') + '.');
 
   return outputLocation;
 }
