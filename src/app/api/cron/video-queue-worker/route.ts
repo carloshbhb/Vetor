@@ -1626,8 +1626,8 @@ export async function POST(request: NextRequest) {
         .eq("status", "pending")
         .lte("scheduled_at", new Date().toISOString());
       pendingQuery = pendingQuery
-        .contains("media_assets", JSON.stringify([{ type: "publication_format", format }]));
-      if (!manualOverride) pendingQuery = pendingQuery.eq("publication_mode", "automatic");
+        .contains("media_assets", JSON.stringify([{ type: "publication_format", format }]))
+        .eq("publication_mode", manualOverride ? "manual" : "automatic");
       const { data, error } = await pendingQuery
         .order("scheduled_at", { ascending: true })
         .limit(limit);
