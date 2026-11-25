@@ -135,7 +135,7 @@ assert.match(pythonTts, /VOICE = "pt-BR-FranciscaNeural"/);
 assert.doesNotMatch(pythonTts, /sys\.argv\[3\]/, 'Python TTS does not accept alternate voices');
 assert.match(dailyReviewWorkflow, /github\.event_name == 'workflow_dispatch' && inputs\.dry_run/, 'manual review dispatch controls dry-run behavior');
 assert.match(processVideoQueueWorkflow, /\n  schedule:/, 'video batches have an independent daily schedule');
-assert.equal((processVideoQueueWorkflow.match(/^\s+- cron:/gm) || []).length, 3, 'three independent batches run daily');
+assert.equal((processVideoQueueWorkflow.match(/^\s+- cron:/gm) || []).length, 2, 'two independent long-form batches run daily');
 assert.match(processVideoQueueWorkflow, /queueFromSocialList/, 'video queue is filled directly from Mercado Livre Social List');
 assert.doesNotMatch(processVideoQueueWorkflow, /workflow_run|Generate Daily Review|queueFromReviews/, 'video production is independent of editorial review generation');
 assert.match(processVideoQueueWorkflow, /MAX_VIDEOS: '5'/, 'each scheduled invocation is limited to five videos');
