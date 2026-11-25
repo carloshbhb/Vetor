@@ -552,10 +552,10 @@ function buildTrendSourceLines(sources) {
   return (Array.isArray(sources) ? sources : [])
     .slice(0, 3)
     .map((source) => {
-      const title = String(source?.title || "").replace(/[\\u0000-\\u001f\\u007f]/g, " ").replace(/\\s+/g, " ").trim().slice(0, 240);
-      const publisher = String(source?.source || "Fonte jornalística").replace(/[\\u0000-\\u001f\\u007f]/g, " ").trim().slice(0, 100);
+      const title = String(source?.title || "").replace(/[\x00-\x1F\x7F]/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
+      const publisher = String(source?.source || "Fonte jornalística").replace(/[\x00-\x1F\x7F]/g, " ").trim().slice(0, 100);
       const url = String(source?.url || "").trim();
-      if (!title || !/^https:\\/\\//i.test(url)) return "";
+      if (!title || !url.startsWith("https://")) return "";
       try {
         const parsed = new URL(url);
         if (parsed.protocol !== "https:" || !parsed.hostname || parsed.username || parsed.password ||
