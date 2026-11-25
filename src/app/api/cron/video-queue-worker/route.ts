@@ -1060,7 +1060,7 @@ export async function POST(request: NextRequest) {
         const productUrl = String(item.product_url || link.product_url || "").trim();
         const imageUrl = String(item.image_url || link.image_url || "").trim();
         if (!itemId || !title || !isSafeMercadoLivreProductUrl(productUrl) || !isSafeMercadoLivreAffiliateUrl(affiliateUrl) ||
-            !imageUrl.startsWith("https://") || /vetor\\.blog|\\/og\\.png(?:$|\\?)/i.test(imageUrl) || usedItems.has(itemId) ||
+            !imageUrl.startsWith("https://") || /vetor\.blog|\/og\.png(?:$|\?)/i.test(imageUrl) || usedItems.has(itemId) ||
             usedTitles.some((old: string) => isLikelySameVideoProductTitle(title, old))) return null;
         return { item, link, itemId, title, affiliateUrl, productUrl, imageUrl, productTokens };
       }).filter(Boolean) as any[];
