@@ -150,9 +150,9 @@ export interface ProductInfo {
 }
 
 export function toSpokenProductName(value: string): string {
-  const raw = String(value || "").replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim();
+  const raw = String(value || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   if (!raw) return "produto selecionado";
-  const featureTail = /\\b(?:wi-?fi|bluetooth|google tv|hdr10\\+|dolby(?: atmos| vision)?|assistente de voz|controle por voz)\\b/i;
+  const featureTail = /\b(?:wi-?fi|bluetooth|google tv|hdr10\+|dolby(?: atmos| vision)?|assistente de voz|controle por voz)\\b/i;
   const match = featureTail.exec(raw);
   const compact = (match && match.index >= 16 ? raw.slice(0, match.index) : raw).trim();
   const words = compact.split(/\\s+/);
