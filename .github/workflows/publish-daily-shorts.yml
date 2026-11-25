@@ -1,5 +1,5 @@
 name: Publish Daily Shorts
-run-name: Publish 15 Shorts — 3 batches of 5
+run-name: Publish 15 Shorts — 3 fresh-news batches of 5
 
 concurrency:
   group: vetor-daily-shorts-production
@@ -51,6 +51,7 @@ jobs:
       - name: Validate Remotion and Shorts contracts
         working-directory: video
         run: |
+          python scripts/fetch-trending-news.py --self-test
           npx tsc --noEmit
           node scripts/video-format.test.mjs
           node scripts/stickman-template.test.mjs
@@ -83,7 +84,7 @@ jobs:
             exit 1
           fi
 
-      - name: Generate and publish three batches of five Shorts
+      - name: Generate and publish three fresh-news batches of five Shorts
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
@@ -99,53 +100,37 @@ jobs:
           set -euo pipefail
           failed=0
           attempted=0
-          echo "Fetching Google Trends Brazil feed..."
-          if curl -fsSL --max-time 25 "https://trends.google.com/trending/rss?geo=BR" -o trends.xml; then
-            python - <<'PY'
-          import json, xml.etree.ElementTree as ET
-          rows = []
-          try:
-              root = ET.parse("trends.xml").getroot()
-              ns = {"ht":"https://trends.google.com/trending/rss"}
-              for item in root.findall(".//item"):
-                  title = (item.findtext("title") or "").strip()
-                  traffic = (item.findtext("ht:approx_traffic", default="", namespaces=ns) or "").strip()
-                  if title:
-                      rows.append({"title": title, "traffic": traffic, "source": "Google Trends Brasil"})
-          except Exception as exc:
-              print(f"Could not parse Trends feed; using catalog fallback: {exc}")
-          with open("trends.json", "w", encoding="utf-8") as f:
-              json.dump(rows[:30], f, ensure_ascii=False)
-          print(f"Google Trends topics loaded: {len(rows[:30])}")
-          PY
-          else
-            echo "Google Trends feed failed; fallback to catalog queue is enabled."
-            echo '[]' > trends.json
-          fi
+          manual_run="${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}"
+          manual_json=false
+          [ "$manual_run" = "true" ] && manual_json=true
+          echo "Cadência: 15 Shorts/dia em 3 lotes; cada lote consulta notícias novamente."
+          echo "MANUAL_RUN=$manual_run (execuções manuais não consomem a cota automática)."
           for batch in 1 2 3; do
-            echo "========== SHORTS BATCH $batch/3 =========="
-            if [ -s trends.json ] && [ "$(jq 'length' trends.json)" -gt 0 ]; then
-              trend_payload="$(jq -cn --argjson topics "$(cat trends.json)" '{action:"queueTrendingShorts",limit:5,trendTopics:$topics}')"
+            echo "========== SHORTS NEWS BATCH $batch/3 =========="
+            python video/scripts/fetch-trending-news.py --output trends.json
+            topic_count="$(jq 'length' trends.json)"
+            echo "Fresh Google Trends topics with related news: $topic_count"
+            if [ "$topic_count" -gt 0 ]; then
+              trend_payload="$(jq -cn --argjson topics "$(cat trends.json)" --argjson manual "$manual_json" \
+                '{action:"queueTrendingShorts",format:"short",limit:5,trendTopics:$topics,manualOverride:$manual}')"
               code="$(curl -sS --max-time 60 -o "shorts-batch-$batch.json" -w '%{http_code}' \
                 -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
                 -H "Authorization: Bearer $CRON_SECRET" \
                 -H "Content-Type: application/json" \
                 -d "$trend_payload")"
-              if [ "$code" != "200" ] || [ "$(jq -r '.queued // 0' "shorts-batch-$batch.json" 2>/dev/null || echo 0)" -eq 0 ]; then
-                echo "Trend queue unavailable or no relevant product match; falling back to the next eligible Mercado Livre products."
-                code="$(curl -sS --max-time 60 -o "shorts-batch-$batch.json" -w '%{http_code}' \
-                  -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
-                  -H "Authorization: Bearer $CRON_SECRET" \
-                  -H "Content-Type: application/json" \
-                  -d '{"action":"queueFromSocialListShorts","limit":5}')"
+              if [ "$code" != "200" ] || ! jq -e '.success == true' "shorts-batch-$batch.json" >/dev/null; then
+                echo "Trend/news queue unavailable; switching to verified Mercado Livre products."
+                echo '[]' > trends.json
               fi
-            else
-              echo "Google Trends feed unavailable; using the regular Mercado Livre list queue."
+            fi
+            if [ "$topic_count" -eq 0 ] || ! jq -e '.success == true' "shorts-batch-$batch.json" >/dev/null 2>&1 || [ "$(jq -r '.queued // 0' "shorts-batch-$batch.json")" -eq 0 ]; then
+              echo "No strongly matched news/product item; filling from eligible Social List products."
+              fallback_payload="$(jq -cn --argjson manual "$manual_json" '{action:"queueFromSocialListShorts",limit:5,manualOverride:$manual}')"
               code="$(curl -sS --max-time 60 -o "shorts-batch-$batch.json" -w '%{http_code}' \
                 -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
                 -H "Authorization: Bearer $CRON_SECRET" \
                 -H "Content-Type: application/json" \
-                -d '{"action":"queueFromSocialListShorts","limit":5}')"
+                -d "$fallback_payload")"
             fi
             if [ "$code" != "200" ] || ! jq -e '.success == true' "shorts-batch-$batch.json" >/dev/null; then
               echo "::error::Could not queue Shorts batch $batch (HTTP=$code)."
@@ -155,8 +140,9 @@ jobs:
             queued_now="$(jq -r '.queued // 0' "shorts-batch-$batch.json")"
             if [ "$queued_now" -lt 5 ]; then
               catalog_slots=$((5 - queued_now))
-              echo "Social/trend sources filled $queued_now/5; supplementing from verified product catalog ($catalog_slots slot(s))."
-              catalog_payload="$(jq -cn --argjson limit "$catalog_slots" '{action:"queueFromProductCatalog",limit:$limit,format:"short"}')"
+              echo "News/social sources filled $queued_now/5; supplementing from verified product catalog ($catalog_slots slot(s))."
+              catalog_payload="$(jq -cn --argjson limit "$catalog_slots" --argjson manual "$manual_json" \
+                '{action:"queueFromProductCatalog",limit:$limit,format:"short",manualOverride:$manual}')"
               catalog_code="$(curl -sS --max-time 60 -o "shorts-catalog-$batch.json" -w '%{http_code}' \
                 -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
                 -H "Authorization: Bearer $CRON_SECRET" \
@@ -171,13 +157,13 @@ jobs:
                 cat "shorts-catalog-$batch.json" 2>/dev/null || true
               fi
             fi
-            jq -r '"Queued: " + ((.queued // 0)|tostring) + " | skipped duplicates: " + ((.skippedAlreadyPublished // 0)|tostring)' "shorts-batch-$batch.json"
+            jq -r '"Queued: " + ((.queued // 0)|tostring) + " | format: " + (.format // "short")' "shorts-batch-$batch.json"
             while IFS= read -r video_id; do
               [ -n "$video_id" ] || continue
               attempted=$((attempted + 1))
-              echo "----- Rendering and publishing Short $attempted/15 ($video_id) -----"
+              echo "----- Rendering and uploading Short $attempted/15 ($video_id) -----"
               set +e
-              MANUAL_RUN=true VIDEO_ID="$video_id" MAX_VIDEOS=1 node video/scripts/process-video.mjs
+              MANUAL_RUN="$manual_run" PUBLICATION_FORMAT=short VIDEO_ID="$video_id" MAX_VIDEOS=1 node video/scripts/process-video.mjs
               result=$?
               set -e
               if [ "$result" -ne 0 ]; then
@@ -192,7 +178,7 @@ jobs:
           done
           echo "Shorts campaign finished: attempted=$attempted, failures=$failed."
           if [ "$attempted" -eq 0 ]; then
-            echo "::error::No eligible Shorts were created from the Mercado Livre Social List."
+            echo "::error::No eligible Shorts were queued from news, the Social List or verified catalog."
             exit 1
           fi
           if [ "$failed" -gt 0 ]; then exit 1; fi
