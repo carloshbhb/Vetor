@@ -15,7 +15,7 @@ const KineticType: React.FC<Props> = ({ label, accent }) => {
   const safeHeight = safe.bottom - safe.top;
   const insetX = safeWidth * 0.06;
   const text = truncateHeadline(label || 'O DETALHE IMPORTA', landscape ? 40 : 32);
-  const words = text.split(/\\s+/).filter(Boolean);
+  const words = text.split(/\s+/).filter(Boolean);
   const fontSize = fitHeadlineSize(text, {
     width: safeWidth * 0.86,
     maxHeight: landscape ? 250 : 330,
