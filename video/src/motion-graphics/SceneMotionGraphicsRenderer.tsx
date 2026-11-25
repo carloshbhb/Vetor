@@ -1,23 +1,94 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { SHORTS_SAFE_ZONE } from '../utils/shorts-safe-zone';
+import { LANDSCAPE_OVERLAY_SAFE_ZONE } from '../utils/landscape-safe-zone';
+import { fitHeadlineSize, truncateHeadline } from '../utils/scene-headline';
 
 type Props = { template: string; accent: string; label: string; sceneText: string; metric: string | null };
 
 const KineticType: React.FC<Props> = ({ label, accent }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
-  const words = String(label || 'O DETALHE IMPORTA').split(/\s+/).filter(Boolean).slice(0, 5);
   const landscape = width > height;
+  const safe = landscape ? LANDSCAPE_OVERLAY_SAFE_ZONE : SHORTS_SAFE_ZONE;
+  const safeWidth = safe.right - safe.left;
+  const safeHeight = safe.bottom - safe.top;
+  const insetX = safeWidth * 0.06;
+  const text = truncateHeadline(label || 'O DETALHE IMPORTA', landscape ? 40 : 32);
+  const words = text.split(/\s+/).filter(Boolean);
+  const fontSize = fitHeadlineSize(text, {
+    width: safeWidth * 0.86,
+    maxHeight: landscape ? 250 : 330,
+    maxSize: landscape ? 82 : 96,
+    minSize: 50,
+    lineHeight: 0.98,
+    charWidthRatio: 0.62,
+  });
+  const contentLeft = safe.left + insetX;
+  const contentRight = safe.right - insetX;
+  const headlineTop = safe.top + safeHeight * 0.17;
+  const headlineBottom = safe.bottom - safeHeight * 0.17;
+  const lineTop = safe.top + safeHeight * 0.49;
+  const lowerRuleTop = safe.top + safeHeight * 0.82;
+
   return (
-    <AbsoluteFill style={{ pointerEvents: 'none', justifyContent: 'center', padding: landscape ? '0 7%' : '0 8%' }}>
-      <div style={{ position: 'absolute', left: 0, right: 0, top: landscape ? '48%' : '49%', height: landscape ? 5 : 7, background: accent, opacity: .9, transform: 'scaleX(' + interpolate(frame, [0, 18], [0, 1], { extrapolateRight: 'clamp' }) + ')', boxShadow: '0 0 42px ' + accent }} />
-      <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', justifyContent: landscape ? 'flex-start' : 'center', alignItems: 'center', gap: landscape ? '0 18px' : '0 13px', perspective: 900 }}>
+    <AbsoluteFill style={{ pointerEvents: 'none', overflow: 'hidden' }}>
+      <div style={{
+        position: 'absolute',
+        left: contentLeft,
+        right: width - contentRight,
+        top: lineTop,
+        height: landscape ? 5 : 7,
+        background: accent,
+        opacity: .9,
+        transform: 'scaleX(' + interpolate(frame, [0, 18], [0, 1], { extrapolateRight: 'clamp' }) + ')',
+        boxShadow: '0 0 42px ' + accent,
+      }} />
+      <div style={{
+        position: 'absolute',
+        left: contentLeft,
+        right: width - contentRight,
+        top: headlineTop,
+        bottom: height - headlineBottom,
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignContent: 'center',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: landscape ? '0 18px' : '0 13px',
+        perspective: 900,
+        overflow: 'hidden',
+      }}>
         {words.map((word, index) => {
           const amount = spring({ frame: frame - index * 4, fps, config: { damping: 10, stiffness: 190, mass: .62 } });
-          return <span key={index} style={{ display: 'inline-block', color: index % 2 === 0 ? '#FFFFFF' : accent, fontSize: landscape ? 88 : 104, lineHeight: .94, fontWeight: 1000, letterSpacing: landscape ? -4 : -5, textTransform: 'uppercase', textShadow: '0 14px 50px rgba(0,0,0,.8)', transform: 'translateY(' + interpolate(amount, [0, 1], [100, 0]) + 'px) rotateX(' + interpolate(amount, [0, 1], [65, 0]) + 'deg) scale(' + interpolate(amount, [0, 1], [.65, 1]) + ')', opacity: amount }}>{word}</span>;
+          return (
+            <span key={index} style={{
+              display: 'inline-block',
+              flex: '0 0 auto',
+              maxWidth: '100%',
+              color: index % 2 === 0 ? '#FFFFFF' : accent,
+              fontSize,
+              lineHeight: .94,
+              fontWeight: 1000,
+              letterSpacing: landscape ? -3 : -4,
+              textTransform: 'uppercase',
+              textShadow: '0 14px 50px rgba(0,0,0,.8)',
+              whiteSpace: 'nowrap',
+              transform: 'translateY(' + interpolate(amount, [0, 1], [100, 0]) + 'px) rotateX(' + interpolate(amount, [0, 1], [65, 0]) + 'deg) scale(' + interpolate(amount, [0, 1], [.65, 1]) + ')',
+              opacity: amount,
+            }}>{word}</span>
+          );
         })}
       </div>
-      <div style={{ position: 'absolute', left: landscape ? '7%' : '8%', right: landscape ? '7%' : '8%', bottom: landscape ? '18%' : '25%', height: 2, background: accent, opacity: .55 }} />
+      <div style={{
+        position: 'absolute',
+        left: contentLeft,
+        right: width - contentRight,
+        top: lowerRuleTop,
+        height: 2,
+        background: accent,
+        opacity: .55,
+      }} />
     </AbsoluteFill>
   );
 };

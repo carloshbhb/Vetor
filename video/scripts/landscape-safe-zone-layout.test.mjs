@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   LANDSCAPE_BROLL_RECT,
   LANDSCAPE_CAMERA,
@@ -9,6 +10,7 @@ import {
   LANDSCAPE_OPENING_PRODUCT_BOX,
   LANDSCAPE_PRODUCT_BOX,
   LANDSCAPE_SAFE_ZONE,
+  LANDSCAPE_OVERLAY_SAFE_ZONE,
   LANDSCAPE_SCENE_FOOTER,
   LANDSCAPE_TEXT_COLUMN,
   expandLandscapeRect,
@@ -34,6 +36,19 @@ test('safe zone matches remotion-qa yt-landscape insets', () => {
   assert.equal(LANDSCAPE_SAFE_ZONE.top, 120);
   assert.equal(LANDSCAPE_SAFE_ZONE.right, LANDSCAPE_CANVAS.width - 300);
   assert.equal(LANDSCAPE_SAFE_ZONE.bottom, LANDSCAPE_CANVAS.height - 60);
+});
+
+test('motion-graphics clip remains inside the platform safe zone at both camera extremes', () => {
+  assert.deepEqual(LANDSCAPE_OVERLAY_SAFE_ZONE, {
+    left: 92,
+    top: 142,
+    right: 1588,
+    bottom: 998,
+  });
+  assert.ok(LANDSCAPE_OVERLAY_SAFE_ZONE.left - LANDSCAPE_CAMERA.xAmplitude >= LANDSCAPE_SAFE_ZONE.left);
+  assert.ok(LANDSCAPE_OVERLAY_SAFE_ZONE.right + LANDSCAPE_CAMERA.xAmplitude <= LANDSCAPE_SAFE_ZONE.right);
+  assert.ok(LANDSCAPE_OVERLAY_SAFE_ZONE.top - LANDSCAPE_CAMERA.yAmplitude >= LANDSCAPE_SAFE_ZONE.top);
+  assert.ok(LANDSCAPE_OVERLAY_SAFE_ZONE.bottom + LANDSCAPE_CAMERA.yAmplitude <= LANDSCAPE_SAFE_ZONE.bottom);
 });
 
 test('b-roll card stays inside the safe zone at both camera extremes', () => {
@@ -135,4 +150,20 @@ test('camera excursion helper is symmetric', () => {
     right: 500 + LANDSCAPE_CAMERA.xAmplitude,
     bottom: 400 + LANDSCAPE_CAMERA.yAmplitude,
   });
+});
+
+test('creative overlays are clipped and kinetic headlines are fitted to platform-safe bounds', () => {
+  const treatment = readFileSync(new URL('../src/compositions/SceneCreativeTreatment.tsx', import.meta.url), 'utf8');
+  const renderer = readFileSync(new URL('../src/motion-graphics/SceneMotionGraphicsRenderer.tsx', import.meta.url), 'utf8');
+
+  assert.match(treatment, /LANDSCAPE_OVERLAY_SAFE_ZONE/);
+  assert.match(treatment, /clipPath: safeOverlay/);
+  assert.match(treatment, /const cinematicCircle = landscape[\s\S]*size: height \* 0\.68/);
+  assert.match(renderer, /LANDSCAPE_OVERLAY_SAFE_ZONE/);
+  assert.match(renderer, /SHORTS_SAFE_ZONE/);
+  assert.match(renderer, /fitHeadlineSize\(text/);
+  assert.match(renderer, /truncateHeadline\(label/);
+  assert.match(renderer, /left: contentLeft/);
+  assert.match(renderer, /right: width - contentRight/);
+  assert.doesNotMatch(renderer, /fontSize: landscape \\? 88 : 104/);
 });
