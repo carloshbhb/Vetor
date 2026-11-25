@@ -34,6 +34,18 @@ export const LANDSCAPE_CAMERA = {
   periodSeconds: 3.6,
 } as const;
 
+/**
+ * Conservative clip rectangle for motion-graphics overlays inside the moving
+ * camera layer. The camera can translate by its full amplitude, so the clip
+ * is inset further than the platform safe zone to remain safe at every frame.
+ */
+export const LANDSCAPE_OVERLAY_SAFE_ZONE = {
+  left: LANDSCAPE_SAFE_ZONE.left + LANDSCAPE_CAMERA.xAmplitude,
+  top: LANDSCAPE_SAFE_ZONE.top + LANDSCAPE_CAMERA.yAmplitude,
+  right: LANDSCAPE_SAFE_ZONE.right - LANDSCAPE_CAMERA.xAmplitude,
+  bottom: LANDSCAPE_SAFE_ZONE.bottom - LANDSCAPE_CAMERA.yAmplitude,
+} as const;
+
 export type LandscapeRect = {
   left: number;
   top: number;
