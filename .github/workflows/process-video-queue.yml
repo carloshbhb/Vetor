@@ -1,5 +1,5 @@
 name: Process Video Queue
-run-name: Publish video batch — up to 5 videos
+run-name: Publish 10 long videos — two batches of 5
 
 concurrency:
   group: vetor-production-video-queue
@@ -11,10 +11,9 @@ on:
     branches: [main]
     paths:
       - '.ops/run-first-independent-long-video-batch'
-  # Independent long-form video production: 08:00, 14:00 and 20:00 in Sao Paulo (UTC-03).
+  # Independent long-form video production: 08:00 and 20:00 in Sao Paulo (UTC-03), 5 videos per batch.
   schedule:
     - cron: '0 11 * * *'
-    - cron: '0 17 * * *'
     - cron: '0 23 * * *'
   workflow_dispatch:
     inputs:
@@ -79,6 +78,7 @@ jobs:
         run: npm install --global remotion-qa@0.1.3
       - name: Validate format, storyboard and chapter contracts
         run: |
+          python video/scripts/fetch-trending-news.py --self-test
           node --check video/scripts/process-video.mjs
           node --check video/scripts/render-lemo-opuscar.mjs
           node video/scripts/video-format.test.mjs
@@ -123,12 +123,13 @@ jobs:
             echo "::error::Production queue API did not become ready; refusing to use stale/incorrect database credentials."
             exit 1
           fi
-      - name: Fill this batch directly from Mercado Livre Social List
+      - name: Fill this batch with fresh news and relevant products
         if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_mode != 'single' }}
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
           VIDEO_ID: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'single' && github.event.inputs.video_id || '' }}
+          MANUAL_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -136,18 +137,16 @@ jobs:
             echo "A specific video ID was requested; queue generation is skipped."
             exit 0
           fi
+          manual_json=false
+          [ "$MANUAL_RUN" = "true" ] && manual_json=true
 
           call_api() {
             local action="$1"
-            local limit="${2:-0}"
+            local limit="${2:-5}"
             local output="$3"
             local payload
-            if [ "$limit" -gt 0 ]; then
-              payload="$(jq -cn --arg action "$action" --argjson limit "$limit" '{action:$action,limit:$limit}')"
-            else
-              payload="$(jq -cn --arg action "$action" '{action:$action,limit:5}')"
-            fi
-
+            payload="$(jq -cn --arg action "$action" --argjson limit "$limit" --argjson manual "$manual_json" \
+              '{action:$action,limit:$limit,format:"long",manualOverride:$manual}')"
             local code
             code="$(curl -sS --max-time 60 -o "$output" -w '%{http_code}' \
               -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
@@ -161,40 +160,67 @@ jobs:
             fi
           }
 
-          # Retry failed items only when no completed upload of the same format exists.
+          # This action can only retry prior long-form failures with no confirmed upload.
           call_api "retrySafeFailed" 5 retry-safe-failed.json
           retried_failed="$(jq -r '.retried // 0' retry-safe-failed.json)"
-          echo "Safe failed retries restored: $retried_failed"
+          echo "Safe long-form failed retries restored: $retried_failed"
 
-          # Peek without changing status. Existing due items consume the five-slot batch first.
+          # Peek without changing status. Existing due long videos consume the batch first.
           call_api "next" 5 batch-peek.json
-          remaining="$(jq -r 'if (.remaining // 0) > 0 then ([5, (.remaining|tonumber)] | min) else 0 end' batch-peek.json)"
+          if [ "$MANUAL_RUN" = "true" ]; then
+            remaining=5
+          else
+            remaining="$(jq -r 'if (.remaining // 0) > 0 then ([5, (.remaining|tonumber)] | min) else 0 end' batch-peek.json)"
+          fi
           pending="$(jq -r '(.videos // []) | length' batch-peek.json)"
           slots=$((remaining - pending))
           if [ "$slots" -le 0 ]; then
-            echo "Batch already full or daily 15-video quota reached; no new queue entries created."
+            echo "Batch already full or daily 10-long-video quota reached; no new queue entries created."
             exit 0
           fi
 
-          call_api "queueFromSocialList" "$slots" queue-social-list.json
-          queued_social_list="$(jq -r '.queued // 0' queue-social-list.json)"
-
-          echo "Independent Social List long-form queue: $queued_social_list item(s); batch cap=5; daily cap=15."
-
-          if [ "$queued_social_list" -lt "$slots" ]; then
-            remaining_slots=$((slots - queued_social_list))
-            echo "Social List supplied $queued_social_list/$slots items; requesting verified product catalog fallback for $remaining_slots slot(s)."
-            call_api "queueFromProductCatalog" "$remaining_slots" queue-product-catalog.json
-            queued_catalog="$(jq -r '.queued // 0' queue-product-catalog.json)"
-            echo "Verified product catalog fallback: $queued_catalog item(s)."
+          python video/scripts/fetch-trending-news.py --output trend-news.json
+          trend_count="$(jq 'length' trend-news.json)"
+          echo "Fresh trend topics with related source headlines: $trend_count"
+          queued_trends=0
+          if [ "$trend_count" -gt 0 ]; then
+            trend_payload="$(jq -cn --argjson topics "$(cat trend-news.json)" --argjson limit "$slots" --argjson manual "$manual_json" \
+              '{action:"queueTrendingVideos",format:"long",limit:$limit,trendTopics:$topics,manualOverride:$manual}')"
+            code="$(curl -sS --max-time 60 -o queue-trending-news.json -w '%{http_code}' \
+              -X POST "$VETOR_SITE_URL/api/cron/video-queue-worker/" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              -d "$trend_payload")"
+            if [ "$code" = "200" ] && jq -e '.success == true' queue-trending-news.json >/dev/null; then
+              queued_trends="$(jq -r '.queued // 0' queue-trending-news.json)"
+            else
+              echo "::warning::News matching failed; continuing with the verified product fallback."
+              cat queue-trending-news.json 2>/dev/null || true
+            fi
           fi
-      - name: Render, describe, and upload videos
+          echo "News-led long videos queued: $queued_trends"
+
+          if [ "$queued_trends" -lt "$slots" ]; then
+            remaining_slots=$((slots - queued_trends))
+            call_api "queueFromSocialList" "$remaining_slots" queue-social-list.json
+            queued_social="$(jq -r '.queued // 0' queue-social-list.json)"
+            echo "Social List long-form fallback: $queued_social item(s)."
+            if [ "$queued_social" -lt "$remaining_slots" ]; then
+              catalog_slots=$((remaining_slots - queued_social))
+              call_api "queueFromProductCatalog" "$catalog_slots" queue-product-catalog.json
+              queued_catalog="$(jq -r '.queued // 0' queue-product-catalog.json)"
+              echo "Verified product catalog fallback: $queued_catalog item(s)."
+            fi
+          fi
+          echo "Production batch feeder complete: due=$pending, news=$queued_trends, target slots=$slots; daily cap=10 long videos.";
+                - name: Render, describe, and upload videos
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
           VIDEO_ID: ${{ github.event.inputs.video_id || '' }}
           MANUAL_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
           MAX_VIDEOS: '5'
+          PUBLICATION_FORMAT: long
           EDGE_TTS_RATE: "${{ vars.EDGE_TTS_RATE || '+5%' }}"
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}
