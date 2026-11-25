@@ -605,6 +605,7 @@ export async function POST(request: NextRequest) {
 
     if (action === "queueFromSocialList") {
       const limit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
+      const manualOverride = body.manualOverride === true;
       const [
         { data: listItems, error: listError },
         { data: productLinks, error: productLinksError },
@@ -643,7 +644,7 @@ export async function POST(request: NextRequest) {
 
       const completed = doneToday || 0;
       const pending = pendingCount || 0;
-      const dailySlots = Math.max(0, DAILY_PUBLICATION_LIMITS.long - completed - pending);
+      const dailySlots = manualOverride ? limit : Math.max(0, DAILY_PUBLICATION_LIMITS.long - completed - pending);
       if (dailySlots <= 0) {
         return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true, completedToday: completed, pendingAutomaticLong: pending });
       }
@@ -745,7 +746,7 @@ export async function POST(request: NextRequest) {
 
       const queued = [];
       for (const candidate of candidates) {
-        if (completed + pending + queued.length >= DAILY_PUBLICATION_LIMITS.long) break;
+        if (!manualOverride && completed + pending + queued.length >= DAILY_PUBLICATION_LIMITS.long) break;
         const queueId = randomUUID();
         const priceValue = Number(candidate.item.price ?? candidate.link.price);
         const price = Number.isFinite(priceValue) && priceValue > 0
@@ -782,7 +783,7 @@ export async function POST(request: NextRequest) {
               { type: "ml-social-list-item", itemId: candidate.itemId, productLinkId: candidate.link.id },
             ],
             status: "pending",
-            publication_mode: "automatic",
+            publication_mode: manualOverride ? "manual" : "automatic",
             review_url: null,
             scheduled_at: new Date().toISOString(),
           })
@@ -816,6 +817,7 @@ export async function POST(request: NextRequest) {
     if (action === "queueFromProductCatalog") {
       const limit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
       const format = body.format === "short" ? "short" : "long";
+      const manualOverride = body.manualOverride === true;
       const [
         { data: products, error: productsError },
         { data: existing, error: existingError },
@@ -847,7 +849,7 @@ export async function POST(request: NextRequest) {
 
       const completed = doneToday || 0;
       const pending = pendingCount || 0;
-      const dailySlots = Math.max(0, DAILY_PUBLICATION_LIMITS[format] - completed - pending);
+      const dailySlots = manualOverride ? limit : Math.max(0, DAILY_PUBLICATION_LIMITS[format] - completed - pending);
       const allowed = Math.min(limit, dailySlots);
       if (allowed <= 0) {
         return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true,
@@ -894,7 +896,7 @@ export async function POST(request: NextRequest) {
 
       const queued = [];
       for (const product of candidates) {
-        if (completed + pending + queued.length >= DAILY_PUBLICATION_LIMITS[format]) break;
+        if (!manualOverride && completed + pending + queued.length >= DAILY_PUBLICATION_LIMITS[format]) break;
         const queueId = randomUUID();
         const purchase = new URL(String(product.affiliate_url));
         purchase.searchParams.set("utm_source", "youtube");
@@ -926,7 +928,7 @@ export async function POST(request: NextRequest) {
               { type: "catalog-fallback", productLinkId: String(product.id), source: "product_links" },
             ],
             status: "pending",
-            publication_mode: "automatic",
+            publication_mode: manualOverride ? "manual" : "automatic",
             review_url: product.slug ? "https://www.vetor.blog/reviews/" + String(product.slug).replace(/^\/+|\/+$/g, "") + "/" : null,
             scheduled_at: new Date().toISOString(),
           })
@@ -1156,6 +1158,7 @@ export async function POST(request: NextRequest) {
 
     if (action === "queueFromSocialListShorts") {
       const limit = Math.min(Math.max(Number(body.limit || 1), 1), 5);
+      const manualOverride = body.manualOverride === true;
       const [
         { data: listItems, error: listError },
         { data: productLinks, error: productLinksError },
@@ -1194,7 +1197,7 @@ export async function POST(request: NextRequest) {
 
       const completed = doneToday || 0;
       const pending = pendingCount || 0;
-      const dailySlots = Math.max(0, DAILY_PUBLICATION_LIMITS.short - completed - pending);
+      const dailySlots = manualOverride ? limit : Math.max(0, DAILY_PUBLICATION_LIMITS.short - completed - pending);
       if (dailySlots <= 0) {
         return NextResponse.json({ success: true, queued: 0, videos: [], quotaReached: true, completedToday: completed, pendingAutomaticShorts: pending });
       }
@@ -1296,7 +1299,7 @@ export async function POST(request: NextRequest) {
 
       const queued = [];
       for (const candidate of candidates) {
-        if (completed + pending + queued.length >= DAILY_PUBLICATION_LIMITS.short) break;
+        if (!manualOverride && completed + pending + queued.length >= DAILY_PUBLICATION_LIMITS.short) break;
         const queueId = randomUUID();
         const priceValue = Number(candidate.item.price ?? candidate.link.price);
         const price = Number.isFinite(priceValue) && priceValue > 0
@@ -1333,7 +1336,7 @@ export async function POST(request: NextRequest) {
               { type: "ml-social-list-item", itemId: candidate.itemId, productLinkId: candidate.link.id },
             ],
             status: "pending",
-            publication_mode: "automatic",
+            publication_mode: manualOverride ? "manual" : "automatic",
             review_url: null,
             scheduled_at: new Date().toISOString(),
           })
@@ -1622,11 +1625,9 @@ export async function POST(request: NextRequest) {
         .select("*")
         .eq("status", "pending")
         .lte("scheduled_at", new Date().toISOString());
-      if (!manualOverride) {
-        pendingQuery = pendingQuery
-          .eq("publication_mode", "automatic")
-          .contains("media_assets", JSON.stringify([{ type: "publication_format", format }]));
-      }
+      pendingQuery = pendingQuery
+        .contains("media_assets", JSON.stringify([{ type: "publication_format", format }]));
+      if (!manualOverride) pendingQuery = pendingQuery.eq("publication_mode", "automatic");
       const { data, error } = await pendingQuery
         .order("scheduled_at", { ascending: true })
         .limit(limit);
