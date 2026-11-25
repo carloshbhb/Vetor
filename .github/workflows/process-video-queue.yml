@@ -6,11 +6,11 @@ concurrency:
   cancel-in-progress: false
 
 on:
-  # One-time bootstrap batch; only the exact marker commit below can start it.
+  # One-shot manual end-to-end validation (generation + YouTube upload, outside auto quota).
   push:
     branches: [main]
     paths:
-      - '.ops/run-first-independent-long-video-batch'
+      - '.ops/run-manual-video-generation'
   # Independent long-form video production: 08:00 and 20:00 in Sao Paulo (UTC-03), 5 videos per batch.
   schedule:
     - cron: '0 11 * * *'
@@ -37,7 +37,7 @@ permissions:
 jobs:
   process-queue:
     name: Render and publish queued videos
-    if: ${{ github.event_name != 'push' || github.event.head_commit.message == 'run-first-independent-long-video-batch' }}
+    if: ${{ github.event_name != 'push' || github.event.head_commit.message == 'run-manual-video-generation' }}
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
@@ -129,7 +129,7 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
           VIDEO_ID: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'single' && github.event.inputs.video_id || '' }}
-          MANUAL_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+          MANUAL_RUN: ${{ (github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'run-manual-video-generation') && 'true' || 'false' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -218,7 +218,7 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
           VIDEO_ID: ${{ github.event.inputs.video_id || '' }}
-          MANUAL_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+          MANUAL_RUN: ${{ (github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'run-manual-video-generation') && 'true' || 'false' }}
           MAX_VIDEOS: '5'
           PUBLICATION_FORMAT: long
           EDGE_TTS_RATE: "${{ vars.EDGE_TTS_RATE || '+5%' }}"
