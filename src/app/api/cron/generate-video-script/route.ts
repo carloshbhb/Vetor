@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { getVideoById, updateVideoStatus } from "@/lib/video-orchestrator";
-import { generateComparisonVideoScript, generateVideoScript } from "@/lib/script-generator";
+import { generateComparisonVideoScript, generateVideoScript, toSpokenProductName } from "@/lib/script-generator";
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 import { getProductWithPictures } from "@/lib/mercadolivre-api";
 import { dedupeMercadoLivreImages, extractMercadoLivreItemId, findBestMercadoLivreItemMatch, scoreProductTitleMatch } from "@/lib/video-media-matching";
@@ -403,22 +403,25 @@ export async function POST(request: NextRequest) {
     }
     const rawScore = Number(reviewFacts?.verdict_score ?? reviewFacts?.hero_overall_score);
     const productTitle = String(video.product_title || reviewFacts?.product || "produto selecionado");
-    const productCategory = String(reviewFacts?.category || selectedProductRow?.category || video.product_category || "Tecnologia");
+    const spokenProductTitle = toSpokenProductName(productTitle);
+    const rawProductCategory = String(reviewFacts?.category || selectedProductRow?.category || video.product_category || "Tecnologia").trim();
+    const productCategory = !rawProductCategory || rawProductCategory.toLowerCase() === "geral"
+      ? "Tecnologia"
+      : rawProductCategory;
     const finalScenes = Array.isArray(script.scenes) ? [...script.scenes] : [];
     let callToAction = String(script.callToAction || "Confira os detalhes no link da descrição.");
     if (trendMarker?.title && finalScenes.length) {
       const lastScene = { ...finalScenes[finalScenes.length - 1] };
-      const normalize = (value: string) => value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-      if (!normalize(String(lastScene.text || "")).includes(normalize(productTitle))) {
+      const normalize = (value: string) => value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ");
+      const coreTokens = spokenProductTitle.split(/\s+/).filter((token) => normalize(token).replace(/\s/g, "").length >= 3);
+      const matchedTokens = coreTokens.filter((token) => normalize(String(lastScene.text || "")).includes(normalize(token)));
+      if (matchedTokens.length < Math.min(2, coreTokens.length)) {
         lastScene.text = String(lastScene.text || "").trim() +
-          " A recomendação relacionada é " + productTitle + ", da categoria " + productCategory + "; confira se atende ao seu uso.";
+          " A recomendação relacionada é " + spokenProductTitle + ".";
       }
       finalScenes[finalScenes.length - 1] = lastScene;
-      if (!normalize(callToAction).includes(normalize(productTitle))) {
-        callToAction = callToAction.trim() + " A recomendação relacionada a esta pauta é " +
-          productTitle + ", da categoria " + productCategory +
-          ". Confira o preço e as condições atuais no link da descrição.";
-      }
+      callToAction = "A recomendação relacionada a esta pauta é " + spokenProductTitle +
+        ". Confira o preço e as condições atuais no link da descrição.";
     }
     const finalScript = {
       ...script,
