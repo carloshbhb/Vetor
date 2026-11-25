@@ -1452,7 +1452,7 @@ async function main() {
     return;
   }
   if (manualRun) {
-    console.log(`[MANUAL_RUN] Execução manual autorizada; não consome a cota automática de 15/dia. Limite deste lote: 5 vídeos. Publicações automáticas hoje: ${quota.completedToday}/${quota.dailyLimit}.`);
+    console.log(`[MANUAL_RUN] Execução manual autorizada; não consome a cota automática de ${quota.dailyLimit}/dia para o formato ${publicationFormat}. Limite deste lote: 5 vídeos. Publicações automáticas hoje: ${quota.completedToday}/${quota.dailyLimit}.`);
   }
 
   const videoId = process.env.VIDEO_ID;
