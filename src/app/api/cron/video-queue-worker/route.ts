@@ -957,16 +957,16 @@ export async function POST(request: NextRequest) {
         .map((entry: any) => {
           const news = (Array.isArray(entry?.news) ? entry.news : [])
             .map((article: any) => ({
-              title: String(article?.title || "").replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim().slice(0, 240),
+              title: String(article?.title || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 240),
               url: String(article?.url || "").trim().slice(0, 1200),
-              source: String(article?.source || "").replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim().slice(0, 120),
+              source: String(article?.source || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 120),
               publishedAt: String(article?.publishedAt || "").slice(0, 40),
-              snippet: String(article?.snippet || "").replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim().slice(0, 500),
+              snippet: String(article?.snippet || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 500),
             }))
             .filter((article: any) => article.title.length >= 8 && isSafePublicNewsUrl(article.url))
             .slice(0, 3);
           return {
-            title: String(entry?.title || "").replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim().slice(0, 180),
+            title: String(entry?.title || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 180),
             traffic: String(entry?.traffic || "").slice(0, 40),
             source: String(entry?.source || "Google Trends Brasil").slice(0, 80),
             publishedAt: String(entry?.publishedAt || "").slice(0, 40),
