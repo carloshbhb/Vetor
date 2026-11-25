@@ -85,9 +85,9 @@ assert.deepEqual(
   "Qwen output must stay below the observed 1000-token-per-minute ceiling"
 );
 assert.deepEqual(
-  getGroqRequestPolicy("openai/gpt-oss-120b", 2600),
-  { maxTokens: 1_300, minimumIntervalMs: 60_000 },
-  "GPT-OSS output must be bounded and paced under the observed Groq TPM ceiling"
+  getGroqRequestPolicy("openai/gpt-oss-120b", 3600),
+  { maxTokens: 2_600, minimumIntervalMs: 60_000 },
+  "GPT-OSS allows a bounded 2600-token output for 4–7 minute scripts while retaining the 60-second model pacing"
 );
 assert.deepEqual(
   getGroqRequestPolicy("other/model", 2600),
