@@ -175,7 +175,7 @@ export function isShortSpokenWordBudgetValid(script: {
     String(script.callToAction || ""),
   ].join(" ").trim();
   const words = spoken ? spoken.split(/\s+/).filter(Boolean).length : 0;
-  return words >= 100 && words <= 150;
+  return words >= 155 && words <= 190;
 }
 
 export function isLongSpokenWordBudgetValid(script: {
@@ -211,7 +211,7 @@ export function buildScriptPrompt(product: ProductInfo): string {
     : "";
   const instructions = isLong
     ? "VÍDEO LONGO HORIZONTAL, 4–7 MINUTOS. Crie 8–10 cenas de 29–40 segundos e aproximadamente 70–100 palavras por cena. O roteiro falado completo (gancho + cenas + CTA) precisa ter entre 640 e 1.120 palavras para sustentar 4–7 minutos de narração natural; não declare uma duração nominal maior do que o texto realmente comporta. Conte uma decisão de compra completa: pergunta central, contexto, recursos que importam, implicações práticas baseadas nos fatos fornecidos, limitações, para quem serve/não serve, critérios de comparação e veredito. Cada visualCue deve ser um capítulo específico. Não leia a ficha técnica."
-    : "YOUTUBE SHORTS VERTICAL, 60–90 SEGUNDOS. Crie 6–7 cenas de 9–10 segundos e aproximadamente 14–18 palavras por cena. Mantenha o roteiro falado completo (gancho + cenas + CTA) entre 100 e 150 palavras; não repita o título completo do anúncio. Um único assunto, gancho nos dois primeiros segundos, argumentos específicos e decisão rápida.";
+    : "YOUTUBE SHORTS VERTICAL, 60–90 SEGUNDOS. Crie exatamente 7 cenas de aproximadamente 9 segundos e 18–22 palavras faladas por cena. Mantenha o roteiro completo (gancho + 7 cenas + CTA) entre 155 e 190 palavras; esse intervalo precisa sustentar pelo menos 60 segundos de narração natural na voz Edge TTS a +5%, sem ultrapassar 90 segundos. Não repita o título completo do anúncio nem acrescente frases para preencher tempo. Um único assunto, gancho nos dois primeiros segundos, argumentos específicos e decisão rápida.";
 
   return [
     "Você é roteirista editorial e apresentador de tecnologia do Vetor.blog. Escreva em português brasileiro natural, para ser falado por uma pessoa real.",
@@ -256,7 +256,7 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
   try {
     const parsed = JSON.parse(content);
     const isLong = product.videoFormat === "long";
-    const minScenes = isLong ? 8 : 6;
+    const minScenes = isLong ? 8 : 7;
     const maxScenes = isLong ? 10 : 7;
     const minDuration = isLong ? 29 : 9;
     const maxDuration = isLong ? 40 : 10;
@@ -264,7 +264,7 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
     if (!Array.isArray(parsed.scenes) || parsed.scenes.length < minScenes || parsed.scenes.length > maxScenes) return false;
     if (parsed.scenes.some((scene: any) =>
       !scene || typeof scene.text !== "string" ||
-      scene.text.trim().split(/\s+/).length < (isLong ? 35 : 8) ||
+      scene.text.trim().split(/\s+/).length < (isLong ? 35 : 18) ||
       !Number.isFinite(scene.duration) || scene.duration < minDuration || scene.duration > maxDuration ||
       typeof scene.visualCue !== "string" || !scene.visualCue.trim() ||
       !Array.isArray(scene.brollKeywords)
@@ -275,7 +275,7 @@ function isDistinctScriptResponse(content: string, product: ProductInfo): boolea
       if (!isLongSpokenWordBudgetValid(parsed)) return false;
     } else {
       const sceneWordCounts = parsed.scenes.map((scene: any) => scene.text.trim().split(/\s+/).filter(Boolean).length);
-      if (sceneWordCounts.some((count: number) => count > 20)) return false;
+      if (sceneWordCounts.some((count: number) => count < 18 || count > 24)) return false;
       if (!isShortSpokenWordBudgetValid(parsed)) return false;
     }
     const banned = [/está na categoria/i, /o preço informado é/i, /antes de comprar .{0,100} confira a versão exata/i, /pare! antes de comprar/i, /testamos|em nossos testes|nos nossos testes|medimos|testei pessoalmente/i];
@@ -327,7 +327,7 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
 
   const rawScenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
   const scenes = ensureSceneVisualDirections(rawScenes) as VideoScene[];
-  const minScenes = isLong ? 8 : 6;
+  const minScenes = isLong ? 8 : 7;
   const maxScenes = isLong ? 10 : 7;
   const minDuration = isLong ? 29 : 9;
   const maxDuration = isLong ? 40 : 10;
@@ -338,8 +338,8 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
       if (!scene || typeof scene !== "object") return true;
       const item = scene as Partial<VideoScene>;
       const sceneWords = typeof item.text === "string" ? item.text.trim().split(/\s+/).filter(Boolean).length : 0;
-      return typeof item.text !== "string" || sceneWords < (isLong ? 65 : 8) ||
-        (isLong ? sceneWords > 110 : sceneWords > 20) ||
+      return typeof item.text !== "string" || sceneWords < (isLong ? 65 : 18) ||
+        (isLong ? sceneWords > 110 : sceneWords > 24) ||
         !Number.isFinite(item.duration) || (item.duration as number) < minDuration || (item.duration as number) > maxDuration ||
         typeof item.visualCue !== "string" || !item.visualCue.trim() || !Array.isArray(item.brollKeywords);
     })
@@ -348,7 +348,7 @@ export async function generateVideoScript(product: ProductInfo): Promise<VideoSc
     throw new Error("[video-script] Roteiro longo deve ter 640–1.120 palavras faladas para sustentar 4–7 minutos.");
   }
   if (!isLong && !isShortSpokenWordBudgetValid(parsed)) {
-    throw new Error("[video-script] Short deve ter 100–150 palavras faladas para sustentar 60–90 segundos.");
+    throw new Error("[video-script] Short deve ter 155–190 palavras faladas em 7 cenas para sustentar 60–90 segundos.");
   }
 
   const sceneSeconds = scenes.reduce((sum: number, scene: VideoScene) => sum + scene.duration, 0);
