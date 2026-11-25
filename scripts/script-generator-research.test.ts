@@ -1,6 +1,32 @@
 import assert from "node:assert/strict";
-import { buildScriptPrompt, ensureSceneVisualDirections } from "../src/lib/script-generator";
+import { buildScriptPrompt, ensureSceneVisualDirections, isShortSpokenWordBudgetValid, toSpokenProductName } from "../src/lib/script-generator";
 import type { ProductInfo } from "../src/lib/script-generator";
+
+const spokenName = toSpokenProductName(
+  "Smart TV TCL 50 Polegadas QLED 4K P7K WiFi Bluetooth Google TV HDR10+ Dolby Atmos Dolby Vision 50P7K",
+);
+assert.equal(spokenName, "Smart TV TCL 50 Polegadas QLED 4K P7K", "spoken product name removes repetitive listing features");
+
+const validShortBudget = {
+  hook: "O que mudou e por que isso importa agora?",
+  scenes: Array.from({ length: 7 }, (_, index) => ({
+    text: [
+      "Veja os pontos confirmados e o que ainda precisa ser verificado antes de tomar sua decisão.",
+      "Compare os recursos principais com o seu uso diário e evite pagar por funções desnecessárias.",
+      "A compatibilidade precisa ser conferida na ficha oficial e nas condições do anúncio escolhido.",
+      "Observe os limites documentados, a garantia e o suporte antes de considerar a compra.",
+      "O preço final depende de frete, disponibilidade e condições que podem mudar no anúncio.",
+      "Considere as alternativas e confirme se os recursos realmente atendem ao seu objetivo.",
+      "A recomendação é este modelo para quem prioriza os recursos apresentados nesta pauta.",
+    ][index],
+  })),
+  callToAction: "Confira as fontes, o preço atualizado e as condições no link da descrição.",
+};
+assert.equal(isShortSpokenWordBudgetValid(validShortBudget), true, "Short script respects the full spoken-word budget");
+assert.equal(isShortSpokenWordBudgetValid({
+  ...validShortBudget,
+  scenes: Array.from({ length: 7 }, () => ({ text: "palavra ".repeat(25) })),
+}), false, "overlong Shorts scripts are rejected before TTS");
 
 const baseProduct: ProductInfo = {
   title: "Fone Bluetooth X",
@@ -63,5 +89,7 @@ assert.equal(comparisonArena.visualTemplates[0], "comparison-arena");
 const withoutBrief = buildScriptPrompt(baseProduct);
 assert.ok(withoutBrief.includes("PESQUISA SERP + YOUTUBE"), "prompt deve conter seção de pesquisa");
 assert.ok(withoutBrief.includes("Não disponível."), "prompt sem brief deve indicar indisponível");
+assert.ok(withoutBrief.includes("14–18 palavras por cena"), "Short prompt is sized for spoken duration");
+assert.ok(withoutBrief.includes("entre 100 e 150 palavras"), "Short prompt explicitly limits total narration length");
 
 console.log("script generator research brief tests passed");
