@@ -1610,6 +1610,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, retried: retried.length, videos: retried });
     }
 
+    if (action === "markManual") {
+      const videoId = String(body.videoId || body.id || "").trim();
+      if (!videoId) return NextResponse.json({ success: false, error: "video_id_required" }, { status: 400 });
+      const { data, error } = await supabase
+        .from("video_queue")
+        .update({ publication_mode: "manual" })
+        .eq("id", videoId)
+        .in("status", ["pending", "failed"])
+        .select("id,status,publication_mode")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return NextResponse.json({ success: false, error: "video_not_available_for_manual_run" }, { status: 409 });
+      return NextResponse.json({ success: true, video: data, quotaImpact: "none" });
+    }
+
     if (action === "next") {
       const manualOverride = body.manualOverride === true;
       const format = body.format === "short" ? "short" : "long";
