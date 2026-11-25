@@ -213,7 +213,7 @@ jobs:
             fi
           fi
           echo "Production batch feeder complete: due=$pending, news=$queued_trends, target slots=$slots; daily cap=10 long videos.";
-                - name: Render, describe, and upload videos
+      - name: Render, describe, and upload videos
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VETOR_SITE_URL: https://www.vetor.blog
