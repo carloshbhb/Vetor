@@ -51,7 +51,7 @@ export function getGroqRequestPolicy(model: string, requestedMaxTokens: number):
     return { maxTokens: Math.min(requested, 900), minimumIntervalMs: 60_000 };
   }
   if (model.startsWith('openai/gpt-oss')) {
-    return { maxTokens: Math.min(requested, 1_300), minimumIntervalMs: 60_000 };
+    return { maxTokens: Math.min(requested, 2_600), minimumIntervalMs: 60_000 };
   }
   return { maxTokens: requested, minimumIntervalMs: 30_000 };
 }
