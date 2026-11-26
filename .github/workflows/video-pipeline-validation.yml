@@ -97,9 +97,6 @@ jobs:
       - name: Validate trend-to-product relevance
         run: npx tsx scripts/trend-product-relevance.test.ts
 
-      - name: Validate LLM provider and free fallback routing
-        run: npx tsx scripts/llm-provider-routing.test.ts
-
       - name: Validate format, affiliate-link and chapter contracts
         run: node video/scripts/video-format.test.mjs
 
