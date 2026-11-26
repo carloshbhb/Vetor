@@ -1,1 +1,1 @@
-Manual end-to-end production run requested by the repository owner. This marker starts the Shorts and long-form workflows in manual mode; uploads still pass through normal pre-publication QA.
+Manual end-to-end production run requested by the repository owner. Run after PR #37 script timing, PR #36 safe-zone, and PR #35 narration validation fixes. Starts 15 Shorts in three batches of five and the first five long-form videos. Manual mode; normal QA and YouTube upload required.
