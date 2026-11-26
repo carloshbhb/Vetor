@@ -28,7 +28,8 @@ export const OPENROUTER_FREE_MODEL_PRIORITY = [
 const OPENROUTER_FREE_CATALOG_TTL_MS = 5 * 60_000;
 const OPENROUTER_FREE_CATALOG_TIMEOUT_MS = 3_500;
 const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
-const DEFAULT_GROQ_FALLBACK_MODEL = 'qwen/qwen3.8-27b';
+const DEFAULT_GROQ_FALLBACK_MODEL = 'openai/gpt-oss-20b';
+const DEFAULT_GROQ_SECONDARY_FALLBACK_MODEL = 'qwen/qwen3.8-27b';
 const DEFAULT_NVIDIA_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b';
 const DEFAULT_NVIDIA_FALLBACK_MODELS = [
   'nvidia/nemotron-3.5-lightning-30b-a3b',
@@ -126,12 +127,12 @@ async function getOpenRouterFreeModels(apiKey: string): Promise<string[]> {
     const curated = rankOpenRouterFreeModels(Array.isArray(body.data) ? body.data : []);
     // This is a free-only router; it is used only when the curated catalog
     // temporarily fails to expose any of the known zero-priced chat models.
-    const selected = curated.length ? curated : ['openrouter/free'];
+    const selected = buildOpenRouterFreeModelOrder(curated);
     cachedOpenRouterFreeModels = {
       expiresAt: Date.now() + OPENROUTER_FREE_CATALOG_TTL_MS,
       models: selected,
     };
-    console.log('[LLM] OpenRouter free catalog: ' + (curated.length ? curated.join(', ') : 'openrouter/free'));
+    console.log('[LLM] OpenRouter free catalog: ' + selected.join(', '));
     return selected;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
@@ -150,15 +151,22 @@ function uniqueModels(values: Array<string | undefined>): string[] {
 }
 
 export function buildGroqModelOrder(configuredPrimary?: string, configuredFallback?: string): string[] {
-  // GPT-OSS 120B has produced valid Vetor scripts. Qwen remains an alternate;
-  // environment overrides are kept after the verified default to avoid a
-  // depleted or lower-quality configured model blocking the long-form fallback.
+  // GPT-OSS 120B produced valid Vetor scripts but its daily quota can be
+  // exhausted. GPT-OSS 20B is a separate Groq model with an independent
+  // per-model quota; Qwen remains the final Groq alternate.
   return uniqueModels([
     DEFAULT_GROQ_MODEL,
-    configuredPrimary,
     DEFAULT_GROQ_FALLBACK_MODEL,
+    configuredPrimary,
+    DEFAULT_GROQ_SECONDARY_FALLBACK_MODEL,
     configuredFallback,
   ]);
+}
+
+export function buildOpenRouterFreeModelOrder(curatedModels: string[]): string[] {
+  // Keep account-verified curated models first, then ask OpenRouter's
+  // free-only router to select any other compatible free endpoint.
+  return uniqueModels([...curatedModels, "openrouter/free"]);
 }
 
 function configuredProviders(): LLMProvider[] {
