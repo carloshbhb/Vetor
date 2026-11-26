@@ -32,6 +32,8 @@ on:
       - "scripts/tts.py"
       - "scripts/video-media-matching.test.ts"
       - "scripts/video-queue-quota.test.ts"
+      - "src/lib/trend-product-relevance.ts"
+      - "scripts/trend-product-relevance.test.ts"
       - "src/lib/video-media-matching.ts"
       - "src/app/api/cron/generate-video-script/route.ts"
       - "src/lib/script-generator.ts"
