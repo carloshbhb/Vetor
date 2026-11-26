@@ -2,7 +2,7 @@ import { execFileSync, execSync, spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { buildCaptionEntries, buildNarrationTimings, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat, stripSpokenUrls } from './video-format.mjs';
+import { buildCaptionEntries, buildNarrationTimings, buildTimedCaptionEntries, buildCtaComment, buildVideoDescription, buildVideoTitle, resolveVideoFormat, stripSpokenUrls, validateSpokenScriptBudget } from './video-format.mjs';
 import { renderWithHyperFrames } from '../hyperframes/render-video.mjs';
 import { resolveRenderEngine, withRenderEngineSelection, shouldFallbackToRemotion } from './render-engine-router.mjs';
 import { renderWithLemoOpuscar } from './render-lemo-opuscar.mjs';
@@ -998,6 +998,20 @@ async function processVideo(video) {
         throw error;
       }
     }
+
+    const narrationBudget = validateSpokenScriptBudget(script, videoFormat);
+    if (!narrationBudget.valid) {
+      throw new Error('[SCRIPT_BUDGET_FAILED] Roteiro recebido ou recuperado do cache não atende ao orçamento falado de ' +
+        (videoFormat === 'long' ? '640–1.120 palavras em 8–10 cenas de 65–110 palavras' :
+          '155–190 palavras em 7 cenas de 18–24 palavras') +
+        '. Total=' + narrationBudget.totalWords +
+        '; cenas=' + narrationBudget.sceneWordCounts.join(',') +
+        '. Rejeitado antes do TTS para impedir áudio fora da duração-alvo.');
+    }
+    console.log('[SCRIPT_BUDGET] format=' + narrationBudget.format +
+      ' totalWords=' + narrationBudget.totalWords +
+      ' sceneWords=' + narrationBudget.sceneWordCounts.join(',') +
+      '; roteiro aceito antes do Edge TTS.');
 
     processingStage = 'narração';
     console.log('   [1/4] Gerando uma narração contínua para manter ritmo e entonação naturais...');
