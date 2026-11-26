@@ -18,6 +18,24 @@ const scenes: Scene[] = [
   { start: 1800, end: 2250, kicker: 'O QUE SE SABE — E O QUE NÃO SE SABE', title: 'A CAUSA AINDA NÃO FOI\nDETERMINADA', body: 'Gelo, turbulência e a rápida descida fazem parte da apuração. Nenhum deles, isoladamente, confirma a causa.', kind: 'close' },
 ];
 
+const captions: Array<{ start: number; end: number; text: string }> = [
+  { start: 0, end: 150, text: 'Um voo particular terminou em tragédia no sul da Flórida.' },
+  { start: 150, end: 270, text: 'Nove pessoas estavam a bordo. Todas morreram.' },
+  { start: 270, end: 420, text: 'O Learjet 60 partiu de Austin, no Texas, com destino às Bahamas.' },
+  { start: 420, end: 570, text: 'O destino era North Eleuthera.' },
+  { start: 570, end: 735, text: 'A tripulação comunicou condições de gelo e turbulência.' },
+  { start: 735, end: 900, text: 'Em seguida, houve uma descida de emergência.' },
+  { start: 900, end: 1080, text: 'A aeronave caiu perto de uma área residencial em Greenacres.' },
+  { start: 1080, end: 1230, text: 'O impacto provocou um incêndio. Nove ocupantes morreram.' },
+  { start: 1230, end: 1350, text: 'A investigação é conduzida pela NTSB.' },
+  { start: 1350, end: 1530, text: 'O gravador de voz da cabine foi recuperado em 9 de novembro.' },
+  { start: 1530, end: 1680, text: 'O equipamento foi enviado ao laboratório da agência, em Washington.' },
+  { start: 1680, end: 1800, text: 'Ele pode ajudar a esclarecer os momentos finais do voo.' },
+  { start: 1800, end: 1980, text: 'Mas a causa do acidente ainda não foi determinada.' },
+  { start: 1980, end: 2130, text: 'Gelo, turbulência e a rápida descida são elementos sob análise.' },
+  { start: 2130, end: 2250, text: 'A investigação continua. Ainda não há conclusão oficial.' },
+];
+
 const fade = (f: number, a: number, b: number) => interpolate(f, [a, a + 18, b - 18, b], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
 const Grid = () => <div style={{ position: 'absolute', inset: 0, opacity: .12, backgroundImage: 'linear-gradient(rgba(108,168,255,.22) 1px,transparent 1px),linear-gradient(90deg,rgba(108,168,255,.22) 1px,transparent 1px)', backgroundSize: '64px 64px' }} />;
@@ -81,6 +99,13 @@ const StoryScene = ({ scene }: { scene: Scene }) => {
   </AbsoluteFill>;
 };
 
+const CaptionTrack = () => {
+  const frame = useCurrentFrame();
+  const active = captions.find(item => frame >= item.start && frame < item.end);
+  if (!active) return null;
+  return <div style={{ position: 'absolute', left: 66, right: 66, bottom: 190, padding: '18px 24px', borderRadius: 14, background: 'rgba(3,8,15,.88)', border: '1px solid rgba(108,168,255,.32)', color: '#FFFFFF', fontFamily: 'Arial, sans-serif', fontSize: 27, lineHeight: 1.25, fontWeight: 700, textAlign: 'center', textShadow: '0 2px 8px #000' }}>{active.text}</div>;
+};
+
 const LearjetPilot = () => {
   const frame = useCurrentFrame();
   const progress = frame / DURATION;
@@ -90,6 +115,7 @@ const LearjetPilot = () => {
       <div style={{height:'100%',width:`${progress*100}%`,background:C.blue}}/>
     </div>
     {scenes.map(scene => <Sequence key={scene.start} from={scene.start} durationInFrames={scene.end-scene.start}><StoryScene scene={scene}/></Sequence>)}
+    <CaptionTrack/>
     <Audio src={staticFile('learjet-pilot-voice.mp3')} volume={1}/>
   </AbsoluteFill>;
 };
