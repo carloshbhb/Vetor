@@ -22,7 +22,7 @@ const TOPIC_CATEGORY_ALIASES: AliasGroup[] = [
   },
   {
     terms: ["futebol", "corinthians", "campinense", "treze", "copa paraiba", "copa do mundo", "campeonato"],
-    productTerms: ["tv", "televisao", "soundbar", "projetor", "streaming"],
+    productTerms: ["tv", "televisao", "televisores", "soundbar", "projetor", "streaming"],
   },
   {
     terms: ["home office", "trabalho remoto", "escritorio em casa"],
