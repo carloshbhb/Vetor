@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import {
   buildLLMProviderOrder,
   buildGroqModelOrder,
+  buildOpenRouterFreeModelOrder,
   OPENROUTER_FREE_MODEL_PRIORITY,
   getGroqRequestPolicy,
   rankOpenRouterFreeModels,
@@ -90,10 +91,34 @@ assert.deepEqual(
   { maxTokens: 2_600, minimumIntervalMs: 60_000 },
   "GPT-OSS allows a bounded 2600-token output for 4–7 minute scripts while retaining the 60-second model pacing"
 );
+
+assert.deepEqual(
+  getGroqRequestPolicy("openai/gpt-oss-20b", 3600),
+  { maxTokens: 2_600, minimumIntervalMs: 60_000 },
+  "GPT-OSS 20B uses the same bounded output and per-model pacing policy"
+);
 assert.deepEqual(
   buildGroqModelOrder("qwen/qwen3.8-27b", "custom/fallback"),
-  ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "custom/fallback"],
-  "the model with verified valid script output is tried before Qwen, while configured alternates remain available"
+  ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "custom/fallback"],
+  "GPT-OSS 20B is tried after the exhausted 120B quota, with Qwen and configured fallbacks retained"
+);
+
+assert.deepEqual(
+  buildOpenRouterFreeModelOrder([
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "nvidia/nemotron-3.5-super-vl:free",
+  ]),
+  [
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "nvidia/nemotron-3.5-super-vl:free",
+    "openrouter/free",
+  ],
+  "the free-only auto-router is the final OpenRouter fallback after account-verified curated free models"
+);
+assert.deepEqual(
+  buildOpenRouterFreeModelOrder([]),
+  ["openrouter/free"],
+  "the free-only router remains available when the authenticated curated catalog is empty"
 );
 
 assert.deepEqual(
