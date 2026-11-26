@@ -14,6 +14,8 @@ on:
       - "src/app/api/cron/video-queue-worker/route.ts"
       - "scripts/video-queue-quota.test.ts"
       - "src/lib/trend-product-relevance.ts"
+      - "src/lib/llm-provider.ts"
+      - "scripts/llm-provider-routing.test.ts"
       - "scripts/trend-product-relevance.test.ts"
       - ".github/workflows/process-video-queue.yml"
       - ".github/workflows/publish-daily-shorts.yml"
@@ -94,6 +96,9 @@ jobs:
 
       - name: Validate trend-to-product relevance
         run: npx tsx scripts/trend-product-relevance.test.ts
+
+      - name: Validate LLM provider and free fallback routing
+        run: npx tsx scripts/llm-provider-routing.test.ts
 
       - name: Validate format, affiliate-link and chapter contracts
         run: node video/scripts/video-format.test.mjs
