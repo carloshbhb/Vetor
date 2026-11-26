@@ -6,8 +6,7 @@ on:
       - pilot/learjet-60-documentary-remotion
   workflow_dispatch:
 
-# Isolated pilot rerender trigger; no production publishing.
-# CPU-only dependency install fix verified; this commit intentionally retriggers the render.
+# Isolated pilot rerender; no production publishing.
 
 permissions:
   contents: read
@@ -50,10 +49,9 @@ jobs:
           edge-tts --voice pt-BR-FranciscaNeural --rate=+12% --file /tmp/learjet-narration.txt --write-media video/public/learjet-pilot-voice.mp3
       - name: Install dependencies
         run: |
-          # Skip the optional CUDA binary download: GitHub-hosted runners are CPU-only,
-          # and ONNX Runtime's CUDA release URL currently returns 404.
-          npm_config_onnxruntime_node_install_cuda=skip npm ci
-          cd video && npm ci
+          # CPU-only GitHub runner: skip ONNX Runtime's optional CUDA binary download.
+          npm ci --onnxruntime-node-install-cuda=skip
+          cd video && npm ci --onnxruntime-node-install-cuda=skip
       - name: Render vertical pilot
         working-directory: video
         run: npx remotion render src/learjet-pilot/Root.tsx Learjet60DocumentaryPilot out/learjet-60-documentary-pilot.mp4 --codec h264 --crf 18 --pixel-format yuv420p --concurrency 2
