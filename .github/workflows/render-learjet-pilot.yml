@@ -1,6 +1,9 @@
 name: Render Learjet Documentary Pilot
 
 on:
+  push:
+    branches:
+      - pilot/learjet-60-documentary-remotion
   workflow_dispatch:
 
 permissions:
