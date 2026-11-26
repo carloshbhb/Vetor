@@ -25,6 +25,7 @@ import {
   LANDSCAPE_SCENE_FOOTER,
   LANDSCAPE_SCENE_MOTION,
   LANDSCAPE_TEXT_COLUMN,
+  LANDSCAPE_SAFE_ZONE,
   landscapeCameraAt,
 } from '../utils/landscape-safe-zone';
 
@@ -382,9 +383,19 @@ const LongCaptions: React.FC<{
 
 export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
   const camera = landscapeCameraAt(frame, fps);
   const image = props.productImages?.[0] || props.imageUrl;
+  // This fixed, stationary clip sits OUTSIDE the transformed camera layer.
+  // It protects every foreground element (titles, product images, cards and
+  // motion graphics) from entering YouTube's reserved top/left/right/bottom
+  // bands, even when the camera reaches its maximum ±32/±22px excursion.
+  const safeZoneGuard = 4;
+  const cameraContentClip = 'inset(' +
+    (LANDSCAPE_SAFE_ZONE.top + safeZoneGuard) + 'px ' +
+    (width - LANDSCAPE_SAFE_ZONE.right + safeZoneGuard) + 'px ' +
+    (height - LANDSCAPE_SAFE_ZONE.bottom + safeZoneGuard) + 'px ' +
+    (LANDSCAPE_SAFE_ZONE.left + safeZoneGuard) + 'px)';
   const hookFrames = (props.hookDuration ?? 3) * fps;
   const scenesEndFrame = props.scenes.reduce((max, scene) => Math.max(max, scene.endFrame), hookFrames);
   const closingDuration = Math.max(1, props.totalDuration * fps - scenesEndFrame);
@@ -414,7 +425,8 @@ export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) 
         }}
       />
       <Audio src={resolveMediaSource(props.audioUrl)} volume={0.96} />
-      <AbsoluteFill style={{ transform: `translate3d(${camera.x}px, ${camera.y}px, 0)` }}>
+      <AbsoluteFill style={{ clipPath: cameraContentClip, overflow: 'hidden' }}>
+        <AbsoluteFill style={{ transform: `translate3d(${camera.x}px, ${camera.y}px, 0)` }}>
         <Sequence from={0} durationInFrames={hookFrames} premountFor={fps}>
           <Opening title={props.title} category={props.category} hook={props.hook} imageUrl={image} />
           <SceneCreativeTreatment
@@ -449,6 +461,8 @@ export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) 
             metric={null}
           />
         </Sequence>
+        </AbsoluteFill>
+        <LongCaptions entries={props.subtitleEntries} frame={frame} fps={fps} />
       </AbsoluteFill>
       <AbsoluteFill
         style={{
@@ -456,7 +470,6 @@ export const EditorialReviewLandscape: React.FC<EditorialReviewProps> = (props) 
           background: 'linear-gradient(180deg,rgba(4,8,16,.14),transparent 28%,transparent 72%,rgba(4,8,16,.48))',
         }}
       />
-      <LongCaptions entries={props.subtitleEntries} frame={frame} fps={fps} />
     </AbsoluteFill>
   );
 };

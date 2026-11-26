@@ -167,3 +167,28 @@ test('creative overlays are clipped and kinetic headlines are fitted to platform
   assert.match(renderer, /right: width - contentRight/);
   assert.doesNotMatch(renderer, /fontSize: landscape \\? 88 : 104/);
 });
+
+test('the fixed landscape safe-zone clip wraps the complete moving camera layer and captions', () => {
+  const composition = readFileSync(new URL('../src/compositions/EditorialReviewLandscape.tsx', import.meta.url), 'utf8');
+  const clipWrapper = composition.indexOf('<AbsoluteFill style={{ clipPath: cameraContentClip, overflow: \'hidden\' }}>'); 
+  const movingCamera = composition.indexOf('<AbsoluteFill style={{ transform: `translate3d(${camera.x}px, ${camera.y}px, 0)` }}>'); 
+  const captions = composition.indexOf('<LongCaptions entries={props.subtitleEntries}', movingCamera);
+  const wrapperClose = composition.indexOf('</AbsoluteFill>', captions);
+
+  assert.ok(clipWrapper >= 0, 'a stationary safe-zone clip must exist outside camera motion');
+  assert.ok(movingCamera > clipWrapper, 'the camera-transformed scene must be a child of the fixed clip');
+  assert.ok(captions > movingCamera && captions < wrapperClose, 'captions must remain inside the fixed safe-zone clip');
+  assert.match(composition, /const safeZoneGuard = 4/);
+  assert.match(composition, /LANDSCAPE_SAFE_ZONE\.top \+ safeZoneGuard/);
+  assert.match(composition, /width - LANDSCAPE_SAFE_ZONE\.right \+ safeZoneGuard/);
+  assert.match(composition, /height - LANDSCAPE_SAFE_ZONE\.bottom \+ safeZoneGuard/);
+  assert.match(composition, /LANDSCAPE_SAFE_ZONE\.left \+ safeZoneGuard/);
+
+  const clipBounds = {
+    left: LANDSCAPE_SAFE_ZONE.left + 4,
+    top: LANDSCAPE_SAFE_ZONE.top + 4,
+    right: LANDSCAPE_SAFE_ZONE.right - 4,
+    bottom: LANDSCAPE_SAFE_ZONE.bottom - 4,
+  };
+  assert.ok(isInsideLandscapeSafeZone(clipBounds), 'the global clipping rectangle must be strictly inside the YouTube safe zone');
+});
