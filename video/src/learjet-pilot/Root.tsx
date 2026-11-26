@@ -84,8 +84,8 @@ const SceneVisual = ({ scene, local }: { scene: Scene; local: number }) => {
 const StoryScene = ({ scene }: { scene: Scene }) => {
   const frame = useCurrentFrame();
   const { height } = useVideoConfig();
-  const local = frame - scene.start;
-  const opacity = fade(frame, scene.start, scene.end);
+  const local = frame;
+  const opacity = fade(frame, 0, scene.end - scene.start);
   const lift = interpolate(local, [0,24], [34,0], { extrapolateLeft:'clamp',extrapolateRight:'clamp' });
   return <AbsoluteFill style={{opacity,padding:'90px 72px 100px',color:C.white,fontFamily:'Arial, sans-serif',justifyContent:'space-between'}}>
     <div style={{display:'flex',justifyContent:'space-between',fontSize:18,fontWeight:800,letterSpacing:4,color:C.muted}}><span>VETOR • EXPLICA</span><span>AVIAÇÃO / INVESTIGAÇÃO</span></div>
