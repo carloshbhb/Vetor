@@ -1,0 +1,68 @@
+name: Render Learjet Documentary Pilot
+
+on:
+  push:
+    branches:
+      - pilot/learjet-60-documentary-remotion
+  workflow_dispatch:
+
+# Isolated pilot rerender; no production publishing.
+
+permissions:
+  contents: read
+
+jobs:
+  render-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install FFmpeg and Edge TTS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install edge-tts
+      - name: Generate Portuguese narration
+        run: |
+          mkdir -p video/public video/out
+          cat > /tmp/learjet-narration.txt <<'EOF'
+          Um voo particular terminou em tragédia no sul da Flórida. Um Learjet 60 caiu perto de uma área residencial em Greenacres, no condado de Palm Beach. Nove pessoas estavam a bordo. Todas morreram.
+          A aeronave havia partido de Austin, no Texas, com destino a North Eleuthera, nas Bahamas. A rota atravessava o Golfo do México e seguia em direção ao Atlântico.
+          Nas comunicações com o controle de tráfego aéreo, a tripulação relatou condições de gelo e turbulência. Em seguida, houve uma descida de emergência. Esses relatos ajudam a reconstruir os minutos finais, mas não explicam, por si só, o que provocou o acidente.
+          O Learjet atingiu uma área próxima a uma via e a residências. O impacto provocou um incêndio. As nove pessoas que estavam no avião morreram.
+          A investigação é conduzida pelo Conselho Nacional de Segurança nos Transportes dos Estados Unidos, a NTSB. Os investigadores recolheram partes das asas, motores e estruturas da aeronave para análise.
+          Um avanço importante veio em nove de novembro: a NTSB confirmou a recuperação do gravador de voz da cabine, encontrado na região do impacto inicial. O equipamento foi enviado ao laboratório da agência, em Washington, para avaliação.
+          O gravador pode ajudar a esclarecer o que foi dito e decidido na cabine. Mas ainda não há conclusão pública sobre a causa da queda.
+          Gelo, turbulência, a rápida descida e as condições da aeronave são elementos que precisam ser examinados em conjunto. Em acidentes aéreos, uma sequência de eventos pode ter várias causas e fatores contribuintes.
+          Por enquanto, a resposta mais responsável é esta: nove vidas foram perdidas, o gravador foi recuperado e a investigação continua. A causa oficial ainda não foi determinada.
+          EOF
+          edge-tts --voice pt-BR-FranciscaNeural --rate=+12% --file /tmp/learjet-narration.txt --write-media video/public/learjet-pilot-voice.mp3
+      - name: Install dependencies
+        run: |
+          # CPU-only GitHub runner: skip ONNX Runtime's optional CUDA binary download.
+          npm ci --onnxruntime-node-install-cuda=skip
+          cd video && npm ci --onnxruntime-node-install-cuda=skip
+      - name: Render vertical pilot
+        working-directory: video
+        run: npx remotion render src/learjet-pilot/Root.tsx Learjet60DocumentaryPilot out/learjet-60-documentary-pilot.mp4 --codec h264 --crf 18 --pixel-format yuv420p --concurrency 2
+      - name: Validate render
+        run: |
+          test -s video/out/learjet-60-documentary-pilot.mp4
+          ffprobe -v error -show_entries stream=codec_name,width,height -show_entries format=duration -of default=noprint_wrappers=1 video/out/learjet-60-documentary-pilot.mp4
+      - name: Upload pilot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: learjet-60-documentary-pilot
+          path: video/out/learjet-60-documentary-pilot.mp4
+          if-no-files-found: error
+          retention-days: 14
