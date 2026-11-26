@@ -13,6 +13,8 @@ on:
       - "scripts/script-generator-budget.test.ts"
       - "src/app/api/cron/video-queue-worker/route.ts"
       - "scripts/video-queue-quota.test.ts"
+      - "src/lib/trend-product-relevance.ts"
+      - "scripts/trend-product-relevance.test.ts"
       - ".github/workflows/process-video-queue.yml"
       - ".github/workflows/publish-daily-shorts.yml"
       - ".github/workflows/video-pipeline-validation.yml"
@@ -30,6 +32,8 @@ on:
       - "scripts/tts.py"
       - "scripts/video-media-matching.test.ts"
       - "scripts/video-queue-quota.test.ts"
+      - "src/lib/trend-product-relevance.ts"
+      - "scripts/trend-product-relevance.test.ts"
       - "src/lib/video-media-matching.ts"
       - "src/app/api/cron/generate-video-script/route.ts"
       - "src/lib/script-generator.ts"
@@ -87,6 +91,9 @@ jobs:
         run: |
           npx tsx scripts/video-queue-quota.test.ts
           python video/scripts/fetch-trending-news.py --self-test
+
+      - name: Validate trend-to-product relevance
+        run: npx tsx scripts/trend-product-relevance.test.ts
 
       - name: Validate format, affiliate-link and chapter contracts
         run: node video/scripts/video-format.test.mjs
