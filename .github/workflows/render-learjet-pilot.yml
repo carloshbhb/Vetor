@@ -6,6 +6,8 @@ on:
       - pilot/learjet-60-documentary-remotion
   workflow_dispatch:
 
+# Isolated pilot rerender trigger; no production publishing.
+
 permissions:
   contents: read
 
