@@ -5,6 +5,7 @@ import { generateComparisonVideoScript, generateVideoScript, toSpokenProductName
 import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 import { getProductWithPictures } from "@/lib/mercadolivre-api";
 import { dedupeMercadoLivreImages, extractMercadoLivreItemId, findBestMercadoLivreItemMatch, scoreProductTitleMatch } from "@/lib/video-media-matching";
+import { scoreTrendProductRelevance } from "@/lib/trend-product-relevance";
 
 export const runtime = "nodejs";
 export const maxDuration = 240;
@@ -23,6 +24,24 @@ export async function POST(request: NextRequest) {
     const existingMediaAssets = Array.isArray(video.media_assets) ? video.media_assets : [];
     const formatAsset = existingMediaAssets.find((asset: any) => asset && asset.type === "publication_format");
     const videoFormat = formatAsset?.format === "long" ? "long" : "short";
+    const trendMarkerForGate = existingMediaAssets.find((asset: any) => asset && asset.type === "trend-topic") || null;
+    if (trendMarkerForGate) {
+      const relevance = scoreTrendProductRelevance({
+        topicTitle: String(trendMarkerForGate.title || ""),
+        newsTitles: Array.isArray(trendMarkerForGate.news)
+          ? trendMarkerForGate.news.map((article: any) => String(article?.title || ""))
+          : [],
+        productTitle: String(video.product_title || ""),
+        productCategory: String(video.product_category || ""),
+      });
+      if (relevance < 6) {
+        return NextResponse.json({
+          error: "Produto recusado: a recomendação não tem relação temática direta ou uma associação de uso explicitamente validada.",
+          reason: "trend_product_relevance_too_low",
+          relevanceScore: relevance,
+        }, { status: 422 });
+      }
+    }
 
     let cachedScript: any = null;
     if (typeof video.script_text === "string" && video.script_text.trim()) {
