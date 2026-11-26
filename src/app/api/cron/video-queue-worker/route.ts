@@ -5,6 +5,7 @@ import { getSupabaseServiceKeyClient } from "@/lib/supabase";
 import { buildTrackedAffiliateUrl } from "@/lib/affiliate-attribution";
 import { isPublishedComparativeArticle, resolveComparativeVideoAffiliateTarget } from "@/lib/video-queue-guards";
 import { buildVideoDescription, resolveVideoFormat } from "../../../../../video/scripts/video-format.mjs";
+import { scoreTrendProductRelevance } from "@/lib/trend-product-relevance";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
@@ -1032,20 +1033,6 @@ export async function POST(request: NextRequest) {
       const usedItems = new Set(existingForFormat
         .map((row: any) => socialListMarker(row.media_assets)?.itemId || normalizeMercadoLivreItemId(row.product_url))
         .filter(Boolean));
-      const stop = new Set(["para","com","como","mais","menos","sobre","de","da","do","das","dos","uma","um","the","and","for","new","novo","nova","hoje","brasil","brasileiro","brasileira"]);
-      const tokens = (value: unknown) => normalizeVideoProductTitle(value).split(" ").filter((word) => word.length > 2 && !stop.has(word));
-      const synonym: Record<string,string[]> = {
-        celular:["smartphone","telefone","iphone","android"], smartphone:["celular","telefone","iphone","android"], iphone:["celular","smartphone"],
-        games:["game","gamer","gaming","controle","headset"], gaming:["game","gamer","games","controle","headset"], gamer:["gaming","games","game"],
-        notebook:["laptop","pc","computador"], laptop:["notebook","pc"], computador:["notebook","pc"],
-        fone:["headset","earbuds","audio"], earbuds:["fone","audio"], headset:["fone","audio"],
-        camera:["webcam","filmadora"], webcam:["camera"], tv:["televisao","smart"], televisao:["tv","smart"],
-        "inteligencia":["ia","artificial","notebook","smartphone"], ia:["inteligencia","notebook","smartphone","tablet"],
-        artificial:["ia","inteligencia","notebook","smartphone"], chatgpt:["ia","notebook","smartphone","tablet"],
-        "inteligencia artificial":["ia","notebook","smartphone","tablet"], tecnologia:["notebook","smartphone","tablet","fone"],
-        "home office":["notebook","webcam","microfone","headset"], streaming:["microfone","webcam","fone","tv"],
-        "black friday":["smartphone","notebook","fone","tv","tablet"], "copa do mundo":["tv","smart","fone"],
-      };
       const candidates = (listItems || []).map((item: any) => {
         const itemId = normalizeMercadoLivreItemId(item.item_id);
         let link = itemId ? linksByItemId.get(itemId) : null;
@@ -1055,41 +1042,34 @@ export async function POST(request: NextRequest) {
         }
         if (!link) return null;
         const title = String(item.title || link.product_name || "").trim();
-        const productTokens = new Set([...tokens(title), ...tokens(link.category)]);
         const affiliateUrl = String(link.affiliate_url || "").trim();
         const productUrl = String(item.product_url || link.product_url || "").trim();
         const imageUrl = String(item.image_url || link.image_url || "").trim();
         if (!itemId || !title || !isSafeMercadoLivreProductUrl(productUrl) || !isSafeMercadoLivreAffiliateUrl(affiliateUrl) ||
             !imageUrl.startsWith("https://") || /vetor\.blog|\/og\.png(?:$|\?)/i.test(imageUrl) || usedItems.has(itemId) ||
             usedTitles.some((old: string) => isLikelySameVideoProductTitle(title, old))) return null;
-        return { item, link, itemId, title, affiliateUrl, productUrl, imageUrl, productTokens };
+        return { item, link, itemId, title, affiliateUrl, productUrl, imageUrl };
       }).filter(Boolean) as any[];
       const ranked: Array<{ topic: any; product: any; score: number }> = [];
       const selectedItems = new Set<string>();
       for (const topic of topics) {
-        const topicEvidence = [topic.title, ...topic.news.map((article: any) => article.title), ...topic.news.map((article: any) => article.snippet)].join(" ");
-        const topicTokens = tokens(topicEvidence);
-        const topicSynonyms = [...new Set(topicTokens.flatMap((token: string) => synonym[token] || []))];
-        for (const phrase of Object.keys(synonym)) {
-          if (topicEvidence.toLowerCase().includes(phrase) && phrase.includes(" ")) topicSynonyms.push(...(synonym[phrase] || []));
-        }
+        const newsTitles = topic.news.map((article: any) => String(article.title || ""));
         const bestForTopic = new Map<string, any>();
         for (const product of candidates) {
           if (selectedItems.has(product.itemId)) continue;
-          let score = 0;
-          for (const token of topicTokens) {
-            if (product.productTokens.has(token)) score += 3;
-          }
-          for (const related of topicSynonyms) {
-            if (product.productTokens.has(related)) score += 3;
-          }
+          const score = scoreTrendProductRelevance({
+            topicTitle: topic.title,
+            newsTitles,
+            productTitle: product.title,
+            productCategory: product.link.category,
+          });
           if (!bestForTopic.has(product.itemId) || score > bestForTopic.get(product.itemId).score) {
             bestForTopic.set(product.itemId, { product, score });
           }
         }
         const best = [...bestForTopic.values()].sort((left, right) => right.score - left.score)[0] || null;
-        // A product must match the story or an explicit topical category alias; no generic affiliate insertion.
-        if (best && best.score >= 3) {
+        // Require a direct topic match or a deliberately defined use-case alias.
+        if (best && best.score >= 6) {
           ranked.push({ topic, product: best.product, score: best.score });
           selectedItems.add(best.product.itemId);
         }
