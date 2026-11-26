@@ -91,6 +91,12 @@ assert.deepEqual(
   { maxTokens: 2_600, minimumIntervalMs: 60_000 },
   "GPT-OSS allows a bounded 2600-token output for 4–7 minute scripts while retaining the 60-second model pacing"
 );
+
+assert.deepEqual(
+  getGroqRequestPolicy("openai/gpt-oss-20b", 3600),
+  { maxTokens: 2_600, minimumIntervalMs: 60_000 },
+  "GPT-OSS 20B uses the same bounded output and per-model pacing policy"
+);
 assert.deepEqual(
   buildGroqModelOrder("qwen/qwen3.8-27b", "custom/fallback"),
   ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "custom/fallback"],
