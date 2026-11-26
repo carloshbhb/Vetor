@@ -164,9 +164,12 @@ export function buildGroqModelOrder(configuredPrimary?: string, configuredFallba
 }
 
 export function buildOpenRouterFreeModelOrder(curatedModels: string[]): string[] {
-  // Keep account-verified curated models first, then ask OpenRouter's
-  // free-only router to select any other compatible free endpoint.
-  return uniqueModels([...curatedModels, "openrouter/free"]);
+  // The script generator currently permits only two OpenRouter attempts per
+  // request to preserve time for Groq and NVIDIA. Put the free-only router
+  // second so it is actually reached after one account-verified model instead
+  // of being stranded behind the full curated catalog.
+  const [primary, ...remaining] = curatedModels;
+  return uniqueModels([primary, "openrouter/free", ...remaining]);
 }
 
 function configuredProviders(): LLMProvider[] {

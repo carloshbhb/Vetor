@@ -110,10 +110,18 @@ assert.deepEqual(
   ]),
   [
     "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "nvidia/nemotron-3.5-super-vl:free",
     "openrouter/free",
+    "nvidia/nemotron-3.5-super-vl:free",
   ],
-  "the free-only auto-router is the final OpenRouter fallback after account-verified curated free models"
+  "the free-only auto-router must be attempted second so it fits inside the two-model OpenRouter request budget"
+);
+assert.deepEqual(
+  buildOpenRouterFreeModelOrder([
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "nvidia/nemotron-3.5-super-vl:free",
+  ]).slice(0, 2),
+  ["nvidia/nemotron-3-ultra-550b-a55b:free", "openrouter/free"],
+  "OpenRouter's request cap of two attempts must include the free-only router"
 );
 assert.deepEqual(
   buildOpenRouterFreeModelOrder([]),
