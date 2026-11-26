@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 
 # Isolated pilot rerender trigger; no production publishing.
+# CPU-only dependency install fix verified; this commit intentionally retriggers the render.
 
 permissions:
   contents: read
